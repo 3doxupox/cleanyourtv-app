@@ -73,7 +73,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import tv.cleanyour.core.flows.ChipState
 
-// ---- copy: ICU MessageFormat with named arguments (strings.xml rule) ----
+// copy: ICU MessageFormat with named arguments (strings.xml rule)
 
 @Composable
 fun msg(id: Int, vararg args: Pair<String, Any>): String {
@@ -85,7 +85,7 @@ fun msg(id: Int, vararg args: Pair<String, Any>): String {
     }
 }
 
-// ---- tokens (TODO(W7 merge): CytTheme.colors) ----
+// tokens (TODO(W7 merge): CytTheme.colors)
 
 object PendingTokens {
     val success = Color(0xFF30D158)
@@ -94,7 +94,7 @@ object PendingTokens {
     val gutter = 20.dp
 }
 
-// ---- obscured-touch guard (SECURITY 4.3, D35): a confirming button ignores taps that reach it
+// obscured-touch guard (SECURITY 4.3, D35): a confirming button ignores taps that reach it
 // through another app's overlay. TODO(W7 merge): keep in :ui:design or here, W7 has no equivalent.
 @OptIn(ExperimentalComposeUiApi::class)
 fun Modifier.rejectObscuredTouches(): Modifier = pointerInteropFilter { e ->
@@ -103,7 +103,7 @@ fun Modifier.rejectObscuredTouches(): Modifier = pointerInteropFilter { e ->
     obscured   // true consumes (drops) the event, false lets the button see it
 }
 
-// ---- layout (TODO(W7 merge): ScreenScaffold, CytTopBar, ScreenTitle, Lead, Overline, StepCounter) ----
+// layout (TODO(W7 merge): ScreenScaffold, CytTopBar, ScreenTitle, Lead, Overline, StepCounter)
 
 @Composable
 fun PendingScreenScaffold(
@@ -169,7 +169,7 @@ fun PendingStepCounter(text: String, modifier: Modifier = Modifier) = PendingOve
 @Composable
 fun PendingGap(height: Int = 16) = Spacer(Modifier.height(height.dp))
 
-// ---- actions (TODO(W7 merge): PrimaryButton, SecondaryButton, TertiaryButton, DestructiveButton) ----
+// actions (TODO(W7 merge): PrimaryButton, SecondaryButton, TertiaryButton, DestructiveButton)
 
 @Composable
 fun PendingPrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, loading: Boolean = false) {
@@ -198,7 +198,7 @@ fun PendingDestructiveButton(text: String, onClick: () -> Unit, modifier: Modifi
         modifier = modifier.fillMaxWidth().heightIn(min = 56.dp).rejectObscuredTouches()) { Text(text, color = PendingTokens.danger) }
 }
 
-// ---- status (TODO(W7 merge): TvStatusChip, DiscoveryChip, Banner, StopCard, Spinner, ProgressBar) ----
+// status (TODO(W7 merge): TvStatusChip, DiscoveryChip, Banner, StopCard, Spinner, ProgressBar)
 
 @Composable
 fun PendingTvStatusChip(label: String, status: ChipState, modifier: Modifier = Modifier) {
@@ -270,7 +270,7 @@ fun PendingLiveLine(text: String, found: Boolean, modifier: Modifier = Modifier)
     }
 }
 
-// ---- cards and rows (TODO(W7 merge): StepCard, ListGroup, ListRow, SwitchRow, CheckLine, InfoChip, SafetyLine) ----
+// cards and rows (TODO(W7 merge): StepCard, ListGroup, ListRow, SwitchRow, CheckLine, InfoChip, SafetyLine)
 
 @Composable
 fun PendingStepCard(title: String, body: String, modifier: Modifier = Modifier, overline: String? = null, current: Boolean = true, trailing: (@Composable () -> Unit)? = null) {
@@ -364,7 +364,7 @@ fun PendingLtrText(text: String, modifier: Modifier = Modifier) {
     Text(text, modifier, style = MaterialTheme.typography.bodySmall.copy(textDirection = TextDirection.Ltr), color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
-// ---- sheet and field (TODO(W7 merge): CytBottomSheet, SheetHeader, CytTextField, MonospaceBlock) ----
+// sheet and field (TODO(W7 merge): CytBottomSheet, SheetHeader, CytTextField, MonospaceBlock)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -404,7 +404,7 @@ fun PendingMonospaceBlock(lines: List<String>, modifier: Modifier = Modifier, co
     }
 }
 
-// ---- the TV on the phone (TODO(W7 merge): TvThumbnail, CountdownRing, AdbAllowMirror, CardPromptMirror, CodeMatchCard) ----
+// the TV on the phone (TODO(W7 merge): TvThumbnail, CountdownRing, AdbAllowMirror, CardPromptMirror, CodeMatchCard)
 
 @Composable
 fun PendingTvThumbnail(png: ByteArray?, contentDescription: String, modifier: Modifier = Modifier, label: String? = null) {
