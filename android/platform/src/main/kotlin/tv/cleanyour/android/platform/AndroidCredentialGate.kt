@@ -1,5 +1,6 @@
 package tv.cleanyour.android.platform
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.KeyguardManager
 import android.content.Context
@@ -57,7 +58,7 @@ class AndroidCredentialGate(
         if (!hasScreenLock()) return@withContext GateResult.NotAvailable(pass(tvId, GateMethod.NONE))
         val activity = activityRef?.get()
         val ok = when {
-            Build.VERSION.SDK_INT >= 30 -> prompt(activity ?: app, title, subtitle) { setAllowedAuthenticators(STRONG or BiometricManager.Authenticators.DEVICE_CREDENTIAL) }
+            Build.VERSION.SDK_INT >= 30 -> prompt(activity ?: app, title, subtitle) { setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.DEVICE_CREDENTIAL) }
             Build.VERSION.SDK_INT == 29 -> prompt(activity ?: app, title, subtitle) { @Suppress("DEPRECATION") setDeviceCredentialAllowed(true) }
             else -> keyguardConfirm(activity, title, subtitle)
         }
@@ -67,6 +68,8 @@ class AndroidCredentialGate(
         }
     }
 
+    // USE_BIOMETRIC is declared by :app's manifest (RFC-W8-7); this library manifest has no permissions.
+    @SuppressLint("MissingPermission")
     private suspend fun prompt(ctx: Context, title: String, subtitle: String, configure: BiometricPrompt.Builder.() -> Unit): GateMethod? =
         suspendCancellableCoroutine { cont ->
             val signal = CancellationSignal()
@@ -95,6 +98,5 @@ class AndroidCredentialGate(
 
     companion object {
         const val REQUEST_CONFIRM = 4207
-        private const val STRONG = 15   // BiometricManager.Authenticators.BIOMETRIC_STRONG
     }
 }

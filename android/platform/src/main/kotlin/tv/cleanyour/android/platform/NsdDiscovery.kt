@@ -1,5 +1,6 @@
 package tv.cleanyour.android.platform
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.LinkProperties
@@ -144,7 +145,8 @@ class NsdDiscovery(
 }
 
 // Network state for D19: Wi-Fi (or Ethernet) or not, and the link's IPv4 subnet ("192.168.1.0/24"),
-// read from ConnectivityManager with ACCESS_NETWORK_STATE only. Never the SSID.
+// read from ConnectivityManager with ACCESS_NETWORK_STATE only (declared by :app). Never the SSID.
+@SuppressLint("MissingPermission")
 class NetworkState(context: Context) {
     private val cm = context.applicationContext.getSystemService(ConnectivityManager::class.java)
     private val mutable = MutableStateFlow(DiscoveryEvent.NetworkState(onWifi = false, subnet = null))

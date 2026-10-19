@@ -21,11 +21,12 @@ class ManifestTest {
     private val info = context.packageManager.getPackageInfo(context.packageName,
         PackageManager.GET_ACTIVITIES or PackageManager.GET_SERVICES or PackageManager.GET_RECEIVERS or PackageManager.GET_PROVIDERS or PackageManager.GET_PERMISSIONS)
 
-    @Test fun permissionsAreExactlyD16() {
+    @Test fun permissionsAreExactlyD16PlusTheBiometricPrompt() {
         assertEquals(
             setOf(
                 "android.permission.INTERNET", "android.permission.ACCESS_NETWORK_STATE", "android.permission.CHANGE_WIFI_MULTICAST_STATE",
                 "android.permission.FOREGROUND_SERVICE", "android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE", "android.permission.POST_NOTIFICATIONS",
+                "android.permission.USE_BIOMETRIC",   // RFC-W8-7: required by D17's BiometricPrompt
             ),
             info.requestedPermissions.orEmpty().toSet(),
         )

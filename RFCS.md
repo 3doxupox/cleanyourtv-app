@@ -52,3 +52,12 @@ What: F9 says the M3c state is detected "by screenshot probe", but no section 5 
 launcher's card answer. Workaround: `CardAnswerDetector` seam in `:core:flows` (default: unknown)
 plus two manual outcome buttons on M3c. Proposal: `Prober.cardAnswer(session, pkg): CardAnswer?`
 once W4 or the 0.2 provider can answer it. Affects W4.
+
+## RFC-W8-7 D16 misses USE_BIOMETRIC
+
+What: D17 requires `BiometricPrompt` (BIOMETRIC_STRONG or DEVICE_CREDENTIAL); the platform API
+throws without `android.permission.USE_BIOMETRIC`, an install-time permission with no prompt (lint
+reports MissingPermission). D16's list does not name it. Workaround: the manifest declares it and
+`ManifestTest` pins the list as D16 plus this one. Alternative: the keyguard confirm-credential
+screen on every API level (no permission, but no biometrics and deprecated since API 29). Proposal:
+amend D16 to add `USE_BIOMETRIC`; the `aapt2 dump badging` assertion (W9) must list it. Affects W9.
