@@ -19,10 +19,11 @@ internal object TextSafety {
         return if (one.length <= max) one else one.take(max - 3).trimEnd() + "..."
     }
 
-    // One line for people: any character except control characters, which become a space.
+    // One line for people: any character except control characters and the Unicode line and
+    // paragraph separators, which become a space.
     fun oneLine(s: String, max: Int = 80): String {
         val sb = StringBuilder()
-        for (ch in s) sb.append(if (ch.isISOControl() || ch == ' ' || ch == ' ') ' ' else ch)
+        for (ch in s) sb.append(if (ch.isISOControl() || ch == '\u2028' || ch == '\u2029') ' ' else ch)
         val one = sb.toString().replace(Regex("\\s{2,}"), " ").trim()
         return if (one.length <= max) one else one.take(max - 3).trimEnd() + "..."
     }
