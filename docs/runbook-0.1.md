@@ -164,7 +164,9 @@ surprise from the harness side.
 
 | Date | What ran | Result |
 | :- | :- | :- |
-| 2026-10-19 | `scripts/emulator-on-forge.sh run 28`: API 28 Android TV emulator in a 3 GB container on forge under the build lock; S00 harness smoke | see DECISIONS-W9.md, "Evidence" |
+| 2026-10-19 | `scripts/emulator-on-forge.sh run 28`: API 28 Android TV emulator in a 3 GB container on forge under the build lock | S00 harness smoke 4 of 4 passed, 17 scenarios PENDING on W2 to W5 (DECISIONS-W9.md, Evidence) |
+| 2026-10-19 | `scripts/build-internal-apk.sh <throwaway tag> --test-key` | two clean builds identical, apksigcopier match, sha256 printed; check-apk 12 of 15 (W8 manifest pending) |
+| 2026-10-19 | Dependency verification tamper test | build failed on the tampered hash, as it must |
 | (at I1 to I3) | The full suite with W2 to W5 merged (no PENDING), then the app on a phone emulator against the fake adbd persona | |
 
 Dependency verification tamper test (section A): change one byte of a cached jar in a scratch
