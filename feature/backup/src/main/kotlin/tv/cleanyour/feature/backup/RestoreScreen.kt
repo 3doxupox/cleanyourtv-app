@@ -82,7 +82,8 @@ fun RestoreScreen(state: RestorePointState, onIntent: (RestorePointIntent) -> Un
                 } else {
                     Banner(stringResource(R.string.restore_done_title), BannerTone.SUCCESS, Modifier.padding(top = 16.dp))
                     Body(msg(R.string.restore_done_body, "date" to restoreDate(p.atMs, locale)), Modifier.padding(top = 12.dp, start = 4.dp, end = 4.dp), color = CytTheme.colors.textPrimary)
-                    PrimaryButton(stringResource(R.string.restore_clean_again), { onIntent(RestorePointIntent.CleanAgain) }, Modifier.padding(top = 16.dp))
+                    // Navigation into the wizard, whose own "Make it clean" is the guarded action (R5-W8 O1).
+                    PrimaryButton(stringResource(R.string.restore_clean_again), { onIntent(RestorePointIntent.CleanAgain) }, Modifier.padding(top = 16.dp), guardObscured = false)
                 }
             }
             RestorePhase.Failed -> Banner(stringResource(R.string.restore_read_failed), BannerTone.WARNING, Modifier.padding(top = 16.dp))

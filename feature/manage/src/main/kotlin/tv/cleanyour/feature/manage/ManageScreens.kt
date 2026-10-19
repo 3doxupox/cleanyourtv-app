@@ -122,7 +122,8 @@ fun ManageScreen(state: ManageState, onIntent: (ManageIntent) -> Unit, modifier:
                 level = stringResource(if (tv.level == Level.CUSTOM) R.string.manage_level_custom else R.string.manage_level_simple),
                 onClick = { onIntent(ManageIntent.RefreshThumbnail) },
             )
-            if (!tv.clean) PrimaryButton(stringResource(R.string.manage_clean_again), { onIntent(ManageIntent.CleanAgain) }, Modifier.padding(top = 16.dp))
+            // Navigation into the wizard, whose own "Make it clean" is the guarded action (R5-W8 O1).
+            if (!tv.clean) PrimaryButton(stringResource(R.string.manage_clean_again), { onIntent(ManageIntent.CleanAgain) }, Modifier.padding(top = 16.dp), guardObscured = false)
             ListGroup(Modifier.padding(top = 16.dp)) {
                 ListRow(stringResource(R.string.manage_row_home), subtitle = tv.dockNames.joinToString(", ").ifEmpty { null },
                     onClick = { onIntent(ManageIntent.Open(ManageSection.HOME_SCREEN)) })
@@ -197,7 +198,8 @@ internal fun ColumnScope.OpenWriteContent(open: OpenWrite, onAction: (OpenWriteA
     if (setup) {
         StopCard(title, body,
             primaryLabel = stringResource(R.string.openwrite_open_setup), onPrimary = onOpenSetup,
-            tertiaryLabel = stringResource(R.string.openwrite_later), onTertiary = onDismiss)
+            tertiaryLabel = stringResource(R.string.openwrite_later), onTertiary = onDismiss,
+            primaryGuarded = false)   // navigation: it only opens the wizard's resume card
     } else {
         StopCard(title, body,
             primaryLabel = if (open.busy) null else stringResource(R.string.openwrite_carry_on), onPrimary = { onAction(OpenWriteAction.CARRY_ON) },
@@ -327,7 +329,7 @@ internal fun ColumnScope.ForgetContent(tvName: String, onIntent: (TvSettingsInte
     SheetHeader(msg(R.string.tvsettings_forget_title, "tv" to tvName))
     Body(stringResource(R.string.tvsettings_forget_explain), Modifier.padding(top = 8.dp))
     ActionColumn(Modifier.padding(top = 20.dp)) {
-        SecondaryButton(stringResource(R.string.tvsettings_forget_confirm), { onIntent(TvSettingsIntent.Forget) })
+        PrimaryButton(stringResource(R.string.tvsettings_forget_confirm), { onIntent(TvSettingsIntent.Forget) })
         TertiaryButton(stringResource(R.string.action_cancel), { onIntent(TvSettingsIntent.CancelForget) }, quiet = true)
     }
 }
@@ -429,7 +431,7 @@ internal fun ColumnScope.ConfirmContent(what: AppConfirm, working: Boolean, onIn
     SheetHeader(stringResource(if (reset) R.string.appsettings_reset_key_title else R.string.appsettings_delete_all_title))
     Body(stringResource(if (reset) R.string.appsettings_reset_key_note else R.string.appsettings_delete_all_note), Modifier.padding(top = 8.dp))
     ActionColumn(Modifier.padding(top = 20.dp)) {
-        SecondaryButton(stringResource(if (reset) R.string.appsettings_reset_key_confirm else R.string.appsettings_delete_all_confirm),
+        PrimaryButton(stringResource(if (reset) R.string.appsettings_reset_key_confirm else R.string.appsettings_delete_all_confirm),
             { onIntent(if (reset) AppSettingsIntent.ResetKey else AppSettingsIntent.DeleteEverything) }, enabled = !working)
         TertiaryButton(stringResource(R.string.action_cancel), { onIntent(AppSettingsIntent.CancelConfirm) }, quiet = true)
     }

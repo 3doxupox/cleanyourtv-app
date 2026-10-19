@@ -141,7 +141,7 @@ private val titleTop = Modifier.padding(top = 20.dp)
 internal fun InstalledScreen(state: ModulesState, onIntent: (ModulesIntent) -> Unit, onAdd: () -> Unit, onBack: () -> Unit, modifier: Modifier = Modifier) {
     var removing by rememberSaveable { mutableStateOf<String?>(null) }
     ScreenScaffold(Glow.Tv, modifier, topBar = { CytTopBar(onBack = onBack) },
-        bottomBar = { PrimaryButton(stringResource(R.string.modules_add), onAdd) }) {
+        bottomBar = { PrimaryButton(stringResource(R.string.modules_add), onAdd, guardObscured = false) }) {   // navigation
         ScreenTitle(stringResource(R.string.modules_title), titleTop)
         if (state.installed.isEmpty()) {
             Lead(stringResource(R.string.modules_empty), Modifier.padding(top = 12.dp))
@@ -180,7 +180,7 @@ internal fun ColumnScope.RemoveContent(name: String, tvName: String, onRemove: (
     SheetHeader(msg(R.string.modules_remove_title, "name" to name, "tv" to tvName))
     Body(stringResource(R.string.modules_remove_body), Modifier.padding(top = 8.dp))
     ActionColumn(Modifier.padding(top = 20.dp)) {
-        SecondaryButton(stringResource(R.string.modules_remove_confirm), onRemove)
+        PrimaryButton(stringResource(R.string.modules_remove_confirm), onRemove)
         TertiaryButton(stringResource(R.string.action_cancel), onCancel, quiet = true)
     }
 }
@@ -245,7 +245,7 @@ internal fun DetailScreen(d: ModuleDetail, tvName: String, onIntent: (ModulesInt
     ScreenScaffold(accent?.let { Glow.Module(it) } ?: Glow.Brand, modifier,
         topBar = { CytTopBar(onBack = { onIntent(ModulesIntent.CloseDetail) }) },
         bottomBar = when {
-            paused && d.installed -> ({ SecondaryButton(stringResource(R.string.modules_remove), { onIntent(ModulesIntent.Remove(m.id)) }) })
+            paused && d.installed -> ({ PrimaryButton(stringResource(R.string.modules_remove), { onIntent(ModulesIntent.Remove(m.id)) }) })
             !paused && !d.installed -> ({ PrimaryButton(msg(R.string.module_add, "tv" to tvName), { onIntent(ModulesIntent.Add(m.id)) }) })
             else -> null
         }) {
@@ -288,7 +288,8 @@ internal fun DetailScreen(d: ModuleDetail, tvName: String, onIntent: (ModulesInt
 @Composable
 internal fun InstallScreen(step: InstallStep, state: ModulesState, onIntent: (ModulesIntent) -> Unit, modifier: Modifier = Modifier) {
     val name = state.detail?.module?.name ?: ""
-    val done: @Composable ColumnScope.() -> Unit = { PrimaryButton(stringResource(R.string.action_done), { onIntent(ModulesIntent.DismissInstall) }) }
+    // Done only leaves the screen, so it is not guarded against overlays (R5-W8 O1).
+    val done: @Composable ColumnScope.() -> Unit = { PrimaryButton(stringResource(R.string.action_done), { onIntent(ModulesIntent.DismissInstall) }, guardObscured = false) }
     val bottom: (@Composable ColumnScope.() -> Unit)? = when (step) {
         // 0.1 cannot read the TV's answer without the provider: the person tells us (CardAnswerDetector).
         is InstallStep.Asking -> ({
@@ -337,7 +338,7 @@ internal fun InstallScreen(step: InstallStep, state: ModulesState, onIntent: (Mo
             }
             is InstallStep.Failed -> {
                 StopCard(msg(R.string.module_install_failed, "name" to step.name), step.fetch?.let { fetchFailureText(it) } ?: "", Modifier.padding(top = 20.dp),
-                    primaryLabel = stringResource(R.string.action_ok), onPrimary = { onIntent(ModulesIntent.DismissInstall) })
+                    primaryLabel = stringResource(R.string.action_ok), onPrimary = { onIntent(ModulesIntent.DismissInstall) }, primaryGuarded = false)
             }
         }
     }
