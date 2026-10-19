@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
@@ -29,8 +30,9 @@ import tv.cleanyour.ui.design.theme.CytTheme
 import tv.cleanyour.ui.design.theme.Glow
 import tv.cleanyour.ui.design.theme.animatedAmbientGlow
 
-// The top bar: 56 dp, a 48 dp back button at the start (or an empty slot), the centre (the TV
-// status chip or the step counter) and an optional trailing 48 dp action.
+// The top bar: 56 dp (taller only when the centre needs it at large font sizes), a 48 dp back
+// button at the start (or an empty slot), the centre (the TV status chip or the step counter)
+// and an optional trailing 48 dp action.
 @Composable
 fun CytTopBar(
     modifier: Modifier = Modifier,
@@ -38,7 +40,7 @@ fun CytTopBar(
     center: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
 ) {
-    Row(modifier.fillMaxWidth().height(CytSpacing.topBarHeight).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier.fillMaxWidth().heightIn(min = CytSpacing.topBarHeight).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
             if (onBack != null) CytIconButton(CytIcons.Back, stringResource(R.string.cyt_back), onBack)
         }

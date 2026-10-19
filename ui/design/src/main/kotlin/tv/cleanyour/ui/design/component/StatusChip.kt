@@ -27,6 +27,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import tv.cleanyour.ui.design.R
 import tv.cleanyour.ui.design.theme.CytMotion
@@ -66,7 +67,10 @@ fun TvStatusChip(
         TvStatus.WORKING -> ChipMark.SPINNER
         TvStatus.DEBUGGING_OFF, TvStatus.OFFLINE -> ChipMark.DOT_HOLLOW
     }
-    GlassChip(text = tvName, mark = mark, modifier = modifier, secondary = stateWord, separator = true, onClick = onClick, pulse = status == TvStatus.WAITING)
+    GlassChip(
+        text = tvName, mark = mark, modifier = modifier, secondary = stateWord, separator = true, onClick = onClick,
+        pulse = status == TvStatus.WAITING, singleLine = true,
+    )
 }
 
 // The live discovery line on Welcome: "Looking for TVs on your Wi-Fi..." with a spinner, then
@@ -80,7 +84,9 @@ fun DiscoveryChip(text: String, found: Boolean, modifier: Modifier = Modifier, s
 }
 
 // The general glass chip (32 dp, label.medium): a leading mark or icon, the text, an optional
-// secondary word in text.secondary.
+// secondary word in text.secondary. singleLine (the top bar chip): the text shortens with an
+// ellipsis when the width runs out at large font sizes and the secondary word is never cut, since
+// the state word is the information; otherwise the chip wraps and grows.
 @Composable
 fun GlassChip(
     text: String,
@@ -92,6 +98,7 @@ fun GlassChip(
     onClick: (() -> Unit)? = null,
     liveRegion: Boolean = false,
     pulse: Boolean = false,
+    singleLine: Boolean = false,
 ) {
     val c = CytTheme.colors
     val shape = CytTheme.shapes.pill
@@ -110,10 +117,14 @@ fun GlassChip(
         if (icon != null) CytIcon(icon, null, size = 16.dp)
         ChipMarkView(mark, pulse)
         val style = CytTheme.type.labelMedium
-        Text(text, color = c.textPrimary, style = style)
+        if (singleLine) {
+            Text(text, Modifier.weight(1f, fill = false), color = c.textPrimary, style = style, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        } else {
+            Text(text, color = c.textPrimary, style = style)
+        }
         if (secondary != null) {
             if (separator) Text("·", color = c.textTertiary, style = style)
-            Text(secondary, color = c.textSecondary, style = style)
+            Text(secondary, color = c.textSecondary, style = style, maxLines = if (singleLine) 1 else Int.MAX_VALUE, softWrap = !singleLine)
         }
     }
 }
