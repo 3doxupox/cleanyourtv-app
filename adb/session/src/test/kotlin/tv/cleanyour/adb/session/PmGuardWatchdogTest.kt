@@ -22,7 +22,8 @@ class PmGuardWatchdogTest {
 
     private fun golden(name: String): String {
         val text = javaClass.getResource("/watchdog/$name")?.readText() ?: error("missing resource $name")
-        return text.lines().single { it.startsWith("line: ") }.removePrefix("line: ")
+        // W3's newer goldens put a preparatory `rm` line first; the watchdog is the `sh -c` line.
+        return text.lines().filter { it.startsWith("line: ") }.map { it.removePrefix("line: ") }.single { "sh -c '" in it }
     }
 
     private val a by lazy { golden("16-arm-home-watchdog-a.txt") }
