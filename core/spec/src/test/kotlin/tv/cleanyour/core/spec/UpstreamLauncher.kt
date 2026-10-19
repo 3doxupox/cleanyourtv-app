@@ -46,6 +46,9 @@ class UpstreamLauncher(private val latest: Boolean, private val dir: File) {
             shamsiDate = values.getValue("shamsi_date") as Boolean, vpnApp = s("vpn_app"),
             showHomeSettingsShortcut = values.getValue("show_home_settings_shortcut") as Boolean,
             backgroundColorArgb = 0xFF000000.toInt(), wallpaper = true,
+            // The pinned 7205769 has neither key and ignores both; its values are the built-in ones.
+            inputAction = if (latest) s("input_action") else "",
+            moduleCards = if (latest) values.getValue("module_cards") as Boolean else true,
         )
     }
 

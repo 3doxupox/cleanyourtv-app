@@ -1,14 +1,15 @@
 # W4 decisions: probe, profiles, config codec
 
 Stream W4, 2026-10-19. Owns `:core:probe` and `:core:spec`. Built against section 5 as frozen at
-R0; no frozen signature changed (RFC-W4-1 in `RFCS.md` is the one proposal).
+R0; the one frozen change is RFC-W4-1 (`docs/rfcs/W4.md`), accepted and applied at integration.
 
 ## Launcher config codec (`LauncherConfigCodec`, F8)
 
 - D-W4-1 Semantics follow upstream `Config.java` at main `1bbf0c9` (key set of the pinned
-  `7205769` plus `input_action` and `module_cards`). Those two keys have no field in the frozen
-  types, so they travel in `LauncherConfigDoc.unknown` and `LauncherConfigExtras` reads them
-  (RFC-W4-1). The launcher built from the pin ignores them.
+  `7205769` plus `input_action` and `module_cards`). RFC-W4-1 made those two keys fields of
+  `LauncherConfigDoc` and `EffectiveConfig` (built-in values `""` and `true`), decoded and
+  encoded at their `Config.java` position like every other key. The launcher built from the pin
+  ignores them.
 - D-W4-2 The launcher parses with Android's org.json, which is lenient (comments, single quotes,
   unquoted names, `=` and `=>`, `;`, hex and octal, last duplicate wins, trailing text ignored, a
   second BOM eaten by the tokener). `AndroidJsonReader` is a line-by-line port of AOSP

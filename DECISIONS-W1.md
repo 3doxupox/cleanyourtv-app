@@ -92,6 +92,9 @@ owning stream supplies bodies):
   owner (W3, W4).
 - `core.store.SnapshotCodec`: bodies delegating to the internal `SnapshotJson` (D-W1-5).
 - `core.model.PackageName`: `init` also admits the literal `android` (RFC-W1-2, ruled 2026-10-19).
+- `core.spec.LauncherConfigDoc` gains `inputAction: String? = null, moduleCards: Boolean? = null`
+  and `EffectiveConfig` gains `inputAction: String, moduleCards: Boolean`, both after the existing
+  parameters and marked `// RFC-W4-1` (accepted 2026-10-19; PRODUCT-SPEC 5.7 carries the RFC).
 
 Added because the section 5 prose names it: `core.probe.ProbeException(stage, detail)` (R0: 7).
 
@@ -161,7 +164,8 @@ Added because the section 5 prose names it: `core.probe.ProbeException(stage, de
   so no ordering can leave a TV without a home screen. Do this once W3 merges. Also rerun
   `RestoreShellTest` with W3's real renderer (M2).
 - RFC-W4-1 accepted: `LauncherConfigDoc` and `EffectiveConfig` gain `inputAction` and
-  `moduleCards` (upstream main 1bbf0c9 keys). Apply at the W4 merge.
+  `moduleCards` (upstream main 1bbf0c9 keys). Applied on main (x0, T3): `LauncherConfigExtras`
+  is deleted.
 - From R5 of W5, open Lows to close before I4: F5 (index high-water marks lost with the cache),
   F6 (revocation in a fetched keys file not learned when the fetched index fails), F7 (Android 9
   signer fallback on rotated module keys, verify on the emulator matrix).
