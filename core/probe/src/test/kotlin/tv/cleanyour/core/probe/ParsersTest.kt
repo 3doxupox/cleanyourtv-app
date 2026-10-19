@@ -99,6 +99,22 @@ class ParsersTest {
         assertEquals("", odd.devices.single().name)
     }
 
+    // R5: hostile shapes that used to cost seconds to minutes of backtracking or string copies.
+    @Test fun hostileShapesStayFast() {
+        val portBomb = ("HdmiPortInfo{id=1,address=0x1 cec=true ".repeat(LINE_CAP / 40) + "\n").repeat(20)
+        val t0 = System.nanoTime()
+        assertEquals(emptyList(), HdmiControlParser.parse(seq("HdmiControlService:\n" + portBomb)).ports)
+        val settingsBomb = "a=1\n" + "x\n".repeat(1_000_000) + "b=2\n"
+        val parsed = SettingsListParser.parse(seq(settingsBomb))
+        val ms = (System.nanoTime() - t0) / 1_000_000
+        assertTrue(ms < 5_000, "took $ms ms")
+        assertTrue(parsed.getValue("a")!!.length <= SettingsListParser.VALUE_CAP)
+        assertEquals("2", parsed["b"])
+        // A port record still needs all of address, cec and arc.
+        assertEquals(listOf(HdmiControlParser.Port(4, 0x4000, false, true)), HdmiControlParser.parse(seq("x\n  HdmiPortInfo{id=4, type=INPUT, address=0x4000, cec=false, arc=true, eArc=false}")).ports)
+        assertEquals(emptyList(), HdmiControlParser.parse(seq("x\n  HdmiPortInfo{id=4, type=INPUT, address=0x4000, cec=false}")).ports)
+    }
+
     @Test fun tvInputs() {
         val inputs = TvInputParser.parse(seq(ProbeFixtures.res("mitv/tv_input.txt")))
         assertEquals(5, inputs.size)

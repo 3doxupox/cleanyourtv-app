@@ -143,7 +143,13 @@ object HdmiControlParser {
     private val PHYSICAL = Regex("physical_address:\\s*0x([0-9A-Fa-f]{1,4})\\b")
     private val PORT_ID = Regex("port_id:\\s*(-?\\d{1,3})\\b")
     private val PORT_LINE = Regex("port_id:\\s*(\\d{1,3}),\\s*address:\\s*0x([0-9A-Fa-f]{1,4})(?:,\\s*cec:\\s*(true|false))?(?:,\\s*arc:\\s*(true|false))?")
-    private val PORT_LINE_NEW = Regex("HdmiPortInfo\\{id=(\\d{1,3}),.*?address=0x([0-9A-Fa-f]{1,4}).*?cec=(true|false).*?arc=(true|false)")
+    // Android 12+: HdmiPortInfo{id=1, type=INPUT, address=0x1000, cec=true, arc=false, eArc=false}.
+    // The record body is a bounded run without braces and each field is found on its own; chained
+    // lazy wildcards here backtracked for seconds on one hostile 8 KiB line.
+    private val PORT_INFO_NEW = Regex("HdmiPortInfo\\{id=(\\d{1,3}),([^{}]{0,256})")
+    private val PORT_ADDRESS = Regex("(?<![A-Za-z])address=0x([0-9A-Fa-f]{1,4})\\b")
+    private val PORT_CEC = Regex("(?<![A-Za-z])cec=(true|false)\\b")
+    private val PORT_ARC = Regex("(?<![A-Za-z])arc=(true|false)\\b")
     private val OSD_NAME = Regex("^[ -~]{0,14}$")   // CEC OSD names are at most 14 printable chars
 
     fun parse(lines: Sequence<String>): Report {
@@ -164,10 +170,17 @@ object HdmiControlParser {
                 devices.putIfAbsent("$la/$pa", Device(name, la, type, pa, port))
                 continue
             }
-            val m = PORT_LINE.find(line) ?: PORT_LINE_NEW.find(line) ?: continue
             if ("logical_address" in line) continue
-            val id = m.groupValues[1].toInt()
-            ports.putIfAbsent(id, Port(id, m.groupValues[2].toInt(16), m.groupValues.getOrNull(3)?.takeIf { it.isNotEmpty() }?.toBooleanStrict(), m.groupValues.getOrNull(4)?.takeIf { it.isNotEmpty() }?.toBooleanStrict()))
+            val port = PORT_LINE.find(line)?.let { m ->
+                Port(m.groupValues[1].toInt(), m.groupValues[2].toInt(16), m.groupValues[3].takeIf { it.isNotEmpty() }?.toBooleanStrict(), m.groupValues[4].takeIf { it.isNotEmpty() }?.toBooleanStrict())
+            } ?: PORT_INFO_NEW.find(line)?.let { m ->
+                val body = m.groupValues[2]
+                val address = PORT_ADDRESS.find(body) ?: return@let null
+                val cec = PORT_CEC.find(body) ?: return@let null
+                val arc = PORT_ARC.find(body) ?: return@let null
+                Port(m.groupValues[1].toInt(), address.groupValues[1].toInt(16), cec.groupValues[1].toBooleanStrict(), arc.groupValues[1].toBooleanStrict())
+            } ?: continue
+            ports.putIfAbsent(port.id, port)
         }
         return Report(devices.values.toList(), ports.values.toList(), serviceMissing = false)
     }
@@ -202,21 +215,26 @@ object TvInputParser {
 
 // settings list <ns>: "key=value" lines; the literal "null" is no value. A line with no key
 // continues the previous value (values may hold newlines).
+// A value stops growing at VALUE_CAP: rebuilding a string per continuation line was quadratic,
+// and 4 MiB of one-character lines from a hostile TV kept the parser busy for minutes.
 object SettingsListParser {
+    const val VALUE_CAP = 64 * 1024
     private val LINE = Regex("^([A-Za-z0-9_.:-]{1,128})=(.*)$")
     fun parse(lines: Sequence<String>): Map<String, String?> {
-        val out = LinkedHashMap<String, String?>()
+        val out = LinkedHashMap<String, StringBuilder?>()
         var last: String? = null
         for (l in skipLong(lines)) {
             val m = LINE.matchEntire(l)
             if (m != null) {
                 last = m.groupValues[1]
-                out[last] = m.groupValues[2].takeIf { it != "null" }
+                out[last] = m.groupValues[2].takeIf { it != "null" }?.let(::StringBuilder)
             } else if (last != null && l.isNotEmpty()) {
-                out[last] = (out[last] ?: "") + "\n" + l
+                val key: String = last
+                val value = out[key] ?: StringBuilder().also { out[key] = it }
+                if (value.length + 1 + l.length <= VALUE_CAP) value.append('\n').append(l)
             }
         }
-        return out
+        return out.mapValuesTo(LinkedHashMap()) { it.value?.toString() }
     }
 }
 
