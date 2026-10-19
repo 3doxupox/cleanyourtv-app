@@ -31,6 +31,9 @@ object Fixtures {
     // The reference TV capture (redacted), see fixtures/conformance/mitv-axso0-2026-10-18/README.md.
     fun miTv(): MiTvCapture = MiTvCapture(File(conformanceDir, "mitv-axso0-2026-10-18"))
 
+    // The forge emulator session's TV (redacted), see fixtures/conformance/emu-atv28-2026-10-20/README.md.
+    fun emulatorTv(): EmulatorCapture = EmulatorCapture(File(conformanceDir, "emu-atv28-2026-10-20"))
+
     private fun upstream(): File {
         val examples = File(upstreamDir, "examples")
         check(examples.isDirectory) {

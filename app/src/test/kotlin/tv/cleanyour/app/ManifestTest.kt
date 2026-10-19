@@ -42,6 +42,30 @@ class ManifestTest {
         assertEquals("", main.taskAffinity.orEmpty())
     }
 
+    // D-W8-27: always dark from the first frame, whatever the phone's mode: a black window and
+    // bars with light icons, in light mode as in dark.
+    @Test @Config(sdk = [35], application = android.app.Application::class, qualifiers = "notnight")
+    fun theActivityThemeIsDarkInLightMode() {
+        val main = info.activities!!.single { it.name == "tv.cleanyour.app.MainActivity" }
+        val theme = context.resources.newTheme().apply { applyStyle(main.themeResource, true) }
+        val a = theme.obtainStyledAttributes(intArrayOf(
+            android.R.attr.windowBackground, android.R.attr.statusBarColor, android.R.attr.navigationBarColor,
+            android.R.attr.windowLightStatusBar, android.R.attr.windowLightNavigationBar, android.R.attr.forceDarkAllowed,
+            android.R.attr.windowSplashScreenBackground,
+        ))
+        try {
+            assertEquals(android.graphics.Color.BLACK, (a.getDrawable(0) as android.graphics.drawable.ColorDrawable).color)
+            assertEquals(android.graphics.Color.BLACK, a.getColor(1, 0))
+            assertEquals(android.graphics.Color.BLACK, a.getColor(2, 0))
+            assertFalse(a.getBoolean(3, true))
+            assertFalse(a.getBoolean(4, true))
+            assertFalse(a.getBoolean(5, true))
+            assertEquals(android.graphics.Color.BLACK, a.getColor(6, 0))
+        } finally {
+            a.recycle()
+        }
+    }
+
     @Test fun theForegroundServiceIsConnectedDeviceAndNotExported() {
         val s = info.services.orEmpty().single { it.name == "tv.cleanyour.android.work.OperationService" }
         assertFalse(s.exported)

@@ -56,6 +56,7 @@ import tv.cleanyour.core.session.BootOutcome
 import tv.cleanyour.core.session.OpenResult
 import tv.cleanyour.core.session.SessionManager
 import tv.cleanyour.core.session.TvSession
+import tv.cleanyour.core.spec.AppNames
 import tv.cleanyour.core.spec.FactsTable
 import tv.cleanyour.core.spec.ProfileResolution
 import tv.cleanyour.core.spec.ProfileSource
@@ -611,7 +612,7 @@ class SetupMachine(
         when (val r = deps.runner.plan(record, PlanRequest.Setup(res, choices, launcher, draft.level), snap)) {
             is PlanResult.Ok -> {
                 setupPlan = r.plan
-                val label = { p: PackageName -> deps.facts.lookup(p)?.friendlyName ?: snap.packages[p]?.label ?: p.value }
+                val label = { p: PackageName -> AppNames.of(p, deps.facts, snap.packages[p]?.label) }
                 val apps = DockCandidates.of(snap, launchable, profile(), deps.facts)
                     .map { AppChoice(it, label(it)) }.sortedBy { it.name.lowercase() }
                 deps.log.line("setup: plan ready, ${r.plan.steps.size} steps, ${r.plan.steps.count { it.op is Op.Disable }} to switch off, " +
@@ -1125,7 +1126,7 @@ class SetupMachine(
     }
 
     private fun nameOfPkg(pkg: PackageName): String =
-        deps.facts.lookup(pkg)?.friendlyName ?: snapshot?.packages?.get(pkg)?.label ?: pkg.value
+        AppNames.of(pkg, deps.facts, snapshot?.packages?.get(pkg)?.label)
 
     // Type names and counts only: an AdbError's own text may carry ids, so it never reaches a log.
     private fun errorName(e: AdbError): String = e::class.simpleName ?: "error"

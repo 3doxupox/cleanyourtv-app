@@ -51,6 +51,7 @@ import tv.cleanyour.core.model.Level
 import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.planner.GroupSummary
 import tv.cleanyour.core.planner.RowSummary
+import tv.cleanyour.core.planner.switchOffCount
 import tv.cleanyour.ui.design.component.ActionColumn
 import tv.cleanyour.ui.design.component.Banner
 import tv.cleanyour.ui.design.component.BannerTone
@@ -157,7 +158,8 @@ fun ProbingScreen(state: SetupState.Probing, extras: SetupExtras, modifier: Modi
 @Composable
 fun FoundScreen(state: SetupState.Found, extras: SetupExtras, actions: SetupActions, modifier: Modifier = Modifier, onCopyCommands: (String) -> Unit = {}) {
     val summary = state.plan.summary
-    val off = summary.groups.sumOf { it.off }
+    // Every switch-off of the plan, the home screen switch's own included (round 3).
+    val off = summary.switchOffCount
     ScreenScaffold(
         Glow.Tv, modifier,
         topBar = { TopBar(extras, onBack = { actions.back() }) },
@@ -240,7 +242,7 @@ internal fun ColumnScope.CustomiseContent(
 ) {
     val summary = state.plan.summary
     val total = summary.groups.sumOf { it.total }
-    val off = summary.groups.sumOf { it.off }
+    val off = summary.switchOffCount
     val custom = state.level == Level.CUSTOM
     val keptText = stringResource(R.string.customise_snackbar_kept)
     val offText = stringResource(R.string.customise_snackbar_off)
@@ -250,8 +252,10 @@ internal fun ColumnScope.CustomiseContent(
         trailing = rememberEmphasis(msg(R.string.customise_live, "total" to total, "off" to off), "$off"),
         subtitle = stringResource(R.string.customise_nothing_deleted),
     )
-    val protectedRows = summary.groups.flatMap { g -> g.rows.filter { it.protected } }
-    val groups = summary.groups.map { g -> g.copy(rows = g.rows.filterNot { it.protected }) }.filter { it.rows.isNotEmpty() }
+    // "We keep these" holds the protected rows that stay on; a protected row that is off is part of
+    // the home screen switch and stays in its group, shown Off with nothing to flip.
+    val protectedRows = summary.groups.flatMap { g -> g.rows.filter { it.kept() } }
+    val groups = summary.groups.map { g -> g.copy(rows = g.rows.filterNot { it.kept() }) }.filter { it.rows.isNotEmpty() }
     // The first group opens; the others wait in one collapsed card until tapped (DESIGN-SYSTEM 8.4,
     // mockup 08).
     var open by rememberSaveable { mutableStateOf(initiallyOpen ?: listOfNotNull(groups.firstOrNull()?.id)) }
@@ -293,7 +297,10 @@ internal fun ColumnScope.CustomiseContent(
     )
 }
 
-private fun RowSummary.toItem() = DiffItem(pkg.value, friendlyName, description, pkg.value, off)
+private fun RowSummary.toItem() = DiffItem(pkg.value, friendlyName, description, pkg.value, off, fixed = protected && off)
+
+// A protected row that stays on: the "We keep these" group.
+private fun RowSummary.kept() = protected && !off
 
 // A group of the full list: all rows when there are six or fewer, otherwise four and "Show n more".
 @Composable
@@ -302,7 +309,7 @@ private fun GroupSection(g: GroupSummary, custom: Boolean, onToggle: (RowSummary
     val visible = if (expanded || g.rows.size <= 6) g.rows.size else 4
     DiffGroupSection(
         DiffGroup(g.id, g.title, g.rows.map { it.toItem() }),
-        onToggle = { item -> g.rows.firstOrNull { it.pkg.value == item.key }?.let(onToggle) },
+        onToggle = { item -> g.rows.firstOrNull { it.pkg.value == item.key && !it.protected }?.let(onToggle) },
         modifier = Modifier.padding(top = 16.dp), showPackageNames = custom, visibleCount = visible, onShowMore = { expanded = true },
     )
 }
@@ -311,7 +318,7 @@ private fun GroupSection(g: GroupSummary, custom: Boolean, onToggle: (RowSummary
 @Composable
 internal fun WhyContent(state: SetupState.Found) {
     SheetHeader(stringResource(R.string.customise_protected_why_title))
-    state.plan.summary.groups.flatMap { g -> g.rows.filter { it.protected } }.forEach { r ->
+    state.plan.summary.groups.flatMap { g -> g.rows.filter { it.kept() } }.forEach { r ->
         Text(r.friendlyName, Modifier.padding(top = 16.dp), color = CytTheme.colors.textPrimary, style = CytTheme.type.titleMedium)
         Body(r.whyProtected ?: r.description, Modifier.padding(top = 4.dp))
     }
@@ -331,8 +338,9 @@ fun DockSheet(current: List<AppChoice>, apps: List<AppChoice>, onDone: (List<Pac
 @Composable
 internal fun DockContent(dock: List<AppChoice>, apps: List<AppChoice>, onChange: (List<AppChoice>) -> Unit, onDone: () -> Unit) {
     SheetHeader(stringResource(R.string.dock_title), subtitle = stringResource(R.string.dock_body))
-    Overline(stringResource(R.string.dock_section_in), Modifier.padding(start = 4.dp, top = 16.dp, bottom = 8.dp))
-    ListGroup {
+    // An empty dock has no "In the dock" heading over nothing (round 3); the apps to add follow.
+    if (dock.isNotEmpty()) Overline(stringResource(R.string.dock_section_in), Modifier.padding(start = 4.dp, top = 16.dp, bottom = 8.dp))
+    if (dock.isNotEmpty()) ListGroup {
         dock.forEachIndexed { i, app ->
             if (i > 0) ListDivider()
             val inCd = msg(R.string.dock_item_in_cd, "name" to app.name, "position" to i + 1)

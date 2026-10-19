@@ -26,8 +26,6 @@
     <string name="welcome_none_yet">No TV yet. Keep going, we\'ll keep looking.</string>
     <string name="welcome_start">Start</string>
     <string name="welcome_returning">I\'ve set up a TV before</string>
-    <!-- S1b and UX 4.1 copy: offered on Welcome too, so a wrong or missing find is never a dead end -->
-    <string name="welcome_address">Enter the TV\'s address</string>
 
     <!-- S1b Which TV? -->
     <string name="picker_title">Which TV?</string>
@@ -62,6 +60,8 @@
     <string name="door_still_waiting_show_me">Show me</string>
     <string name="door_change_model">Not a {model}? Change model</string>
     <string name="door_change_model_generic">Not this TV? Change model</string>
+    <!-- Round 3: the S1b tertiary's words, for a door Start opened on the one device found -->
+    <string name="door_not_this_tv">Not this TV? Enter the TV\'s address</string>
     <string name="door_brand_prompt">Which brand?</string>
     <string name="door_brand_xiaomi">Xiaomi</string>
     <string name="door_brand_tcl">TCL</string>

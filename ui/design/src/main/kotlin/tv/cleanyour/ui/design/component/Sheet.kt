@@ -2,6 +2,9 @@ package tv.cleanyour.ui.design.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -48,7 +51,10 @@ fun CytBottomSheet(
     val c = CytTheme.colors
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
-        modifier = modifier.sheetTopRim(c.rim),
+        // A tall sheet stops below the status bar plus a strip of scrim, so the screen behind and
+        // its top bar still show as in mockup 08 (round 3: on the emulator it ran under the status
+        // bar icons).
+        modifier = modifier.windowInsetsPadding(WindowInsets.statusBars).padding(top = SHEET_TOP_GAP).sheetTopRim(c.rim),
         sheetState = sheetState,
         shape = CytTheme.shapes.sheet,
         containerColor = c.surface2,
@@ -105,3 +111,5 @@ private fun Modifier.sheetTopRim(color: Color): Modifier = this.drawWithContent 
     drawLine(color, Offset(28.dp.toPx(), 0.5f), Offset(size.width - 28.dp.toPx(), 0.5f), strokeWidth = 1f)
 }
 
+// The scrim strip a full-height sheet leaves under the status bar (mockup 08).
+private val SHEET_TOP_GAP = 48.dp

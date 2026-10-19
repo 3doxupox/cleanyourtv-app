@@ -81,9 +81,17 @@ class PlannerTest {
         assertEquals(snapshot().contentHash, p.baseSnapshot)
         assertEquals(PlanKind.SETUP, p.kind)
         assertTrue(p.summary.homeScreenPossible)
-        assertEquals(1, p.summary.groups.size)
-        assertEquals(installed.size, p.summary.groups.single().off)
-        assertEquals(installed.size, p.summary.groups.single().total)
+        // The debloat group, then the home screen switch's own switch-off (round 3): S3 counts what
+        // the plan does, the TV's home screen included.
+        assertEquals(listOf("mitv", DefaultPlanner.GROUP_HOME), p.summary.groups.map { it.id })
+        assertEquals(installed.size, p.summary.groups.first().off)
+        assertEquals(installed.size, p.summary.groups.first().total)
+        val home = p.summary.groups.last()
+        assertEquals(DefaultPlanner.TITLE_HOME, home.title)
+        assertEquals(listOf(stock.pkg), home.rows.map { it.pkg })
+        assertTrue(home.rows.single().let { it.off && it.protected && it.description == DefaultPlanner.DESCRIPTION_OLD_HOME })
+        assertEquals(installed.size + 1, p.summary.switchOffCount)
+        assertEquals(p.disabledPackages, p.summary.switchOffPackages)
         assertTrue(p.steps.mapIndexed { i, s -> i == s.index }.all { it })
         assertEquals(p.steps.indices.toList(), p.steps.map { it.index })
         assertTrue(p.steps.any { it.rendered.privilege == Privilege.TAKEOVER })
@@ -96,8 +104,11 @@ class PlannerTest {
         assertTrue(ops(p).none { it == Op.Disable(videos) })
         assertTrue(ops(p).contains(Op.Disable(netflix)))
         assertEquals(17, p.summary.groups.first().off)
-        assertEquals(listOf("Netflix").map { "com.netflix.ninja" }, p.summary.groups.last().rows.map { it.pkg.value })
-        assertEquals(listOf("com.google.android.videos"), p.summary.keepNames)
+        assertEquals(listOf("Netflix").map { "com.netflix.ninja" }, p.summary.groups.single { it.id == DefaultPlanner.GROUP_CUSTOM }.rows.map { it.pkg.value })
+        assertEquals(p.disabledPackages.toSet(), p.summary.switchOffPackages.toSet())
+        // No facts in the fixture and no label from the probe: the name is read from the package
+        // (round 3), never the raw package.
+        assertEquals(listOf("Videos"), p.summary.keepNames)
     }
 
     @Test fun protectedRowsAreShownNotPlanned() {
@@ -111,11 +122,16 @@ class PlannerTest {
         val snap = snapshot().let { s -> s.copy(screensaver = listOf(Component(PackageName("com.google.android.backdrop"), ".Backdrop"))).let { it.copy(contentHash = tv.cleanyour.core.store.SnapshotCodec.hash(it)) } }
         val p = plan(setup(profile = profile(extraGroups = listOf(extra))), snapshot = snap)
         val rows = p.summary.groups.first { it.id == "sys" }.rows
-        assertEquals(5, rows.size)
+        // The stock launcher left the protected rows: the switch turns it off, so it is listed
+        // under "Needed for the new home screen" as off (round 3), never under "We keep these".
+        assertEquals(4, rows.size)
+        assertTrue(rows.none { it.pkg == stock.pkg })
         assertTrue(rows.all { it.protected && !it.off && it.whyProtected != null }, rows.toString())
         assertEquals(0, p.summary.groups.first { it.id == "sys" }.off)
         assertTrue(ops(p).filterIsInstance<Op.Disable>().none { it.pkg.value == "com.android.systemui" || it.pkg == wizard })
         assertEquals(1, ops(p).filterIsInstance<Op.Disable>().count { it.pkg == stock.pkg }, "the stock launcher is switched off once, inside the section")
+        assertEquals(listOf(stock.pkg), p.summary.groups.single { it.id == DefaultPlanner.GROUP_HOME }.rows.map { it.pkg })
+        assertEquals(p.disabledPackages.toSet(), p.summary.switchOffPackages.toSet())
     }
 
     @Test fun theWizardIsOnlyInTheSectionAndOnlyWithTheQuirk() {
@@ -125,6 +141,11 @@ class PlannerTest {
         assertTrue(Op.Disable(wizard) in sectionOps)
         assertEquals(DefaultPlanner.NARRATION_WIZARD, p.steps.first { it.op == Op.Disable(wizard) }.narration)
         assertTrue(Op.Enable(wizard) in s.rollback)
+        // UX 2: the wizard is one line of the preview sheet, with its note, counted like any switch-off.
+        val wizardRow = p.summary.groups.single { it.id == DefaultPlanner.GROUP_HOME }.rows.single { it.pkg == wizard }
+        assertEquals(DefaultPlanner.NARRATION_WIZARD, wizardRow.friendlyName)
+        assertEquals(DefaultPlanner.DESCRIPTION_WIZARD, wizardRow.description)
+        assertEquals(p.disabledPackages.toSet(), p.summary.switchOffPackages.toSet())
         val without = plan(setup(profile = profile(quirks = emptySet(), setupWraith = wizard)))
         assertTrue(ops(without).none { it == Op.Disable(wizard) })
         assertTrue(refused(setup(profile = profile(), choices = choices(extraOff = setOf(wizard)))).single().contains("setup wizard"))
@@ -137,6 +158,9 @@ class PlannerTest {
         assertEquals(emptyList<Step>(), p.steps)
         assertTrue(p.sections.isEmpty())
         assertTrue(p.summary.homeScreenPossible)
+        // Nothing is counted that the plan does not do: the already-off packages are not rows.
+        assertEquals(0, p.summary.switchOffCount)
+        assertTrue(p.summary.groups.flatMap { it.rows }.none { it.pkg in debloatList })
         assertEquals(renderer.planHash(emptyList()), p.hash)
     }
 

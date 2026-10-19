@@ -4,9 +4,9 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.LaunchedEffect
@@ -25,12 +25,17 @@ class MainActivity : ComponentActivity() {
     private val graph get() = (application as CytApplication).graph
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
+        // Always dark (D-W8-27): light icons on transparent bars whatever the phone's own mode.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+        )
         super.onCreate(savedInstanceState)
         graph.credentialGate.attach(this)
         setContent {
-            // D-W7-1 leaves the theme choice to W8: follow the system setting (T8).
-            CytTheme(darkTheme = isSystemInDarkTheme()) {
+            // D-W8-27: 0.1 is always the dark, black-and-glass design (mockups, DESIGN-SYSTEM 2),
+            // whatever the phone's own mode. The light tokens stay in :ui:design, unused.
+            CytTheme(darkTheme = true) {
                 var start by remember { mutableStateOf<Dest?>(null) }
                 LaunchedEffect(Unit) {
                     graph.tvs.load()

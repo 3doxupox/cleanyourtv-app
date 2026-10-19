@@ -50,6 +50,9 @@ data class DiffItem(
     val description: String,  // one plain-words line
     val packageName: String?, // shown only at Custom level (never in Simple)
     val off: Boolean,
+    // Part of another change, not a choice (the TV's own home screen inside the home screen
+    // switch): the pill shows its state and the row has nothing to flip.
+    val fixed: Boolean = false,
 )
 
 @Immutable
@@ -113,7 +116,8 @@ fun OffKeptPill(off: Boolean, modifier: Modifier = Modifier) {
 }
 
 // One row of the full list: friendly name, the plain-words line, the package in grey when
-// showPackageName (Custom level), and the pill. onToggle null = protected (no pill).
+// showPackageName (Custom level), and the pill. onToggle null = protected (no pill); a fixed item
+// shows its pill and cannot be flipped.
 @Composable
 fun DiffRow(item: DiffItem, onToggle: ((DiffItem) -> Unit)?, modifier: Modifier = Modifier, showPackageName: Boolean = false) {
     val c = CytTheme.colors
@@ -123,9 +127,10 @@ fun DiffRow(item: DiffItem, onToggle: ((DiffItem) -> Unit)?, modifier: Modifier 
     Row(
         modifier.fillMaxWidth().heightIn(min = 56.dp)
             .then(
-                if (onToggle != null) Modifier
+                if (onToggle != null && !item.fixed) Modifier
                     .clickable(role = Role.Button, onClickLabel = actionLabel) { onToggle(item) }
                     .semantics(mergeDescendants = true) { stateDescription = if (item.off) offWord else keptWord }
+                else if (item.fixed) Modifier.semantics(mergeDescendants = true) { stateDescription = if (item.off) offWord else keptWord }
                 else Modifier.semantics(mergeDescendants = true) {},
             )
             .padding(horizontal = 16.dp, vertical = 12.dp),
@@ -140,7 +145,7 @@ fun DiffRow(item: DiffItem, onToggle: ((DiffItem) -> Unit)?, modifier: Modifier 
                 LtrText(item.packageName, maxLines = 1, overflow = TextOverflow.MiddleEllipsis)
             }
         }
-        if (onToggle != null) OffKeptPill(item.off, Modifier.clearAndSetSemantics {})
+        if (onToggle != null || item.fixed) OffKeptPill(item.off, Modifier.clearAndSetSemantics {})
     }
 }
 

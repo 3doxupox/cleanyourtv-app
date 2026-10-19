@@ -66,6 +66,7 @@ object LauncherShots {
         Shot("home_look_sheet") { SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(home(themeId = "aurora")) {} } },
         Shot("home_dock_sheet", 1000.dp) { SheetOver({ HomeScreen(home(), {}, {}) }) { DockContent(defaultDock.take(3), apps, {}, {}) } },
         Shot("home_dock_sheet_full", 1000.dp) { SheetOver({ HomeScreen(home(), {}, {}) }) { DockContent(defaultDock, apps, {}, {}) } },
+        Shot("home_dock_sheet_empty") { SheetOver({ HomeScreen(home(), {}, {}) }) { DockContent(emptyList(), apps, {}, {}) } },
         Shot("home_stock_preview") { SheetOver({ HomeScreen(home(), {}, {}) }) { StockPreviewContent(stockPlan) {} } },
     )
 }

@@ -28,6 +28,7 @@ import tv.cleanyour.core.ops.OpRenderer
 import tv.cleanyour.core.ops.RenderRefused
 import tv.cleanyour.core.ops.Rendered
 import tv.cleanyour.core.ops.UndoOrder
+import tv.cleanyour.core.spec.AppNames
 import tv.cleanyour.core.spec.FactsTable
 import tv.cleanyour.core.spec.ProfileResolution
 import tv.cleanyour.core.spec.ProfileSource
@@ -114,7 +115,7 @@ class DefaultPlanner(
             null -> emptyList()
         }
 
-        fun name(pkg: PackageName): String = facts.lookup(pkg)?.friendlyName ?: snapshot.packages[pkg]?.label ?: pkg.value
+        fun name(pkg: PackageName): String = AppNames.of(pkg, facts, snapshot.packages[pkg]?.label)
         fun description(pkg: PackageName): String = facts.lookup(pkg)?.description ?: ""
         fun state(pkg: PackageName): PackageState? = snapshot.packages[pkg]
         fun isOff(pkg: PackageName): Boolean = state(pkg)?.enabled.let { it == EnabledState.DISABLED_USER || it == EnabledState.DISABLED }
@@ -186,9 +187,12 @@ class DefaultPlanner(
                         GroupDefault.DISABLE -> pkg !in choices.kept
                         GroupDefault.ASK, GroupDefault.KEEP -> pkg in choices.extraOff && pkg !in choices.kept
                     }
+                    // Already asleep: nothing to switch off and nothing to keep, so the row would
+                    // only make S3 count what the plan never does (emulator run, round 3).
+                    if (why == null && isOff(pkg)) continue
                     val off = why == null && wanted
                     rows += RowSummary(pkg, name(pkg), description(pkg), off, why != null, why)
-                    if (off && !isOff(pkg)) { disable(pkg, group.id); disabled++ }
+                    if (off) { disable(pkg, group.id); disabled++ }
                 }
                 groups += GroupSummary(group.id, group.title, rows.count { it.off }, rows.size, rows)
             }
@@ -198,8 +202,9 @@ class DefaultPlanner(
                 if (pkg in covered || !installed(pkg) || pkg in choices.kept) continue
                 val why = protectedReason(pkg, profile, stockLaunchers)
                 if (why != null) { refuse("${name(pkg)} cannot be switched off: $why"); continue }
+                if (isOff(pkg)) continue
                 custom += RowSummary(pkg, name(pkg), description(pkg), off = true, protected = false, whyProtected = null)
-                if (!isOff(pkg)) { disable(pkg, GROUP_CUSTOM); disabled++ }
+                disable(pkg, GROUP_CUSTOM); disabled++
             }
             if (custom.isNotEmpty()) groups += GroupSummary(GROUP_CUSTOM, "Also switched off", custom.size, custom.size, custom)
             keepNames = choices.kept.filter { installed(it) }.map { name(it) }.sorted()
@@ -216,6 +221,30 @@ class DefaultPlanner(
             val launcherSteps = if (launcherNeeded) launcherInstall(req.launcher, choices.replaceLauncherSigner, stockLaunchers) else false
             if (reasons.size > refusedBefore) return   // the launcher reason says it all; no second reason about the switch
             if (choices.takeover) takeover(req.launcher, profile, stockLaunchers, launcherSteps)
+            homeSwitchRows()
+        }
+
+        // The home screen switch switches off the TV's own home screen (and the wizard on the
+        // quirk). Those are on the list too, in "Needed for the new home screen", so S3's numbers,
+        // the list, "Show commands" and the plan name the same switch-offs (emulator run, round 3:
+        // S3 said nothing was found while the plan switched the TV's home screen off). They are part
+        // of the switch, not a choice: off and protected, so the list shows them without a pill to
+        // flip, and a row elsewhere for the same package (a profile's "keep" home group, a debloat
+        // group naming the stock launcher) moves here.
+        fun homeSwitchRows() {
+            val switched = steps.filter { it.group == GROUP_HOME && it.op is Op.Disable }
+            if (switched.isEmpty()) return
+            val pkgs = switched.map { (it.op as Op.Disable).pkg }.toSet()
+            fun GroupSummary.with(rows: List<RowSummary>) = copy(off = rows.count { it.off }, total = rows.size, rows = rows)
+            groups = groups.map { g -> g.with(g.rows.filter { it.pkg !in pkgs }) }.toMutableList()
+            val rows = switched.map { s ->
+                val pkg = (s.op as Op.Disable).pkg
+                if (s.narration == NARRATION_WIZARD) RowSummary(pkg, NARRATION_WIZARD, DESCRIPTION_WIZARD, off = true, protected = true, whyProtected = REASON_SWITCH_PART)
+                else RowSummary(pkg, name(pkg), DESCRIPTION_OLD_HOME, off = true, protected = true, whyProtected = REASON_SWITCH_PART)
+            }
+            val i = groups.indexOfFirst { it.id == GROUP_HOME }
+            if (i >= 0) groups[i] = groups[i].let { it.with(rows + it.rows) }
+            else groups += GroupSummary(GROUP_HOME, TITLE_HOME, rows.size, rows.size, rows)
         }
 
         fun pinInstalled(artifact: LauncherArtifact): Boolean {
@@ -514,6 +543,11 @@ class DefaultPlanner(
         const val REASON_HOME_SCREEN = "it is the TV's own home screen; only the home screen switch changes it"
         const val REASON_WIZARD_SECTION_ONLY = "the first-run setup wizard is only switched off as part of the home screen switch"
         const val NARRATION_WIZARD = "Switch off the first-run setup wizard so the new home screen can take over"
+        // UX 2, the preview sheet's "Needed for the new home screen" group.
+        const val TITLE_HOME = "Needed for the new home screen"
+        const val DESCRIPTION_OLD_HOME = "The old home screen. Switched off only after the new one works."
+        const val DESCRIPTION_WIZARD = "We switch it back on if you ever undo or reset the TV."
+        const val REASON_SWITCH_PART = "part of the home screen switch; it comes back on if the switch is undone"
 
         fun packageOf(op: Op): PackageName? = when (op) {
             is Op.Disable -> op.pkg
