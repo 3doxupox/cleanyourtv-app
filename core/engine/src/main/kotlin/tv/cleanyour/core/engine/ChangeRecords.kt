@@ -2,6 +2,7 @@ package tv.cleanyour.core.engine
 
 import tv.cleanyour.core.model.ChangeRecord
 import tv.cleanyour.core.model.Op
+import tv.cleanyour.core.ops.UndoOrder
 
 // ChangeRecord (R0: 1) is derived from journals: every write op this app completed, minus the
 // ones a rollback or an undo put back. Undo and the restore files (W6, W8) start from this list.
@@ -36,5 +37,5 @@ object ChangeRecords {
     }
 
     fun fromJournals(journals: List<List<JournalRecord>>): List<ChangeRecord> =
-        journals.flatMap { fromJournal(it) }.sortedWith(compareBy({ it.atMs }, { it.step }))
+        journals.flatMap { fromJournal(it) }.sortedWith(UndoOrder.CHRONOLOGICAL)
 }
