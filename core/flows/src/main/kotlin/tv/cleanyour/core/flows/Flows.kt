@@ -45,8 +45,11 @@ sealed interface SetupState {
 enum class DoorPhase { STEPS, CONNECTING, ALLOW, IDENTITY, CONNECTED }
 enum class Sheet { LIST, CUSTOMISE, DOCK, THEME, ADDRESS }
 // R0: 2 were referenced and never declared; W8 may add fields, never remove
-enum class StopCase { HOME_SETUPWRAITH, HOME_OTHER_LAUNCHER, HOME_UNKNOWN, HOME_USER_SAID_NO, CONNECTION_LOST, RESUME_AFTER_DEATH, INSTALL_FAILED, TV_REFUSES_HOME, PAIRING_NEEDED, IDENTITY_CHANGED }
-data class StopCard(val case: StopCase, val title: String, val body: String, val primary: String, val secondary: String?, val planId: PlanId?)
+enum class StopCase { HOME_SETUPWRAITH, HOME_OTHER_LAUNCHER, HOME_UNKNOWN, HOME_USER_SAID_NO, CONNECTION_LOST, RESUME_AFTER_DEATH, INSTALL_FAILED, TV_REFUSES_HOME, PAIRING_NEEDED, IDENTITY_CHANGED,
+    // W8 additions (growable, R0: 2; DECISIONS-W8.md D-W8-3): the stops of section 4 that had no case
+    TV_NOT_FOUND, WRONG_NETWORK, TV_NOT_SUPPORTED, HOME_TIMED_OUT, STEP_FAILED, UNDONE, PROBE_FAILED, NOT_BACK_AFTER_RESTART }
+data class StopCard(val case: StopCase, val title: String, val body: String, val primary: String, val secondary: String?, val planId: PlanId?,
+    val tertiary: String? = null)   // W8 addition: S4d and S4e have three buttons
 data class DoneSummary(val switchedOff: Int, val homeScreenOn: Boolean, val restorePointAtMs: Long, val skipped: List<String>, val restartRecommended: Boolean)
 sealed interface RestartState { data class Restarting(val sinceMs: Long) : RestartState; data class Back(val afterMs: Long) : RestartState
     data class NotBack(val afterMs: Long) : RestartState }
