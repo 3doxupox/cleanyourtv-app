@@ -4,6 +4,12 @@
 package tv.cleanyour.feature.connect
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -28,6 +34,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import tv.cleanyour.core.discovery.DiscoverySource
 import tv.cleanyour.core.discovery.FoundTv
 import tv.cleanyour.core.flows.ChipState
 import tv.cleanyour.core.flows.DoorPhase
@@ -114,37 +121,56 @@ private fun InlineCard(extras: SetupExtras, actions: SetupActions) {
 }
 
 // S1 Welcome (D8, D19, D5): discovery is already running; the live line is the discovery chip.
+// Mockup 01: one promise, one action ("Start") and the "I've set up a TV before" link. Address entry
+// lives where S1b and UX 4.1 put it (Which TV?, the "No TV found yet" card) and on the door of a TV
+// Start went straight to ("Not this TV?"), not on Welcome (round 3).
 @Composable
 fun WelcomeScreen(state: SetupState.Welcome, extras: SetupExtras, actions: SetupActions, onReturning: () -> Unit, modifier: Modifier = Modifier) {
-    ScreenScaffold(
-        Glow.Brand, modifier,
-        bottomBar = {
-            ActionColumn {
-                PrimaryButton(stringResource(R.string.welcome_start), { actions.intent(SetupIntent.Start) })
-                // Always offered (emulator run, finding 1): Start goes straight to a single found
-                // device, which may not be the TV.
-                TertiaryButton(stringResource(R.string.welcome_address), { actions.intent(SetupIntent.Open(Sheet.ADDRESS)) })
-                TertiaryButton(stringResource(R.string.welcome_returning), onReturning)
-            }
-        },
-    ) {
-        // The product name scrolls with the hero (no top bar on Welcome), so a stop card scrolled
-        // into view never slides the film under it (R4-W8).
-        Overline(stringResource(R.string.welcome_overline), Modifier.padding(top = 28.dp))
-        WelcomeIllustration(Modifier.padding(top = 28.dp), contentDescription = stringResource(R.string.welcome_hero_cd))
-        ScreenTitle(stringResource(R.string.welcome_title), Modifier.padding(top = 32.dp), size = TitleSize.DISPLAY)
-        Lead(stringResource(R.string.welcome_body), Modifier.padding(top = 12.dp))
-        val found = state.found
-        val line = when {
-            found.size >= 2 -> msg(R.string.welcome_found_many, "count" to found.size)
-            found.size == 1 -> msg(R.string.welcome_found_one_noroom, "name" to displayName(found[0]))
-            state.looking -> stringResource(R.string.welcome_looking)
-            else -> stringResource(R.string.welcome_none_yet)
+    val found = state.found
+    val line = when {
+        found.size >= 2 -> msg(R.string.welcome_found_many, "count" to found.size)
+        found.size == 1 -> msg(R.string.welcome_found_one_noroom, "name" to displayName(found[0]))
+        state.looking -> stringResource(R.string.welcome_looking)
+        else -> stringResource(R.string.welcome_none_yet)
+    }
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        // A short phone (the 360 x 720 dp emulator leaves about 600 dp between its bars) gets a
+        // smaller hero and tighter gaps, so the promise, the body and the live line all fit above
+        // Start in the first view, as mockup 01 shows them.
+        val density = LocalDensity.current
+        val insets = WindowInsets.safeDrawing
+        val usable = maxHeight - with(density) { (insets.getTop(density) + insets.getBottom(density)).toDp() }
+        val compact = usable < WELCOME_COMPACT_BELOW
+        ScreenScaffold(
+            Glow.Brand,
+            bottomBar = {
+                // The live discovery line is pinned with Start, the button it speaks for, so it shows
+                // before the first tap on every phone height (mockup 01: "the live status chip says
+                // the TV is found before the first tap"); pinned like S3's safety line (R4-W8 H1).
+                DiscoveryChip(line, found = found.isNotEmpty(), modifier = Modifier.padding(bottom = 14.dp))
+                ActionColumn {
+                    PrimaryButton(stringResource(R.string.welcome_start), { actions.intent(SetupIntent.Start) })
+                    TertiaryButton(stringResource(R.string.welcome_returning), onReturning)
+                }
+            },
+        ) {
+            // The product name scrolls with the hero (no top bar on Welcome), so a stop card scrolled
+            // into view never slides the film under it (R4-W8). Gaps and the 300 dp hero are the
+            // mockup's (28, 32, 40).
+            Overline(stringResource(R.string.welcome_overline), Modifier.padding(top = if (compact) 12.dp else 28.dp))
+            WelcomeIllustration(
+                Modifier.padding(top = if (compact) 16.dp else 32.dp).align(Alignment.CenterHorizontally)
+                    .widthIn(max = if (compact) 248.dp else 300.dp),
+                contentDescription = stringResource(R.string.welcome_hero_cd),
+            )
+            ScreenTitle(stringResource(R.string.welcome_title), Modifier.padding(top = if (compact) 20.dp else 40.dp), size = TitleSize.DISPLAY)
+            Lead(stringResource(R.string.welcome_body), Modifier.padding(top = 12.dp))
+            InlineCard(extras, actions)
         }
-        DiscoveryChip(line, found = found.isNotEmpty(), modifier = Modifier.padding(top = 20.dp))
-        InlineCard(extras, actions)
     }
 }
+
+private val WELCOME_COMPACT_BELOW = 680.dp
 
 @Composable
 fun displayName(tv: FoundTv): String = tv.friendlyName ?: tv.model ?: tv.host
@@ -211,13 +237,16 @@ fun DoorScreen(state: SetupState.OpenDoor, extras: SetupExtras, actions: SetupAc
     ) {
         StepCounter(2, WIZARD_STEPS, Modifier.padding(top = 12.dp))
         when (state.phase) {
-            DoorPhase.ALLOW -> AllowContent(state, extras)
+            DoorPhase.ALLOW -> { AllowContent(state, extras); NotThisTv(state, actions) }
             DoorPhase.IDENTITY -> IdentityContent(extras)
             DoorPhase.CONNECTED -> {
                 ScreenTitle(msg(R.string.connected_title, "tv" to (name ?: "")), Modifier.padding(top = 8.dp))
                 CheckLine(stringResource(R.string.allow_trusted), Modifier.padding(top = 16.dp))
             }
-            DoorPhase.STEPS, DoorPhase.CONNECTING -> StepsContent(state, actions, name, brandsOpen, onBrands = { brandsOpen = !brandsOpen })
+            DoorPhase.STEPS, DoorPhase.CONNECTING -> {
+                StepsContent(state, actions, name, brandsOpen, onBrands = { brandsOpen = !brandsOpen })
+                NotThisTv(state, actions)
+            }
         }
         InlineCard(extras, actions)
         Gap(16.dp)
@@ -227,6 +256,16 @@ fun DoorScreen(state: SetupState.OpenDoor, extras: SetupExtras, actions: SetupAc
             NotSeenContent(extras.allowRetries, onAsk = { actions.intent(SetupIntent.AskTvAgain); showNotSeen = false })
         }
     }
+}
+
+// Start goes straight to the one device discovery found, which may not be the TV (emulator run,
+// finding 1). A quiet way out to the address sheet (S1c) while the door waits; on the identity line
+// "No" does the same. Not shown for a typed address (Back is the way to retype it) or before a TV
+// is known (the "No TV found yet" card offers the address).
+@Composable
+private fun NotThisTv(state: SetupState.OpenDoor, actions: SetupActions) {
+    if (state.tv.host.isEmpty() || DiscoverySource.MANUAL in state.tv.sources) return
+    TertiaryButton(stringResource(R.string.door_not_this_tv), { actions.intent(SetupIntent.Open(Sheet.ADDRESS)) }, Modifier.padding(top = 4.dp))
 }
 
 @Composable
