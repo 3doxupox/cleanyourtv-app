@@ -176,3 +176,16 @@ Added because the section 5 prose names it: `core.probe.ProbeException(stage, de
   takeover quirks (rca-ai-pont, tcl-65c725), O4 sony BRAVIA_ATV2 model vs device (product call),
   O5 the Xiaomi sure set disables PatchWall: R3 must verify `Protected` covers the current HOME.
 - RFCs from streams live in `docs/rfcs/<stream>.md` after merge.
+- From R5 of W8 (merge after fixes, fixed on w8). RFC rulings: RFC-W8-1 change (add
+  `SetupIntent.StopAction(action)` and `SetupIntent.RejectIdentity`, keep `back(): Boolean`),
+  RFC-W8-2 accept with the rule that nothing gating a write lives only in `SetupExtras`, RFC-W8-3
+  accept, RFC-W8-4 accept for 0.1 but never cache the app-level pass, RFC-W8-5 accept (W3 adds
+  `PlanRequest.Reboot` / `PlanKind.REBOOT`, journaled, not gated), RFC-W8-6 accept (manual card
+  answer buttons; `Prober.cardAnswer` in 0.2), RFC-W8-7 accept (D16 gains USE_BIOMETRIC; W9's
+  aapt2 check lists it). Open, to fix at the W7 swap (T8): O1 obscured-touch filtering only on
+  confirming buttons, with a hint when a touch is dropped. Open, at the W3 merge: O2 a Manage
+  write paused by a lost connection leaves its run open. Lows O3 to O13 are in reviews/R5-W8.md
+  after merge; O11 adds the GitHub Pages host to the network security config before I4.
+- From the W2 report: RFC-W2-1 (`:adb:session` opts in to `@RawShell` once for five constant lines)
+  must be on W3's single-call-site lint allowlist at the W3 merge; RFC-W2-2 and RFC-W2-3 go to the
+  Fable R2 gate.
