@@ -1,0 +1,134 @@
+# W1 decisions: foundation and fakes
+
+Stream W1, 2026-10-19. Built against product spec section 5 as fixed by gate R0 (verdict FREEZE
+WITH FIXES). Every pin below was resolved from Google Maven, Maven Central or the Gradle Plugin
+Portal by a green `./gradlew check assembleDebug :app:assembleRelease :app:checkApkSizeRelease` on
+forge (`scripts/build-on-forge.sh`, `eclipse-temurin:21-jdk`, 3 GB cap) on that date.
+
+## Toolchain pins (D34)
+
+| Item | Pin | Note |
+| :- | :- | :- |
+| Android Gradle Plugin | 9.4.1 | As ARCHITECTURE 7.2. 9.5.0 is alpha only |
+| Gradle | 9.7.1 | The spec says "the 9 line AGP 9.4 requires" without a number. 9.7.1 (2026-08-19) is the newest stable that predates both AGP 9.4.0 (2026-09-01) and Kotlin 2.4.20 (2026-09-07), so both were released against it; 9.8.x came later. Wrapper pinned by `distributionSha256Sum` |
+| Kotlin (and the Compose compiler and serialization plugins) | 2.4.21 | As ARCHITECTURE 7.1. 2.5.0 is Beta |
+| JDK | 21 (Temurin) | Gradle runs on it; JVM modules use a JDK 21 toolchain; Android `compileOptions` 21 |
+| Compose BOM | 2026.09.00 | UI, foundation, runtime 1.12.1; Material 3 1.4.0, as ARCHITECTURE 7.1 |
+| Navigation 3 | 1.2.0 | Catalogued; first used by W8 |
+| kotlinx-coroutines | 1.11.0 | |
+| kotlinx-serialization | 1.11.0 | 1.12.0 is RC |
+| activity-compose 1.13.0, lifecycle 2.11.0, profileinstaller 1.4.1 | as listed | Catalogued for W8 |
+| okio 3.18.2, bcprov-jdk18on 1.86 | as listed | Catalogued for W2 and W5 |
+| JUnit 4.13.2, Robolectric 4.17, Roborazzi 1.76.0, Turbine 1.2.1, kotest-property 6.2.6, apksig 9.4.1, androidx.test ext junit 1.3.0, uiautomator 2.4.0, baselineprofile 1.5.0 | as listed | Test and build only |
+| foojay-resolver-convention | 1.0.0 | Settings plugin |
+| compileSdk / targetSdk / minSdk | 37 / 36 / 28 | See RFC-W1-3 |
+
+Every pin named in the spec exists as a stable release; none had to be replaced.
+
+## Decisions taken inside W1
+
+- D-W1-1 Module placement follows section 5 after R0: every shared type and seam is in
+  `:core:model` (packages `core.model`, `core.session`, `core.discovery`, `core.store`). There is
+  no separate `:core:store` module: the W1 row's "`:core:store` seams" are the `core.store` package
+  inside `:core:model`, as section 5.13 says.
+- D-W1-2 Layers in `ModuleRules.kt`: model 0; spec, ops, adb wire, adb pairing 1; adb session,
+  probe, trust, fake-adbd 2; planner, registry, backup 3; engine 4; flows and testing fixtures 5;
+  android modules and e2e 6; ui 7; features 8; app 9; benchmark 10. A module may depend only on a
+  lower number. Test configurations may use anything (that is how `:testing:fixtures` reaches every
+  module's tests). Rules 2, 3, 5 and 6 of ARCHITECTURE 1.3 are checked too; see RFC-W1-1 for the
+  engine row.
+- D-W1-3 AGP 9 built-in Kotlin for Android modules (no `kotlin-android` plugin); configuration
+  cache and build cache on; Kotlin compiler in process (forge's 3 GB cap).
+- D-W1-4 Explicit API mode is off. Section 5 is copied verbatim and has no visibility modifiers;
+  strict mode would reject it, warning mode would bury real warnings.
+- D-W1-5 `SnapshotCodec` (W1-owned, R0: 15) is implemented in `:core:model` by `SnapshotJson` with
+  kotlinx-serialization-json's element API (no compiler plugin): compact JSON, `schema` 1, fixed key
+  order, maps sorted by key, sets sorted, components as `pkg/cls`, overlay as base64, and
+  `contentHash` = sha256 of the canonical bytes with `"contentHash":""`. `decode` rejects another
+  schema and a hash that does not match. This adds serialization-json to `:core:model`
+  (ARCHITECTURE 1.2 lists serialization-core only); the allowlist reflects it.
+- D-W1-6 APK size gate: `checkApkSize<Variant>` on `:app`, 8 MiB (8,388,608 bytes) hard; a proof
+  run may lower it with `-Pcleanyourtv.apkSizeLimitBytes=N`. The release APK of the empty tree is
+  226,415 bytes; the gate failed as expected with the limit at 100,000. The debug APK (30 MB,
+  unminified Compose) is not gated.
+- D-W1-7 `:benchmark` has a build file but no plugin yet: W9 applies `com.android.test` and the
+  baseline profile plugin. `:adb:pairing` is empty (0.2).
+- D-W1-8 Upstream submodule `third_party/cleanyourtv` from `https://github.com/Gathin23/cleanyourtv.git`
+  at `7205769cf97316c923c5b6f8a9903b5c0edf5a30` (the commit the spec names; upstream main has moved
+  to `1bbf0c9` since). W5's launcher pin must agree with this commit (ARCHITECTURE 6.2).
+- D-W1-9 Fixtures. The Mi TV capture went through `scripts/import-mitv-capture.py`: serials, OEM
+  key, `android_id`, Bluetooth address and name replaced; MAC, private IPv4 and SSID patterns
+  scrubbed (none were present); the capture's `restore.sh` (host names, addresses) not copied.
+  `RedactionTest` keeps it that way. The module card fixtures keep only sources, README, digests
+  and the xmltree dump: APKs are build outputs and the throwaway keystores stay outside git
+  (ARCHITECTURE 6.8), so their digests are reproducible only with those keys.
+- D-W1-10 Fakes are behavioural where it is cheap and matters to other streams: `FakeAdbSigner`
+  signs with a real RSA-2048 key in the adbd format (public key struct, MD5 fingerprint), so W2's
+  fake adbd can verify it; `FakeEngine` applies the 5.9 start contract (refusal order, hash, gate);
+  `FakeHttp` does ETag, Range, If-Range and a host allowlist; `MemorySnapshotStore` stores through
+  `SnapshotCodec`; `FakeCredentialGate` is the test-side `@GateIssuer`. `FakeOpRenderer` is not a
+  renderer: its lines are `fake ...` and must never reach a golden file or a TV.
+- D-W1-11 `Recording` (the store behind `FakeTvSession`) normalises lines by dropping single
+  quotes and collapsing spaces, so recordings keyed by plain commands keep working whatever
+  quoting W3's renderer settles on.
+- D-W1-12 Forge notes: Java in the build container intermittently timed out connecting to
+  GitHub's release asset hosts, which the wrapper download and the wrapper task's URL check use.
+  The 9.7.1 distribution was fetched once with curl, checked against the pinned sha256 and placed
+  in the shared cache; the wrapper keeps `validateDistributionUrl=true` and `retries=2`. The cached
+  `sdkmanager` is old (it warns about SDK XML version 4); the script only accepts licences and AGP
+  downloads the platform and build tools itself.
+
+## Edits to the verbatim section 5 text
+
+The generator copies each section 5 block into its module with a header, the package line, the
+imports it needs and the block body. Edits beyond that, all of them bodies (the preamble says the
+owning stream supplies bodies):
+
+- `adb.wire.AdbConnection`: the elided `private constructor(...)` became
+  `private constructor(val features: Set<String>, val maxPayload: Int)` (the two member properties
+  moved into it, same names and types); `open`, `openStream` and `close` got `TODO("W2")` bodies.
+- `core.ops.Protected.isProtected`, `core.spec.DebloatTxtParser.parse`, `DockRanking.pick`,
+  `LauncherConfigCodec.decode`, `encode`, `effective`, `builtInDefaults`: `TODO` bodies naming the
+  owner (W3, W4).
+- `core.store.SnapshotCodec`: bodies delegating to the internal `SnapshotJson` (D-W1-5).
+
+Added because the section 5 prose names it: `core.probe.ProbeException(stage, detail)` (R0: 7).
+
+## RFCs for the Fable R0 gate
+
+- RFC-W1-1 `:core:engine` must depend on `:core:planner`. `Engine.start(plan: Plan, ...)`,
+  `RunState.*.plan: Plan`, `RunState.Finished.skipped: List<Step>` and
+  `RunState.AwaitingConfirm.section: GuardedSection` all name planner types, while R0's notes put
+  engine and planner in the same layer ("the executor (same layer as the planner)"), and same-layer
+  edges are forbidden. Smallest fix, applied: the engine sits one layer above the planner in
+  `ModuleRules`; no type moves and the planner never sees the engine. Alternative if Fable prefers
+  the layers as drawn: move `Plan`, `Step`, `GuardedSection`, `PlanSummary`, `GroupSummary`,
+  `RowSummary` and `PlanKind` into `:core:model`. Affects W3 only.
+- RFC-W1-2 `PACKAGE_RE` requires at least one dot, so the framework package `android` (on every
+  TV; 1 of the 107 packages in the Mi TV capture) cannot be a `PackageName`. A snapshot cannot
+  record it and `Protected` cannot name it. Nothing writes to it, so 0.1 is safe either way;
+  `Samples.miTvPackages()` drops it and says why. Proposal: keep the grammar and document that the
+  probe skips `android` (it is protected by definition), or admit the single literal `android` in
+  `PackageName.init`. Affects W3 (denylist data) and W4 (packages parser).
+- RFC-W1-3 compileSdk 37 instead of D10's 36. The Compose BOM pinned by D34 (2026.09.00, Compose
+  1.12.1) declares in its AAR metadata that consumers must compile against API 37; with 36 every
+  Compose module fails `checkDebugAarMetadata`. ARCHITECTURE 7.4 already says "move to 37 when
+  final" and API 37 is final. Applied: compileSdk 37, targetSdk stays 36, minSdk 28, so runtime
+  behaviour and D10's intent are unchanged. Alternative: an older BOM (Compose 1.11) and stay on 36.
+  Affects W7, W8, W9 (the `aapt2 dump badging` assertion still reads `targetSdkVersion 36`).
+- RFC-W1-4 (documentation only) ARCHITECTURE 1.2 lists `:adb:wire -> (stdlib, okio)`, but the
+  frozen 5.3 signatures take `Endpoint`, `Sha256` and `ShellLine` from `:core:model`, so the wire
+  module depends on `:core:model` (layer 0, depends on nothing of ours, so no cycle is possible).
+  Likewise `:core:model` gains serialization-json for `SnapshotCodec` (D-W1-5). Proposal: update
+  the ARCHITECTURE 1.2 table; no code change.
+
+## Open for other streams
+
+- Each new third-party dependency needs a line in `ModuleRules.allowedExternal` (W1 reviews it in
+  the same PR). okio (`:adb:wire`), bcprov (`:core:trust`, `:android:platform`) and the test
+  libraries are already listed.
+- Roborazzi and baseline profile plugins are catalogued but not wired into build-logic (W7, W9).
+- `gradle/verification-metadata.xml` (dependency verification) is not generated yet; `pr.yml`
+  lists it as a later job (W9). Generating it now would freeze the dependency set on day 1.
+- The `Plan` JSON codec (R0 "deliberately left open") will be the third `@RawShell` opt-in; W3's
+  single-call-site lint must allow it.
