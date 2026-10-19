@@ -10,5 +10,9 @@ local.properties
 *.jks
 *.keystore
 keystore/
+*.p12
+*.pfx
+*.key
+*-password.txt
 # local artefacts from scripts/build-on-forge.sh
 dist/
