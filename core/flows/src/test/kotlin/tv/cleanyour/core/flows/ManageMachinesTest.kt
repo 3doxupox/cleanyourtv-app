@@ -344,10 +344,6 @@ class ManageMachinesTest {
         assertTrue(OperationNotices.needsForeground(plan))
         assertFalse(OperationNotices.needsForeground(Harness().plan(listOf(Op.Enable(adPkg)))))
     }
-}
-
-private fun kotlinx.coroutines.CoroutineScope.launchAccess(h: Harness, tv: Tv, done: (AccessResult) -> Unit) =
-    launch { done(h.access.session(tv.id))
 
     // R5-W8 O2: a Manage write paused by a lost connection shows the open-run card, not the generic
     // "failed" snackbar; the next write on that TV shows the same card without a new plan or prompt;
@@ -446,3 +442,6 @@ private fun kotlinx.coroutines.CoroutineScope.launchAccess(h: Harness, tv: Tv, d
         assertEquals("Lounge", h.tvs.tvs.value.single().room)
     }
 }
+
+private fun kotlinx.coroutines.CoroutineScope.launchAccess(h: Harness, tv: Tv, done: (AccessResult) -> Unit) =
+    launch { done(h.access.session(tv.id)) }
