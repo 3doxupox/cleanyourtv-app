@@ -98,6 +98,14 @@ class IndexRegistry(
             return@withLock publish(IndexState.Failed(FetchFailure.OFFLINE, null, current?.index))
         }
         val last = current
+        // The keys high-water mark is part of step 1 of the fixed order (the keys file), so it is
+        // checked before the verifier can report a later step such as ROLLBACK or EXPIRED. Reading
+        // the sequence before the root signature is checked is safe: an unsigned keys file fails
+        // BAD_KEYS_FILE in the verifier's step 1 anyway.
+        val peekedKeys = keysSequenceOf(fetched.keys)
+        if (last != null && peekedKeys != null && peekedKeys < last.keysSequence) {
+            return@withLock publish(IndexState.Failed(null, IndexFailure.BAD_KEYS_FILE, last.index))
+        }
         when (val verdict = verifier.verify(fetched.index, fetched.indexSig, fetched.keys, fetched.keysSig, last?.index?.sequence, now)) {
             is IndexVerdict.Bad -> publish(IndexState.Failed(null, verdict.failure, last?.index))
             is IndexVerdict.Ok -> {

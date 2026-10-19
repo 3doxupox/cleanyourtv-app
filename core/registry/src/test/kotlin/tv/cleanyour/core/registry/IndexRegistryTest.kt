@@ -160,6 +160,9 @@ class IndexRegistryTest {
         // replaying the older keys file that still lists the old key as active is refused too
         serve(pub.index(8, by = old), pub.keys(1, active = listOf(old)))
         assertEquals(IndexFailure.BAD_KEYS_FILE, failed(r.refresh()).verdict)
+        // and the keys file is reported first (fixed order) even when the replayed index is also old
+        serve(pub.index(5, by = old), pub.keys(1, active = listOf(old)))
+        assertEquals(IndexFailure.BAD_KEYS_FILE, failed(r.refresh()).verdict)
         assertEquals(6L, failed(r.index.value).last?.sequence)
     }
 
