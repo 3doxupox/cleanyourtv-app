@@ -23,6 +23,16 @@ dependencies {
     implementation(project(":android:work"))
     implementation(project(":android:platform"))
     implementation(project(":adb:session"))
+    // T7: the real implementations behind Seams (layer 9 may use every lower layer).
+    implementation(project(":adb:wire"))
+    implementation(project(":core:ops"))
+    implementation(project(":core:spec"))
+    implementation(project(":core:probe"))
+    implementation(project(":core:planner"))
+    implementation(project(":core:engine"))
+    implementation(project(":core:backup"))
+    implementation(project(":core:trust"))
+    implementation(project(":core:registry"))
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
@@ -34,6 +44,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
 
     testImplementation(project(":testing:fixtures"))
+    testImplementation(project(":testing:fake-adbd"))
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.ext.junit)
     testImplementation(libs.junit4)
