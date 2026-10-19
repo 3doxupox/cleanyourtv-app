@@ -8,30 +8,31 @@ import kotlinx.serialization.json.JsonPrimitive
 import tv.cleanyour.core.model.PackageName
 
 // The body of LauncherConfigCodec: the launcher's Config.java read path, key by key, as of
-// upstream main 1bbf0c9 (which adds input_action and module_cards to the pinned 7205769; see
-// LauncherConfigExtras and RFC-W4-1). Decoding answers "what will the TV show for these bytes";
-// a key the launcher would ignore is left null in the doc with a warning, so effective() of the
-// decoded doc equals what Config.load computes. ConfigDifferentialTest holds this to the real
-// Config.java on the theme fixtures and 10,000 generated files.
+// upstream main 1bbf0c9 (which adds input_action and module_cards to the pinned 7205769, modelled
+// as fields by RFC-W4-1; the pinned launcher ignores both). Decoding answers "what will the TV
+// show for these bytes"; a key the launcher would ignore is left null in the doc with a warning,
+// so effective() of the decoded doc equals what Config.load computes. ConfigDifferentialTest
+// holds this to the real Config.java on the theme fixtures and 10,000 generated files.
 internal object ConfigCodecImpl {
     const val MAX_BYTES = 64 * 1024
 
     // Config.java's keys in the order it reads them; encode writes this order.
     val KEY_ORDER: List<String> = listOf(
         "dock_apps", "hidden_apps", "live_tv_package", "live_tv_action", "source_panel_service",
-        "source_panel_action", LauncherConfigExtras.INPUT_ACTION, "columns", "rows_below_dock", "shamsi_date",
-        LauncherConfigExtras.MODULE_CARDS, "vpn_app", "show_home_settings_shortcut", "background_color", "wallpaper",
+        "source_panel_action", "input_action", "columns", "rows_below_dock", "shamsi_date",
+        "module_cards", "vpn_app", "show_home_settings_shortcut", "background_color", "wallpaper",
     )
-    // Keys with a LauncherConfigDoc field; the two extras travel in `unknown`.
-    val MODELLED: Set<String> = KEY_ORDER.toSet() - LauncherConfigExtras.INPUT_ACTION - LauncherConfigExtras.MODULE_CARDS
+    // Keys with a LauncherConfigDoc field: all of Config.java's keys.
+    val MODELLED: Set<String> = KEY_ORDER.toSet()
 
-    // res/values/config.xml of the launcher (identical for these keys at 7205769 and 1bbf0c9).
+    // res/values/config.xml of the launcher (identical at 7205769 and 1bbf0c9 for the keys both
+    // have; input_action and module_cards are 1bbf0c9's values).
     val BUILT_IN = EffectiveConfig(
         dockApps = listOf("com.netflix.ninja", "com.amazon.amazonvideo.livingroom", "com.google.android.youtube.tv", "in.startv.hotstar"),
         hiddenApps = listOf("com.mediatek.wwtv.tvcenter", "com.mitv.gallery"),
         liveTvPackage = "com.mediatek.wwtv.tvcenter", liveTvAction = "", sourcePanelService = "", sourcePanelAction = "",
         columns = 4, rowsBelowDock = 0, shamsiDate = false, vpnApp = "", showHomeSettingsShortcut = false,
-        backgroundColorArgb = 0xFF000000.toInt(), wallpaper = true,
+        backgroundColorArgb = 0xFF000000.toInt(), wallpaper = true, inputAction = "", moduleCards = true,
     )
 
     fun isPackageName(s: String): Boolean = runCatching { PackageName(s) }.isSuccess
@@ -97,9 +98,11 @@ internal object ConfigCodecImpl {
         val liveTvAction = string("live_tv_action")
         val panelService = string("source_panel_service")
         val panelAction = string("source_panel_action")
+        val inputAction = string("input_action")
         val columns = integer("columns", 1, 8)
         val rows = integer("rows_below_dock", 0, 3)
         val shamsi = bool("shamsi_date")
+        val moduleCards = bool("module_cards")
         val vpn = string("vpn_app")
         val homeSettings = bool("show_home_settings_shortcut")
         var background: String? = null
@@ -122,17 +125,13 @@ internal object ConfigCodecImpl {
         for ((k, v) in o) {
             if (k in MODELLED) continue
             unknown[k] = v.toJsonElement()
-            when (k) {
-                LauncherConfigExtras.INPUT_ACTION -> if (v !is AValue.Str) w += "$k is not a string; the launcher keeps its default"
-                LauncherConfigExtras.MODULE_CARDS -> if (v !is AValue.Bool) w += "$k is not true or false; the launcher keeps its default"
-                else -> w += "unknown key $k; the launcher ignores it (carried as is)"
-            }
+            w += "unknown key $k; the launcher ignores it (carried as is)"
         }
         val doc = LauncherConfigDoc(
             dockApps = dock, hiddenApps = hidden, liveTvPackage = liveTv, liveTvAction = liveTvAction,
             sourcePanelService = panelService, sourcePanelAction = panelAction, columns = columns, rowsBelowDock = rows,
             shamsiDate = shamsi, vpnApp = vpn, showHomeSettingsShortcut = homeSettings, backgroundColor = background,
-            wallpaper = wallpaper, unknown = unknown,
+            wallpaper = wallpaper, unknown = unknown, inputAction = inputAction, moduleCards = moduleCards,
         )
         return DecodeResult.Ok(doc, w)
     }
@@ -157,6 +156,8 @@ internal object ConfigCodecImpl {
             showHomeSettingsShortcut = doc.showHomeSettingsShortcut ?: defaults.showHomeSettingsShortcut,
             backgroundColorArgb = bg ?: defaults.backgroundColorArgb,
             wallpaper = doc.wallpaper ?: defaults.wallpaper,
+            inputAction = doc.inputAction?.javaTrim() ?: defaults.inputAction,
+            moduleCards = doc.moduleCards ?: defaults.moduleCards,
         )
     }
 
@@ -169,6 +170,7 @@ internal object ConfigCodecImpl {
         canonicalString("live_tv_action", doc.liveTvAction)
         canonicalString("source_panel_service", doc.sourcePanelService)
         canonicalString("source_panel_action", doc.sourcePanelAction)
+        canonicalString("input_action", doc.inputAction)
         canonicalString("vpn_app", doc.vpnApp)
         doc.columns?.let { require(it in 1..8) { "columns $it is outside 1 to 8" } }
         doc.rowsBelowDock?.let { require(it in 0..3) { "rows_below_dock $it is outside 0 to 3" } }
@@ -186,14 +188,16 @@ internal object ConfigCodecImpl {
                 "live_tv_action" -> doc.liveTvAction?.let(::quote)
                 "source_panel_service" -> doc.sourcePanelService?.let(::quote)
                 "source_panel_action" -> doc.sourcePanelAction?.let(::quote)
+                "input_action" -> doc.inputAction?.let(::quote)
                 "columns" -> doc.columns?.toString()
                 "rows_below_dock" -> doc.rowsBelowDock?.toString()
                 "shamsi_date" -> doc.shamsiDate?.toString()
+                "module_cards" -> doc.moduleCards?.toString()
                 "vpn_app" -> doc.vpnApp?.let(::quote)
                 "show_home_settings_shortcut" -> doc.showHomeSettingsShortcut?.toString()
                 "background_color" -> doc.backgroundColor?.let(::quote)
                 "wallpaper" -> doc.wallpaper?.toString()
-                else -> doc.unknown[key]?.let(::element)
+                else -> error("no field for $key")
             }
             if (value != null) entries += key to value
         }

@@ -15,7 +15,7 @@ val TV_ID_RE = Regex("^[0-9a-f]{16}$")
 val FILE_NAME_RE = Regex("^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 
 @JvmInline value class TvId(val value: String) { init { require(TV_ID_RE.matches(value)) } }        // R0: 3; first 16 hex of sha256(serial + device)
-@JvmInline value class PackageName(val value: String) { init { require(PACKAGE_RE.matches(value) && value.length <= 255) } }
+@JvmInline value class PackageName(val value: String) { init { require(value == "android" || (PACKAGE_RE.matches(value) && value.length <= 255)) } }   // RFC-W1-2: also the framework package
 @JvmInline value class Sha256(val hex: String) { init { require(SHA256_RE.matches(hex)) } }
 @JvmInline value class PlanId(val value: String)        // ULID
 @JvmInline value class RunToken(val value: String) { init { require(RUN_TOKEN_RE.matches(value)) } }   // R0: 3

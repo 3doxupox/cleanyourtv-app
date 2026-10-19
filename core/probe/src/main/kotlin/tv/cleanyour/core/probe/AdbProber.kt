@@ -125,7 +125,7 @@ class AdbProber(private val clock: Clock) : Prober {
         val tvInputPkgs = tif.map { it.pkg }.toSet()
         val packages = LinkedHashMap<PackageName, PackageState>()
         for (p in all) {
-            val name = packageName(p.name) ?: continue      // "android" until RFC-W1-2 lands in PackageName
+            val name = packageName(p.name) ?: continue      // a name PackageName refuses; "android" is admitted (RFC-W1-2)
             val i = info[p.name]
             val path = p.path ?: i?.codePath
             packages[name] = PackageState(

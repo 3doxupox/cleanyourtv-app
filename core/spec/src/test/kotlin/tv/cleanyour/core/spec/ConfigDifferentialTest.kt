@@ -50,22 +50,19 @@ class ConfigDifferentialTest {
                     }
                 }
                 val e = LauncherConfigCodec.effective(doc, up.defaults())
+                // input_action and module_cards exist only in latest main; the pinned launcher ignores them.
                 val mine = listOf(
                     e.dockApps, e.hiddenApps, e.liveTvPackage, e.liveTvAction, e.sourcePanelService, e.sourcePanelAction,
                     e.columns, e.rowsBelowDock, e.shamsiDate, e.vpnApp, e.showHomeSettingsShortcut, e.backgroundColorArgb,
                     e.wallpaper && wallpaper,
-                )
+                ) + if (latest) listOf(e.inputAction, e.moduleCards) else emptyList()
                 // Entries that are not package names can never match an app; the codec drops them.
                 val theirs = listOf(
                     u.dockApps.filter(::validPkg), u.hiddenApps.filter(::validPkg), u.liveTvPackage, u.liveTvAction,
                     u.sourcePanelService, u.sourcePanelAction, u.columns, u.rowsBelowDock, u.shamsiDate, u.vpnApp,
                     u.showHomeSettingsShortcut, u.backgroundColor, u.wallpaperShown,
-                )
+                ) + if (latest) listOf(u.inputAction, u.moduleCards) else emptyList()
                 if (mine != theirs) fail("effective config differs for ${ctx()}\n ours:     $mine\n upstream: $theirs")
-                if (latest) {
-                    val x = LauncherConfigExtras.effective(doc)
-                    assertEquals(u.inputAction to u.moduleCards, x.inputAction to x.moduleCards, "extras differ for ${ctx()}")
-                }
             }
         }
     }
@@ -78,7 +75,8 @@ class ConfigDifferentialTest {
     @Test fun builtInDefaultsEqualTheLaunchersConfigXml() {
         for (up in bothLaunchers()) assertEquals(up.defaults(), LauncherConfigCodec.builtInDefaults)
         val latest = UpstreamLauncher.parseConfigXml(java.io.File(javaClass.getResource("/upstream/config-1bbf0c9.xml")!!.toURI()))
-        assertEquals(LauncherConfigExtras.builtInDefaults, LauncherConfigExtras.Effective(latest.getValue("input_action") as String, latest.getValue("module_cards") as Boolean))
+        val b = LauncherConfigCodec.builtInDefaults
+        assertEquals(b.inputAction to b.moduleCards, latest.getValue("input_action") to latest.getValue("module_cards"))
     }
 
     @Test fun themeFixturesAndHandWrittenCasesAgree() {
@@ -145,8 +143,8 @@ class ConfigDifferentialTest {
                 backgroundColor = maybe { listOf("#070A14", "#80FF0000", "navy", "Teal", "#000000").random(r) }, wallpaper = maybe { r.nextBoolean() },
                 unknown = if (r.nextInt(4) == 0) mapOf("x_carried" to JsonPrimitive(r.nextInt()), "a_list" to kotlinx.serialization.json.JsonArray(listOf(JsonPrimitive("v")))) else emptyMap(),
             ).let { d -> d.copy(liveTvPackage = d.liveTvPackage?.javaTrim()) }
-            if (r.nextBoolean()) doc = LauncherConfigExtras.withInputAction(doc, strings.random(r).javaTrim())
-            if (r.nextBoolean()) doc = LauncherConfigExtras.withModuleCards(doc, r.nextBoolean())
+            if (r.nextBoolean()) doc = doc.copy(inputAction = strings.random(r).javaTrim())
+            if (r.nextBoolean()) doc = doc.copy(moduleCards = r.nextBoolean())
             fun trimmed(s: String?) = s?.javaTrim()
             doc = doc.copy(liveTvAction = trimmed(doc.liveTvAction), sourcePanelService = trimmed(doc.sourcePanelService),
                 sourcePanelAction = trimmed(doc.sourcePanelAction), vpnApp = trimmed(doc.vpnApp))
@@ -161,7 +159,8 @@ class ConfigDifferentialTest {
     }
 
     private fun countKeys(d: LauncherConfigDoc) = listOfNotNull(d.dockApps, d.hiddenApps, d.liveTvPackage, d.liveTvAction, d.sourcePanelService,
-        d.sourcePanelAction, d.columns, d.rowsBelowDock, d.shamsiDate, d.vpnApp, d.showHomeSettingsShortcut, d.backgroundColor, d.wallpaper).size + d.unknown.size
+        d.sourcePanelAction, d.columns, d.rowsBelowDock, d.shamsiDate, d.vpnApp, d.showHomeSettingsShortcut, d.backgroundColor, d.wallpaper,
+        d.inputAction, d.moduleCards).size + d.unknown.size
 
     // The lenient reader is a port of JSONTokener; check it value for value, including the
     // Integer, Long and Double split, null slots, duplicate keys and what is refused.

@@ -44,6 +44,29 @@ class LauncherConfigCodecTest {
         assertEquals("x", ok("{'live_tv_action' => ' x ' /* c */ # hash\n}").doc.liveTvAction)
     }
 
+    // RFC-W4-1: the two keys upstream 1bbf0c9 added are fields, decoded in Config.java's order and
+    // never carried in `unknown`.
+    @Test fun inputActionAndModuleCardsAreModelled() {
+        val text = "{\n  \"live_tv_action\": \"x\",\n  \"input_action\": \"com.xgimi.action.hdmiPlayer\",\n  \"columns\": 6,\n" +
+            "  \"module_cards\": false,\n  \"zz\": 1\n}\n"
+        val r = ok("{\"zz\": 1, \"module_cards\": false, \"input_action\": \" com.xgimi.action.hdmiPlayer \", \"columns\": 6, \"live_tv_action\": \"x\"}")
+        assertEquals("com.xgimi.action.hdmiPlayer", r.doc.inputAction)
+        assertEquals(false, r.doc.moduleCards)
+        assertEquals(setOf("zz"), r.doc.unknown.keys)
+        assertEquals(text, LauncherConfigCodec.encode(r.doc).decodeToString())
+        assertEquals(r.doc, assertIs<DecodeResult.Ok>(LauncherConfigCodec.decode(text.encodeToByteArray())).doc)
+        val e = LauncherConfigCodec.effective(r.doc, LauncherConfigCodec.builtInDefaults)
+        assertEquals("com.xgimi.action.hdmiPlayer" to false, e.inputAction to e.moduleCards)
+        // Wrong types: the launcher keeps its defaults, so the doc leaves them null with a warning.
+        val wrong = ok("{\"input_action\": 3, \"module_cards\": \"false\"}")
+        assertEquals(null, wrong.doc.inputAction); assertEquals(null, wrong.doc.moduleCards)
+        assertEquals(emptyMap(), wrong.doc.unknown)
+        assertEquals(2, wrong.warnings.size, wrong.warnings.toString())
+        val d = LauncherConfigCodec.effective(wrong.doc, LauncherConfigCodec.builtInDefaults)
+        assertEquals("" to true, d.inputAction to d.moduleCards)
+        assertEquals("" to true, LauncherConfigCodec.builtInDefaults.let { it.inputAction to it.moduleCards })
+    }
+
     @Test fun refusesWhatTheLauncherIgnoresOrCrashesOn() {
         assertTrue(rejected(ByteArray(64 * 1024 + 1) { ' '.code.toByte() }).reason.contains("64 KB"))
         rejected("[1]".encodeToByteArray()); rejected("".encodeToByteArray()); rejected("{\"columns\": NaN}".encodeToByteArray())
@@ -54,16 +77,19 @@ class LauncherConfigCodecTest {
     }
 
     @Test fun encodeIsCanonicalAndStrict() {
-        val doc = LauncherConfigExtras.withModuleCards(LauncherConfigExtras.withInputAction(
-            LauncherConfigDoc(dockApps = listOf(PackageName("com.netflix.ninja")), columns = 5, backgroundColor = "#000000", wallpaper = false,
-                unknown = mapOf("zz_custom" to JsonArray(listOf(JsonPrimitive(1))))), "com.xgimi.action.hdmiPlayer"), false)
+        val doc = LauncherConfigDoc(dockApps = listOf(PackageName("com.netflix.ninja")), columns = 5, backgroundColor = "#000000", wallpaper = false,
+            unknown = mapOf("zz_custom" to JsonArray(listOf(JsonPrimitive(1)))), inputAction = "com.xgimi.action.hdmiPlayer", moduleCards = false)
         val text = LauncherConfigCodec.encode(doc).decodeToString()
         assertEquals(
             "{\n  \"dock_apps\": [\"com.netflix.ninja\"],\n  \"input_action\": \"com.xgimi.action.hdmiPlayer\",\n  \"columns\": 5,\n" +
                 "  \"module_cards\": false,\n  \"background_color\": \"#000000\",\n  \"wallpaper\": false,\n  \"zz_custom\": [1]\n}\n",
             text,
         )
-        assertEquals(LauncherConfigExtras.Effective("com.xgimi.action.hdmiPlayer", false), LauncherConfigExtras.effective(doc))
+        val e = LauncherConfigCodec.effective(doc, LauncherConfigCodec.builtInDefaults)
+        assertEquals("com.xgimi.action.hdmiPlayer" to false, e.inputAction to e.moduleCards)
+        assertFailsWith<IllegalArgumentException> { LauncherConfigCodec.encode(LauncherConfigDoc(inputAction = " padded")) }
+        assertFailsWith<IllegalArgumentException> { LauncherConfigCodec.encode(LauncherConfigDoc(unknown = mapOf("input_action" to JsonPrimitive("x")))) }
+        assertFailsWith<IllegalArgumentException> { LauncherConfigCodec.encode(LauncherConfigDoc(unknown = mapOf("module_cards" to JsonPrimitive(false)))) }
         assertContentEquals("{}\n".encodeToByteArray(), LauncherConfigCodec.encode(LauncherConfigDoc()))
         assertFailsWith<IllegalArgumentException> { LauncherConfigCodec.encode(LauncherConfigDoc(columns = 9)) }
         assertFailsWith<IllegalArgumentException> { LauncherConfigCodec.encode(LauncherConfigDoc(backgroundColor = "")) }

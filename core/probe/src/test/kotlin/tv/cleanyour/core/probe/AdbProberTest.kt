@@ -54,8 +54,9 @@ class AdbProberTest {
         assertEquals(Fixtures.miTv().tvId(), snap.tvId)
         assertEquals(SnapshotReason.BASELINE, snap.reason)
         assertEquals(Fixtures.miTv().facts(), snap.facts)
-        // Every listed package but the framework's "android" (RFC-W1-2), with the capture's disabled set.
-        assertEquals(106, snap.packages.size)
+        // Every listed package, the framework's "android" included (RFC-W1-2), with the capture's disabled set.
+        assertEquals(107, snap.packages.size)
+        assertTrue(snap.packages.getValue(p("android")).let { it.system && it.persistent })
         val disabled = Fixtures.miTv().disabledAfter.map(::p).toSet()
         assertEquals(disabled, snap.packages.filterValues { it.enabled == EnabledState.DISABLED_USER }.keys)
         assertTrue(snap.packages.filterKeys { it !in disabled }.values.all { it.enabled == EnabledState.DEFAULT })

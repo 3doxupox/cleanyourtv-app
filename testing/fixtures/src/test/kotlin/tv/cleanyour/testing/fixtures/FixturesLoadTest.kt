@@ -33,7 +33,7 @@ class FixturesLoadTest {
 
     @Test fun miTvSnapshotRoundTripsThroughTheCodec() {
         val s = Samples.miTvSnapshot()
-        assertEquals(106, s.packages.size, "107 captured minus the dotless framework package (RFC-W1-2)")
+        assertEquals(107, s.packages.size, "every captured package, the framework's \"android\" included (RFC-W1-2)")
         assertEquals(s, SnapshotCodec.decode(SnapshotCodec.canonical(s)))
     }
 
