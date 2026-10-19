@@ -133,8 +133,9 @@ fun DockSheet(current: List<AppChoice>, apps: List<AppChoice>, onDone: (List<Pac
 @Composable
 internal fun ColumnScope.DockContent(dock: List<AppChoice>, apps: List<AppChoice>, onChange: (List<AppChoice>) -> Unit, onDone: () -> Unit) {
     SheetHeader(stringResource(R.string.dock_title), subtitle = stringResource(R.string.dock_body))
-    SectionLabel(stringResource(R.string.dock_section_in))
-    ListGroup {
+    // An empty dock has no "In the dock" heading over nothing (round 3); the apps to add follow.
+    if (dock.isNotEmpty()) SectionLabel(stringResource(R.string.dock_section_in))
+    if (dock.isNotEmpty()) ListGroup {
         dock.forEachIndexed { i, app ->
             if (i > 0) ListDivider()
             val inCd = msg(R.string.dock_item_in_cd, "name" to app.name, "position" to i + 1)
@@ -150,9 +151,10 @@ internal fun ColumnScope.DockContent(dock: List<AppChoice>, apps: List<AppChoice
         }
     }
     if (dock.size >= 4) Body(stringResource(R.string.dock_full_note), Modifier.padding(top = 10.dp, start = 4.dp, end = 4.dp))
-    SectionLabel(stringResource(R.string.dock_section_other))
-    ListGroup {
-        apps.filter { a -> dock.none { it.pkg == a.pkg } }.forEachIndexed { i, app ->
+    val others = apps.filter { a -> dock.none { it.pkg == a.pkg } }
+    if (others.isNotEmpty()) SectionLabel(stringResource(R.string.dock_section_other))
+    if (others.isNotEmpty()) ListGroup {
+        others.forEachIndexed { i, app ->
             if (i > 0) ListDivider()
             val full = dock.size >= 4
             val cd = if (full) msg(R.string.dock_item_out_cd, "name" to app.name) else msg(R.string.dock_add_cd, "name" to app.name)

@@ -106,6 +106,17 @@ private val unknownPlan = plan(summary(listOf(
     GroupSummary("tracking", "Tracking and analytics", off = 4, total = 4, rows = emptyList()),
     GroupSummary("nobody", "Apps nobody asked for", off = 2, total = 2, rows = emptyList()),
 )))
+// The emulator TV (round 3): an unknown model where nothing is sure, so the one switch-off is the
+// TV's own home screen inside the home screen switch, listed and counted like any other.
+private val homeSwitchGroup = GroupSummary("home", "Needed for the new home screen", off = 1, total = 1, rows = listOf(
+    row("com.google.android.tvlauncher", "Android TV home", "The old home screen. Switched off only after the new one works.",
+        protectedRow = true, why = "part of the home screen switch; it comes back on if the switch is undone"),
+))
+private val homeSwitchCommands = listOf(
+    "pm disable-user --user 0 com.google.android.tvlauncher",
+    "cmd package set-home-activity com.gathin.tvhome/.MainActivity",
+)
+private val homeSwitchOnlyPlan = plan(summary(listOf(homeSwitchGroup)).copy(dock = emptyList()))
 private val noHomePlan = plan(summary(listOf(
     GroupSummary("ads", "Adverts and sponsored rows", off = 6, total = 6, rows = emptyList()),
     GroupSummary("tracking", "Tracking and analytics", off = 7, total = 7, rows = emptyList()),
@@ -212,6 +223,7 @@ object SetupShots {
         // Emulator run: a TV with no app to suggest for the dock; the row names the new home screen.
         Shot("found_zero_empty_dock") { Setup(found(zeroPlan.copy(summary = zeroPlan.summary.copy(dock = emptyList())))) },
         Shot("found_unknown_model") { Setup(found(unknownPlan), connected.copy(unknownModel = true)) },
+        Shot("found_unknown_home_switch_only") { Setup(found(homeSwitchOnlyPlan), connected.copy(unknownModel = true)) },
         Shot("found_no_screen_lock") { Setup(found(), connected.copy(noScreenLock = true)) },
         Shot("found_tv_refuses_home") { Setup(found(noHomePlan), connected.copy(tvName = "TCL C635", homePossible = false)) },
         Shot("found_starting") { Setup(found(), connected.copy(starting = true)) },
@@ -232,11 +244,19 @@ object SetupShots {
                     Modifier.align(Alignment.BottomCenter).padding(start = 20.dp, end = 20.dp, bottom = 28.dp))
             }
         },
+        // The home screen switch's own switch-off: shown Off with no pill to flip, counted in "1 of 1 off".
+        Shot("customise_sheet_home_switch") {
+            SheetFrame({ Setup(found(homeSwitchOnlyPlan)) }) {
+                CustomiseContent(found(homeSwitchOnlyPlan), customising.copy(dock = emptyList(), commands = homeSwitchCommands), NoSetupActions, rememberUndoSnackbarState(), {}, {})
+            }
+        },
         Shot("customise_why_sheet") { SheetFrame({ Setup(found()) }, maxHeight = 360.dp) { WhyContent(found()) } },
 
         // S3b Your dock, with room and full; the look picker
         Shot("dock_sheet") { SheetFrame({ Setup(found()) }) { DockContent(dockApps.take(3), dockApps + otherApps, {}, {}) } },
         Shot("dock_sheet_full") { SheetFrame({ Setup(found()) }) { DockContent(dockApps, dockApps + otherApps, {}, {}) } },
+        // An empty dock: no "In the dock" heading over nothing, the apps to add straight away.
+        Shot("dock_sheet_empty") { SheetFrame({ Setup(found(homeSwitchOnlyPlan)) }) { DockContent(emptyList(), otherApps, {}, {}) } },
         Shot("theme_sheet") { SheetFrame({ Setup(found()) }, maxHeight = 480.dp) { ThemeContent(customising, NoSetupActions) } },
 
         // S4a Making it clean
