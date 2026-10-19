@@ -58,6 +58,33 @@ Stream W8, 2026-10-19. Built against section 5 as fixed by R0 and the W1 fakes. 
 
 ## Tests
 
-- Coroutine tests run with `runTest(timeout = 30.seconds)` and the module's Gradle test task has a
-  3 to 5 minute timeout. Machines run endless poll and tick loops in `backgroundScope`, so tests
+- Coroutine tests run with `runTest(timeout = 30.seconds)`; the 5 minute Gradle test timeout comes
+  from build-logic (T1), no module sets its own. Machines run endless poll and tick loops in `backgroundScope`, so tests
   never wait on Turbine (`drain()` reads what is there) and any retry loop must contain a delay.
+
+## Merge of main (M5)
+
+- D-W8-13 RFC-W8-1 as ruled: `SetupIntent.StopAction(action)` and `SetupIntent.RejectIdentity` are
+  in the frozen sealed set (`StopAction` moved to Flows.kt beside it); `SetupActions` keeps only
+  `intent`, `back(): Boolean` and `dismissCard`.
+- D-W8-14 RFC-W8-4: `GateKeeper` never caches an `APP_GATE_ID` pass, prompted or handed in.
+- D-W8-15 RFC-W8-5: the D24 restart test plans `PlanRequest.Reboot` and runs it through
+  `PlanRunner` (journaled, no prompt: `GateKeeper.needsPass` mirrors the engine's REBOOT rule). The
+  3 minute note is a timer beside the run; a run that pauses (the boot wait of 5 minutes ran out)
+  is abandoned, since the reboot needs no undo and an open run would refuse every later write, and
+  the not-back card shows. "It's on again" is only a boot wait.
+- D-W8-16 W3 notes: `Finished(ABANDONED, home = CONNECTION_LOST)` of a plan with no steps (step R
+  rebuilt from the journal, D-W3-2) and `Finished(home = CONNECTION_LOST)` show the new growable
+  case `HOME_PUT_BACK` ("We put the old home screen back", Try the switch again, Leave it as is).
+  R-11: "Stop here" or "Leave it as is" with a HOME section open while the TV is away keeps the
+  stop card with "Reconnect to the TV to put the old home screen back", waits for the TV through
+  `TvAccess` (the debugging step shows), resumes the run if the engine has not loaded it, then
+  abandons. R-12: the only typed name (M7 rename) is trimmed; no 0.1 plan writes `device_name`.
+- D-W8-17 R5-W8 O2: `TvWriter` publishes a paused or already open run to `OpenWrites` (one per
+  graph, in `ManageDeps`) instead of a failed snackbar, and does not plan or prompt while one is
+  open; a RUN_OPEN refusal after process death loads the run with `engine.resume` first. The app
+  lays `OpenWriteSheet` over any screen: Carry on, Undo what we did, Stop here
+  (`TvWriter.resolveOpen`: reconnect, the D17 pass when the plan is gated, then follow the run; an
+  action the engine does not take within 5 s shows the reconnect line). A SETUP run opens the
+  wizard's resume card instead. The S4e card for a Manage kind says "We were in the middle of a
+  change on {tv}", and such a run ends in Manage, never on Done.
