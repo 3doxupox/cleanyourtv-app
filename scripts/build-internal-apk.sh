@@ -20,6 +20,8 @@
 #   CYT_RELEASE_KEY_PASS_FILE default /Users/dev/jarvis/secrets/cleanyourtv-app/release.pass
 #   CYT_RELEASE_KEY_ALIAS     default cleanyourtv
 #   CYT_RELEASE_LINEAGE       optional rotation lineage file
+#   CYT_RELEASE_CERT_SHA256   the release certificate's SHA-256; check-apk.py compares the signer
+#                             with it (without it the signer is only compared with itself)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -36,8 +38,15 @@ KS="${CYT_RELEASE_KEYSTORE:-$SECRETS/release.p12}"
 KS_PASS="${CYT_RELEASE_KEY_PASS_FILE:-$SECRETS/release.pass}"
 KS_ALIAS="${CYT_RELEASE_KEY_ALIAS:-cleanyourtv}"
 LINEAGE="${CYT_RELEASE_LINEAGE:-}"
+EXPECT_CERT="${CYT_RELEASE_CERT_SHA256:-}"
 
-COMMIT=$(git rev-parse --verify "$TAG^{commit}")
+# A tag, not any revision, and a plain version: the name reaches remote shell commands and files.
+printf '%s' "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)\.?[0-9]+)?$' \
+  || { echo "$TAG is not vMAJOR.MINOR.PATCH with an optional -alpha/-beta/-rc suffix" >&2; exit 2; }
+[ -z "$EXPECT_CERT" ] || printf '%s' "$EXPECT_CERT" | grep -Eq '^[0-9a-fA-F]{64}$' \
+  || { echo "CYT_RELEASE_CERT_SHA256 is not a SHA-256 in hex" >&2; exit 2; }
+COMMIT=$(git rev-parse --verify -q "refs/tags/$TAG^{commit}") \
+  || { echo "no tag $TAG in this clone" >&2; exit 2; }
 SUB=$(git ls-tree "$COMMIT" third_party/cleanyourtv | awk '{print $3}')
 [ -n "$SUB" ] || { echo "the tag has no third_party/cleanyourtv submodule entry" >&2; exit 1; }
 git -C third_party/cleanyourtv cat-file -e "$SUB^{commit}" 2>/dev/null \
@@ -103,7 +112,8 @@ else
 fi
 set +e
 "${SSH[@]}" "flock -w 3600 $LOCK docker run --rm -i --name $RUN_ID-sign --memory 1g --tmpfs /keys:size=8m,mode=0700 \
-  -e OWNER=\$(id -u):\$(id -g) -e TEST_KEY=$TEST_KEY -e KS=/keys/release.ks -e KS_ALIAS=$KS_ALIAS -e KS_PASS_FILE=/keys/release.pass \
+  -e OWNER=\$(id -u):\$(id -g) -e TEST_KEY=$TEST_KEY -e KS=/keys/release.ks -e KS_ALIAS='$KS_ALIAS' -e KS_PASS_FILE=/keys/release.pass \
+  -e EXPECT_CERT=$EXPECT_CERT \
   $( [ -n "$LINEAGE" ] && echo "-e LINEAGE=/keys/lineage" ) \
   -v '$REMOTE':/in:ro -v '$REMOTE/out':/out '$TAG_IMAGE' bash -euc 'tar -xf - -C /keys \
     && tar -xf /in/src.tar -C / && cd /src \

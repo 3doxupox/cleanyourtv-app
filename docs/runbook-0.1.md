@@ -190,3 +190,11 @@ keytool -genkeypair -keystore release.p12 -storetype PKCS12 -alias cleanyourtv \
 
 and keeps the password in `release.pass` (one line), both under
 `/Users/dev/jarvis/secrets/cleanyourtv-app/` with mode 600.
+
+- [ ] The certificate digest (`keytool -list -v -keystore release.p12` prompts for the password;
+  take the SHA256 line without colons) is exported as `CYT_RELEASE_CERT_SHA256` for
+  `scripts/build-internal-apk.sh` and set as the `release` environment variable
+  `RELEASE_CERT_SHA256`, so `check-apk.py` compares the signer with it.
+- [ ] Before the first CI release: the `release` environment has a required reviewer with
+  "prevent self-review" and deployment tags limited to `v*`, and a tag ruleset lets only the
+  maintainer create, move or delete `v*` tags.
