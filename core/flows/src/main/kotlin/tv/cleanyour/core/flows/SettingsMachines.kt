@@ -1,0 +1,196 @@
+package tv.cleanyour.core.flows
+
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+import tv.cleanyour.core.model.Level
+import tv.cleanyour.core.model.TvId
+
+// M7 TV settings: name and room, level (D46: per TV), the address (read-only), "Forget this TV"
+// (credential prompt; deletes the record, the journals and the restore points on this phone).
+data class TvSettingsState(
+    val name: String = "",
+    val room: String? = null,
+    val level: Level = Level.SIMPLE,
+    val address: String? = null,
+    val lastSeenAtMs: Long? = null,
+    val confirmingForget: Boolean = false,
+    val forgetting: Boolean = false,
+)
+
+sealed interface TvSettingsIntent {
+    data class Rename(val name: String, val room: String?) : TvSettingsIntent
+    data class SetLevel(val level: Level) : TvSettingsIntent
+    data object AskForget : TvSettingsIntent
+    data object CancelForget : TvSettingsIntent
+    data object Forget : TvSettingsIntent
+}
+
+class TvSettingsMachine(
+    private val d: ManageDeps,
+    scope: CoroutineScope,
+    private val tvId: TvId,
+) : Machine<TvSettingsState, TvSettingsIntent, ManageEffect>(TvSettingsState(), scope) {
+
+    private data class Loaded(val s: TvSettingsState)
+    private data class Forgetting(val on: Boolean)
+
+    init { scope.launch { d.tvs.tvs.collect { list -> list.firstOrNull { it.id == tvId }?.let { tv ->
+        send(Loaded(TvSettingsState(tv.nickname, tv.room, tv.level, tv.endpoints.firstOrNull()?.host, tv.lastSeenAt)))
+    } } } }
+
+    override fun reduce(state: TvSettingsState, event: Any): TvSettingsState = when (event) {
+        is Loaded -> event.s.copy(confirmingForget = state.confirmingForget, forgetting = state.forgetting)
+        TvSettingsIntent.AskForget -> state.copy(confirmingForget = true)
+        TvSettingsIntent.CancelForget -> state.copy(confirmingForget = false)
+        is Forgetting -> state.copy(forgetting = event.on, confirmingForget = false)
+        else -> state
+    }
+
+    override fun handle(event: Any, before: TvSettingsState, after: TvSettingsState) {
+        when (event) {
+            is TvSettingsIntent.Rename -> scope.launch {
+                val name = event.name.trim().take(40)
+                if (name.isNotEmpty()) d.tv(tvId)?.let { d.tvs.upsert(it.copy(nickname = name, room = event.room?.trim()?.take(40)?.ifEmpty { null })) }
+            }
+            // "Back to Simple hides the extra options. Your TV stays as it is." (UX 3)
+            is TvSettingsIntent.SetLevel -> scope.launch { d.tv(tvId)?.let { d.tvs.upsert(it.copy(level = event.level)) } }
+            TvSettingsIntent.Forget -> if (!before.forgetting) scope.launch { forget() }
+            else -> {}
+        }
+    }
+
+    private suspend fun forget() {
+        val tv = d.tv(tvId) ?: return
+        d.gate.pass(tvId, tv.nickname) ?: return send(Forgetting(false))
+        send(Forgetting(true))
+        attempt { d.sessions.existing(tvId)?.close() }
+        d.documents.deleteTree("tvs/${tvId.value}")
+        d.ledger.forget(tvId)
+        d.gate.forget(tvId)
+        d.tvs.forget(tvId)
+        send(Forgetting(false))
+        effect(ManageEffect.Navigate("home"))
+    }
+}
+
+// M8 App settings.
+sealed interface UpdateCheck {
+    data object Idle : UpdateCheck
+    data object Checking : UpdateCheck
+    data class Available(val version: String) : UpdateCheck
+    data object Latest : UpdateCheck
+    data object Failed : UpdateCheck
+}
+
+data class AppSettingsState(
+    val version: String = "",
+    val prefs: AppPrefsValue = AppPrefsValue(),
+    val launcherPkg: String = "",
+    val launcherVersion: String = "",
+    val launcherDigest: String = "",
+    val keyBacking: String = "",
+    val keyFingerprint: String = "",
+    val update: UpdateCheck = UpdateCheck.Idle,
+    val diagnostics: String? = null,     // the redacted preview, shown before the share sheet
+    val confirm: AppConfirm? = null,
+    val working: Boolean = false,
+)
+
+enum class AppConfirm { RESET_KEY, DELETE_EVERYTHING }
+
+sealed interface AppSettingsIntent {
+    data class SetHaptics(val on: Boolean) : AppSettingsIntent
+    data class SetLargeText(val on: Boolean) : AppSettingsIntent
+    data object CheckUpdates : AppSettingsIntent
+    data object PreviewDiagnostics : AppSettingsIntent
+    data object ShareDiagnostics : AppSettingsIntent
+    data object CloseDiagnostics : AppSettingsIntent
+    data class Ask(val what: AppConfirm) : AppSettingsIntent
+    data object CancelConfirm : AppSettingsIntent
+    data object ResetKey : AppSettingsIntent
+    data object DeleteEverything : AppSettingsIntent
+}
+
+// The app-level actions are gated against a placeholder TV id: the gate is per TV (5.13) and
+// "Reset my key" and "Delete everything" belong to no single TV.
+val APP_GATE_ID = TvId("0000000000000000")
+
+class AppSettingsMachine(
+    private val d: ManageDeps,
+    scope: CoroutineScope,
+) : Machine<AppSettingsState, AppSettingsIntent, ManageEffect>(AppSettingsState(), scope) {
+
+    private data class Loaded(val s: AppSettingsState)
+    private data class Update(val u: UpdateCheck)
+    private data class Diag(val text: String?)
+    private data class Working(val on: Boolean)
+
+    init {
+        scope.launch {
+            val pin = attempt { d.launcherPin.bundled() }.getOrNull()
+            send(Loaded(AppSettingsState(
+                version = d.appVersion, prefs = d.appPrefs.load(),
+                launcherPkg = pin?.pkg?.value.orEmpty(), launcherVersion = pin?.versionName.orEmpty(),
+                launcherDigest = pin?.let { keyDigest12(it.sha256) }.orEmpty(),
+                keyBacking = attempt { d.keyInfo.backing }.getOrDefault(""), keyFingerprint = attempt { d.keyInfo.fingerprint }.getOrDefault(""),
+            )))
+        }
+    }
+
+    override fun reduce(state: AppSettingsState, event: Any): AppSettingsState = when (event) {
+        is Loaded -> event.s.copy(update = state.update, diagnostics = state.diagnostics, confirm = state.confirm)
+        is AppSettingsIntent.SetHaptics -> state.copy(prefs = state.prefs.copy(haptics = event.on))
+        is AppSettingsIntent.SetLargeText -> state.copy(prefs = state.prefs.copy(largeTextFollowsSystem = event.on))
+        AppSettingsIntent.CheckUpdates -> state.copy(update = UpdateCheck.Checking)
+        is Update -> state.copy(update = event.u)
+        is Diag -> state.copy(diagnostics = event.text)
+        AppSettingsIntent.CloseDiagnostics -> state.copy(diagnostics = null)
+        is AppSettingsIntent.Ask -> state.copy(confirm = event.what)
+        AppSettingsIntent.CancelConfirm -> state.copy(confirm = null)
+        is Working -> state.copy(working = event.on, confirm = null)
+        else -> state
+    }
+
+    override fun handle(event: Any, before: AppSettingsState, after: AppSettingsState) {
+        when (event) {
+            is AppSettingsIntent.SetHaptics, is AppSettingsIntent.SetLargeText -> scope.launch { d.appPrefs.save(after.prefs) }
+            AppSettingsIntent.CheckUpdates -> if (before.update != UpdateCheck.Checking) scope.launch {
+                val v = attempt { d.updates.latestNewerThan(d.appVersion) }.getOrNull()
+                send(Update(when { v == null -> UpdateCheck.Failed; v.isEmpty() -> UpdateCheck.Latest; else -> UpdateCheck.Available(v) }))
+            }
+            AppSettingsIntent.PreviewDiagnostics -> scope.launch { send(Diag(d.diagnostics.redactedText())) }
+            AppSettingsIntent.ShareDiagnostics -> before.diagnostics?.let { effect(ManageEffect.Share(it)); send(Diag(null)) }
+            AppSettingsIntent.ResetKey -> if (!before.working) scope.launch { resetKey() }
+            AppSettingsIntent.DeleteEverything -> if (!before.working) scope.launch { deleteEverything() }
+            else -> {}
+        }
+    }
+
+    // "Reset my key" (F2): every TV asks to trust this phone again.
+    private suspend fun resetKey() {
+        d.gate.passWithSubtitle(APP_GATE_ID, d.copy.text(CopyKey.GATE_SUBTITLE_RESET_KEY), forcePrompt = true) ?: return send(Working(false))
+        send(Working(true))
+        attempt { d.sessions.closeAll() }
+        attempt { d.keyInfo.reset() }
+        d.gate.clear()
+        send(Working(false))
+        send(Loaded(state.value.copy(keyFingerprint = attempt { d.keyInfo.fingerprint }.getOrDefault(""), keyBacking = attempt { d.keyInfo.backing }.getOrDefault(""))))
+    }
+
+    // "Delete everything" (F13): every TV record, journal, restore point and cached download, and the key.
+    private suspend fun deleteEverything() {
+        d.gate.passWithSubtitle(APP_GATE_ID, d.copy.text(CopyKey.GATE_SUBTITLE_DELETE_ALL), forcePrompt = true) ?: return send(Working(false))
+        send(Working(true))
+        attempt { d.sessions.closeAll() }
+        for (tv in d.tvs.tvs.value) {
+            d.documents.deleteTree("tvs/${tv.id.value}")
+            d.tvs.forget(tv.id)
+        }
+        attempt { d.documents.deleteTree("registry") }
+        attempt { d.documents.delete("settings.txt") }
+        attempt { d.keyInfo.reset() }
+        d.gate.clear()
+        send(Working(false))
+        effect(ManageEffect.Navigate("welcome"))
+    }
+}
