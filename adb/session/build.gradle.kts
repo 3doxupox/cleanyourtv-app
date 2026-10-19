@@ -4,4 +4,8 @@ plugins { id("cleanyourtv.jvm") }
 dependencies {
     api(project(":core:model"))
     implementation(project(":adb:wire"))
+    implementation(libs.kotlinx.coroutines.core)
+    testImplementation(project(":testing:fake-adbd"))
+    testImplementation(project(":testing:fixtures"))
+    testImplementation(libs.kotlinx.coroutines.test)
 }
