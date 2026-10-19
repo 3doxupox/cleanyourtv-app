@@ -155,6 +155,16 @@ class AdbProberTest {
         assertEquals(ProbeScripts.NOOP_CLEANUP.text, s.execLines.last())
     }
 
+    // R5: a timeout after `pm install` still uninstalls the no-op package and removes the APK.
+    @Test fun installRefusalCleansUpAfterATimeout() = runBlocking<Unit> {
+        val blob = BlobRef(Sha256("cd".repeat(32)), 3, "bundled:noop.apk")
+        val r = Recording().on(ProbeScripts.MKDIR_TMP.text, "").on(ProbeScripts.NOOP_UNINSTALL.text, "Success\n").on(ProbeScripts.NOOP_CLEANUP.text, "")
+            .on(Regex("pm install .*")) { throw AdbException(AdbError.Transport.Timeout("exec-total")) }
+        val s = FakeTvSession(recording = r, blobs = { byteArrayOf(1, 2, 3) })
+        assertFailsWith<AdbException> { prober.installRefusal(s, blob) }
+        assertEquals(listOf(ProbeScripts.MKDIR_TMP, ProbeScripts.NOOP_INSTALL, ProbeScripts.NOOP_UNINSTALL, ProbeScripts.NOOP_CLEANUP).map { it.text }, s.execLines)
+    }
+
     @Test fun transportFailuresSurfaceAsAdbException() = runBlocking<Unit> {
         val s = ProbeFixtures.miTvSession()
         s.failNext = AdbError.Transport.Timeout("exec-total")

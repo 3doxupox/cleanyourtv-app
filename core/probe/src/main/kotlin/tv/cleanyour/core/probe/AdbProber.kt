@@ -1,5 +1,7 @@
 package tv.cleanyour.core.probe
 
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import tv.cleanyour.core.model.AdbError
 import tv.cleanyour.core.model.AdbException
 import tv.cleanyour.core.model.BlobRef
@@ -21,6 +23,7 @@ import tv.cleanyour.core.model.Snapshot
 import tv.cleanyour.core.model.SnapshotReason
 import tv.cleanyour.core.session.ExecResult
 import tv.cleanyour.core.session.ExecSpec
+import tv.cleanyour.core.session.RetryClass
 import tv.cleanyour.core.session.TvSession
 import tv.cleanyour.core.store.Clock
 import tv.cleanyour.core.store.SnapshotCodec
@@ -31,8 +34,10 @@ import tv.cleanyour.core.store.SnapshotCodec
 // installs and uninstalls the bundled no-op APK, which is the only way to learn the answer.
 class AdbProber(private val clock: Clock) : Prober {
 
-    private suspend fun run(session: TvSession, line: ShellLine, stage: ProbeStage, cap: Int, timeoutMs: Long = 30_000): ExecResult {
-        val r = session.exec(line, ExecSpec(timeoutMs = timeoutMs, stdoutCap = cap, retry = tv.cleanyour.core.session.RetryClass.IDEMPOTENT_READ))
+    private suspend fun run(
+        session: TvSession, line: ShellLine, stage: ProbeStage, cap: Int, timeoutMs: Long = 30_000, retry: RetryClass = RetryClass.IDEMPOTENT_READ,
+    ): ExecResult {
+        val r = session.exec(line, ExecSpec(timeoutMs = timeoutMs, stdoutCap = cap, retry = retry))
         if (r.truncated) throw ProbeException(stage, "output over $cap bytes")
         return r
     }
@@ -165,10 +170,13 @@ class AdbProber(private val clock: Clock) : Prober {
     }
 
     override suspend fun screenshot(session: TvSession): ByteArray? {
-        val r = run(session, ProbeScripts.SCREENSHOT, ProbeStage.DONE, 16 * 1024, timeoutMs = 15_000)
-        if (r.exit != 0) return null
-        val png = pullOrNull(session, ProbeScripts.screenPath, SCREENSHOT_CAP)
-        runCatching { session.exec(ProbeScripts.SCREENSHOT_CLEANUP, ExecSpec(timeoutMs = 10_000, stdoutCap = 4096)) }.onFailure { if (it !is AdbException) throw it }
+        val png = try {
+            val r = run(session, ProbeScripts.SCREENSHOT, ProbeStage.DONE, 16 * 1024, timeoutMs = 15_000, retry = RetryClass.IDEMPOTENT_WRITE)
+            if (r.exit != 0) null else pullOrNull(session, ProbeScripts.screenPath, SCREENSHOT_CAP)
+        } finally {
+            // R5: the temp file goes whatever happened above, cancellation included.
+            withContext(NonCancellable) { bestEffort(session, ProbeScripts.SCREENSHOT_CLEANUP) }
+        }
         return png?.takeIf { it.size >= 8 && it.copyOfRange(0, 8).contentEquals(PNG_SIGNATURE) }
     }
 
@@ -189,23 +197,41 @@ class AdbProber(private val clock: Clock) : Prober {
         val row = lines(r.stdout).map { it.trim().split(Regex("\\s+")) }.lastOrNull { it.size >= 6 && it.last() == "/data" }
             ?: throw ProbeException(ProbeStage.FACTS, "df printed no /data row")
         val kb = row[3].toLongOrNull() ?: throw ProbeException(ProbeStage.FACTS, "df Available is not a number: ${row[3]}")
-        return (kb / 1024).toInt()
+        return (kb / 1024).coerceIn(0L, Int.MAX_VALUE.toLong()).toInt()
     }
 
     override suspend fun installRefusal(session: TvSession, noopApk: BlobRef): Boolean {
-        run(session, ProbeScripts.MKDIR_TMP, ProbeStage.LAUNCHER, 4096)
-        session.push(noopApk, ProbeScripts.noopPath)
+        run(session, ProbeScripts.MKDIR_TMP, ProbeStage.LAUNCHER, 4096, retry = RetryClass.IDEMPOTENT_WRITE)
+        // R5: until the install has clearly failed or the uninstall has clearly worked, the no-op
+        // package may be on the TV, so the cleanup below uninstalls it again. A timeout, a lost
+        // connection or a cancellation after `pm install` must not leave it behind.
+        var mayBeInstalled = true
         try {
-            val r = run(session, ProbeScripts.NOOP_INSTALL, ProbeStage.LAUNCHER, 16 * 1024, timeoutMs = 120_000)
+            session.push(noopApk, ProbeScripts.noopPath)
+            val r = run(session, ProbeScripts.NOOP_INSTALL, ProbeStage.LAUNCHER, 16 * 1024, timeoutMs = 120_000, retry = RetryClass.IDEMPOTENT_WRITE)
             val out = r.stdout + "\n" + r.stderr
             if (r.exit == 0 && "Success" in out) {
-                run(session, ProbeScripts.NOOP_UNINSTALL, ProbeStage.LAUNCHER, 16 * 1024, timeoutMs = 60_000)
+                val u = run(session, ProbeScripts.NOOP_UNINSTALL, ProbeStage.LAUNCHER, 16 * 1024, timeoutMs = 60_000, retry = RetryClass.IDEMPOTENT_WRITE)
+                mayBeInstalled = !(u.exit == 0 && "Success" in u.stdout + "\n" + u.stderr)
                 return false
             }
+            mayBeInstalled = false
             if ("INSUFFICIENT_STORAGE" in out) throw AdbException(AdbError.Device.NotEnoughSpace)
             return true
         } finally {
-            runCatching { session.exec(ProbeScripts.NOOP_CLEANUP, ExecSpec(timeoutMs = 10_000, stdoutCap = 4096)) }
+            withContext(NonCancellable) {
+                if (mayBeInstalled) bestEffort(session, ProbeScripts.NOOP_UNINSTALL, timeoutMs = 60_000)
+                bestEffort(session, ProbeScripts.NOOP_CLEANUP)
+            }
+        }
+    }
+
+    // Cleanup that must not mask the original outcome: transport and probe errors are dropped.
+    private suspend fun bestEffort(session: TvSession, line: ShellLine, timeoutMs: Long = 10_000) {
+        try {
+            session.exec(line, ExecSpec(timeoutMs = timeoutMs, stdoutCap = 4096, retry = RetryClass.IDEMPOTENT_WRITE))
+        } catch (_: AdbException) {
+        } catch (_: ProbeException) {
         }
     }
 

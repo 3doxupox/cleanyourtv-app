@@ -15,7 +15,11 @@ capture's package list (one package per line of `packages-all.txt`, disabled fla
 | `hdmi_control.txt` | `dumpsys hdmi_control` | `HdmiControlService.dump` (spike S7 shape) |
 | `meminfo.txt`, `gms-path.txt`, `activities.txt`, `df.txt` | as named | toybox and `dumpsys activity` output |
 
-`gtv34/` holds the same set in the Android 12 to 14 shapes (Google TV emulator image, API 34):
+`gtv34/` is synthesized as a whole: no file in it is a capture. It holds the same set in the
+Android 12 to 14 shapes, written from the AOSP sources for a Google TV emulator image (API 34):
 `HdmiPortInfo{...}` port lines, `topResumedActivity=`, `query-activities` with setupwraith.
+
+SYNTHESIZED, not captured: every file under `mitv/` and `gtv34/` in this folder. Only the W1
+capture files loaded from `fixtures/conformance/` are real TV output.
 
 Replace the synthesized files with real captures at the I1 device session (runbook, W9).
