@@ -20,7 +20,7 @@ class ProfilesTest {
     private fun profile(folder: String) = DebloatTxtParser.parse(examples.first { it.folder == folder }.debloatTxt, folder)
 
     @Test fun everyPinnedUpstreamExampleParsesWithCuratedMetadata() {
-        assertEquals(26, examples.size)
+        assertEquals(30, examples.size)
         for (e in examples) {
             val profile = DebloatTxtParser.parse(e.debloatTxt, e.folder)
             assertEquals(e.folder, profile.id)
@@ -43,7 +43,7 @@ class ProfilesTest {
         val (_, problems) = ProfileConverter.convert(
             File(Fixtures.upstreamDir, "examples"),
             File(Fixtures.repoRoot, "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json"),
-            "7205769",
+            "1bbf0c9",
         )
         assertEquals(emptyList(), problems)
     }
@@ -130,7 +130,7 @@ class ProfilesTest {
 
     @Test fun bundledProfilesEqualAFreshParse() {
         val bundle = BundledProfileSource.bundled
-        assertEquals("7205769", bundle.upstreamCommit)
+        assertEquals("1bbf0c9", bundle.upstreamCommit)
         assertEquals(examples.map { it.folder }, bundle.profiles.map { it.id })
         for (e in examples) assertEquals(DebloatTxtParser.parse(e.debloatTxt, e.folder), bundle.profiles.first { it.id == e.folder }, e.folder)
         assertEquals(SureSetGenerator.generate(bundle.profiles), bundle.sureSets)

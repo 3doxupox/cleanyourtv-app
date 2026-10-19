@@ -6,6 +6,7 @@ android.autoinstalls.config.nvidia	NVIDIA partner installs	Installs partner apps
 android.autoinstalls.config.scbc.device	SANYO partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.sony.bravia	Sony partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.tcl.device	TCL partner installs	Installs partner apps without asking	ads
+android.autoinstalls.config.xgimi.xgimigalileo	XGIMI partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.xiaomi.amelie	Xiaomi partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.xiaomi.mibox3	Mi Box partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.xioami.dangal	Mi TV 4C partner installs	Installs partner apps without asking	ads
@@ -120,16 +121,22 @@ com.amazon.whisperplay.contracts	Whisperplay	Amazon casting service	casting
 com.amazon.whisperplay.service.install	Whisperplay installer	Sets up Amazon casting	casting
 com.amazon.wifilocker	Wi-Fi password sync	Saves Wi-Fi passwords to Amazon	brand
 com.amazon.wirelessmetrics.service	Wireless metrics	Sends Wi-Fi usage metrics to Amazon	tracking
+com.android.adservices.api	Android ad services	On-device advertising framework	tracking
 com.android.gallery3d	Gallery	Old photo viewer	preloads
 com.android.hotwordenrollment.okgoogle	OK Google setup	Voice training for OK Google	voice
 com.android.hotwordenrollment.xgoogle	Hotword setup	Voice training for the voice hotword	voice
+com.android.musicfx	Music effects	Audio equalizer for phones	preloads
+com.android.ondevicepersonalization.services	On-device personalization	Personalizes ads on the device	tracking
 com.android.packageinstaller	Package installer	Installs, updates and removes apps and shows permission prompts	system
 com.android.printspooler	Print spooler	Printing service a TV rarely needs	preloads
+com.android.providers.calendar	Calendar storage	Stores calendar events for apps	other
+com.android.providers.contacts	Contacts storage	Stores contacts for apps	other
 com.android.providers.tv	TV provider	Watch Next and Live Channels data	system
 com.android.se	Secure element service	Secure element support, needed by the system	system
 com.android.tv	Live TV	Android TV Live TV app	system
 com.android.tv.feedbackconsent	Feedback consent	Asks permission to send feedback	tracking
 com.android.tv.settings	TV settings	The Android TV settings app	system
+com.android.wallpaperbackup	Wallpaper backup	Backs up the wallpaper	preloads
 com.appgeneration.itunerfree	Radio tuner app	Radio app preloaded on this TV	streaming
 com.apple.airplay.amazon.airplay	AirPlay	Lets Apple devices play to the TV	casting
 com.apple.atve.androidtv.appletv	Apple TV	Apple TV+ films and series	streaming
@@ -188,6 +195,7 @@ com.google.android.partnersetup	Google partner setup	Tracks which partner set up
 com.google.android.play.games	Play Games	Google game app	preloads
 com.google.android.speech.pumpkin	Voice command parser	Understands voice commands on the TV itself	voice
 com.google.android.syncadapters.calendar	Calendar sync	Syncs Google Calendar	other
+com.google.android.syncadapters.contacts	Google contacts sync	Syncs contacts with your Google account	preloads
 com.google.android.tts	Speech Services by Google	Reads text aloud and turns speech into text for voice search in apps	accessibility
 com.google.android.tungsten.setupwraith	Google TV setup wizard	First-run setup, can claim the Home key	home
 com.google.android.tv	Live Channels	Android TV Live Channels app	preloads
@@ -278,6 +286,7 @@ com.mitv.upgrader	Mi upgrader	Xiaomi firmware updater	updates
 com.mitv.videoplayer	Mi video player	Xiaomi video player	preloads
 com.miui.tv.analytics	Xiaomi Analytics	Reports what you watch to Xiaomi	tracking
 com.mstar.android.tv.disclaimercustomization	Vendor disclaimer	Disclaimer screen	other
+com.mstar.netflixobserver	Netflix button helper	Runs the remote's Netflix button; turns Netflix back on at startup	other
 com.netflix.ninja	Netflix	Films and series	streaming
 com.nexgtv.tv	NexG TV	Live TV streaming app	streaming
 com.nousguide.android.rbtv	Red Bull TV	Streaming app	streaming
@@ -353,6 +362,10 @@ com.sonyericsson.dlna	DLNA service	DLNA media sharing service	casting
 com.sonyericsson.idd.agent	Sony device data agent	Device data agent	tracking
 com.sonyliv	SonyLIV	Sony's series, films and live sport	streaming
 com.spotify.tv.android	Spotify	Music streaming app	streaming
+com.stellamore.guide	Stellamore setup guide	First-time setup guide	other
+com.stellamore.tvfactory	Stellamore factory menu	Factory settings menu	demo
+com.stm	Stellamore feature test	Factory feature test app	demo
+com.stm.factorytest	Stellamore factory auto test	Factory test app	demo
 com.suntv.sunnxt	Sun NXT	Streaming app	streaming
 com.suntv.sunnxt.mitv	Sun NXT (Mi)	Streaming app	streaming
 com.taiwanmobile.myVideotv	myVideo	Streaming app	streaming
@@ -362,10 +375,12 @@ com.tcl.android.webview	TCL WebView	TCL copy of the web view	other
 com.tcl.appmarket2	TCL app store	TCL's own app store	brand
 com.tcl.appreciate.art	TCL art screensaver	Art wallpaper content	screensaver
 com.tcl.assistant	TCL voice assistant	TCL voice service	voice
+com.tcl.atomic.servicecenter	TCL recommendation cards	Recommendation cards on the home screen	ads
 com.tcl.autopair	TCL remote auto-pairing	Pairs the Bluetooth remote	system
 com.tcl.bi	TCL analytics	Reports usage data to TCL	tracking
 com.tcl.bootadservice	TCL boot advert	Full-screen advert at startup	ads
 com.tcl.browser	BrowseHere	Web browser	preloads
+com.tcl.c2dm.client	TCL push service	Keeps a connection open for TCL push messages	tracking
 com.tcl.channelplus	TCL Live	Free ad-supported TCL channels	ads
 com.tcl.common.weather	TCL weather	Weather widget service	preloads
 com.tcl.cyberui	TCL CyberUI	The TCL home screen on this set	launcher
@@ -394,7 +409,9 @@ com.tcl.overseasappshow	TCL app showcase	Recommended apps showcase	ads
 com.tcl.packageinstaller.service.renew	TCL installer service	App installer service, needed	system
 com.tcl.partnercustomizer	TCL home customizer	TCL tweaks to home rows	ads
 com.tcl.playskill	TCL tips	Tips app	preloads
+com.tcl.profilemanager	TCL profile manager	Builds an audience profile for TCL	tracking
 com.tcl.providers.config	TCL config provider	Settings provider, needed for Wi-Fi	system
+com.tcl.recognize.service	TCL screen recognition	Recognizes what is on screen; can also install apps	tracking
 com.tcl.repairguide	TCL repair guide	Repair help	preloads
 com.tcl.settings	TCL settings	TCL settings app	system
 com.tcl.smartalexa	TCL Alexa	Alexa voice service	voice
@@ -417,9 +434,11 @@ com.tcl.ui_mediaCenter	TCL media center	Plays media from USB	preloads
 com.tcl.useragreement	TCL user agreement	End-user agreement screen; some TCL Google TVs need it	other
 com.tcl.usercenter	TCL account	TCL account sign-in	brand
 com.tcl.versionUpdateApp	TCL updater	TCL firmware updates	updates
+com.tcl.walleve	TCL voice engine	Voice control for the remote's voice key	voice
 com.tcl.waterfall.overseas	TCL content feed	Web content feed	ads
 com.tcl.wholenetsearch	TCL global search	Searches across TCL content	brand
 com.tcl.xian.StartandroidService	TCL start service	TCL system service, needed	system
+com.ted.android.tv	TED	TED talks	streaming
 com.tianci.localmedia	Skyworth USB media player	Plays media from USB	system
 com.tubitv	Tubi	Free films and series with adverts	streaming
 com.tubitv.ott	Tubi	Streaming app	streaming
@@ -429,6 +448,14 @@ com.vt.tv.aiot	Hisense AIoT	Hisense system service, needed to boot	system
 com.vt.tv.smartsense.ui	SmartSense screens	Hisense system screens, needed to boot	system
 com.vt.tv.usbota	Hisense USB updater	Updates firmware from USB	updates
 com.wbd.stream	HBO Max	HBO series and films	streaming
+com.xgimi.atmosphere	XGIMI ambient scenes	Animated screensaver	screensaver
+com.xgimi.atvwifiverify	XGIMI Wi-Fi check	Factory Wi-Fi test	demo
+com.xgimi.bugreportsender	XGIMI bug reports	Uploads bug reports to XGIMI	tracking
+com.xgimi.burnin	XGIMI burn-in test	Factory burn-in test that runs at startup	demo
+com.xgimi.doubanfm	XGIMI music	XGIMI music app and speaker-mode screen	preloads
+com.xgimi.filemanager	XGIMI file manager	File manager with network sharing	other
+com.xgimi.gimiplayer	XGIMI media player	Plays your own videos and photos	other
+com.xgimi.minitvfactory	XGIMI factory menu	Factory menu and test services	demo
 com.xiaomi.amazon.alexa	Xiaomi Alexa bridge	Alexa integration	voice
 com.xiaomi.android.tvsetup.partnercustomizer	Xiaomi setup helper	Remote pairing and shortcut keys	system
 com.xiaomi.floatingframe	Xiaomi floating frame	Floating promo overlay	ads
@@ -448,6 +475,7 @@ com.xiaomo.tv.milegal	Xiaomi legal notices	Legal and privacy screens	other
 com.xm.webcontent	Xiaomi web promos	Promo web content	ads
 com.yupptv.androidtv	YuppTV	Streaming app	streaming
 com.yupptv.firetv	YuppTV (Fire TV)	Streaming app	streaming
+com.zeasn.deviceportal.asdprovider.xym_hisi351	Zeasn device portal	Vendor cloud link and system updates	updates
 com.zee5.amazon	ZEE5 (Fire TV)	Streaming app	streaming
 fusion.android.tv.demo	Retail demo	In-store demo loop	demo
 in.startv.hotstar	JioHotstar	Streaming app	streaming
@@ -465,3 +493,4 @@ tv.anoki.acr.controller	Anoki ACR	Recognises what is on screen	tracking
 tv.pluto.android	Pluto TV	Free streaming TV app	streaming
 tv.samba.ssm	Samba TV	Reports what you watch	tracking
 uk.co.bbc.iplayer	BBC iPlayer	BBC channels and programmes	streaming
+zeasn.open.technical.tv.store.stellamore.tv	Zeasn App Store	App store tile that shows Google ads	ads

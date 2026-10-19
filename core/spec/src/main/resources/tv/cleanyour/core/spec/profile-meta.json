@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "upstreamCommit": "7205769",
+  "upstreamCommit": "1bbf0c9",
   "profiles": {
     "benq-e55-735": {
       "match": { "models": ["AI PONT"], "devices": [], "brand": "BenQ", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
@@ -328,6 +328,30 @@
         "com.google.android.backdrop": { "category": "screensaver", "ask": false }
       }
     },
+    "stellamore-t950s": {
+      "match": { "models": [], "devices": ["r34a1"], "brand": "Stellamore", "sdkMin": 33, "sdkMax": 33, "fingerprintPrefix": "Android/r34a1/r34a1:" },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": [],
+      "liveTv": "com.droidlogic.android.tv",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.droidlogic.keystone", "com.droidlogic.android.tv", "com.hysd.client", "com.hysd.hyscreen", "com.droidlogic.appinstall", "com.stellamore.filemanager", "com.zeasn.whale.saas"],
+      "suggestedDock": [],
+      "tested": { "by": null, "firmware": "LMY47V/20220912", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "Zeasn adware / vendor cloud": { "category": "ads", "ask": false },
+        "Stellamore factory / test / guide junk": { "category": "demo", "ask": false },
+        "Phone-style Google bloat, unused on a projector": { "category": "preloads", "ask": false }
+      },
+      "packages": {
+        "com.zeasn.deviceportal.asdprovider.xym_hisi351": { "category": "updates", "ask": true },
+        "com.stellamore.guide": { "category": "other", "ask": true },
+        "com.android.providers.contacts": { "category": "other", "ask": true },
+        "com.android.providers.calendar": { "category": "other", "ask": true },
+        "com.android.adservices.api": { "category": "tracking", "ask": false },
+        "com.android.ondevicepersonalization.services": { "category": "tracking", "ask": false }
+      }
+    },
     "tcl-65c725": {
       "match": { "models": ["Smart TV Pro"], "devices": ["BeyondTV4"], "brand": "TCL", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
       "platform": "ANDROID_TV",
@@ -461,6 +485,38 @@
         "com.google.android.tv.remote.service": { "category": "casting", "ask": false }
       }
     },
+    "tcl-q10g-pro": {
+      "match": { "models": [], "devices": ["tcl_mt5879_cn"], "brand": "TCL", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
+      "platform": "TCL_CN",
+      "stockLaunchers": ["com.tcl.cyberui"],
+      "liveTv": "com.tcl.tv",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.tcl.cyberui", "com.tcl.tv", "com.tcl.guard", "com.tcl.appmarket2", "com.sohu.inputmethod.sogou.tv", "com.tcl.ui_mediaCenter", "com.tcl.settings", "com.tcl.systemserver", "com.tcl.ttvs", "com.tcl.providers.config", "com.android.packageinstaller"],
+      "suggestedDock": [],
+      "tested": { "by": null, "firmware": "RQ3A.210705.001/2026012200", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Ad and telemetry reporting": { "category": "tracking", "ask": false },
+        "Content apps that carry their own promo surfaces": { "category": "preloads", "ask": false },
+        "OTA and account \u2014 re-enable com.tcl.versionUpdateApp when you want firmware updates": { "category": "updates", "ask": true },
+        "Voice, off by choice \u2014 the remote's voice key does nothing afterwards": { "category": "voice", "ask": true }
+      },
+      "packages": {
+        "com.tcl.bootadservice": { "category": "ads", "ask": false },
+        "com.tcl.atomic.servicecenter": { "category": "ads", "ask": false },
+        "android.autoinstalls.config.tcl.device": { "category": "preloads", "ask": false },
+        "com.tcl.appreciate.art": { "category": "screensaver", "ask": false },
+        "com.tcl.wholenetsearch": { "category": "brand", "ask": false },
+        "com.tcl.playskill": { "category": "brand", "ask": false },
+        "com.tcl.repairguide": { "category": "brand", "ask": false },
+        "com.tcl.useragreement": { "category": "other", "ask": false },
+        "com.tcl.xian.StartandroidService": { "category": "other", "ask": true },
+        "com.tcl.versionUpdateApp": { "category": "updates", "ask": true },
+        "com.tcl.UpdatePeripheral": { "category": "updates", "ask": true },
+        "com.tcl.usercenter": { "category": "other", "ask": true },
+        "com.tcl.walleve": { "category": "voice", "ask": true }
+      }
+    },
     "tcl-qm6k-google-tv": {
       "match": { "models": ["Smart TV Pro"], "devices": ["G08"], "brand": "TCL", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
       "platform": "GOOGLE_TV",
@@ -510,6 +566,35 @@
       "packages": {
         "com.amazon.tv.acr": { "category": "tracking", "ask": false },
         "com.amazon.tv.democontent.provider": { "category": "demo", "ask": false }
+      }
+    },
+    "xgimi-horizon-s-pro": {
+      "match": { "models": ["XK03H"], "devices": ["xgimigalileo"], "brand": "XGIMI", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": null,
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.xgimi.autokst", "com.xgimi.windowsystem", "com.xgimi.tof", "com.xgimi.tvinput", "com.xgimi.xhplayer", "com.xgimi.bluetoothservice", "com.xgimi.misckey", "com.xgimi.uiconfiguration", "com.xgimi.xrmservice", "com.xgimi.soundermodeservice", "com.xgimi.xgimiservice", "com.xgimi.simpservice", "com.xgimi.overseas.xgimiatvbootwizard"],
+      "suggestedDock": [],
+      "tested": { "by": null, "firmware": "RT.3.24.329", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Store demo, factory and test tools": { "category": "demo", "ask": false },
+        "Telemetry, feedback and auto-installs": { "category": "tracking", "ask": false },
+        "Google content and preloads": { "category": "preloads", "ask": false },
+        "Streaming apps (off by choice; YouTube kept)": { "category": "streaming", "ask": false },
+        "Voice, casting, phone remote (off by choice)": { "category": "voice", "ask": true },
+        "XGIMI and Google extras (off by choice)": { "category": "other", "ask": true }
+      },
+      "packages": {
+        "android.autoinstalls.config.xgimi.xgimigalileo": { "category": "preloads", "ask": false },
+        "com.google.android.tvrecommendations": { "category": "ads", "ask": false },
+        "com.google.android.marvin.talkback": { "category": "accessibility", "ask": true },
+        "com.google.android.apps.mediashell": { "category": "casting", "ask": false },
+        "com.google.android.tv.remote.service": { "category": "other", "ask": true },
+        "com.xgimi.doubanfm": { "category": "preloads", "ask": false },
+        "com.xgimi.atmosphere": { "category": "screensaver", "ask": false },
+        "com.google.android.backdrop": { "category": "screensaver", "ask": false }
       }
     },
     "xiaomi-mi-box-s": {
@@ -673,6 +758,31 @@
         "com.xiaomo.tv.milegal": { "category": "other", "ask": false },
         "android.autoinstalls.config.xiaomi.amelie": { "category": "ads", "ask": false },
         "com.graymatrix.did": { "category": "streaming", "ask": true }
+      }
+    },
+    "xiaomi-mitv-mssp3": {
+      "match": { "models": ["MiTV-MSSP3"], "devices": ["machuca"], "brand": "Xiaomi", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.mediatek.wwtv.tvcenter",
+      "setupWraith": null,
+      "quirks": ["REENABLED_AT_BOOT"],
+      "neverDisable": ["com.mediatek.wwtv.tvcenter", "mitv.service", "com.mi.bluetooth", "com.mediatek.hotkey.dispatcher", "com.google.android.tv.remote.service"],
+      "suggestedDock": [],
+      "tested": { "by": null, "firmware": "RTT2.211214.001.1065", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Xiaomi + Google telemetry": { "category": "tracking", "ask": false },
+        "PatchWall, content rows, sponsored rows": { "category": "ads", "ask": false },
+        "Xiaomi background services": { "category": "preloads", "ask": false },
+        "Personal choice: casting": { "category": "casting", "ask": false },
+        "Personal choice: Ambient and Mi WallPaper screensavers": { "category": "screensaver", "ask": false },
+        "Preloaded apps": { "category": "preloads", "ask": false },
+        "Personal choice: preloaded streaming apps not used": { "category": "streaming", "ask": false }
+      },
+      "packages": {
+        "android.autoinstalls.config.xiaomi.amelie": { "category": "preloads", "ask": false },
+        "com.xiaomi.mitv.updateservice": { "category": "updates", "ask": true },
+        "com.mstar.netflixobserver": { "category": "other", "ask": true }
       }
     },
     "xiaomi-tv-a-pro-2026": {
