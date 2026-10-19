@@ -63,6 +63,8 @@ class TvSettingsMachine(
         val tv = d.tv(tvId) ?: return
         d.gate.pass(tvId, tv.nickname) ?: return send(Forgetting(false))
         send(Forgetting(true))
+        // D7: closing the session ends it, so debugging goes off first if a write ran this session.
+        attempt { d.sessionEnd.end(tvId) }
         attempt { d.sessions.existing(tvId)?.close() }
         d.documents.deleteTree("tvs/${tvId.value}")
         d.ledger.forget(tvId)
@@ -170,6 +172,7 @@ class AppSettingsMachine(
     private suspend fun resetKey() {
         d.gate.passWithSubtitle(APP_GATE_ID, d.copy.text(CopyKey.GATE_SUBTITLE_RESET_KEY), forcePrompt = true) ?: return send(Working(false))
         send(Working(true))
+        attempt { d.sessionEnd.endAll() }   // D7: every session closes here
         attempt { d.sessions.closeAll() }
         attempt { d.keyInfo.reset() }
         d.gate.clear()
@@ -181,6 +184,7 @@ class AppSettingsMachine(
     private suspend fun deleteEverything() {
         d.gate.passWithSubtitle(APP_GATE_ID, d.copy.text(CopyKey.GATE_SUBTITLE_DELETE_ALL), forcePrompt = true) ?: return send(Working(false))
         send(Working(true))
+        attempt { d.sessionEnd.endAll() }   // D7: every session closes here
         attempt { d.sessions.closeAll() }
         for (tv in d.tvs.tvs.value) {
             d.documents.deleteTree("tvs/${tv.id.value}")

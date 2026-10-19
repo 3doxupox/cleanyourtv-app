@@ -192,8 +192,7 @@ class ModulesMachine(
         val outcome = attempt {
             val snapshot = d.runner.snapshotFor(tv, session)
             val plan = (d.runner.plan(tv, PlanRequest.AddModule(m, v, blob), snapshot) as? PlanResult.Ok)?.plan ?: return@attempt null
-            d.sessionEnd.touched(tvId)
-            d.runner.run(tv, plan, session, pass) { s -> if (s is RunState.Running) send(Step(InstallStep.Installing(s.percent))) }
+            d.runner.run(tv, plan, session, pass, onStarted = { d.sessionEnd.touched(tvId) }) { s -> if (s is RunState.Running) send(Step(InstallStep.Installing(s.percent))) }
         }.getOrNull()
         if (outcome !is RunOutcome.Finished) return send(Step(InstallStep.Failed(m.name, null)))
         attempt { d.snapshots.save(d.runner.freshSnapshot(session)) }

@@ -160,8 +160,7 @@ class TvWriter(private val d: ManageDeps) {
                 is PlanResult.Ok -> r.plan
                 is PlanResult.Refused -> return@attempt WriteResult.Refused(r.reasons)
             }
-            d.sessionEnd.touched(tvId)
-            val outcome = d.runner.run(tv, plan, session) { s ->
+            val outcome = d.runner.run(tv, plan, session, onStarted = { d.sessionEnd.touched(tvId) }) { s ->
                 if (s is RunState.Running) onBusy(Busy.Working(s.percent, s.narration.map { it.text }))
             }
             when (outcome) {

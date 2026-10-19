@@ -60,7 +60,9 @@ class PlanRunner(
     suspend fun plan(tv: Tv, request: PlanRequest, snapshot: Snapshot): PlanResult =
         planner.plan(request, snapshot, facts, ledger.changes(tv.id))
 
-    suspend fun run(tv: Tv, plan: Plan, session: TvSession, given: GatePass? = null, onState: (RunState) -> Unit = {}): RunOutcome {
+    // `onStarted` runs once the engine accepted the plan, before following it: the point from which a
+    // write may have reached the TV (SessionEnd only switches debugging off on TVs a write touched).
+    suspend fun run(tv: Tv, plan: Plan, session: TvSession, given: GatePass? = null, onStarted: () -> Unit = {}, onState: (RunState) -> Unit = {}): RunOutcome {
         var pass = given
         if (pass == null && GateKeeper.needsPass(plan)) pass = gate.pass(tv.id, tv.nickname) ?: return RunOutcome.GateCancelled
         var result = engine.start(plan, session, plan.hash, pass)
@@ -71,6 +73,7 @@ class PlanRunner(
         }
         if (result is StartResult.Refused) return RunOutcome.StartRefused(result.reason)
         ledger.record(plan)
+        onStarted()
         return follow(tv, plan, onState = onState)
     }
 

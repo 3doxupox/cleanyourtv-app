@@ -2,9 +2,11 @@ package tv.cleanyour.core.flows
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import tv.cleanyour.core.discovery.Discovery
 import tv.cleanyour.core.model.DebugState
 import tv.cleanyour.core.model.Endpoint
@@ -26,6 +28,8 @@ class SessionEnd(
     private val runner: PlanRunner,
     private val foreground: AppForeground,
     private val backgroundMs: Long = 10 * 60_000,
+    private val probeTries: Int = 3,
+    private val probeGapMs: Long = 1_000,
 ) {
     private val keepOn = HashSet<TvId>()
     private val touched = LinkedHashSet<TvId>()
@@ -44,11 +48,24 @@ class SessionEnd(
             foreground.foreground.collectLatest { fg ->
                 if (!fg) {
                     delay(backgroundMs)
-                    val ids = synchronized(touched) { touched.toList() }
-                    for (id in ids) if (!keepsDebuggingOn(id)) switchOff(id)
+                    // Coming back to the foreground must not cut a switch-off in half (the TV would be
+                    // off while the record still says on), so the work itself is not cancellable.
+                    withContext(NonCancellable) { endAll() }
                 }
             }
         }
+    }
+
+    // D7 "or when the session is closed for any other reason": callers that close sessions (Forget
+    // this TV, Reset my key, Delete everything) end them here first. Only TVs a write touched.
+    suspend fun end(tvId: TvId): DebugState? {
+        val wrote = synchronized(touched) { tvId in touched }
+        return if (wrote && !keepsDebuggingOn(tvId)) switchOff(tvId) else null
+    }
+
+    suspend fun endAll() {
+        val ids = synchronized(touched) { touched.toList() }
+        for (id in ids) end(id)
     }
 
     // Runs debug_off on the live session of this TV. Returns the debugging state it recorded.
@@ -59,7 +76,14 @@ class SessionEnd(
         val plan = (runner.plan(tv, PlanRequest.DebugOff, snapshot) as? PlanResult.Ok)?.plan ?: return DebugState.UNKNOWN
         runCatching { runner.run(tv, plan, session) }
         val host = tv.endpoints.filterIsInstance<Endpoint.PlainTcp>().firstOrNull()?.host
-        val stillOpen = host != null && discovery.probe5555(host)
+        // adbd can take a moment to let go of the port; a few probes a second apart before "on".
+        var stillOpen = host != null && discovery.probe5555(host)
+        var tries = 1
+        while (stillOpen && tries < probeTries) {
+            delay(probeGapMs)
+            stillOpen = discovery.probe5555(host!!)
+            tries++
+        }
         val state = if (stillOpen) DebugState.ON else DebugState.OFF
         val now = tvs.tvs.value.firstOrNull { it.id == tvId } ?: tv
         tvs.upsert(now.copy(debugging = state))

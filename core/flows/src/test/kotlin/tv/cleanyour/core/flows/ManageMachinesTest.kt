@@ -114,6 +114,31 @@ class ManageMachinesTest {
         assertTrue(h.engine.calls.none { it is FakeEngine.Call.Start })
     }
 
+    // R5, D7: a write cancelled at the gate is not a write, so the background rule leaves the TV
+    // alone; closing the session after a real write (Forget this TV) switches debugging off first.
+    @Test fun debuggingGoesOffOnlyAfterAWriteAndBeforeTheSessionCloses() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val tv = h.knownTv()
+        h.ranDisable(tv, listOf(adPkg))
+        h.respond(PlanKind.PUT_BACK, listOf(Op.Enable(adPkg)))
+        h.credential.mode = FakeCredentialGate.Mode.FAIL
+        h.sessionEnd.watch(backgroundScope)
+        val m = SwitchedOffMachine(h.manageDeps(), backgroundScope, tv.id)
+        settle()
+        m.dispatch(SwitchedOffIntent.PutBack(adPkg)); settle()
+        h.foreground.set(false); settle(10 * 60_000L + 100)
+        assertFalse(h.planner.requests.any { it == PlanRequest.DebugOff }, "a cancelled gate is not a write")
+        h.foreground.set(true); settle()
+        h.credential.mode = FakeCredentialGate.Mode.PASS
+        m.dispatch(SwitchedOffIntent.PutBack(adPkg)); settle()
+        assertTrue(h.engine.calls.any { it is FakeEngine.Call.Start && it.plan.kind == PlanKind.PUT_BACK })
+        val s = TvSettingsMachine(h.manageDeps(), backgroundScope, tv.id)
+        settle()
+        s.dispatch(TvSettingsIntent.Forget); settle()
+        assertTrue(h.planner.requests.any { it == PlanRequest.DebugOff }, "Forget closes the session, debug_off first")
+        assertTrue(h.tvs.tvs.value.isEmpty())
+    }
+
     @Test fun leftoversFindsWhatCameBackAndSwitchesItOff() = runTest(timeout = 30.seconds) {
         val h = Harness()
         val tv = h.knownTv()
