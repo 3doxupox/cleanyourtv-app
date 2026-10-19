@@ -19,8 +19,7 @@ val fuzzSeed = providers.gradleProperty("cleanyourtv.fuzzSeed").orElse("")
 tasks.withType<Test>().configureEach {
     systemProperty("cleanyourtv.fuzzSeconds", fuzzSeconds.get())
     if (fuzzSeed.get().isNotEmpty()) systemProperty("cleanyourtv.fuzzSeed", fuzzSeed.get())
-    // A hung test must never hold the shared forge build lock: 5 minutes, plus the fuzz budget
-    // when a longer fuzz run is asked for.
-    val extra = (fuzzSeconds.get().toLongOrNull() ?: 15L).let { if (it > 15L) 2 * it else 0L }
-    timeout.set(Duration.ofMinutes(5).plusSeconds(extra))
+    // build-logic gives every test task 5 minutes; a longer fuzz run gets its budget on top.
+    val budget = fuzzSeconds.get().toLongOrNull() ?: 15L
+    if (budget > 15L) timeout.set(Duration.ofMinutes(5).plusSeconds(2 * budget))
 }

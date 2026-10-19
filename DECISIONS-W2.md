@@ -54,6 +54,19 @@ Stream W2, 2026-10-19. Built against product spec section 5.3 as fixed by gate R
   that holds a `pm`/`cmd package` write verb together with `;`, `&`, `|`, a newline, a backtick or
   `$(`, as `Policy.GuardFailed(0, reason)`. The renderer never emits such a line; this is the
   session's backstop, and the fake adbd refuses the same lines (exit 126) and records a violation.
+- D-W2-9a The one exception (INTEGRATION-PLAN T4, D14, SECURITY 3.6): W3's HOME watchdog. `PmGuard`
+  admits a chained pm line only when `PmGuard.WATCHDOG_RE` matches the whole line. The pattern is
+  the two template shapes of W3's `Watchdog` (variant A `nohup setsid sh -c '...'`, variant B
+  `( sh -c '...' & )`) written out in `:adb:session` (no `:core:ops` dependency) with only these
+  variable parts: seconds `[0-9]{2,3}`, the token `[0-9a-f]{16}` (one value, enforced by
+  backreference in all three places), the stock package from `PACKAGE_RE` and the component in
+  that same package (backreference) with a class from `CLASS_RE`. Every other byte is fixed.
+  `PmGuardWatchdogTest` reads copies of W3's goldens 16 and 17 (source and commit named in each
+  file), asserts both are admitted, that one-character mutations (an extra `;`, a quote, a changed
+  path, a token or package that differs in one place, a pipe) and mixed shapes are refused, that a
+  plain `pm disable-user ...; pm enable ...` is refused, and that the session sends the watchdog to
+  the fake while a mutated line never leaves the phone. If W3 changes the template, this pattern
+  and the copied goldens change with it (R1 and R2 both read it).
 - D-W2-10 Identity (D37, R0: 12): every connect, the manager's and every reconnect, reads `getprop`
   before anything else and computes `TvId` = first 16 hex of sha256(`ro.serialno` +
   `ro.product.device`) on the values exactly as getprop prints them (no separator, no trimming),
@@ -105,5 +118,6 @@ Stream W2, 2026-10-19. Built against product spec section 5.3 as fixed by gate R
   value, end of stream or `AdbException` is acceptable). It runs 15 s in `check`;
   `-Pcleanyourtv.fuzzSeconds=600` gives the 10-minute run, `-Pcleanyourtv.fuzzSeed=N` replays.
 - D-W2-18 Every test class has a JUnit `Timeout` rule (60 s; the fuzz class scales with its
-  budget), and every W2 test task a Gradle timeout of 5 minutes (plus twice the fuzz budget when a
-  longer fuzz run is asked for), so a hang can never hold the shared forge lock.
+  budget), so a hang can never hold the shared forge lock. The 5-minute Gradle test timeout comes
+  from build-logic on main; `:adb:wire` only raises it, by twice the fuzz budget, when a fuzz run
+  longer than the default 15 s is asked for.
