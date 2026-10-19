@@ -146,3 +146,12 @@ Added because the section 5 prose names it: `core.probe.ProbeException(stage, de
 - Forge has about 7 GB free beside its model server, so `build-on-forge.sh` takes a host-wide
   `flock` and builds run one at a time. Streams should batch their checks rather than build
   after every small edit.
+
+## Integration follow-ups (main loop)
+
+- I2 blocker from R5 of W6 (M1): the laptop restore scripts must undo to the earliest recorded
+  state of each item, the same way `DefaultPlanner.undoEverything` does, from one shared helper,
+  so no ordering can leave a TV without a home screen. Do this once W3 merges. Also rerun
+  `RestoreShellTest` with W3's real renderer (M2).
+- RFC-W4-1 accepted: `LauncherConfigDoc` and `EffectiveConfig` gain `inputAction` and
+  `moduleCards` (upstream main 1bbf0c9 keys). Apply at the W4 merge.
