@@ -35,7 +35,7 @@ data class ChangeSummary(
 
             fun touch(pkg: PackageName, c: ChangeRecord) { if (pkg !in firstPrior) firstPrior[pkg] = c.prior?.packageState }
 
-            for (c in changes.sortedBy { it.atMs }) {
+            for (c in changes.sortedWith(RestoreCommands.CHRONOLOGICAL)) {
                 when (val op = c.op) {
                     is Op.Disable -> { touch(op.pkg, c); off.remove(op.pkg); off[op.pkg] = true }
                     is Op.Enable -> { touch(op.pkg, c); off[op.pkg] = false }

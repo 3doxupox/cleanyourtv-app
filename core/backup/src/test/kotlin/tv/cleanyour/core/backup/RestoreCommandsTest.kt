@@ -1,6 +1,7 @@
 package tv.cleanyour.core.backup
 
 import tv.cleanyour.core.model.ChangeRecord
+import tv.cleanyour.core.model.EnabledState
 import tv.cleanyour.core.model.Op
 import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.model.PlanId
@@ -29,6 +30,18 @@ class RestoreCommandsTest {
         val homeBack = ops.indexOf(Op.SetHome(Scenario.stock))
         val removeOurs = ops.indexOf(Op.Uninstall(Scenario.launcher.pkg))
         assertTrue(stockOn in 0 until homeBack && homeBack < removeOurs, "stock on, then home back, then our launcher removed: $ops")
+    }
+
+    @Test fun sameMillisecondFallsBackToThePlanStep() {
+        // two steps journaled in the same millisecond, listed out of order: the later step is undone first
+        val plan = PlanId("p")
+        val a = PackageName("com.example.first")
+        val b = PackageName("com.example.second")
+        val changes = listOf(
+            ChangeRecord(plan, 1, Op.Disable(b), Prior(packageState = EnabledState.ENABLED), 5),
+            ChangeRecord(plan, 0, Op.Disable(a), Prior(packageState = EnabledState.ENABLED), 5),
+        )
+        assertEquals(listOf(Op.Enable(b), Op.Enable(a)), RestoreCommands(ReferenceRenderer()).steps(changes).map { it.inverse })
     }
 
     @Test fun kindsAndUndoRules() {

@@ -61,9 +61,12 @@ class RestoreCommands(private val renderer: OpRenderer) {
     companion object {
         const val MAX_LINE = 131_000
 
-        // Chronological by atMs, ties in list order (stable), then reversed: the newest change is
-        // put back first, as the journal undo does.
-        fun newestFirst(changes: List<ChangeRecord>): List<ChangeRecord> = changes.sortedBy { it.atMs }.asReversed()
+        // Chronological by atMs, then by plan step, then list order (stable): the same order the
+        // planner's UndoEverything reads the records in (W3).
+        val CHRONOLOGICAL: Comparator<ChangeRecord> = compareBy({ it.atMs }, { it.step })
+
+        // Chronological, then reversed: the newest change is put back first.
+        fun newestFirst(changes: List<ChangeRecord>): List<ChangeRecord> = changes.sortedWith(CHRONOLOGICAL).asReversed()
 
         fun isTransient(op: Op): Boolean = when (op) {
             is Op.Read, is Op.VerifyHome, is Op.Settle, is Op.ArmHomeWatchdog, is Op.ConfirmHome, is Op.KillWatchdog,
