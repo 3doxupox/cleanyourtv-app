@@ -130,6 +130,9 @@ class IndexRegistry(
 
     private fun publish(s: IndexState): IndexState { state.value = s; return s }
 
+    // The index to install from now (IndexState.installableIndex against this registry's clock).
+    fun installableIndex(): VerifiedIndex? = state.value.installableIndex(clock.nowMs())
+
     private sealed interface Checked { data class Ok(val gen: Generation) : Checked; data class Bad(val verdict: IndexVerdict.Bad) : Checked }
 
     private fun check(bundle: IndexBundle, fetchedAtMs: Long): Checked =
@@ -199,10 +202,13 @@ object IndexLimits {
     const val SIG_BYTES = 4096
 }
 
-// The index the phone may install from right now: verified and not past its expiry. A stale list,
+// The index the phone may install from at nowMs: verified and not past its expiry. A stale list,
 // or the last list behind a failed refresh, is shown (shownIndex) but this returns null for it.
-fun IndexState.installableIndex(): VerifiedIndex? = when (this) {
-    is IndexState.Ready -> index.takeIf { !stale }
+// Ready.stale is computed when the state is published and does not change while the process lives,
+// so the expiry is checked again here against the caller's clock: a Ready published before the
+// expiry must not stay installable after it.
+fun IndexState.installableIndex(nowMs: Long): VerifiedIndex? = when (this) {
+    is IndexState.Ready -> index.takeIf { !stale && nowMs < it.expiresAtMs }
     else -> null
 }
 

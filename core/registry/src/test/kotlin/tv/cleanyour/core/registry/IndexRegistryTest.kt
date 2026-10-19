@@ -46,7 +46,8 @@ class IndexRegistryTest {
         assertEquals(false, s.stale)
         assertEquals(0L, s.fetchedAtMs)
         assertNotNull(r.module("retro"))
-        assertNotNull(s.installableIndex())
+        assertNotNull(s.installableIndex(clock.nowMs()))
+        assertNotNull(r.installableIndex())
         assertTrue(http.requests.isEmpty())
     }
 
@@ -54,7 +55,19 @@ class IndexRegistryTest {
         clock.setWall(Times.EXPIRY)
         val s = registry().restore() as IndexState.Ready
         assertTrue(s.stale)
-        assertNull(s.installableIndex())
+        assertNull(s.installableIndex(clock.nowMs()))
+        assertNotNull(s.shownIndex())
+    }
+
+    @Test fun aReadyIndexStopsBeingInstallableAtItsExpiryWithoutARefresh() = runBlocking {
+        val r = registry()
+        val s = r.restore() as IndexState.Ready
+        assertEquals(false, s.stale)
+        assertNotNull(r.installableIndex())
+        clock.setWall(Times.EXPIRY)                // the process lives on past the expiry
+        assertEquals(s, r.index.value)             // the published state still says not stale
+        assertNull(s.installableIndex(clock.nowMs()))
+        assertNull(r.installableIndex())
         assertNotNull(s.shownIndex())
     }
 
@@ -92,7 +105,8 @@ class IndexRegistryTest {
         assertNull(s.verdict)
         assertEquals(1L, s.last?.sequence)
         assertNotNull(r.module("retro"))
-        assertNull(s.installableIndex())
+        assertNull(s.installableIndex(clock.nowMs()))
+        assertNull(r.installableIndex())
         assertEquals(1L, s.shownIndex()?.sequence)
     }
 

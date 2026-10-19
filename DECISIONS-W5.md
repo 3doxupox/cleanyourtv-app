@@ -37,7 +37,9 @@ frozen signature changed; no RFC was needed.
   but not expiry. The registry uses it to re-check stored and bundled copies and then decides
   staleness itself, so an expired copy is still shown ("may be out of date") rather than lost.
 - D-W5-4 Staleness is the index's own expiry: `Ready.stale` is true at or after `expires`.
-  `IndexState.installableIndex()` returns the index only for `Ready` and not stale; a stale list, or
+  `IndexState.installableIndex(nowMs)` returns the index only for `Ready`, not stale and before its
+  expiry at `nowMs` (the stale flag is fixed when the state is published, so the expiry is checked
+  again at the call; `IndexRegistry.installableIndex()` does this with the registry's clock); a stale list, or
   the last list behind a `Failed` state, is shown (`shownIndex()`) but not installed from. This is
   SECURITY S2's "disables privileged ops until refreshed".
 - D-W5-5 Replays: the index sequence and the keys sequence are high-water marks stored with the
@@ -128,7 +130,7 @@ val launcherPin = BundledLauncherPin(blobs)
 val http = UrlConnectionFetcher()
 val registry = IndexRegistry(http, documentStore, clock, BundledAssets.seedIndex(context), sources = null, TrustRoots.indexVerifier())
 val artifacts = ResumableArtifactFetcher(http, blobs, blobs, inspector)
-// at start: registry.restore(); on "Add a card": registry.refresh(); install only from state.installableIndex()
+// at start: registry.restore(); on "Add a card": registry.refresh(); install only from registry.installableIndex()
 ```
 
 - `sources = null` until a published copy exists; then `IndexSources.under("https://<allowed host>/...")`.
