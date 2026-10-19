@@ -57,13 +57,14 @@ Home, Undo, Restart, Key, Download, Phone, Delete, Share, Edit, Lock, External, 
 
 | Composable | Parameters |
 | :- | :- |
-| `PrimaryButton` | `text, onClick, modifier, enabled = true, loading = false` (pass the verb as text while loading) |
+| `PrimaryButton` | `text, onClick, modifier, enabled = true, loading = false, guardObscured = true` (pass the verb as text while loading; `guardObscured = false` only when the primary is Back, a plain OK or navigation) |
 | `SecondaryButton` | `text, onClick, modifier, enabled = true` (glass pill) |
 | `TertiaryButton` | `text, onClick, modifier, enabled = true, quiet = false` (accent text; quiet = text.secondary, "Stop and undo") |
-| `DestructiveButton` | `text, onClick, modifier, enabled = true` (outlined danger, "Put everything back" only) |
-| `SmallGlassButton` | `text, onClick, modifier, enabled = true` ("Restart" inside a card) |
+| `DestructiveButton` | `text, onClick, modifier, enabled = true` (outlined danger, "Put everything back" only; always guarded) |
+| `SmallGlassButton` | `text, onClick, modifier, enabled = true, guardObscured = true` ("Restart" inside a card) |
 | `MorphingPrimaryButton` | `text, onClick, progress: Float?, modifier, enabled = true` ("Make it clean" morphs into the 4 dp bar when progress is set) |
 | `CytIconButton` | `icon, contentDescription: String, onClick, modifier, tint` |
+| `Modifier.rejectObscuredTouches(onRejected = {})` | Drops a touch flagged `FLAG_WINDOW_IS_OBSCURED` or `FLAG_WINDOW_IS_PARTIALLY_OBSCURED` (SECURITY 4.3, P8). Put it after `clickable`. The guarded buttons above use it and show the hint `cyt_obscured_hint` under themselves for 6 s after a dropped tap. Only on actions that confirm, apply, pair or forget: never on Back, Cancel, close, secondary, tertiary or navigation (R5-W8 O1) |
 
 ### Status and feedback
 
@@ -73,7 +74,7 @@ Home, Undo, Restart, Key, Download, Phone, Delete, Share, Edit, Lock, External, 
 | `DiscoveryChip` | `text, found: Boolean, modifier, secondary: String? = null` (Welcome live line, polite live region) |
 | `GlassChip` | `text, modifier, mark: ChipMark = NONE, icon: ImageVector? = null, secondary: String? = null, separator = false, onClick = null, liveRegion = false, pulse = false, singleLine = false` (`singleLine`, as the status chip uses it: the text shortens with an ellipsis at large font sizes and the secondary word is never cut) |
 | `Banner` | `text: String or AnnotatedString, tone: BannerTone, modifier, icon = default for tone, actionLabel: String? = null, onAction`. `BannerTone` = `SUCCESS, WARNING, DANGER, NEUTRAL, INFO` |
-| `StopCard` | `title, body, modifier, icon = CytIcons.Stopped, primaryLabel?, onPrimary, secondaryLabel?, onSecondary, tertiaryLabel?, onTertiary, detailsLabel?, onDetails, busyText: String? = null` |
+| `StopCard` | `title, body, modifier, icon = CytIcons.Stopped, primaryLabel?, onPrimary, secondaryLabel?, onSecondary, tertiaryLabel?, onTertiary, detailsLabel?, onDetails, busyText: String? = null, primaryGuarded = true` |
 | `UndoSnackbarState` (`rememberUndoSnackbarState()`) | `show(message, actionLabel: String? = null, onAction)`, `dismiss()`, `current: UndoMessage?`. 5 s, 10 s with TalkBack |
 | `UndoSnackbarHost` | `state, modifier` |
 | `UndoSnackbar` | `message, onAction, modifier, actionLabel = "Undo"` |

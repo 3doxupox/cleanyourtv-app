@@ -26,7 +26,8 @@ import tv.cleanyour.ui.design.theme.CytTheme
 
 // DESIGN-SYSTEM 9 "Stopped": a surface.2 card with a grey icon and the next step. Never red, no
 // red glow. What happened, what it means, what to do. busyText shows a spinner line
-// ("Reconnecting..."). The way out is always a button on the card.
+// ("Reconnecting..."). The way out is always a button on the card. primaryGuarded = false when the
+// primary is Back, a plain OK or navigation (rejectObscuredTouches).
 @Composable
 fun StopCard(
     title: String,
@@ -42,6 +43,7 @@ fun StopCard(
     detailsLabel: String? = null,
     onDetails: () -> Unit = {},
     busyText: String? = null,
+    primaryGuarded: Boolean = true,
 ) {
     val c = CytTheme.colors
     val shape = CytTheme.shapes.medium
@@ -57,7 +59,7 @@ fun StopCard(
         }
         if (primaryLabel != null || secondaryLabel != null || tertiaryLabel != null) {
             ActionColumn(Modifier.padding(top = 20.dp)) {
-                if (primaryLabel != null) PrimaryButton(primaryLabel, onPrimary)
+                if (primaryLabel != null) PrimaryButton(primaryLabel, onPrimary, guardObscured = primaryGuarded)
                 if (secondaryLabel != null) SecondaryButton(secondaryLabel, onSecondary)
                 if (tertiaryLabel != null) TertiaryButton(tertiaryLabel, onTertiary, quiet = true)
             }

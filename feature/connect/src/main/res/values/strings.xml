@@ -14,18 +14,8 @@
     <string name="action_cancel">Cancel</string>
     <string name="action_ok">OK</string>
 
-    <!-- Status chip (D42). The state word is passed into chip_label already translated. -->
-    <string name="chip_connected">Connected</string>
-    <string name="chip_waiting">Waiting</string>
-    <string name="chip_working">Working</string>
-    <string name="chip_debugging_off">Debugging off</string>
-    <string name="chip_offline">Offline</string>
-    <string name="chip_label">{tv} · {state}</string>
-
-    <!-- Step counter overline, screens 1 to 4 (D33) -->
-    <string name="step_counter">{step} of 5</string>
-
-    <!-- S1 Welcome -->
+    <!-- S1 Welcome. The overline is the product name, as on the TV launcher. -->
+    <string name="welcome_overline" translatable="false">Clean Your TV</string>
     <string name="welcome_title">Your TV, tidied up.</string>
     <string name="welcome_body">Switch off the clutter, keep the apps you use, and get a calm home screen. Five minutes. Everything can be put back.</string>
     <string name="welcome_hero_cd">A TV home screen full of sponsored rows turns into a clean one with four apps along the bottom</string>
@@ -60,7 +50,6 @@
     <!-- S2a Let the phone in (steps) -->
     <string name="door_title">Let the phone in</string>
     <string name="door_body">Pick up the TV remote. This takes about a minute and is the only fiddly part.</string>
-    <string name="door_step_label">{current} of {total}</string>
     <string name="door_step_cd">Step {current} of {total}</string>
     <string name="door_next">Next</string>
     <string name="door_menu_names_vary">Menu names may differ a little on your TV.</string>
@@ -113,16 +102,15 @@
     <!-- S2c Look at the TV (Allow) -->
     <string name="allow_title">Look at the TV</string>
     <string name="allow_body">The TV is asking whether to trust this phone. Tick \"Always allow\", then choose OK.</string>
-    <string name="allow_code_line">The code on the TV ends in {tail}. That is this phone.</string>
+    <!-- The two parts of allow_body shown in text.primary; each must appear in allow_body exactly. -->
+    <string name="allow_body_emphasis_always">\"Always allow\"</string>
+    <string name="allow_body_emphasis_ok">OK.</string>
+    <string name="allow_code_label">The code on the TV ends in</string>
+    <string name="allow_code_caption">That is this phone.</string>
     <string name="allow_waiting">Waiting for your tap on the TV...</string>
     <string name="allow_still_waiting">Still waiting for OK on the TV.</string>
     <string name="allow_trusted">Trusted</string>
     <string name="allow_dont_see">I don\'t see it on the TV</string>
-    <string name="allow_art_title">Allow USB debugging?</string>
-    <string name="allow_art_fingerprint_label">The computer\'s RSA key fingerprint is:</string>
-    <string name="allow_art_always">Always allow from this computer</string>
-    <string name="allow_art_cancel">Cancel</string>
-    <string name="allow_art_ok">OK</string>
     <string name="allow_art_cd">The TV\'s Allow USB debugging box. The fingerprint ends in {tail}.</string>
 
     <!-- S2c sheet: I don't see it on the TV (UX 4.4) -->

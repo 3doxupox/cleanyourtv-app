@@ -17,17 +17,6 @@
     <string name="action_done">Done</string>
     <string name="action_undo">Undo</string>
 
-    <!-- Status chip (D42). The state word is passed into chip_label already translated. -->
-    <string name="chip_connected">Connected</string>
-    <string name="chip_waiting">Waiting</string>
-    <string name="chip_working">Working</string>
-    <string name="chip_debugging_off">Debugging off</string>
-    <string name="chip_offline">Offline</string>
-    <string name="chip_label">{tv} · {state}</string>
-
-    <!-- Step counter overline, screens 2 to 4 (D33) -->
-    <string name="step_counter">{step} of 5</string>
-
     <!-- Credential prompt (D17) -->
     <string name="gate_title">Confirm it\'s you</string>
     <string name="gate_subtitle">Before we change anything on {tv}</string>
@@ -57,6 +46,8 @@
     <!-- S3 What we found -->
     <string name="found_title">{count, plural, =0 {Nothing to switch off. Want the new home screen?} one {We found one thing to switch off} other {We found # things to switch off}}</string>
     <string name="found_headline">{count, plural, =0 {Nothing to switch off. Want the new home screen?} one {thing to switch off} other {things to switch off}}</string>
+    <!-- After the step counter: "3 of 5 · We found" -->
+    <string name="found_overline">We found</string>
     <string name="found_zero_body">This TV is already tidy.</string>
     <string name="found_group_ads">Adverts and sponsored rows</string>
     <string name="found_group_tracking">Tracking and analytics</string>
@@ -89,11 +80,6 @@
     <string name="customise_title">Customise</string>
     <string name="customise_live">{total, plural, other {{off} of # off}}</string>
     <string name="customise_nothing_deleted">Nothing is deleted; \"off\" means asleep.</string>
-    <string name="customise_pill_off">Off</string>
-    <string name="customise_pill_kept">Kept</string>
-    <string name="customise_pill_off_cd">{name}: off. Tap to keep it.</string>
-    <string name="customise_pill_kept_cd">{name}: kept. Tap to switch it off.</string>
-    <string name="customise_show_more">{count, plural, one {Show # more} other {Show # more}}</string>
     <string name="customise_show_fewer">Show fewer</string>
     <string name="customise_group_voice">Voice assistant</string>
     <string name="customise_group_cast">Chromecast</string>
@@ -106,7 +92,6 @@
     <string name="customise_wizard_note">We switch it back on if you ever undo or reset the TV.</string>
     <string name="customise_protected_title">We keep these</string>
     <string name="customise_protected_pill">Protected</string>
-    <string name="customise_protected_why">Why?</string>
     <string name="customise_protected_why_title">Why we keep this</string>
     <string name="customise_group_home">Home screen</string>
     <string name="customise_dock_row">Dock: {names}</string>
@@ -147,8 +132,6 @@
 
     <!-- S4a Making it clean -->
     <string name="working_title">Making it clean</string>
-    <string name="working_percent" formatted="false">{percent}%</string>
-    <string name="working_percent_cd">{percent} percent</string>
     <string name="working_step_restore_active">Saving a restore point...</string>
     <string name="working_step_restore_done">Restore point saved</string>
     <string name="working_group_ads">Adverts</string>
@@ -183,15 +166,10 @@
     <string name="check_live_pending_cd">Not checked yet</string>
     <string name="check_live_done_cd">Checked</string>
     <string name="check_countdown_text">If we don\'t hear from you, we put the old home screen back on our own. Nothing to worry about.</string>
-    <string name="check_timer">{minutes}:{seconds}</string>
-    <string name="check_timer_cd">{seconds, plural, one {# second left} other {# seconds left}}</string>
     <string name="check_thumbnail_note">If you can\'t see the TV, the picture above is what it shows right now.</string>
     <string name="check_no_thumbnail_note">We couldn\'t fetch a picture; please look at the TV.</string>
     <string name="check_yes">Yes, I see it</string>
     <string name="check_no">No, put it back</string>
-    <string name="check_announce_60">One minute left. Say yes or go back.</string>
-    <string name="check_announce_30">30 seconds left. Say yes or go back.</string>
-    <string name="check_announce_10">10 seconds left. Say yes or go back.</string>
 
     <!-- S4c Stopped: the old home screen is back (UX 4.7) -->
     <string name="stop_show_details">Show details</string>
@@ -285,8 +263,9 @@
     <string name="done_finished">Switching debugging off... done.</string>
 
     <!-- S5 restart card and flow (D24, UX 4.8) -->
-    <string name="restart_card_recommended">Restart the TV to check it all sticks. 2 minutes, recommended.</string>
-    <string name="restart_card_optional">Restart the TV to check it all sticks. Optional.</string>
+    <string name="restart_card_title">Restart the TV to check it all sticks</string>
+    <string name="restart_card_recommended">2 minutes, recommended</string>
+    <string name="restart_card_optional">Optional</string>
     <string name="restart_button">Restart</string>
     <string name="restart_getting_ready">{seconds, plural, other {Getting ready... # s}}</string>
     <string name="restart_intro">Restarting the TV. It usually takes about a minute. We\'re watching for it.</string>

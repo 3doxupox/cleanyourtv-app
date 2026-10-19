@@ -25,6 +25,9 @@
     <string name="cyt_count_of">%1$d of %2$d</string>
 
     <string name="cyt_undo">Undo</string>
+    <!-- Under a confirming button after a tap was dropped because another app covers the window
+         (rejectObscuredTouches, SECURITY 4.3). -->
+    <string name="cyt_obscured_hint">Another app is covering the screen, so that tap didn\'t count. Pause or close it, then tap again.</string>
 
     <string name="cyt_countdown_60">One minute left. Say yes or go back.</string>
     <string name="cyt_countdown_30">30 seconds left.</string>
