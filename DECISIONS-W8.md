@@ -1,6 +1,7 @@
 # W8 decisions: flows, screens, Android glue
 
-Stream W8, 2026-10-19. Built against section 5 as fixed by R0 and the W1 fakes. RFCs: `RFCS.md`.
+Stream W8, 2026-10-19. Built against section 5 as fixed by R0 and the W1 fakes. RFCs:
+`docs/rfcs/W8.md`; R5 review: `reviews/R5-W8.md`.
 
 ## Shape
 
