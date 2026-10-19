@@ -112,14 +112,55 @@ class SingleCallSiteLintTest {
         )
         val prefixes = listOf("core/probe/src/main/")
         val offenders = mutableListOf<String>()
+        val session = mutableListOf<Pair<String, String>>()
         for (f in mainSources) {
             val text = f.readText()
             if (!text.contains("RawShell")) continue
             val path = rel(f)
+            if (path.startsWith(SESSION_MAIN)) { session += path to text; continue }
             if (path !in allowed && prefixes.none { path.startsWith(it) }) offenders += path
         }
         assertEquals(emptyList(), offenders, "RawShell opted in outside the allowlist")
+        // RFC-W2-1: `:adb:session` has exactly one opt-in, on `internal object SessionLines`, for its
+        // five constant lines (getprop, boot_id, pm path android, reboot, the push verify sha256sum).
+        assertEquals(emptyList(), sessionOffenders(session), "the :adb:session opt-in is SessionLines only")
         val renderer = File(root, "core/ops/src/main/kotlin/tv/cleanyour/core/ops/ShellRenderer.kt").readText()
         assertTrue(!renderer.contains("String.format") && !renderer.contains("\"sh -c") && !renderer.contains("\$(") && !renderer.contains("exec("), "no templating in the renderer")
+    }
+
+    @Test fun theSessionLinesRuleAcceptsOneOptInAndRefusesAnyOther() {
+        val good = "@OptIn(RawShell::class)\ninternal object SessionLines {\n    val GETPROP = ShellLine(\"getprop\")\n}\n"
+        assertEquals(emptyList(), sessionOffenders(listOf("adb/session/src/main/S.kt" to good)))
+        val second = good + "@OptIn(RawShell::class)\nfun other() = ShellLine(\"id\")\n"
+        assertTrue(sessionOffenders(listOf("adb/session/src/main/S.kt" to second)).isNotEmpty())
+        val elsewhere = "@OptIn(RawShell::class)\nclass Shell { fun x() = ShellLine(\"id\") }\n"
+        assertTrue(sessionOffenders(listOf("adb/session/src/main/T.kt" to elsewhere)).isNotEmpty())
+        val fileWide = "@file:OptIn(RawShell::class)\npackage x\n"
+        assertTrue(sessionOffenders(listOf("adb/session/src/main/U.kt" to fileWide)).isNotEmpty())
+        val tooMany = "@OptIn(RawShell::class)\ninternal object SessionLines {\n" + (1..6).joinToString("") { "    val L$it = ShellLine(\"x\")\n" } + "}\n"
+        assertTrue(sessionOffenders(listOf("adb/session/src/main/S.kt" to tooMany)).isNotEmpty())
+    }
+
+    // Every file of :adb:session main that mentions RawShell: the module holds exactly one opt-in in
+    // all, written `@OptIn(RawShell::class)` right above `internal object SessionLines`, never a
+    // file-wide opt-in or a propagating `@RawShell`, and that file builds at most five lines.
+    private fun sessionOffenders(files: List<Pair<String, String>>): List<String> {
+        val out = mutableListOf<String>()
+        var optIns = 0
+        for ((path, source) in files) {
+            val text = source.replace(Regex("/\\*[\\s\\S]*?\\*/"), "").replace(Regex("//[^\\n]*"), "")   // comments do not count
+            val all = Regex("@(file:)?OptIn\\([^)]*RawShell").findAll(text).count()
+            val onObject = Regex("@OptIn\\(RawShell::class\\)\\s*\\n\\s*internal object SessionLines\\b").findAll(text).count()
+            optIns += all
+            if (all != onObject) out += "$path: an opt-in outside SessionLines"
+            if (Regex("(^|\\s)@RawShell\\b").containsMatchIn(text)) out += "$path: a propagating @RawShell"
+            if (onObject > 0 && Regex("\\bShellLine\\(").findAll(text).count() > 5) out += "$path: more than five session lines"
+        }
+        if (optIns > 1) out += "$SESSION_MAIN: $optIns opt-ins, one allowed"
+        return out
+    }
+
+    private companion object {
+        const val SESSION_MAIN = "adb/session/src/main/"
     }
 }
