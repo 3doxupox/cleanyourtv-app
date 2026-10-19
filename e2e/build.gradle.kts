@@ -1,3 +1,5 @@
+import java.time.Duration
+
 plugins { id("cleanyourtv.jvm") }
 
 // W9: the TV e2e harness (ARCHITECTURE 6.6, PRODUCT-SPEC 7.1). It drives the app's own
@@ -19,7 +21,7 @@ dependencies {
     implementation(libs.junit4)
 }
 
-val emulatorTest: SourceSet by sourceSets.creating {
+val emulatorTest: SourceSet = sourceSets.create("emulatorTest") {
     compileClasspath += sourceSets.main.get().output
     runtimeClasspath += sourceSets.main.get().output
 }
@@ -51,5 +53,5 @@ tasks.register<Test>("emulatorTest") {
 // scenario. This action is registered after the plugin's, so it wins; the forge session and the
 // nightly job keep their own outer limits (SESSION_TIMEOUT_S, timeout-minutes).
 tasks.withType<Test>().matching { it.name == "emulatorTest" }.configureEach {
-    timeout.set(java.time.Duration.ofMinutes(35))
+    timeout.set(Duration.ofMinutes(35))
 }
