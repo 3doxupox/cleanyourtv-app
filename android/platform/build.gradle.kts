@@ -7,4 +7,7 @@ dependencies {
     implementation(project(":adb:pairing"))
     implementation(project(":core:trust"))
     implementation(project(":core:registry"))
+    implementation(libs.kotlinx.coroutines.android)
+
+    testImplementation(libs.kotlinx.coroutines.test)
 }
