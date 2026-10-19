@@ -49,6 +49,7 @@ class ShellRenderer(private val watchdogVariant: WatchdogVariant = WatchdogVaria
         is Op.DefaultState -> Rendered(op, lines(line(PM, "default-state", USER, "0", writePkg(op.pkg))), null, Privilege.PROFILE_STEP,
             Op.Read(ProbeKind.PACKAGE_DUMP, ReadArg.Pkg(op.pkg)), T_PM, CAP_DEFAULT)
         is Op.Install -> {
+            pkg(op.pkg)   // the framework package is never installed over
             require(op.apk.dir == RemoteDir.TMP) { "install source must be under ${RemoteDir.TMP.path}" }
             require(op.apk.segments.last().endsWith(".apk")) { "install source must be an .apk file" }
             require(op.versionCode >= 0) { "versionCode must not be negative" }
@@ -60,6 +61,7 @@ class ShellRenderer(private val watchdogVariant: WatchdogVariant = WatchdogVaria
                 Op.Read(ProbeKind.PACKAGE_DUMP, ReadArg.Pkg(pkgName(op.pkg))), T_INSTALL, CAP_DEFAULT)
         }
         is Op.InstallStream -> {
+            pkg(op.pkg)
             require(op.blob.sha256 == op.sha256) { "blob sha256 differs from the op's sha256" }
             require(op.blob.size in 1..MAX_APK_BYTES) { "apk size must be 1 to $MAX_APK_BYTES bytes" }
             require(op.versionCode >= 0) { "versionCode must not be negative" }
