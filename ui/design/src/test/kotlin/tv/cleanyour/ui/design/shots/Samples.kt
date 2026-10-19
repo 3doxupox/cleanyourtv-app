@@ -165,7 +165,7 @@ object Samples {
             Stack { UndoSnackbar("Mi TV+ promos will be kept.", {}); UndoSnackbar("Put back: Screensaver adverts.", {}) }
         },
         Sample("c10_countdown_ring") {
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 CountdownRing(84_000, 90_000)
                 CountdownRing(45_000, 90_000)
                 CountdownRing(8_000, 90_000)

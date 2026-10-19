@@ -78,6 +78,7 @@ fun ModuleCard(
 // M3b: the module's hero card (mockup 07): 150 dp, shape.large, a gradient in the module's
 // accent with faint scanlines and a glow, the name in light 28 sp, an overline tagline, and the
 // "Its card on your TV" badge. art draws the module's own mark (top start). Decorative.
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ModuleHero(
     name: String,
@@ -111,14 +112,15 @@ fun ModuleHero(
             .border(1.dp, Color.White.copy(alpha = 0.2f), shape),
     ) {
         if (art != null) Box(Modifier.padding(20.dp).align(Alignment.TopStart), content = art)
-        // Name and tagline share the bottom row with the badge, so they never overlap at large
-        // font sizes: the badge keeps its width and the name wraps beside it.
-        Row(
+        // Name and tagline share the bottom line with the badge; when the two do not fit side by
+        // side (200% font) the badge drops under them instead of overlapping, and the card grows.
+        FlowRow(
             Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(start = 20.dp, end = 14.dp, bottom = 14.dp),
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            itemVerticalAlignment = Alignment.Bottom,
         ) {
-            Column(Modifier.weight(1f).padding(bottom = 2.dp)) {
+            Column(Modifier.padding(end = 12.dp, bottom = 2.dp)) {
                 Text(name, color = Color(0xFFF5F5F7), style = CytTheme.type.titleLarge.copy(fontSize = 28.sp, lineHeight = 32.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Light))
                 Overline(tagline, Modifier.padding(top = 2.dp), color = Color.White.copy(alpha = 0.8f))
             }
