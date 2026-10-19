@@ -55,7 +55,11 @@ teardown() {
   cp /tmp/emulator.log "$LOG_DIR/emulator-api$API.log" 2>/dev/null
   rm -rf "$ANDROID_AVD_HOME/$AVD.avd" "$ANDROID_AVD_HOME/$AVD.ini"
 }
-trap teardown EXIT INT TERM
+# A signal ends the script (the EXIT trap then tears down once); a bare INT or TERM trap would run
+# teardown and carry on with the next command.
+trap teardown EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 echo "==> create AVD $AVD from $IMAGE"
 echo no | "${emu_env[@]}" "$EMU_SDK/cmdline-tools/latest/bin/avdmanager" -s create avd \

@@ -27,7 +27,7 @@ EMU_VOLUME="cyt-emulator-sdk"
 LOCK="/home/builder/build/.cyt-forge.lock"
 CMDLINE_TOOLS="https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
 SESSION_TIMEOUT_S="${SESSION_TIMEOUT_S:-2400}"
-SSH=(ssh -i "$SSH_KEY" -o ConnectTimeout=10 -o BatchMode=yes "$FORGE")
+SSH=(ssh -i "$SSH_KEY" -o ConnectTimeout=10 -o BatchMode=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=4 "$FORGE")
 
 TAG="cyt-emu:$(shasum -a 256 docker/emulator/Dockerfile | cut -c1-12)"
 MODE="${1:-run}"
@@ -84,10 +84,14 @@ run)
 
   echo "==> session api $API (3 GB cap, host lock): $CMD"
   set +e
-  "${SSH[@]}" "flock -w 3600 $LOCK timeout --kill-after=30 $SESSION_TIMEOUT_S docker run --rm --name '$RUN_ID' \
+  # Two clocks. `timeout` inside the container is its PID 1, so the container ends by itself after
+  # SESSION_TIMEOUT_S even when this ssh session is gone (killing the docker client on forge would
+  # leave the container and its emulator running without the lock); the outer one is a backstop.
+  "${SSH[@]}" "flock -w 3600 $LOCK timeout --kill-after=30 $((SESSION_TIMEOUT_S + 120)) docker run --rm --name '$RUN_ID' \
     --memory 3g --memory-swap 3g --cpus 4 --device /dev/kvm \
     -e OWNER=\$(id -u):\$(id -g) -e GRADLE_USER_HOME=/cache/gradle \
-    -v $BUILD_VOLUME:/cache -v $EMU_VOLUME:/emu -v '$REMOTE_DIR':/src -w /src '$TAG' bash -euc '
+    -v $BUILD_VOLUME:/cache -v $EMU_VOLUME:/emu -v '$REMOTE_DIR':/src -w /src '$TAG' \
+    timeout --kill-after=30 $SESSION_TIMEOUT_S bash -euc '
       trap \"chown -R \$OWNER /src\" EXIT
       export ANDROID_HOME=/cache/sdk
       echo sdk.dir=/cache/sdk > local.properties
