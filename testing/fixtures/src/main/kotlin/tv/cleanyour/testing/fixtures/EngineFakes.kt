@@ -89,7 +89,8 @@ class FakeEngine(
     }
 
     private fun gate(plan: Plan, pass: GatePass?): StartRefusal? {
-        val gated = plan.steps.any { it.rendered.privilege in GATED }
+        val gated = plan.steps.any { it.rendered.privilege in GATED } &&
+            !(plan.kind == tv.cleanyour.core.planner.PlanKind.REBOOT && plan.steps.all { it.op == tv.cleanyour.core.model.Op.Reboot })   // as DefaultEngine (RFC-W8-5)
         return when {
             !gated -> null
             pass == null || pass.tvId != plan.tvId -> StartRefusal.GATE_REQUIRED

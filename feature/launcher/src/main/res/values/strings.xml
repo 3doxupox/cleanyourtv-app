@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Clean Your TV, :feature:launcher. English source strings.
+  Every string that takes an argument is ICU MessageFormat with NAMED arguments in braces,
+  formatted by the app's message helper (android.icu.text.MessageFormat). No printf placeholders,
+  no Android plurals elements. Counts go through the plural selector.
+  Screens: M2 Home screen, the theme picker, the dock sheet (S3b, own copy in this module).
+-->
+<resources>
+
+    <!-- Shared button words -->
+    <string name="action_back">Back</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_done">Done</string>
+    <string name="action_undo">Undo</string>
+
+    <!-- Status chip (D42). The state word is passed into chip_label already translated. -->
+    <string name="chip_connected">Connected</string>
+    <string name="chip_waiting">Waiting</string>
+    <string name="chip_working">Working</string>
+    <string name="chip_debugging_off">Debugging off</string>
+    <string name="chip_offline">Offline</string>
+    <string name="chip_label">{tv} · {state}</string>
+
+    <!-- Credential prompt (D17), raised by "Restore mine" and "Use the TV's own home screen" -->
+    <string name="gate_title">Confirm it\'s you</string>
+    <string name="gate_subtitle">Before we change anything on {tv}</string>
+    <string name="gate_negative">Cancel</string>
+    <string name="gate_failed">We couldn\'t confirm it\'s you, so nothing was changed.</string>
+
+    <!-- M2 Home screen -->
+    <string name="home_title">Home screen</string>
+    <string name="home_row_dock">Dock</string>
+    <string name="home_row_look">Look</string>
+    <string name="home_row_stock">Use the TV\'s own home screen</string>
+    <string name="home_row_stock_note">Brings back the TV\'s own home screen. Ours stays installed, so you can switch again.</string>
+    <string name="home_drift_banner">The home screen settings on the TV changed since you set them.</string>
+    <string name="home_drift_restore">Restore mine</string>
+    <string name="home_applying">Updating the home screen on the TV...</string>
+    <string name="home_snackbar_done">Done.</string>
+
+    <!-- M2 Use the TV's own home screen: preview, then narration -->
+    <string name="home_stock_preview_title">Use the TV\'s own home screen?</string>
+    <string name="home_stock_preview_body">We\'ll switch the TV\'s own home screen back on and set it as the home screen. The new home screen stays installed.</string>
+    <string name="home_stock_confirm">Use the TV\'s own</string>
+    <string name="home_stock_working">Putting the TV\'s own home screen back...</string>
+    <string name="home_stock_done">The TV\'s own home screen is back. Ours is still installed.</string>
+
+    <!-- M2 Look (theme picker) -->
+    <string name="theme_title">Look</string>
+    <string name="theme_default">Default</string>
+    <string name="theme_default_desc">A black background with four apps along the bottom.</string>
+    <string name="theme_aurora">Aurora</string>
+    <string name="theme_aurora_desc">A deep blue background with a soft glow behind the apps.</string>
+    <string name="theme_six_columns">Six columns</string>
+    <string name="theme_six_columns_desc">Six apps across, so more fit on the screen.</string>
+    <string name="theme_card_cd">{name}. {description}</string>
+    <string name="theme_card_selected_cd">{name}, selected. {description}</string>
+
+    <!-- S3b Your dock (sheet) -->
+    <string name="dock_title">Your dock</string>
+    <string name="dock_body">Up to four along the bottom. Drag to order.</string>
+    <string name="dock_section_in">In the dock</string>
+    <string name="dock_section_other">Other apps on the TV</string>
+    <string name="dock_full_note">The dock holds up to four. Take one out to add another.</string>
+    <string name="dock_move_up_cd">Move {name} up</string>
+    <string name="dock_move_down_cd">Move {name} down</string>
+    <string name="dock_add_cd">Add {name} to the dock</string>
+    <string name="dock_remove_cd">Take {name} out of the dock</string>
+    <string name="dock_item_in_cd">{name}, in the dock, place {position}</string>
+    <string name="dock_item_out_cd">{name}, not in the dock</string>
+
+</resources>

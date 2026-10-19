@@ -8,6 +8,7 @@ dependencies {
     implementation(project(":core:trust"))
     implementation(project(":core:registry"))
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.android)
     testImplementation(project(":testing:fake-adbd"))
     testImplementation(libs.kotlinx.coroutines.test)
 }
