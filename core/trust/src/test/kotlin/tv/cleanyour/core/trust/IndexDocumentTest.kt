@@ -39,6 +39,7 @@ class IndexDocumentTest {
         rejects("sequence zero", Docs.index(sequence = 0))
         rejects("expires before generated", Docs.index(expires = "2026-10-18T00:00:00Z"))
         rejects("bad date", Docs.index(expires = "next week"))
+        rejects("date past epoch milliseconds", Docs.index(expires = "+1000000000-01-01T00:00:00Z"))
         rejects("http apk", Docs.index(modules = listOf(Docs.module(versions = listOf(Docs.version(url = "http://github.com/a.apk"))))))
         rejects("foreign host", Docs.index(modules = listOf(Docs.module(versions = listOf(Docs.version(url = "https://evil.example/a.apk"))))))
         rejects("look-alike host", Docs.index(modules = listOf(Docs.module(versions = listOf(Docs.version(url = "https://github.com.evil.example/a.apk"))))))

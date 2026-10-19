@@ -58,7 +58,9 @@ internal object IndexJson {
 
     fun JsonObject.instantMs(key: String): Long {
         val s = str(key, 40)
-        return try { Instant.parse(s).toEpochMilli() } catch (e: DateTimeParseException) { throw IndexFormatException("$key: not an ISO-8601 instant") }
+        return try { Instant.parse(s).toEpochMilli() } catch (e: DateTimeParseException) { throw IndexFormatException("$key: not an ISO-8601 instant") } catch (e: ArithmeticException) {
+            throw IndexFormatException("$key: out of range")   // a valid Instant past what epoch milliseconds hold
+        }
     }
 
     fun JsonElement.asObject(what: String): JsonObject = this as? JsonObject ?: throw IndexFormatException("$what: object expected")
