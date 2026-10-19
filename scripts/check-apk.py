@@ -133,7 +133,9 @@ def exported_components(tree):
 
 
 def signatures(apk):
-    code, out, err = run(["apksigner", "verify", "--verbose", "--print-certs", apk])
+    # --min-sdk-version 24: verify every scheme present. With the APK's own minSdk (28) apksigner
+    # checks v3 alone and reports v2 as false even when the v2 block is there.
+    code, out, err = run(["apksigner", "verify", "--verbose", "--print-certs", "--min-sdk-version", "24", apk])
     info = {"verified": code == 0, "error": err.strip() if code else ""}
     for scheme in ("v1", "v2", "v3", "v3.1", "v4"):
         m = re.search(rf"Verified using {re.escape(scheme)} scheme \(.*?\): (true|false)", out)

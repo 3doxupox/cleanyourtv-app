@@ -129,7 +129,7 @@ if [ -n "$APK_FILE" ]; then
 - APK: $(basename "$APK_FILE")
 - SHA-256: $SUM
 - Signer certificate SHA-256: $(sed -n 's/^signer certificate SHA-256: //p' "$DEST/signer.txt" 2>/dev/null)
-- Reproducible: two clean container builds byte identical; apksigcopier compare matched
+- Reproducible: $( [ -f "$DEST/apksigcopier.txt" ] && echo "two clean container builds byte identical; apksigcopier compare matched" || echo "NOT SHOWN (see the log)" )
 - Checks: $(tail -1 "$DEST/check-apk.txt" 2>/dev/null)
 $( [ "$TEST_KEY" = 1 ] && echo "- SIGNED WITH A THROWAWAY TEST KEY: not for installation on anyone's phone" )
 EOF

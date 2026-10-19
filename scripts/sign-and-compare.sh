@@ -46,7 +46,7 @@ apksigner sign --ks "$KS" --ks-key-alias "$KS_ALIAS" --ks-pass "file:$KS_PASS_FI
   --alignment-preserved \
   ${LINEAGE:+--lineage "$LINEAGE"} --out "$SIGNED" "$UA"
 rm -f "$SIGNED.idsig"
-apksigner verify --verbose --print-certs "$SIGNED" | grep -E "Verified using|Signer #1 certificate (DN|SHA-256)|Number of signers" | tee "$OUT/apksigner-verify.txt"
+apksigner verify --verbose --print-certs --min-sdk-version 24 "$SIGNED" | grep -E "Verified using|Signer #1 certificate (DN|SHA-256)|Number of signers" | tee "$OUT/apksigner-verify.txt"
 CERT=$(apksigner verify --print-certs "$SIGNED" | sed -n 's/.*certificate SHA-256 digest: //p' | head -1)
 
 echo "==> 3. apksigcopier compare (signed A against unsigned B)"
