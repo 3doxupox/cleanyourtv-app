@@ -45,6 +45,7 @@ import tv.cleanyour.core.model.TvId
 import tv.cleanyour.core.model.WizardDraft
 import tv.cleanyour.core.planner.Choices
 import tv.cleanyour.core.planner.Plan
+import tv.cleanyour.core.planner.PlanKind
 import tv.cleanyour.core.planner.PlanRequest
 import tv.cleanyour.core.planner.PlanResult
 import tv.cleanyour.core.probe.ProbeStage
@@ -71,11 +72,6 @@ sealed interface SetupStart {
     data class Continue(val tvId: TvId) : SetupStart
     data class Resume(val tvId: TvId, val planId: PlanId) : SetupStart
 }
-
-// A button on a stop card. The frozen SetupIntent has no intent for some of the section 4 buttons
-// ("Stop here", "Leave it as is", "Keep Projectivy", "Share diagnostics"), so the screens send the
-// button position and the machine maps it per case (RFC-W8-1).
-enum class StopAction { PRIMARY, SECONDARY, TERTIARY }
 
 data class IdentityCheck(val model: String, val serialLast4: String, val screenshot: ByteArray?)
 data class ThemeOption(val id: String, val name: String, val description: String)
@@ -168,6 +164,7 @@ class SetupMachine(
     private var undoRequested = false
     private var askedNotifications = false
     private var lastFinished: RunState.Finished? = null
+    private var abandonJob: Job? = null   // R1 R-11: an abandon waiting for the TV to come back
 
     private var discoveryJob: Job? = null
     private var pollJob: Job? = null
@@ -199,8 +196,6 @@ class SetupMachine(
         data class Door(val tv: FoundTv) : Ev
         data object ToWelcome : Ev
         data object Back : Ev
-        data class Stop2(val action: StopAction) : Ev
-        data object RejectIdentity : Ev
     }
 
     init {
@@ -212,11 +207,10 @@ class SetupMachine(
         }
     }
 
-    // public additions to the frozen intents (RFC-W8-1)
-
-    // System back. Returns false when the wizard should be left (the app pops the entry).
     override fun intent(intent: SetupIntent) = dispatch(intent)
 
+    // System back (RFC-W8-1 keeps it a method: it must answer at once whether it used the press).
+    // Returns false when the wizard should be left (the app pops the entry).
     override fun back(): Boolean {
         val s = state.value
         return when {
@@ -228,8 +222,6 @@ class SetupMachine(
         }
     }
 
-    override fun stopAction(action: StopAction) = send(Ev.Stop2(action))
-    override fun rejectIdentity() = send(Ev.RejectIdentity)
     override fun dismissCard() = mutableExtras.update { it.copy(card = null) }
 
     // reducer
@@ -276,7 +268,7 @@ class SetupMachine(
         is Ev.RestartUpdate -> if (state is SetupState.Done) state.copy(restartState = event.state) else state
         Ev.ToWelcome -> SetupState.Welcome(emptyList(), onWifi = deps.discovery.network().value.onWifi, looking = true)
         Ev.Back -> SetupState.Welcome(emptyList(), onWifi = deps.discovery.network().value.onWifi, looking = true)
-        Ev.RejectIdentity -> SetupState.Welcome(emptyList(), onWifi = deps.discovery.network().value.onWifi, looking = true)
+        SetupIntent.RejectIdentity -> SetupState.Welcome(emptyList(), onWifi = deps.discovery.network().value.onWifi, looking = true)
         else -> state
     }
 
@@ -332,7 +324,7 @@ class SetupMachine(
             SetupIntent.AskTvAgain -> askAgain()
             is Ev.Opened -> { connectFailed = false; if (!event.identityNeeded) connected() }
             SetupIntent.ConfirmIdentity -> if (before is SetupState.OpenDoor && before.phase == DoorPhase.IDENTITY) connected()
-            Ev.RejectIdentity -> scope.launch { session?.let { s -> attempt { s.close() } }; session = null; tv = null }
+            SetupIntent.RejectIdentity -> scope.launch { session?.let { s -> attempt { s.close() } }; session = null; tv = null }
             Ev.GoProbe -> scope.launch { probe() }
             is Ev.OpenFailed -> onOpenFailed(event.error)
             is SetupIntent.Keep -> editDraft { d ->
@@ -365,7 +357,7 @@ class SetupMachine(
             SetupIntent.AddCard -> tvIdOf(after)?.let { effect(SetupEffect.Navigate("modules/${it.value}")) }
             SetupIntent.Finish -> if (after is SetupState.Done && mutableExtras.value.finishing == null) scope.launch { finish(after.tvId) }
             is Ev.Run -> onRun(before, event)
-            is Ev.Stop2 -> onStopAction(after, event.action)
+            is SetupIntent.StopAction -> onStopAction(after, event.action)
             else -> {}
         }
         if (before::class != after::class || event is Ev.PortOpen || event is Ev.Door || event == SetupIntent.Start) afterTransition(after)
@@ -677,7 +669,7 @@ class SetupMachine(
                 attempt { deps.engine.abandon(tvId) }
                 tv?.let { replan(it, fresh = true) }
             }
-            PauseReason.IN_DOUBT, PauseReason.USER_STOP -> send(Ev.Stop(tvId, resumeCard(tvId, p.plan.id, c, home = false)))
+            PauseReason.IN_DOUBT, PauseReason.USER_STOP -> send(Ev.Stop(tvId, resumeCard(tvId, p.plan.id, c, home = false, change = p.plan.kind != PlanKind.SETUP)))
         }
     }
 
@@ -698,9 +690,15 @@ class SetupMachine(
 
     private suspend fun onFinished(tvId: TvId, f: RunState.Finished) {
         lastFinished = f
-        mutableExtras.update { it.copy(rollingBack = false, highlightStop = false) }
+        mutableExtras.update { it.copy(rollingBack = false, highlightStop = false, reconnect = null) }
         when {
+            // A Manage write resumed from the S4e card (after process death) ends in Manage, never on Done.
+            f.plan.kind != PlanKind.SETUP -> effect(SetupEffect.Navigate("manage/${tvId.value}"))
             f.status == RunStatus.ROLLED_BACK -> send(Ev.Stop(tvId, card(StopCase.UNDONE, f.plan.id)))
+            // Step R rebuilt from the journal (the plan file could not be trusted on resume) ends the
+            // run with no steps of its own: the old home screen is back, and the card says so.
+            f.status == RunStatus.ABANDONED && f.home == HomeOutcome.CONNECTION_LOST && f.plan.steps.isEmpty() ->
+                send(Ev.Stop(tvId, homePutBackCard(f.plan.id)))
             f.status == RunStatus.ABANDONED -> effect(SetupEffect.Navigate("manage/${tvId.value}"))
             f.home != null && f.home != HomeOutcome.CONFIRMED -> send(Ev.Stop(tvId, homeCard(f)))
             else -> showDone(tvId, f, homeOn = f.plan.sections.isNotEmpty() && f.home == HomeOutcome.CONFIRMED)
@@ -811,10 +809,15 @@ class SetupMachine(
                 StopAction.SECONDARY -> scope.launch { abandonToDone() }
                 StopAction.TERTIARY -> send(SetupIntent.UndoWhatWeDid)
             }
+            StopCase.HOME_PUT_BACK -> when {
+                action == StopAction.PRIMARY -> scope.launch { tv?.let { retakeover(it) } }
+                lastFinished?.status == RunStatus.ABANDONED -> tvIdOf(s)?.let { effect(SetupEffect.Navigate("manage/${it.value}")) }
+                else -> send(SetupIntent.LeaveOldHome)
+            }
             StopCase.RESUME_AFTER_DEATH -> when (action) {
                 StopAction.PRIMARY -> send(SetupIntent.CarryOn)
                 StopAction.SECONDARY -> send(SetupIntent.UndoWhatWeDid)
-                StopAction.TERTIARY -> scope.launch { tvIdOf(s)?.let { deps.engine.abandon(it) } }
+                StopAction.TERTIARY -> scope.launch { tvIdOf(s)?.let { id -> abandonRun(id, (s as? SetupState.Stopped)?.card?.planId) } }
             }
             StopCase.INSTALL_FAILED -> scope.launch { abandonToDone() }
             StopCase.UNDONE -> tvIdOf(s)?.let { effect(SetupEffect.Navigate("manage/${it.value}")) }
@@ -831,8 +834,38 @@ class SetupMachine(
     private suspend fun abandonToDone() {
         val id = tvIdOf(state.value) ?: return
         val plan = deps.engine.runState(id).value.planOrNull()
-        attempt { deps.engine.abandon(id) }
+        if (!abandonRun(id, plan?.id ?: (state.value as? SetupState.Stopped)?.card?.planId)) return
         showDone(id, plan?.let { RunState.Finished(it, RunStatus.ABANDONED, emptyList(), null) }, homeOn = false)
+    }
+
+    // Ends the open run. With a HOME section open the engine must run step R first, and while the
+    // TV is away its abandon does nothing (R1 F5, R-11): the run stays open. The card then says to
+    // reconnect, and the abandon runs again once the TV answers (after process death the run is
+    // loaded through resume first). False when the abandon is waiting for the TV.
+    private suspend fun abandonRun(id: TvId, planId: PlanId?): Boolean {
+        val open = planId != null && deps.ledger.progress(planId).openSection
+        val live = (session?.takeIf { it.tvId == id } ?: deps.sessions.existing(id))?.state?.value is ConnectionState.Connected
+        if (open && !live) {
+            val c = (state.value as? SetupState.Stopped)?.card ?: card(StopCase.CONNECTION_LOST, planId, args = mapOf("done" to 0, "total" to 0))
+            send(Ev.Stop(id, c.copy(body = deps.copy.text(CopyKey.STOP_RECONNECT_HOME_BODY, mapOf("tv" to (tv?.nickname ?: ""))))))
+            if (abandonJob?.isActive != true) abandonJob = scope.launch { abandonWhenBack(id) }
+            return false
+        }
+        attempt { deps.engine.abandon(id) }
+        return true
+    }
+
+    private suspend fun abandonWhenBack(id: TvId) {
+        mutableExtras.update { it.copy(reconnect = Reconnect.TRYING) }
+        val s = when (val r = deps.access.session(id)) {
+            is AccessResult.Ok -> r.session
+            else -> { mutableExtras.update { it.copy(reconnect = Reconnect.GAVE_UP) }; return }
+        }
+        session = s
+        mutableExtras.update { it.copy(reconnect = null, chip = ChipState.CONNECTED) }
+        watchRun(id)
+        if (deps.engine.runState(id).value !is RunState.Paused) attempt { deps.engine.resume(id, s) }
+        if (deps.engine.runState(id).value is RunState.Paused) attempt { deps.engine.abandon(id) }
     }
 
     private fun shareDiagnostics() {
@@ -842,15 +875,49 @@ class SetupMachine(
     // Done (S5)
 
     // D24 restart test, UX 4.8: reboot, wait, 3 minute note, 5 minute card; debugging stays on.
+    // The reboot is a REBOOT plan (RFC-W8-5): journaled like every write and never gated; the
+    // engine's step reboots and waits up to 5 minutes for the boot.
     private suspend fun restart(d: SetupState.Done) {
         val s = session ?: return
+        val record = tv ?: deps.tvs.tvs.value.firstOrNull { it.id == d.tvId } ?: return
         val since = deps.clock.nowMs()
         send(Ev.RestartUpdate(RestartState.Restarting(since)))
-        mutableExtras.update { it.copy(restartSlow = false, restartReenabled = 0) }
-        if (attempt { s.reboot() }.isFailure) { send(Ev.RestartUpdate(null)); return }
-        awaitBack(d.tvId, since)
+        mutableExtras.update { it.copy(restartSlow = false, restartReenabled = 0, card = null) }
+        val plan = attempt {
+            val snap = snapshot ?: deps.runner.snapshotFor(record, s)
+            (deps.runner.plan(record, PlanRequest.Reboot, snap) as? PlanResult.Ok)?.plan
+        }.getOrNull() ?: run { send(Ev.RestartUpdate(null)); return }
+        val start = deps.clock.monotonicMs()
+        val slow = scope.launch { delay(3 * 60_000); mutableExtras.update { it.copy(restartSlow = true) } }
+        val outcome = attempt { deps.runner.run(record, plan, s, onStarted = { deps.sessionEnd.touched(record.id) }) }.getOrNull()
+        slow.cancel()
+        val after = maxOf(deps.clock.monotonicMs() - start, 0)
+        when {
+            outcome is RunOutcome.Finished && outcome.state.status == RunStatus.COMPLETED && outcome.state.skipped.isEmpty() -> backAfterRestart(record, s, after)
+            outcome is RunOutcome.Paused -> {
+                // The boot wait ran out: the reboot step is in doubt and the run stays open. Nothing
+                // on it needs undoing, so it is ended, or every later write would be refused RUN_OPEN.
+                attempt { deps.engine.abandon(record.id) }
+                notBack(after)
+            }
+            else -> send(Ev.RestartUpdate(null))   // the reboot was refused or never sent
+        }
     }
 
+    private fun notBack(afterMs: Long) {
+        send(Ev.RestartUpdate(RestartState.NotBack(afterMs)))
+        mutableExtras.update { it.copy(card = card(StopCase.NOT_BACK_AFTER_RESTART, null)) }
+    }
+
+    // After the restart: things that came back on are switched off again (UX 4.8).
+    private suspend fun backAfterRestart(record: Tv, s: TvSession, afterMs: Long) {
+        mutableExtras.update { it.copy(card = null) }
+        val came = attempt { switchOffLeftovers(record, s) }.getOrDefault(0)
+        mutableExtras.update { it.copy(restartReenabled = came) }
+        send(Ev.RestartUpdate(RestartState.Back(afterMs)))
+    }
+
+    // "It's on again" on the not-back card: a wait for the boot, no write.
     private suspend fun awaitBack(tvId: TvId, since: Long) {
         val s = session ?: return
         send(Ev.RestartUpdate(RestartState.Restarting(since)))
@@ -861,17 +928,10 @@ class SetupMachine(
             outcome = attempt { s.awaitBoot(2 * 60_000) }.getOrElse { BootOutcome.Timeout }
         }
         val after = maxOf(deps.clock.monotonicMs() - start, 0)
-        if (outcome is BootOutcome.Timeout) {
-            send(Ev.RestartUpdate(RestartState.NotBack(after)))
-            mutableExtras.update { it.copy(card = card(StopCase.NOT_BACK_AFTER_RESTART, null)) }
-            return
-        }
-        mutableExtras.update { it.copy(card = null) }
-        // After the restart: things that came back on are switched off again (UX 4.8).
+        if (outcome is BootOutcome.Timeout) { notBack(after); return }
         val record = tv
-        val came = if (record != null) attempt { switchOffLeftovers(record, s) }.getOrDefault(0) else 0
-        mutableExtras.update { it.copy(restartReenabled = came) }
-        send(Ev.RestartUpdate(RestartState.Back(after)))
+        if (record == null) { mutableExtras.update { it.copy(card = null) }; send(Ev.RestartUpdate(RestartState.Back(after))); return }
+        backAfterRestart(record, s, after)
     }
 
     private suspend fun switchOffLeftovers(record: Tv, s: TvSession): Int {
@@ -926,7 +986,8 @@ class SetupMachine(
         val entry = deps.ledger.entry(tvId, planId)
         val progress = deps.ledger.progress(planId)
         val args = mapOf("tv" to record.nickname, "done" to progress.doneDisables, "total" to (entry?.disables ?: progress.doneDisables))
-        send(Ev.Stop(tvId, resumeCard(tvId, planId, args, home = progress.openSection)))
+        val manageKind = entry != null && entry.kind != PlanKind.SETUP
+        send(Ev.Stop(tvId, resumeCard(tvId, planId, args, home = progress.openSection, change = manageKind)))
         // The process that ran the steps is gone and with it the touched set: the journal says
         // writes reached this TV, so D7's background and session-close rules apply to it again.
         if (progress.doneSteps > 0 || progress.openSection) deps.sessionEnd.touched(tvId)
@@ -947,24 +1008,30 @@ class SetupMachine(
 
     // copy and small helpers
 
-    private fun resumeCard(tvId: TvId, planId: PlanId?, args: Map<String, Any>, home: Boolean): StopCard {
+    // S4e. `change`: the open run is a Manage write (a put back, a theme, a module), not the setup,
+    // so the card does not say "setting up" (R5-W8 O2).
+    private fun resumeCard(tvId: TvId, planId: PlanId?, args: Map<String, Any>, home: Boolean, change: Boolean = false): StopCard {
         val a = args + ("tv" to (tv?.nickname ?: deps.tvs.tvs.value.firstOrNull { it.id == tvId }?.nickname ?: ""))
-        return card(StopCase.RESUME_AFTER_DEATH, planId, args = a, body = if (home) CopyKey.STOP_RESUME_HOME_BODY else null)
+        val c = card(StopCase.RESUME_AFTER_DEATH, planId, args = a, body = if (home) CopyKey.STOP_RESUME_HOME_BODY else if (change) CopyKey.STOP_RESUME_CHANGE_BODY else null)
+        return if (change) c.copy(title = deps.copy.text(CopyKey.STOP_RESUME_CHANGE_TITLE, a)) else c
     }
+
+    // "We put the old home screen back": step R ran after the connection was lost (UX 4.7, 4.9).
+    private fun homePutBackCard(planId: PlanId?): StopCard = card(StopCase.HOME_PUT_BACK, planId, args = mapOf("tv" to (tv?.nickname ?: "")))
 
     private fun homeCard(f: RunState.Finished): StopCard {
         val other = otherLauncherName()
         val case = when (f.home) {
             HomeOutcome.USER_SAID_NO -> StopCase.HOME_USER_SAID_NO
             HomeOutcome.TIMED_OUT -> StopCase.HOME_TIMED_OUT
-            HomeOutcome.CONNECTION_LOST -> StopCase.RESUME_AFTER_DEATH
+            HomeOutcome.CONNECTION_LOST -> StopCase.HOME_PUT_BACK
             else -> when {
                 wraithClaims() -> StopCase.HOME_SETUPWRAITH
                 other != null -> StopCase.HOME_OTHER_LAUNCHER
                 else -> StopCase.HOME_UNKNOWN
             }
         }
-        if (case == StopCase.RESUME_AFTER_DEATH) return card(case, f.plan.id, args = mapOf("tv" to (tv?.nickname ?: "")), body = CopyKey.STOP_RESUME_HOME_BODY)
+        if (case == StopCase.HOME_PUT_BACK) return homePutBackCard(f.plan.id)
         return card(case, f.plan.id, args = mapOf("launcher" to (other ?: "")))
     }
 
@@ -1066,6 +1133,7 @@ internal fun stopKeys(case: StopCase): StopKeys = when (case) {
     StopCase.INSTALL_FAILED -> StopKeys(CopyKey.STOP_INSTALL_FAILED_TITLE, CopyKey.STOP_INSTALL_FAILED_BODY, CopyKey.STOP_INSTALL_FAILED_PRIMARY, null)
     StopCase.UNDONE -> StopKeys(CopyKey.STOP_UNDONE_TITLE, CopyKey.STOP_UNDONE_BODY, CopyKey.STOP_UNDONE_PRIMARY, null)
     StopCase.PROBE_FAILED -> StopKeys(CopyKey.STOP_PROBE_FAILED_TITLE, CopyKey.STOP_PROBE_FAILED_BODY, CopyKey.STOP_PROBE_FAILED_PRIMARY, CopyKey.STOP_PROBE_FAILED_SECONDARY)
+    StopCase.HOME_PUT_BACK -> StopKeys(CopyKey.STOP_HOME_PUT_BACK_TITLE, CopyKey.STOP_RESUME_HOME_BODY, CopyKey.STOP_HOME_PUT_BACK_PRIMARY, CopyKey.STOP_HOME_PUT_BACK_SECONDARY)
     StopCase.NOT_BACK_AFTER_RESTART -> StopKeys(CopyKey.STOP_NOT_BACK_TITLE, CopyKey.STOP_NOT_BACK_BODY, CopyKey.STOP_NOT_BACK_PRIMARY, CopyKey.STOP_NOT_BACK_SECONDARY)
     StopCase.TV_NOT_FOUND -> StopKeys(CopyKey.STOP_TV_NOT_FOUND_TITLE, CopyKey.STOP_TV_NOT_FOUND_BODY, CopyKey.STOP_TV_NOT_FOUND_PRIMARY, CopyKey.STOP_TV_NOT_FOUND_SECONDARY)
     StopCase.WRONG_NETWORK -> StopKeys(CopyKey.STOP_WRONG_NETWORK_TITLE, CopyKey.STOP_WRONG_NETWORK_BODY, CopyKey.STOP_WRONG_NETWORK_PRIMARY, CopyKey.STOP_WRONG_NETWORK_SECONDARY)

@@ -78,8 +78,11 @@ import tv.cleanyour.core.model.ApkInfo
 //   sessions      -> W2 AdbSessionManager(PlainSocketFactory, KeystoreAdbSigner, ...)
 //   keyInfo       -> W2 KeystoreAdbSigner (fingerprint, backing, reset)
 //   prober, profiles, facts, themes -> W4 (Prober, bundled profiles, FactsTable data, ThemeSource)
-//   planner, engine, journal, configTransport -> W3 (Planner(clock, idGen, renderer), Executor, JsonlJournal, FileOverlayTransport)
-//   snapshots, restoreFiles, restoreNote, bundleWriter -> W6
+//   planner, engine, journal, configTransport -> W3: DefaultPlanner(clock, idGen, renderer, transport, appVersion,
+//       ..., profiles = profiles) with `profiles` named (D-W3-3, the Manage requests need it), DefaultEngine,
+//       FileJournal, FileOverlayTransport
+//   snapshots, restoreFiles, restoreNote, bundleWriter -> W6: bundleWriter = ZipRestoreBundleWriter(renderer, ...)
+//       with the real ShellRenderer (ReferenceRenderer is gone from main)
 //   blobs, launcherPin, registry, fetcher, inspector, http -> W5 (DECISIONS-W5 "Wiring notes for W8"):
 //       blobs = FileBlobStore(context); inspector = PackageManagerApkInspector(context);
 //       launcherPin = BundledLauncherPin(blobs); http = UrlConnectionFetcher();

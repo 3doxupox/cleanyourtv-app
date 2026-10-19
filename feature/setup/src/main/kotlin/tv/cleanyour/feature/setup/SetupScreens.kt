@@ -387,14 +387,14 @@ fun CheckScreen(state: SetupState.Check, extras: SetupExtras, actions: SetupActi
 fun StoppedScreen(state: SetupState.Stopped, extras: SetupExtras, actions: SetupActions, modifier: Modifier = Modifier) {
     val c = state.card
     var details by rememberSaveable { mutableStateOf(false) }
-    val homeCase = c.case in setOf(StopCase.HOME_SETUPWRAITH, StopCase.HOME_OTHER_LAUNCHER, StopCase.HOME_UNKNOWN, StopCase.HOME_USER_SAID_NO, StopCase.HOME_TIMED_OUT, StopCase.UNDONE)
+    val homeCase = c.case in setOf(StopCase.HOME_SETUPWRAITH, StopCase.HOME_OTHER_LAUNCHER, StopCase.HOME_UNKNOWN, StopCase.HOME_USER_SAID_NO, StopCase.HOME_TIMED_OUT, StopCase.UNDONE, StopCase.HOME_PUT_BACK)
     PendingScreenScaffold(modifier, topBar = { TopBar(extras) }) {
         PendingGap(24)
         val body = if (c.case == StopCase.CONNECTION_LOST && extras.reconnect == Reconnect.GAVE_UP) stringResource(R.string.stop_connection_lost_gone_body) else c.body
         PendingStopCard(c.title, body,
-            primaryLabel = c.primary, onPrimary = { actions.stopAction(StopAction.PRIMARY) },
-            secondaryLabel = c.secondary, onSecondary = { actions.stopAction(StopAction.SECONDARY) },
-            tertiaryLabel = c.tertiary, onTertiary = { actions.stopAction(StopAction.TERTIARY) },
+            primaryLabel = c.primary, onPrimary = { actions.intent(SetupIntent.StopAction(StopAction.PRIMARY)) },
+            secondaryLabel = c.secondary, onSecondary = { actions.intent(SetupIntent.StopAction(StopAction.SECONDARY)) },
+            tertiaryLabel = c.tertiary, onTertiary = { actions.intent(SetupIntent.StopAction(StopAction.TERTIARY)) },
             detailsLabel = if (homeCase && extras.commands.isNotEmpty()) stringResource(R.string.stop_show_details) else null, onDetails = { details = true },
             busyText = when {
                 c.case == StopCase.CONNECTION_LOST && extras.reconnect == Reconnect.TRYING -> stringResource(R.string.stop_connection_lost_reconnecting)
@@ -436,8 +436,8 @@ fun DoneScreen(state: SetupState.Done, extras: SetupExtras, actions: SetupAction
         }
         RestartCard(state, extras, actions)
         extras.card?.takeIf { it.case == StopCase.NOT_BACK_AFTER_RESTART }?.let { c ->
-            PendingStopCard(c.title, c.body, primaryLabel = c.primary, onPrimary = { actions.stopAction(StopAction.PRIMARY) },
-                secondaryLabel = c.secondary, onSecondary = { actions.stopAction(StopAction.SECONDARY) })
+            PendingStopCard(c.title, c.body, primaryLabel = c.primary, onPrimary = { actions.intent(SetupIntent.StopAction(StopAction.PRIMARY)) },
+                secondaryLabel = c.secondary, onSecondary = { actions.intent(SetupIntent.StopAction(StopAction.SECONDARY)) })
         }
         PendingListGroup {
             PendingListRow(stringResource(R.string.done_add_card_title), subtitle = stringResource(R.string.done_add_card_body), onClick = { actions.intent(SetupIntent.AddCard) })

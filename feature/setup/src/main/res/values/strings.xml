@@ -247,6 +247,9 @@
     <string name="stop_resume_home_body">We\'ve put the old home screen back to be safe. Try the switch again?</string>
     <string name="stop_resume_home_primary">Try the switch again</string>
     <string name="stop_resume_home_secondary">Leave it as is</string>
+    <string name="stop_resume_change_title">We were in the middle of a change on {tv}</string>
+    <string name="stop_resume_change_body">It stopped before it finished. Carry on with the rest, or undo what we did?</string>
+    <string name="stop_reconnect_home_body">Reconnect to the TV to put the old home screen back. We\'ll do it as soon as {tv} answers.</string>
 
     <!-- Stop: install failure (UX 4.14) -->
     <string name="stop_install_failed_title">The new home screen couldn\'t be installed</string>

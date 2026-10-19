@@ -25,7 +25,12 @@ import tv.cleanyour.core.model.DebugState
 import tv.cleanyour.core.model.Level
 import tv.cleanyour.core.model.Op
 import tv.cleanyour.core.model.SnapshotReason
+import tv.cleanyour.core.planner.PlanKind
 import tv.cleanyour.core.planner.PlanRequest
+import tv.cleanyour.core.engine.SectionState
+import tv.cleanyour.core.model.ConnectionState
+import tv.cleanyour.core.model.RunToken
+import tv.cleanyour.testing.fixtures.FakeTvSession
 import tv.cleanyour.core.store.GateMethod
 import tv.cleanyour.testing.fixtures.FakeCredentialGate
 import tv.cleanyour.testing.fixtures.FakeEngine
@@ -266,7 +271,7 @@ class SetupMachineTest {
         assertEquals(StopCase.HOME_USER_SAID_NO, s.card.case)
         assertTrue(s.card.primary.startsWith("STOP_HOME_USER_SAID_NO_PRIMARY"))
         // "Try again" plans from a fresh snapshot and starts once more.
-        m.stopAction(StopAction.PRIMARY); settle()
+        m.dispatch(SetupIntent.StopAction(StopAction.PRIMARY)); settle()
         assertEquals(2, h.engine.calls.count { it is FakeEngine.Call.Start })
         assertTrue(h.prober.calls.count { it == "snapshot ${SnapshotReason.MANUAL}" } >= 1)
     }
@@ -280,7 +285,7 @@ class SetupMachineTest {
         toFound(h, m)
         m.dispatch(SetupIntent.MakeItClean); settle()
         assertEquals(StopCase.HOME_TIMED_OUT, assertIs<SetupState.Stopped>(m.state.value).card.case)
-        m.stopAction(StopAction.SECONDARY); settle()
+        m.dispatch(SetupIntent.StopAction(StopAction.SECONDARY)); settle()
         assertFalse(assertIs<SetupState.Done>(m.state.value).summary.homeScreenOn)
     }
 
@@ -510,7 +515,7 @@ class SetupMachineTest {
         assertEquals("STOP_RESUME_BODY{done=0,total=2,tv=Mi TV 4A}", s.card.body)
         assertTrue(h.engine.calls.any { it is FakeEngine.Call.Resume })
         h.engine.emit(tv.id, RunState.Paused(h.setupPlan, 1, PauseReason.IN_DOUBT, null))
-        m.stopAction(StopAction.TERTIARY); settle()
+        m.dispatch(SetupIntent.StopAction(StopAction.TERTIARY)); settle()
         assertTrue(h.engine.calls.any { it is FakeEngine.Call.Abandon })
     }
 
@@ -571,5 +576,128 @@ class SetupMachineTest {
         val f = assertIs<SetupState.Found>(m.state.value)
         assertEquals(Level.CUSTOM, f.level)
         assertEquals(setOf(promoPkg), h.planner.requests.filterIsInstance<PlanRequest.Setup>().last().choices.kept)
+    }
+
+    // RFC-W8-1: "No" on the identity line is an intent; it closes the session and records nothing.
+    @Test fun noOnTheIdentityLineClosesTheSessionAndRecordsNothing() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val m = h.setup(backgroundScope)
+        h.discovery.emit(found()); settle()
+        m.dispatch(SetupIntent.Start); settle()
+        h.discovery.open5555[HOST] = true
+        settle(2_100)
+        assertEquals(DoorPhase.IDENTITY, assertIs<SetupState.OpenDoor>(m.state.value).phase)
+        m.dispatch(SetupIntent.RejectIdentity); settle()
+        assertIs<SetupState.Welcome>(m.state.value)
+        assertTrue(FakeTvSession.Call.Close in h.session.calls)
+        assertTrue(h.tvs.tvs.value.isEmpty())
+    }
+
+    // RFC-W8-5: the restart test is a REBOOT plan through the runner (journaled, no prompt), never a
+    // direct session call; things that came back on are switched off after it.
+    @Test fun theRestartTestRunsARebootPlanWithoutAPrompt() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+        val m = h.setup(backgroundScope)
+        toFound(h, m)
+        m.dispatch(SetupIntent.MakeItClean); settle()
+        assertIs<SetupState.Done>(m.state.value)
+        val prompts = h.credential.prompts.size
+        m.dispatch(SetupIntent.Restart); settle()
+        assertTrue(h.planner.requests.any { it == PlanRequest.Reboot })
+        val reboot = h.engine.calls.filterIsInstance<FakeEngine.Call.Start>().last()
+        assertEquals(PlanKind.REBOOT, reboot.plan.kind)
+        assertNull(reboot.pass)
+        assertEquals(StartResult.Started, reboot.result)
+        assertEquals(prompts, h.credential.prompts.size)
+        assertTrue(h.session.calls.none { it == FakeTvSession.Call.Reboot })
+        assertIs<RestartState.Back>(assertIs<SetupState.Done>(m.state.value).restartState)
+    }
+
+    // RFC-W8-5: a boot wait that runs out leaves the reboot step in doubt and the run open; the
+    // machine ends it (nothing to undo) so later writes are not refused, and shows the 5 minute card.
+    @Test fun aRestartThatDoesNotComeBackEndsItsRunAndShowsTheCard() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+        val m = h.setup(backgroundScope)
+        toFound(h, m)
+        m.dispatch(SetupIntent.MakeItClean); settle()
+        assertIs<SetupState.Done>(m.state.value)
+        h.engine.onStart = { p ->
+            if (p.kind == PlanKind.REBOOT) emit(p.tvId, RunState.Paused(p, 0, PauseReason.CONNECTION_LOST, AdbError.Transport.Timeout("boot")))
+            else finish(p, RunStatus.COMPLETED)
+        }
+        m.dispatch(SetupIntent.Restart); settle()
+        assertTrue(h.engine.calls.any { it is FakeEngine.Call.Abandon })
+        assertIs<RestartState.NotBack>(assertIs<SetupState.Done>(m.state.value).restartState)
+        assertEquals(StopCase.NOT_BACK_AFTER_RESTART, m.extras.value.card?.case)
+    }
+
+    // R1 R-11: with the HOME section open and the TV away, the engine's abandon does nothing; the
+    // card says to reconnect, and the abandon runs once the TV answers again.
+    @Test fun stopHereWithTheHomeSectionOpenWaitsForTheTv() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+        h.setupPlan = h.plan(listOf(Op.Disable(adPkg)), takeover = true)
+        h.engine.onStart = { p ->
+            h.journal.append(JournalRecord.PlanStart(p.id, p.tvId, Samples.zeroHash, p.steps.size, p.hash, "0.1.0", 0))
+            h.journal.append(JournalRecord.Section(p.id, "home_takeover", RunToken("00000000000000aa"), SectionState.ARMED, 0))
+            emit(p.tvId, RunState.Paused(p, 2, PauseReason.CONNECTION_LOST, AdbError.Transport.Closed))
+        }
+        val m = h.setup(backgroundScope)
+        toFound(h, m)
+        m.dispatch(SetupIntent.MakeItClean); settle()
+        assertEquals(StopCase.CONNECTION_LOST, assertIs<SetupState.Stopped>(m.state.value).card.case)
+        val connected = h.session.state.value
+        h.session.setState(ConnectionState.Idle)
+        h.discovery.open5555[HOST] = false
+        m.dispatch(SetupIntent.StopAction(StopAction.SECONDARY)); settle()
+        assertTrue(h.engine.calls.none { it is FakeEngine.Call.Abandon })
+        val s = assertIs<SetupState.Stopped>(m.state.value)
+        assertTrue(s.card.body.startsWith("STOP_RECONNECT_HOME_BODY"), s.card.body)
+        h.session.setState(connected)
+        h.discovery.open5555[HOST] = true
+        settle(2_100)
+        assertTrue(h.engine.calls.any { it is FakeEngine.Call.Abandon })
+    }
+
+    // W3 D-W3-2: step R rebuilt from the journal ends the run ABANDONED with no steps of its own
+    // and home CONNECTION_LOST; the card says the old home screen is back.
+    @Test fun stepRFromTheJournalEndsOnTheOldHomeScreenIsBackCard() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val tv = Samples.tv()
+        h.tvs.upsert(tv)
+        h.ledger.record(h.setupPlan)
+        h.discovery.open5555[HOST] = true
+        val m = h.setup(backgroundScope, SetupStart.Resume(tv.id, h.setupPlan.id))
+        settle()
+        h.engine.emit(tv.id, RunState.Finished(h.setupPlan.copy(steps = emptyList()), RunStatus.ABANDONED, emptyList(), HomeOutcome.CONNECTION_LOST))
+        settle()
+        val s = assertIs<SetupState.Stopped>(m.state.value)
+        assertEquals(StopCase.HOME_PUT_BACK, s.card.case)
+        assertEquals("STOP_HOME_PUT_BACK_TITLE{tv=Mi TV 4A}", s.card.title)
+        assertEquals("STOP_RESUME_HOME_BODY{tv=Mi TV 4A}", s.card.body)
+    }
+
+    // R5-W8 O2: the resume card for an open Manage write does not say "setting up", and the run
+    // ends in Manage, not on the wizard's Done.
+    @Test fun theResumeCardForAManageWriteSaysChangeAndEndsInManage() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val tv = Samples.tv()
+        h.tvs.upsert(tv)
+        val put = h.plan(listOf(Op.Enable(adPkg)), kind = PlanKind.PUT_BACK, id = "01FAKEPUTBACK0000000000001")
+        h.ledger.record(put)
+        h.discovery.open5555[HOST] = true
+        val m = h.setup(backgroundScope, SetupStart.Resume(tv.id, put.id))
+        settle()
+        val s = assertIs<SetupState.Stopped>(m.state.value)
+        assertEquals("STOP_RESUME_CHANGE_TITLE{done=0,total=0,tv=Mi TV 4A}", s.card.title)
+        assertTrue(s.card.body.startsWith("STOP_RESUME_CHANGE_BODY"), s.card.body)
+        h.engine.emit(tv.id, RunState.Paused(put, 0, PauseReason.IN_DOUBT, null)); settle()
+        m.effects.test {
+            h.engine.finish(put, RunStatus.COMPLETED); settle()
+            assertEquals(SetupEffect.Navigate("manage/${tv.id.value}"), drain().last())
+        }
+        assertFalse(m.state.value is SetupState.Done)
     }
 }

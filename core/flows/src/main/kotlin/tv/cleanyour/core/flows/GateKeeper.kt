@@ -3,9 +3,11 @@ package tv.cleanyour.core.flows
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import tv.cleanyour.core.engine.StartRefusal
+import tv.cleanyour.core.model.Op
 import tv.cleanyour.core.model.TvId
 import tv.cleanyour.core.ops.Privilege
 import tv.cleanyour.core.planner.Plan
+import tv.cleanyour.core.planner.PlanKind
 import tv.cleanyour.core.store.Clock
 import tv.cleanyour.core.store.CredentialGate
 import tv.cleanyour.core.store.GateMethod
@@ -30,7 +32,8 @@ class GateKeeper(
     // The live pass for this TV, prompting once if there is none. Null when the person cancelled.
     suspend fun pass(tvId: TvId, tvName: String): GatePass? = passWithSubtitle(tvId, copy.text(CopyKey.GATE_SUBTITLE, mapOf("tv" to tvName)))
 
-    // App-level actions ("Reset my key", "Delete everything") bring their own subtitle and always prompt.
+    // App-level actions ("Reset my key", "Delete everything") bring their own subtitle and always
+    // prompt. Their APP_GATE_ID pass is never cached (RFC-W8-4 ruling), so nothing can reuse it.
     suspend fun passWithSubtitle(tvId: TvId, subtitle: String, forcePrompt: Boolean = false): GatePass? = lock.withLock {
         if (!forcePrompt) cached(tvId)?.let { return it }
         when (val r = gate.confirm(tvId, copy.text(CopyKey.GATE_TITLE), subtitle)) {
@@ -40,8 +43,9 @@ class GateKeeper(
         }
     }
 
-    // A pass handed in from outside (SetupIntent.CredentialPassed), kept like a prompted one.
-    fun remember(pass: GatePass) { synchronized(passes) { passes[pass.tvId] = pass } }
+    // A pass handed in from outside (SetupIntent.CredentialPassed), kept like a prompted one. An
+    // app-level pass is never kept.
+    fun remember(pass: GatePass) { if (pass.tvId != APP_GATE_ID) synchronized(passes) { passes[pass.tvId] = pass } }
 
     fun forget(tvId: TvId) { synchronized(passes) { passes.remove(tvId) } }
 
@@ -52,8 +56,10 @@ class GateKeeper(
     companion object {
         private val GATED = setOf(Privilege.PROFILE_STEP, Privilege.COMMUNITY, Privilege.TAKEOVER)
 
-        // READ and SESSION_END plans (debug_off at Finish) need no pass (R0: 6).
-        fun needsPass(plan: Plan): Boolean = plan.steps.any { it.rendered.privilege in GATED }
+        // READ and SESSION_END plans (debug_off at Finish) need no pass (R0: 6), and neither does the
+        // restart test (RFC-W8-5: a REBOOT plan of Reboot steps only, the engine's own rule, D-W3-5).
+        fun needsPass(plan: Plan): Boolean =
+            !(plan.kind == PlanKind.REBOOT && plan.steps.all { it.op == Op.Reboot }) && plan.steps.any { it.rendered.privilege in GATED }
 
         fun isGateRefusal(r: StartRefusal): Boolean = r == StartRefusal.GATE_REQUIRED || r == StartRefusal.GATE_EXPIRED
     }

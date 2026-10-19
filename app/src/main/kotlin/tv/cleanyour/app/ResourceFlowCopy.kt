@@ -89,6 +89,12 @@ class ResourceFlowCopy(context: Context) : FlowCopy {
         CopyKey.STOP_RESUME_PRIMARY -> SetupR.string.stop_resume_primary
         CopyKey.STOP_RESUME_SECONDARY -> SetupR.string.stop_resume_secondary
         CopyKey.STOP_RESUME_TERTIARY -> SetupR.string.stop_resume_tertiary
+        CopyKey.STOP_RESUME_CHANGE_TITLE -> SetupR.string.stop_resume_change_title
+        CopyKey.STOP_RESUME_CHANGE_BODY -> SetupR.string.stop_resume_change_body
+        CopyKey.STOP_HOME_PUT_BACK_TITLE -> SetupR.string.stop_resume_home_title
+        CopyKey.STOP_HOME_PUT_BACK_PRIMARY -> SetupR.string.stop_resume_home_primary
+        CopyKey.STOP_HOME_PUT_BACK_SECONDARY -> SetupR.string.stop_resume_home_secondary
+        CopyKey.STOP_RECONNECT_HOME_BODY -> SetupR.string.stop_reconnect_home_body
         CopyKey.STOP_INSTALL_FAILED_TITLE -> SetupR.string.stop_install_failed_title
         CopyKey.STOP_INSTALL_FAILED_BODY -> SetupR.string.stop_install_failed_generic_body
         CopyKey.STOP_INSTALL_FAILED_PRIMARY -> SetupR.string.stop_install_failed_primary

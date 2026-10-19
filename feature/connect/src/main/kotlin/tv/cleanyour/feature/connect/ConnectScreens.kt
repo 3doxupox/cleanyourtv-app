@@ -64,8 +64,8 @@ private fun chipLabel(name: String, status: ChipState): String = msg(R.string.ch
 @Composable
 private fun InlineCard(extras: SetupExtras, actions: SetupActions) {
     val c = extras.card ?: return
-    PendingStopCard(c.title, c.body, primaryLabel = c.primary, onPrimary = { actions.stopAction(StopAction.PRIMARY) },
-        secondaryLabel = c.secondary, onSecondary = { actions.stopAction(StopAction.SECONDARY) })
+    PendingStopCard(c.title, c.body, primaryLabel = c.primary, onPrimary = { actions.intent(SetupIntent.StopAction(StopAction.PRIMARY)) },
+        secondaryLabel = c.secondary, onSecondary = { actions.intent(SetupIntent.StopAction(StopAction.SECONDARY)) })
 }
 
 // S1 Welcome (D8, D19, D5): discovery is already running; the live line is the chip.
@@ -233,7 +233,7 @@ private fun IdentityContent(extras: SetupExtras, actions: SetupActions) {
     PendingTvThumbnail(id?.screenshot, stringResource(R.string.identity_screenshot_cd))
     PendingBody(stringResource(R.string.identity_body))
     PendingPrimaryButton(stringResource(R.string.identity_yes), { actions.intent(SetupIntent.ConfirmIdentity) })
-    PendingSecondaryButton(stringResource(R.string.identity_no), { actions.rejectIdentity() })
+    PendingSecondaryButton(stringResource(R.string.identity_no), { actions.intent(SetupIntent.RejectIdentity) })
 }
 
 // UX 4.4: three paragraphs and "Ask the TV again"; after 3 retries, the restart paragraph.

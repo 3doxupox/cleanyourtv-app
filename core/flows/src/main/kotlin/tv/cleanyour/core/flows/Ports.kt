@@ -62,6 +62,10 @@ enum class CopyKey(val res: String) {
     STOP_RESUME_TITLE("stop_resume_title"), STOP_RESUME_BODY("stop_resume_body"),   // {tv} {done} {total}
     STOP_RESUME_HOME_BODY("stop_resume_home_body"),
     STOP_RESUME_PRIMARY("stop_resume_primary"), STOP_RESUME_SECONDARY("stop_resume_secondary"), STOP_RESUME_TERTIARY("stop_resume_tertiary"),
+    STOP_RESUME_CHANGE_TITLE("stop_resume_change_title"), STOP_RESUME_CHANGE_BODY("stop_resume_change_body"),   // {tv}; a Manage write
+    STOP_HOME_PUT_BACK_TITLE("stop_resume_home_title"), STOP_HOME_PUT_BACK_PRIMARY("stop_resume_home_primary"),
+    STOP_HOME_PUT_BACK_SECONDARY("stop_resume_home_secondary"),
+    STOP_RECONNECT_HOME_BODY("stop_reconnect_home_body"),   // {tv}; R1 R-11
     STOP_INSTALL_FAILED_TITLE("stop_install_failed_title"), STOP_INSTALL_FAILED_BODY("stop_install_failed_generic_body"),
     STOP_INSTALL_FAILED_PRIMARY("stop_install_failed_primary"),
     STOP_UNDONE_TITLE("stop_undone_title"), STOP_UNDONE_BODY("stop_undone_body"), STOP_UNDONE_PRIMARY("stop_undone_primary"),
