@@ -25,7 +25,7 @@ import kotlin.test.assertTrue
 
 class EngineTest {
 
-    @Test fun startRefusesInTheContractOrder() = runTest {
+    @Test fun startRefusesInTheContractOrder() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
         val engine = h.engine()
         val plan = h.setupPlan(takeover = false)
@@ -59,7 +59,7 @@ class EngineTest {
     }
 
     @OptIn(RawShell::class)
-    @Test fun hashMismatchCatchesTamperedLinesAndOps() = runTest {
+    @Test fun hashMismatchCatchesTamperedLinesAndOps() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
         val engine = h.engine()
         val plan = h.setupPlan(takeover = false)
@@ -78,7 +78,7 @@ class EngineTest {
         assertTrue(h.tv.execLog.isEmpty(), "nothing was sent")
     }
 
-    @Test fun debloatRunJournalsVerifiesAndSavesTheRestorePoint() = runTest {
+    @Test fun debloatRunJournalsVerifiesAndSavesTheRestorePoint() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
         val engine = h.engine()
         val plan = h.setupPlan(takeover = false, installLauncher = false)
@@ -117,7 +117,7 @@ class EngineTest {
         assertTrue(h.journal.openRuns(h.tv.tvId).isEmpty())
     }
 
-    @Test fun aRefusedDisableIsSkippedNotAStop() = runTest {
+    @Test fun aRefusedDisableIsSkippedNotAStop() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
         h.tv.refuse = { it == h.debloat[1] }
         val engine = h.engine()
@@ -134,7 +134,7 @@ class EngineTest {
         assertEquals(1, failed.exit); assertTrue(failed.stderrHead.contains("Shell cannot change component state"))
     }
 
-    @Test fun aVerifyMismatchOnAStopStepPausesThenContinueOrUndo() = runTest {
+    @Test fun aVerifyMismatchOnAStopStepPausesThenContinueOrUndo() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
         val engine = h.engine()
         // UseStockHome from a taken-over TV: Enable(stock), SetHome, VerifyHome, PressHome; make the resolver lie once.
@@ -165,7 +165,7 @@ class EngineTest {
         assertEquals(2, h.prober.calls.count { it == "snapshot PRE_PLAN" }, "continuing re-probes for drift")
     }
 
-    @Test fun undoRunRollsBackTheDoneStepsInReverse() = runTest {
+    @Test fun undoRunRollsBackTheDoneStepsInReverse() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
         val engine = h.engine()
         h.tv.refuse = { it == h.debloat[2] }
@@ -183,7 +183,7 @@ class EngineTest {
         assertTrue(ChangeRecords.fromJournal(h.records(plan)).isEmpty(), "nothing left changed")
     }
 
-    @Test fun driftSinceThePlanPausesBeforeAnyWrite() = runTest {
+    @Test fun driftSinceThePlanPausesBeforeAnyWrite() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
         val engine = h.engine()
         val plan = h.setupPlan(takeover = false, installLauncher = false)
@@ -200,7 +200,7 @@ class EngineTest {
         assertEquals("end:ABANDONED", h.types(plan).last())
     }
 
-    @Test fun theLiveDenylistCheckRefusesWhatTheTvNowSaysIsProtected() = runTest {
+    @Test fun theLiveDenylistCheckRefusesWhatTheTvNowSaysIsProtected() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
         val engine = h.engine()
         val plan = h.setupPlan(takeover = false, installLauncher = false)
@@ -214,7 +214,7 @@ class EngineTest {
         assertEquals(listOf("plan", "begin0", "failed0", "paused:STEP_FAILED@0"), h.types(plan))
     }
 
-    @Test fun stopPausesAfterTheCurrentStep() = runTest {
+    @Test fun stopPausesAfterTheCurrentStep() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
         val engine = h.engine()
         val plan = h.setupPlan(takeover = false, installLauncher = false)
@@ -230,7 +230,7 @@ class EngineTest {
         assertEquals(h.debloat.size, ChangeRecords.fromJournal(h.records(plan)).size)
     }
 
-    @Test fun aLostConnectionPausesAndContinueResumesTheSameStep() = runTest {
+    @Test fun aLostConnectionPausesAndContinueResumesTheSameStep() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
         val engine = h.engine()
         val plan = h.setupPlan(takeover = false, installLauncher = false)
@@ -250,7 +250,7 @@ class EngineTest {
         for (p in h.debloat) assertEquals(EnabledState.DISABLED_USER, h.tv.state(p))
     }
 
-    @Test fun transfersInstallsSettleAndDebugOffDispatch() = runTest {
+    @Test fun transfersInstallsSettleAndDebugOffDispatch() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
         val engine = h.engine()
         val cfg = "{\"dock_apps\":[]}".encodeToByteArray()

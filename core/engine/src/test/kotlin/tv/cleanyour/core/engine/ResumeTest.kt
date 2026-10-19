@@ -30,7 +30,7 @@ class ResumeTest {
         }
     }
 
-    @Test fun killAfterEveryRecordThenResumeReachesAConsistentState() = runTest {
+    @Test fun killAfterEveryRecordThenResumeReachesAConsistentState() = runTest(timeout = TEST_TIMEOUT) {
         val probe = Harness(this)
         val full = probe.setupPlan()
         val e0 = probe.engine()
@@ -92,7 +92,7 @@ class ResumeTest {
         }
     }
 
-    @Test fun resumeWithNothingOpenDoesNothing() = runTest {
+    @Test fun resumeWithNothingOpenDoesNothing() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
         val engine = h.engine()
         engine.resume(h.tv.tvId, h.tv)
@@ -100,7 +100,7 @@ class ResumeTest {
         assertTrue(h.tv.execLog.isEmpty())
     }
 
-    @Test fun aTamperedPlanFileIsNeverResumed() = runTest {
+    @Test fun aTamperedPlanFileIsNeverResumed() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
         val e1 = h.engine()
         val plan = h.setupPlan(takeover = false, installLauncher = false)
@@ -121,7 +121,7 @@ class ResumeTest {
         assertEquals(0, h.tv.execs("dumpsys package com.android.systemui") + h.tv.execs("pm disable-user --user 0 com.android.systemui"))
     }
 
-    @Test fun resumeVerifiesTheInDoubtStepAndMarksItResumed() = runTest {
+    @Test fun resumeVerifiesTheInDoubtStepAndMarksItResumed() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
         val crashing = MemoryJournal()
         val e1 = h.engine(journal = crashing)

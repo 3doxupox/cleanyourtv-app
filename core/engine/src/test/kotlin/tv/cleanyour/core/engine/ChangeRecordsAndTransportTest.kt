@@ -50,7 +50,7 @@ class ChangeRecordsTest {
 }
 
 class FileOverlayTransportTest {
-    @Test fun stepsMatchThemeSh() = runTest {
+    @Test fun stepsMatchThemeSh() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
         val t = FileOverlayTransport(h.prober)
         assertEquals(ConfigTransportKind.FILE_OVERLAY, t.kind)

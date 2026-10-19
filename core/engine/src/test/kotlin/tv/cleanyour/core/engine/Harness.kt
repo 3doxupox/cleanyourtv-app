@@ -120,3 +120,6 @@ class Harness(val scope: TestScope, val tv: ScriptedTv = ScriptedTv(Samples.snap
         val fallbackHome = Component(PackageName("com.android.settings"), ".FallbackHome")
     }
 }
+
+// Every coroutine test gets an explicit wall-clock limit (the virtual clock skips the delays).
+val TEST_TIMEOUT = kotlin.time.Duration.parse("30s")

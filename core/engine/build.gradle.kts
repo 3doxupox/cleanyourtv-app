@@ -1,3 +1,5 @@
+import java.time.Duration
+
 plugins { id("cleanyourtv.jvm") }
 
 // Plan, Step and GuardedSection come from :core:planner, so the engine sits one layer above it
@@ -10,3 +12,6 @@ dependencies {
     testImplementation(project(":testing:fixtures"))
     testImplementation(libs.kotlinx.coroutines.test)
 }
+
+// A hung coroutine or a deadlocked run must fail the build, not stall it.
+tasks.withType<Test>().configureEach { timeout.set(Duration.ofMinutes(5)) }

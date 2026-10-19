@@ -41,7 +41,7 @@ class SectionTest {
         for (p in debloat) assertEquals(EnabledState.DISABLED_USER, tv.state(p), "the debloat part is kept")
     }
 
-    @Test fun yesISeeItConfirmsTheSection() = runTest {
+    @Test fun yesISeeItConfirmsTheSection() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
         val engine = h.engine()
         val plan = h.setupPlan()
@@ -78,7 +78,7 @@ class SectionTest {
         assertTrue(armed.deadlineWallMs >= Samples.NOW_MS + 15_000 + 120_000, "the TV watchdog fires 120 s after arming")
     }
 
-    @Test fun noPutItBackRunsStepR() = runTest {
+    @Test fun noPutItBackRunsStepR() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
         val engine = h.engine()
         val plan = h.setupPlan()
@@ -102,7 +102,7 @@ class SectionTest {
         assertTrue(h.tv.execLog.map { tv.cleanyour.testing.fixtures.Recording.normalize(it) }.last() == "input keyevent 3")
     }
 
-    @Test fun theTimerRollsBack() = runTest {
+    @Test fun theTimerRollsBack() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
         val engine = h.engine()
         val plan = h.setupPlan()
@@ -116,14 +116,14 @@ class SectionTest {
         h.assertStockHomeIsBack(plan.sections.single().token.value)
     }
 
-    @Test fun withoutARecentThumbnailTheWindowIs120s() = runTest {
+    @Test fun withoutARecentThumbnailTheWindowIs120s() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
-        h.prober.screenshotOkCount = 4   // through the section's screencap precondition; the check screen's fetch fails
+        h.prober.screenshotOkCount = 5   // through the section's screencap precondition; the check screen's fetch fails
         val engine = h.engine()
         val plan = h.setupPlan()
         val s = openCheckScreen(h, engine, plan)
         assertNotNull(s.thumbnail, "the last good one is still shown")
-        assertTrue(h.prober.calls.count { it == "screenshot" } >= 5)
+        assertTrue(h.prober.calls.count { it == "screenshot" } >= 6)
         assertEquals(h.clock.nowMs() - 20_000 + 15_000 + 120_000, s.deadlineMs)
         advanceTimeBy(95_000); runCurrent()
         assertIs<RunState.AwaitingConfirm>(engine.runState(h.tv.tvId).value)
@@ -133,7 +133,7 @@ class SectionTest {
 
     // S10: the launcher crashes on HOME, so the HOME key lands on FallbackHome. The stock launcher
     // is HOME again without any user action.
-    @Test fun aCrashingLauncherIsCaughtByTheLiveCheck() = runTest {
+    @Test fun aCrashingLauncherIsCaughtByTheLiveCheck() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
         val engine = h.engine()
         val plan = h.setupPlan()
@@ -147,7 +147,7 @@ class SectionTest {
         assertTrue(h.clock.monotonicMs() < 40_000, "rolled back at once, not at the deadline")
     }
 
-    @Test fun theWizardFocusAndTheStockLauncherFocusRollBackToo() = runTest {
+    @Test fun theWizardFocusAndTheStockLauncherFocusRollBackToo() = runTest(timeout = TEST_TIMEOUT) {
         for (focus in listOf(Component(PackageName("com.google.android.tungsten.setupwraith"), ".RecoveryActivity"), Samples.stockLauncher)) {
             val h = Harness(this)
             val engine = h.engine()
@@ -159,7 +159,7 @@ class SectionTest {
         }
     }
 
-    @Test fun verifyHomeFailureRollsBackAtOnce() = runTest {
+    @Test fun verifyHomeFailureRollsBackAtOnce() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
         val engine = h.engine()
         val plan = h.setupPlan()
@@ -178,7 +178,7 @@ class SectionTest {
         assertEquals(0, h.prober.calls.count { it == "homeFocus" }, "the check screen never opened")
     }
 
-    @Test fun theWizardQuirkDisablesAndRestoresTheWizard() = runTest {
+    @Test fun theWizardQuirkDisablesAndRestoresTheWizard() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
         val quirky = h.profile(setOf(Quirk.HOME_TAKEOVER_SETUPWRAITH), h.wizard)
         h.profiles = tv.cleanyour.testing.fixtures.FakeProfileSource(listOf(quirky))   // the executor's live check must see the same profile
@@ -193,7 +193,7 @@ class SectionTest {
         assertEquals(h.stock, h.tv.home)
     }
 
-    @Test fun aFailedInstallSkipsTheSectionWithoutArmingAnything() = runTest {
+    @Test fun aFailedInstallSkipsTheSectionWithoutArmingAnything() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
         h.tv.installOutcome = InstallOutcome.Failed("INSTALL_FAILED_INSUFFICIENT_STORAGE", "no space")
         val engine = h.engine()
@@ -209,7 +209,7 @@ class SectionTest {
         for (p in h.debloat) assertEquals(EnabledState.DISABLED_USER, h.tv.state(p))
     }
 
-    @Test fun aLostConnectionInsideTheSectionIsRolledBackByResume() = runTest {
+    @Test fun aLostConnectionInsideTheSectionIsRolledBackByResume() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
         val engine = h.engine()
         val plan = h.setupPlan()
@@ -248,12 +248,12 @@ class SectionTest {
         assertEquals(StartResult.Started, engine2.start(again, h.tv, again.hash, h.pass()))
     }
 
-    @Test fun continueAfterALostConnectionInTheCheckScreenRunsStepRFirst() = runTest {
+    @Test fun continueAfterALostConnectionInTheCheckScreenRunsStepRFirst() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
         val engine = h.engine()
         val plan = h.setupPlan()
         openCheckScreen(h, engine, plan)
-        h.tv.dropOnLine = { it.contains("dumpsys activity") }   // the live check hits a dead socket
+        h.tv.dropOnLine = { it.contains("'dumpsys' 'activity'") }   // the live check hits a dead socket
         advanceTimeBy(2_500); runCurrent(); h.settle(engine)
         val paused = engine.runState(h.tv.tvId).value as RunState.Paused
         assertEquals(PauseReason.CONNECTION_LOST, paused.reason)

@@ -41,7 +41,7 @@ class FileJournalTest {
 
     private fun tempRoot(): File = Files.createTempDirectory("cyt-journal").toFile().also { it.deleteOnExit() }
 
-    @Test fun appendsForcesAndReadsBack() = runTest {
+    @Test fun appendsForcesAndReadsBack() = runTest(timeout = TEST_TIMEOUT) {
         val root = tempRoot()
         val j = FileJournal(root, EmptyCoroutineContext)
         for (r in records()) j.append(r)
@@ -65,7 +65,7 @@ class FileJournalTest {
 
     // Truncate the file at every byte offset of the last record: the torn line is dropped and the
     // earlier records survive; a flipped byte in an earlier record stops the read there.
-    @Test fun crashMatrixTruncationAndCorruption() = runTest {
+    @Test fun crashMatrixTruncationAndCorruption() = runTest(timeout = TEST_TIMEOUT) {
         val root = tempRoot()
         val j = FileJournal(root, EmptyCoroutineContext)
         val all = records()
@@ -120,7 +120,7 @@ class PlanJsonTest {
         }
     }
 
-    @Test fun aSetupPlanWithASectionRoundTrips() = runTest {
+    @Test fun aSetupPlanWithASectionRoundTrips() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
         val plan = h.setupPlan().let { p ->
             // Add a prior with an overlay and a theme push so every codec branch is exercised.
