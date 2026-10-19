@@ -48,6 +48,7 @@ import tv.cleanyour.core.flows.RunLedger
 import tv.cleanyour.core.flows.ScreenLock
 import tv.cleanyour.core.flows.SecureIdGen
 import tv.cleanyour.core.flows.SessionEnd
+import tv.cleanyour.core.flows.FlowLog
 import tv.cleanyour.core.flows.SetupDeps
 import tv.cleanyour.core.flows.SetupMachine
 import tv.cleanyour.core.flows.SetupStart
@@ -169,6 +170,7 @@ class AppGraph(context: Context, val appVersion: String = "0.1.0") {
         launcherPin = launcherPin, themes = themes, restorePoint = restorePoint, restoreNote = restoreNote,
         sessionEnd = sessionEnd, access = access, clock = clock, copy = copy, dock = DockPicker.Ranking, screenLock = screenLock,
         diagnostics = diagnostics, locale = { app.resources.configuration.locales[0].toLanguageTag() },
+        log = FlowLog { CytLog.i(it) },   // redacted lines for "Share diagnostics": outcomes and counts only
     )
 
     val manageDeps = ManageDeps(

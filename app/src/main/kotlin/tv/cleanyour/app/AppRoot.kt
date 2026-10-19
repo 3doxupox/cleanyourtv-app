@@ -91,6 +91,36 @@ fun startKey(d: StartDestination): Dest = when (d) {
     is StartDestination.Manage -> Dest.Manage(d.tvId.value)
 }
 
+// The back stack after a navigation route (ARCHITECTURE 2.2), pure so the rules are unit tested.
+// Returns false when the app should be left instead. "returning" ("I've set up a TV before" on
+// Welcome) opens Manage on top of Welcome, so Back returns to Welcome; every other Manage route
+// (the wizard finished, a TV forgotten) replaces the stack.
+internal fun applyRoute(stack: MutableList<NavKey>, route: String, noTvs: Boolean): Boolean {
+    val parts = route.split('/')
+    val id = parts.getOrNull(1)
+    val dest: Dest? = when (parts[0]) {
+        "manage" -> Dest.Manage(id)
+        "returning" -> { stack.add(Dest.Manage(null)); return true }
+        "setup" -> Dest.Setup(id)
+        "resume" -> id?.let { t -> parts.getOrNull(2)?.let { p -> Dest.Setup(t, p) } }
+        "modules" -> id?.let { Dest.Modules(it) }
+        "home" -> if (id != null) Dest.Home(id) else null
+        "switchedoff" -> id?.let { Dest.SwitchedOff(it) }
+        "leftovers" -> id?.let { Dest.Leftovers(it) }
+        "restore" -> id?.let { Dest.Restore(it) }
+        "tvsettings" -> id?.let { Dest.TvSettings(it) }
+        "appsettings" -> Dest.AppSettings
+        "back" -> return if (stack.size > 1) { stack.removeAt(stack.lastIndex); true } else false
+        else -> null
+    }
+    when {
+        route == "home" || route == "welcome" -> { stack.clear(); stack.add(if (noTvs) Dest.Setup() else Dest.Manage(null)) }
+        dest is Dest.Manage -> { stack.clear(); stack.add(dest) }
+        dest != null -> stack.add(dest)
+    }
+    return true
+}
+
 // The ViewModel only owns the machine's scope (ARCHITECTURE 2.1).
 class MachineHost<M : Any>(make: (CoroutineScope) -> M) : ViewModel() {
     val machine: M = make(viewModelScope)
@@ -129,29 +159,7 @@ fun AppRoot(graph: AppGraph, start: Dest, onExit: () -> Unit) {
     val view = LocalView.current
     val scope = rememberCoroutineScope()
 
-    fun go(route: String) {
-        val parts = route.split('/')
-        val id = parts.getOrNull(1)
-        val dest: Dest? = when (parts[0]) {
-            "manage" -> Dest.Manage(id)
-            "setup" -> Dest.Setup(id)
-            "resume" -> id?.let { t -> parts.getOrNull(2)?.let { p -> Dest.Setup(t, p) } }
-            "modules" -> id?.let { Dest.Modules(it) }
-            "home" -> if (id != null) Dest.Home(id) else null
-            "switchedoff" -> id?.let { Dest.SwitchedOff(it) }
-            "leftovers" -> id?.let { Dest.Leftovers(it) }
-            "restore" -> id?.let { Dest.Restore(it) }
-            "tvsettings" -> id?.let { Dest.TvSettings(it) }
-            "appsettings" -> Dest.AppSettings
-            "back" -> { if (backStack.size > 1) backStack.removeAt(backStack.lastIndex) else onExit(); return }
-            else -> null
-        }
-        when {
-            route == "home" || route == "welcome" -> { backStack.clear(); backStack.add(if (graph.tvs.tvs.value.isEmpty()) Dest.Setup() else Dest.Manage(null)) }
-            dest is Dest.Manage -> { backStack.clear(); backStack.add(dest) }
-            dest != null -> backStack.add(dest)
-        }
-    }
+    fun go(route: String) { if (!applyRoute(backStack, route, noTvs = graph.tvs.tvs.value.isEmpty())) onExit() }
 
     fun haptic(kind: Int) { view.performHapticFeedback(kind) }
     fun share(text: String) {
@@ -208,7 +216,7 @@ fun AppRoot(graph: AppGraph, start: Dest, onExit: () -> Unit) {
                     LaunchedEffect(m) { m.effects.collect { onSetupEffect(it) } }
                     BackHandler { if (!m.back()) { if (backStack.size > 1) backStack.removeAt(backStack.lastIndex) else onExit() } }
                     SecureWindow((state as? SetupState.OpenDoor)?.phase == DoorPhase.ALLOW)
-                    if (isConnectState(state)) ConnectFlow(state, extras, m, onReturning = { go("manage") })
+                    if (isConnectState(state)) ConnectFlow(state, extras, m, onReturning = { go("returning") })
                     else SetupFlow(state, extras, m, onCopyCommands = { copyText(context, it) })
                 }
                 entry<Dest.Manage> { key ->
