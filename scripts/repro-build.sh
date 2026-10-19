@@ -15,6 +15,12 @@ OUT="${1:?usage: repro-build.sh <out-dir>}"
 mkdir -p "$OUT"
 export TZ=UTC LC_ALL=C.UTF-8
 echo "sdk.dir=$ANDROID_HOME" > local.properties
+# SEED_GRADLE: a read-only Gradle home to copy the wrapper's distribution zip from (nothing else).
+# The wrapper checks the zip against distributionSha256Sum before it unpacks it.
+if [ -n "${SEED_GRADLE:-}" ] && [ -d "$SEED_GRADLE/wrapper/dists" ]; then
+  ( cd "$SEED_GRADLE" && find wrapper/dists -name '*.zip' | while read -r z; do
+      mkdir -p "$GRADLE_USER_HOME/$(dirname "$z")" && cp "$z" "$GRADLE_USER_HOME/$z"; done )
+fi
 chmod +x gradlew
 
 # No build cache and no configuration cache: every task runs from the sources in this container.

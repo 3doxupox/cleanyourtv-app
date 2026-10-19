@@ -87,7 +87,10 @@ build() {  # <name> <gradle home mount>
       && scripts/repro-build.sh /out && chown -R \$OWNER /out'" </dev/null
 }
 build a "mitv-android-cache:/cache -e GRADLE_USER_HOME=/cache/gradle"
-build b "$RUN_ID-gradle:/gradle"
+# B gets an empty Gradle home; only the wrapper's distribution zip is seeded from the shared cache
+# (Java in these containers sometimes times out on GitHub's asset hosts, DECISIONS-W1 D-W1-12), and
+# the wrapper checks that zip against distributionSha256Sum before unpacking it.
+build b "$RUN_ID-gradle:/gradle -v mitv-android-cache:/seed:ro -e SEED_GRADLE=/seed/gradle"
 
 echo "==> sign and compare"
 KEYTAR="$SCRATCH/keys.tar"
