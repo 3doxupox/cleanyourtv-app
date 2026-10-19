@@ -87,8 +87,20 @@ class AndroidAppConventionPlugin : Plugin<Project> {
                     isMinifyEnabled = true
                     isShrinkResources = true
                     proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+                    // W9, reproducibility (ARCHITECTURE 6.8): no VCS info file in the APK, so a
+                    // build from a git archive and one from a clone are byte identical.
+                    vcsInfo { include = false }
+                }
+                // W9: what :benchmark measures. Release code (R8, same rules), signed with the
+                // debug key so the test can install it, and profileable from the shell.
+                create("benchmark") {
+                    initWith(getByName("release"))
+                    signingConfig = signingConfigs.getByName("debug")
+                    matchingFallbacks += listOf("release")
+                    isDebuggable = false
                 }
             }
+            sourceSets.getByName("benchmark").manifest.srcFile(rootProject.file("benchmark/app-benchmark/AndroidManifest.xml"))
             compileOptions {
                 sourceCompatibility = Toolchain.JAVA
                 targetCompatibility = Toolchain.JAVA
