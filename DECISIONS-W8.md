@@ -150,3 +150,9 @@ Stream W8, 2026-10-19. Built against section 5 as fixed by R0 and the W1 fakes. 
   window, status and navigation bars, no light bar icons, no force dark (API 29+), a black splash
   (API 31+). The light tokens stay in `:ui:design`, unused by the app. `ManifestTest` checks the
   theme in light mode. D-W7-1's "follow the system" is withdrawn for 0.1.
+- D-W8-28 Fidelity fixes from the design vs emulator comparison: a tall modal sheet (Customise, the
+  list) stops 48 dp below the status bar so the scrim and the top bar show as in mockup 08, instead
+  of running under the status bar icons; a typed TV's chip reads the model from its identity line,
+  not its address. Left as is and reported: the emulator's own tall status bar, Welcome's line
+  pinned above Start (D-W8-26) where mockup 01 has it under the body, the D8 copy, and the identity
+  line standing in for mockup 03's Allow dialog on a TV without one (D38).
