@@ -19,11 +19,31 @@ Stream W6, 2026-10-19. Module `:core:backup`, built against product spec section
 - D-W6-1 The undo lines come from the app's `OpRenderer` (`inverse`, then `render`), injected
   into `ZipRestoreBundleWriter`. `:core:backup` builds no shell command itself, so `commands.txt`,
   `restore.sh` and `restore.ps1` carry the phone's own lines (ARCHITECTURE 5.4 "same lines",
-  SECURITY 3.4 rule 5). An undo that is refused, has no inverse, has no prior, or needs a transfer
-  becomes a "not possible from a computer" entry with the reason.
-- D-W6-2 Left out of the laptop files: reads, settles, the HOME watchdog and its confirm, restarts,
-  `debug_off`, reboot, `mkdir`, and our own files under `/sdcard/cleanyourtv` (rewritten by every
-  plan). Changes are undone newest first (stable sort by `atMs`, reversed).
+  SECURITY 3.4 rule 5). An undo that is refused, has no prior, needs a transfer, or has no inverse
+  because something cannot be rebuilt (an app that was on the TV before us and is gone, a file
+  that existed before) becomes a "not possible from a computer" entry with the reason.
+- D-W6-2 (rewritten in T5 after R5-W6 M1 and M2) The laptop files undo in the planner's order.
+  `RestoreCommands` takes `UndoOrder.undoOrder(changes)` from `:core:ops`, the helper W3's
+  `DefaultPlanner.undoEverything` uses: one record per item (a package's state, a setting, the
+  home screen, an app we installed, a file we wrote), the EARLIEST, so each item goes back to its
+  state before this app first touched it; items in phases: package states, settings, the home
+  screen, our apps, our files (so the stock launcher is switched on before HOME moves, and our
+  launcher is removed only after HOME is back); inside a phase the item first touched most
+  recently goes first. Each record goes through `renderer.inverse`. A `null` inverse of a package
+  state or setting change is a change that left the item as it was (W3: already in that state;
+  `adb_enabled` and `adb_wifi_enabled` are never switched back on): no step. What the records
+  already took back has no step either: an app we installed and later removed again (no
+  uninstall, no "cannot be reinstalled" entry), any step aimed at a package the records leave
+  uninstalled (its state, a home screen in it, files in its folder), a file we wrote and later
+  deleted. Unlike the phone, a script cannot read the TV, so it does not skip an item the TV
+  already shows in its first state; that line repeats the state and changes nothing. On a TV that
+  still shows every change the default script runs exactly the lines of the phone's Undo
+  everything that keeps the launcher, and with `--remove-apps` those of the one that removes it
+  (less the file in the launcher's folder, which goes with the app); tests
+  `theStepsAreThePhonesUndoEverything` and `whereThePhoneSkipsAnItemAlreadyBackTheScriptRepeatsIt`
+  hold this with the real planner and `ShellRenderer`. Left out as before: reads, settles, the
+  HOME watchdog and its confirm, restarts, `debug_off`, reboot, `mkdir`, and our own files under
+  `/sdcard/cleanyourtv` (rewritten by every plan).
 - D-W6-3 TV identity in the scripts without a serial in the file: `restore.sh` and `restore.ps1`
   compute `TvId` on the laptop (first 16 hex of sha256(`ro.serialno` + `ro.product.device`), the
   D37 formula) and stop with exit 3 before any write when it differs, or when no sha256 tool exists

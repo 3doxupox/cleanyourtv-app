@@ -3,6 +3,7 @@ package tv.cleanyour.core.backup
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
+import tv.cleanyour.core.model.ChangeRecord
 import tv.cleanyour.core.model.Tv
 import tv.cleanyour.testing.fixtures.FakeClock
 import tv.cleanyour.testing.fixtures.Fixtures
@@ -35,7 +36,7 @@ class RestoreShellTest {
     private val before = TvState.of(baseline)
     private val after = before.apply(changes)
 
-    private fun bundle(tv: Tv = Scenario.tv()): ReadBundle {
+    private fun bundle(tv: Tv = Scenario.tv(), changes: List<ChangeRecord> = this.changes): ReadBundle {
         val out = ByteArrayOutputStream()
         runBlocking { ZipRestoreBundleWriter(ReferenceRenderer(), FakeClock(Samples.NOW_MS + 3_600_000), "0.1.0").write(tv, baseline, changes, null, null, out) }
         return RestoreBundleReader.read(ByteArrayInputStream(out.toByteArray()))
@@ -91,6 +92,22 @@ class RestoreShellTest {
             assertEquals(before, tv.read(), "$shell left the TV different from the baseline\n$r")
             assertIdentityCheckedFirst(tv.lines(), shell)
             assertTrue(r.out.contains("failed") && !r.out.contains("FAILED"), r.toString())
+        }
+    }
+
+    // R5-W6 M1: setup, "TV's own home screen", then "remove the new one". The script finishes with
+    // exit 0 at the baseline: no step fails on the removed launcher, and the TV has an enabled home
+    // screen at every step (the stock launcher is switched on before HOME moves).
+    @Test fun afterTheNewHomeScreenWasRemovedTheScriptStillEndsAtTheBaseline() {
+        val m1 = Scenario.m1Changes()
+        val b = bundle(changes = m1)
+        for ((i, shell) in shells().withIndex()) {
+            val tv = fakeTv("m1-$i", state = before.apply(m1))
+            val r = tv.run(shell, scriptFrom(b, tv.root), listOf("--remove-apps"))
+            assertEquals(0, r.exit, "$shell\n$r")
+            assertEquals(before, tv.read(), "$shell left the TV different from the baseline\n$r")
+            assertTrue(r.out.contains(", 0 failed, 0 kept, 0 not possible from here."), r.out)
+            assertTrue(tv.lines().none { Scenario.launcher.pkg.value in it }, tv.lines().joinToString("\n"))
         }
     }
 

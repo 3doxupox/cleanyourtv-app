@@ -7,6 +7,7 @@ import tv.cleanyour.core.model.Op
 import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.model.RemoteDir
 import tv.cleanyour.core.model.SettingKey
+import tv.cleanyour.core.ops.UndoOrder
 
 // What the change records add up to now, replayed oldest first: the packages that are off because
 // of us, HOME before and now, the settings we changed, the apps we installed and the files we
@@ -35,7 +36,7 @@ data class ChangeSummary(
 
             fun touch(pkg: PackageName, c: ChangeRecord) { if (pkg !in firstPrior) firstPrior[pkg] = c.prior?.packageState }
 
-            for (c in changes.sortedWith(RestoreCommands.CHRONOLOGICAL)) {
+            for (c in changes.sortedWith(UndoOrder.CHRONOLOGICAL)) {
                 when (val op = c.op) {
                     is Op.Disable -> { touch(op.pkg, c); off.remove(op.pkg); off[op.pkg] = true }
                     is Op.Enable -> { touch(op.pkg, c); off[op.pkg] = false }
