@@ -1,5 +1,3 @@
-import java.time.Duration
-
 plugins {
     id("cleanyourtv.android.app")
     id("cleanyourtv.serialization")
@@ -44,7 +42,6 @@ dependencies {
 }
 
 tasks.withType<Test>().configureEach {
-    timeout.set(Duration.ofMinutes(5))
     maxParallelForks = 1
     maxHeapSize = "1280m"
     testLogging {

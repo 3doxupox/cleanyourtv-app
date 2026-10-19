@@ -11,15 +11,17 @@ data class LauncherConfigDoc(val dockApps: List<PackageName>? = null, val hidden
     val liveTvPackage: String? = null, val liveTvAction: String? = null, val sourcePanelService: String? = null,
     val sourcePanelAction: String? = null, val columns: Int? = null, val rowsBelowDock: Int? = null, val shamsiDate: Boolean? = null,
     val vpnApp: String? = null, val showHomeSettingsShortcut: Boolean? = null, val backgroundColor: String? = null,
-    val wallpaper: Boolean? = null, val unknown: Map<String, JsonElement> = emptyMap())
+    val wallpaper: Boolean? = null, val unknown: Map<String, JsonElement> = emptyMap(),
+    val inputAction: String? = null, val moduleCards: Boolean? = null)                                 // RFC-W4-1
 data class EffectiveConfig(val dockApps: List<String>, val hiddenApps: List<String>, val liveTvPackage: String, val liveTvAction: String,
     val sourcePanelService: String, val sourcePanelAction: String, val columns: Int, val rowsBelowDock: Int, val shamsiDate: Boolean,
-    val vpnApp: String, val showHomeSettingsShortcut: Boolean, val backgroundColorArgb: Int, val wallpaper: Boolean)
+    val vpnApp: String, val showHomeSettingsShortcut: Boolean, val backgroundColorArgb: Int, val wallpaper: Boolean,
+    val inputAction: String, val moduleCards: Boolean)                                                  // RFC-W4-1
 sealed interface DecodeResult { data class Ok(val doc: LauncherConfigDoc, val warnings: List<String>) : DecodeResult; data class Rejected(val reason: String) : DecodeResult }
 object LauncherConfigCodec {
-    fun decode(bytes: ByteArray): DecodeResult = TODO("W4")                       // Config.java semantics: 64 KB cap, BOM, per-key type and range
-    fun encode(doc: LauncherConfigDoc): ByteArray = TODO("W4")                     // canonical key order, UTF-8, no BOM, no unknown keys unless carried
-    fun effective(doc: LauncherConfigDoc?, defaults: EffectiveConfig): EffectiveConfig = TODO("W4")
-    val builtInDefaults: EffectiveConfig get() = TODO("W4") }
+    fun decode(bytes: ByteArray): DecodeResult = ConfigCodecImpl.decode(bytes)                       // Config.java semantics: 64 KB cap, BOM, per-key type and range
+    fun encode(doc: LauncherConfigDoc): ByteArray = ConfigCodecImpl.encode(doc)                     // canonical key order, UTF-8, no BOM, no unknown keys unless carried
+    fun effective(doc: LauncherConfigDoc?, defaults: EffectiveConfig): EffectiveConfig = ConfigCodecImpl.effective(doc, defaults)
+    val builtInDefaults: EffectiveConfig get() = ConfigCodecImpl.BUILT_IN }
 data class Theme(val id: String, val name: String, val description: String, val doc: LauncherConfigDoc, val wallpaper: BlobRef?)
 interface ThemeSource { fun bundled(): List<Theme> }

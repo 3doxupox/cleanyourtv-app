@@ -162,6 +162,7 @@ class Harness(val clock: FakeClock = FakeClock(Samples.NOW_MS)) {
         tv.cleanyour.core.planner.PlanRequest.BeforeFactoryReset -> PlanKind.BEFORE_FACTORY_RESET
         tv.cleanyour.core.planner.PlanRequest.DebugOff -> PlanKind.DEBUG_OFF
         is tv.cleanyour.core.planner.PlanRequest.WriteRestorePoint -> PlanKind.WRITE_RESTORE_POINT
+        tv.cleanyour.core.planner.PlanRequest.Reboot -> PlanKind.REBOOT
     }
 }
 

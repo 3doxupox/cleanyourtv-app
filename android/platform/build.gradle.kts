@@ -7,7 +7,11 @@ dependencies {
     implementation(project(":adb:pairing"))
     implementation(project(":core:trust"))
     implementation(project(":core:registry"))
+    implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
-
+    testImplementation(project(":testing:fake-adbd"))
     testImplementation(libs.kotlinx.coroutines.test)
 }
+
+// W5: the bundled launcher APK (assets/bundled) must match its pin before anything is packaged.
+tasks.matching { it.name == "preBuild" }.configureEach { dependsOn(":core:trust:verifyLauncherPin") }

@@ -33,13 +33,13 @@ class FixturesLoadTest {
 
     @Test fun miTvSnapshotRoundTripsThroughTheCodec() {
         val s = Samples.miTvSnapshot()
-        assertEquals(106, s.packages.size, "107 captured minus the dotless framework package (RFC-W1-2)")
+        assertEquals(107, s.packages.size, "every captured package, the framework's \"android\" included (RFC-W1-2)")
         assertEquals(s, SnapshotCodec.decode(SnapshotCodec.canonical(s)))
     }
 
     @Test fun upstreamSubmoduleFixturesLoad() {
         val examples = Fixtures.upstreamExamples()
-        assertEquals(26, examples.size, "every upstream examples/*/debloat.txt at the pinned commit")
+        assertEquals(30, examples.size, "every upstream examples/*/debloat.txt at the pinned commit (1bbf0c9)")
         assertTrue(examples.all { it.debloatTxt.isNotBlank() })
         assertTrue(examples.any { it.folder == "xiaomi-mitv-axso0" })
         val themes = Fixtures.upstreamThemes().associateBy { it.name }

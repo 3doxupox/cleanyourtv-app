@@ -11,7 +11,6 @@ import tv.cleanyour.core.model.HomeResolution
 import tv.cleanyour.core.model.LauncherArtifact
 import tv.cleanyour.core.model.Level
 import tv.cleanyour.core.model.Op
-import tv.cleanyour.core.model.PACKAGE_RE
 import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.model.PackageState
 import tv.cleanyour.core.model.PlanId
@@ -42,10 +41,10 @@ object Samples {
     fun miTvId(): TvId = Fixtures.miTv().tvId()
 
     // The capture's packages: system when installed under /system or /product, disabled when the
-    // after-debloat list says so (pass disabled = emptySet() for the pre-debloat TV). The framework
-    // package "android" has no dot, so PACKAGE_RE cannot represent it and it is left out (RFC-W1-2).
+    // after-debloat list says so (pass disabled = emptySet() for the pre-debloat TV). All 107,
+    // including the framework package "android", which PackageName admits by name (RFC-W1-2).
     fun miTvPackages(disabled: Set<String> = Fixtures.miTv().disabledAfter.toSet()): Map<PackageName, PackageState> =
-        Fixtures.miTv().packagesAllText.lines().filter { it.startsWith("package:") && PACKAGE_RE.matches(it.substringAfterLast('=')) }.associate { line ->
+        Fixtures.miTv().packagesAllText.lines().filter { it.startsWith("package:") }.associate { line ->
             val path = line.removePrefix("package:").substringBeforeLast('=')
             val pkg = line.substringAfterLast('=')
             PackageName(pkg) to PackageState(

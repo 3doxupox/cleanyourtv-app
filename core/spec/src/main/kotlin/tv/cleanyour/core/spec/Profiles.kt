@@ -12,5 +12,5 @@ sealed interface ProfileResolution { data class Exact(val profile: Profile) : Pr
 interface ProfileSource { suspend fun all(): List<Profile>; suspend fun resolve(facts: DeviceFacts): ProfileResolution }
 data class PackageFacts(val friendlyName: String, val description: String, val category: String)
 interface FactsTable { fun lookup(pkg: PackageName): PackageFacts? }
-object DebloatTxtParser { fun parse(text: String, folder: String): Profile = TODO("W4") }      // upstream examples format
-object DockRanking { fun pick(profile: Profile?, installed: Set<PackageName>, hasInputs: Boolean, liveTv: PackageName?, locale: String): List<PackageName> = TODO("W4") }
+object DebloatTxtParser { fun parse(text: String, folder: String): Profile = DebloatTxt.parse(text, folder, ProfileMeta.bundled.profiles[folder]) }      // upstream examples format
+object DockRanking { fun pick(profile: Profile?, installed: Set<PackageName>, hasInputs: Boolean, liveTv: PackageName?, locale: String): List<PackageName> = DockRankingImpl.pick(profile, installed, hasInputs, liveTv, locale) }

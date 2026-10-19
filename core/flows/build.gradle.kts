@@ -1,5 +1,3 @@
-import java.time.Duration
-
 plugins { id("cleanyourtv.jvm") }
 
 dependencies {
@@ -10,10 +8,4 @@ dependencies {
     testImplementation(project(":testing:fixtures"))
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
-}
-
-// A hung coroutine test must fail fast instead of holding forge's shared build lock.
-tasks.withType<Test>().configureEach {
-    timeout.set(Duration.ofMinutes(3))
-    testLogging { events("started", "passed", "failed", "skipped") }
 }

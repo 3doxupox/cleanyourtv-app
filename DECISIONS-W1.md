@@ -91,6 +91,10 @@ owning stream supplies bodies):
   `LauncherConfigCodec.decode`, `encode`, `effective`, `builtInDefaults`: `TODO` bodies naming the
   owner (W3, W4).
 - `core.store.SnapshotCodec`: bodies delegating to the internal `SnapshotJson` (D-W1-5).
+- `core.model.PackageName`: `init` also admits the literal `android` (RFC-W1-2, ruled 2026-10-19).
+- `core.spec.LauncherConfigDoc` gains `inputAction: String? = null, moduleCards: Boolean? = null`
+  and `EffectiveConfig` gains `inputAction: String, moduleCards: Boolean`, both after the existing
+  parameters and marked `// RFC-W4-1` (accepted 2026-10-19; PRODUCT-SPEC 5.7 carries the RFC).
 
 Added because the section 5 prose names it: `core.probe.ProbeException(stage, detail)` (R0: 7).
 
@@ -140,9 +144,54 @@ Added because the section 5 prose names it: `core.probe.ProbeException(stage, de
 - RFC-W1-2: allow the single literal `android` in `PackageName` in addition to `PACKAGE_RE`, so the
   probe reports the framework package faithfully. It is on the hard-coded protected list, so no
   op can ever target it; W3 adds a test that proves the planner and the renderer refuse it.
+  Applied on main (x0, T2): `PackageName.init` admits `android` by name, `Samples.miTvPackages()`
+  keeps all 107 packages. Follow-ups: W4 (M1 step 4, done in the same change since W4 is on main)
+  the probe no longer skips `android` (D-W4-22) and `AdbProberTest` expects 107 packages; W3 (M4
+  step 2) unboxes the literal in `PlannerTest.kt:327`, `FrameworkPackageTest` and
+  `WatchdogAndProtectedTest.kt:124`, keeps the test that the planner and the renderer refuse it,
+  and rebases onto the fixtures change (107 packages, `android` among them).
 - RFC-W1-3 accepted: compileSdk 37, targetSdk 36, minSdk 28. D10 reads "target 36, compile 37".
 - RFC-W1-4 accepted: ARCHITECTURE 1.2 gains `:adb:wire -> :core:model` and serialization-json in
   `:core:model`.
 - Forge has about 7 GB free beside its model server, so `build-on-forge.sh` takes a host-wide
   `flock` and builds run one at a time. Streams should batch their checks rather than build
   after every small edit.
+
+## Integration follow-ups (main loop)
+
+- I2 blocker from R5 of W6 (M1): the laptop restore scripts must undo to the earliest recorded
+  state of each item, the same way `DefaultPlanner.undoEverything` does, from one shared helper,
+  so no ordering can leave a TV without a home screen. Do this once W3 merges. Also rerun
+  `RestoreShellTest` with W3's real renderer (M2).
+- RFC-W4-1 accepted: `LauncherConfigDoc` and `EffectiveConfig` gain `inputAction` and
+  `moduleCards` (upstream main 1bbf0c9 keys). Applied on main (x0, T3): `LauncherConfigExtras`
+  is deleted.
+- From R5 of W5, open Lows to close before I4: F5 (index high-water marks lost with the cache),
+  F6 (revocation in a fetched keys file not learned when the fetched index fails), F7 (Android 9
+  signer fallback on rotated module keys, verify on the emulator matrix).
+- Per-branch R5 reviews live in `reviews/R5-<stream>.md` after merge.
+- From R5 of W4 (merged after fixes): O1 probe SCREENSHOT batches mkdir and screencap, and
+  `installedSha256` uses a pipeline; decide at R1 to split or record an exception to D40. O2
+  classify install refusal codes at I1 from real captures. O3 setupwraith overrides curated
+  takeover quirks (rca-ai-pont, tcl-65c725), O4 sony BRAVIA_ATV2 model vs device (product call),
+  O5 the Xiaomi sure set disables PatchWall: R3 must verify `Protected` covers the current HOME.
+- RFCs from streams live in `docs/rfcs/<stream>.md` after merge.
+- From R5 of W8 (merge after fixes, fixed on w8). RFC rulings: RFC-W8-1 change (add
+  `SetupIntent.StopAction(action)` and `SetupIntent.RejectIdentity`, keep `back(): Boolean`),
+  RFC-W8-2 accept with the rule that nothing gating a write lives only in `SetupExtras`, RFC-W8-3
+  accept, RFC-W8-4 accept for 0.1 but never cache the app-level pass, RFC-W8-5 accept (W3 adds
+  `PlanRequest.Reboot` / `PlanKind.REBOOT`, journaled, not gated), RFC-W8-6 accept (manual card
+  answer buttons; `Prober.cardAnswer` in 0.2), RFC-W8-7 accept (D16 gains USE_BIOMETRIC; W9's
+  aapt2 check lists it). Open, to fix at the W7 swap (T8): O1 obscured-touch filtering only on
+  confirming buttons, with a hint when a touch is dropped. Open, at the W3 merge: O2 a Manage
+  write paused by a lost connection leaves its run open. Lows O3 to O13 are in reviews/R5-W8.md
+  after merge; O11 adds the GitHub Pages host to the network security config before I4.
+- From the W2 report: RFC-W2-1 (`:adb:session` opts in to `@RawShell` once for five constant lines)
+  must be on W3's single-call-site lint allowlist at the W3 merge; RFC-W2-2 and RFC-W2-3 go to the
+  Fable R2 gate.
+- Fable R2 of W2: PASS WITH FIXES (merged). RFC-W2-1, RFC-W2-2 and RFC-W2-3 approved. Owner lows:
+  a pump idle-read timeout or SO_TIMEOUT for a header-then-stall peer, `SecretBox.open` length
+  bound `>=`, keep the CI 10-minute fuzz with the seed printed. I1 device checks: reviews/R2-W2.md.
+- Fable R1 of W3: PASS WITH FIXES. Required before I3: R-1 (watchdog vs the 120 s window) and R-2
+  (step R from the journal); R-3 and lows in progress on w3. Rulings: probe SCREENSHOT batching and
+  `installedSha256` accepted as recorded exceptions to D40.

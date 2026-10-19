@@ -4,6 +4,7 @@
 
 package tv.cleanyour.adb.wire
 
+import tv.cleanyour.core.model.AdbError
 import tv.cleanyour.core.model.Endpoint
 import tv.cleanyour.core.model.Sha256
 import tv.cleanyour.core.model.ShellLine
@@ -26,8 +27,13 @@ sealed interface AdbService {
     data class ExecInstall(val size: Long) : AdbService        // "exec:cmd package install -S <size>"
     data object Ping : AdbService }                            // "exec:echo", the keepalive
 
-class AdbConnection private constructor(val features: Set<String>, val maxPayload: Int) {   // sketch; W2 owns the shape inside :adb:wire
-    companion object { suspend fun open(socket: AdbSocket, signer: AdbSigner, tls: TlsUpgrader?, onAwaitingAllow: suspend (String) -> Unit, firstAuthTimeoutMs: Long = 120_000): AdbConnection = TODO("W2") }
-    suspend fun openStream(service: AdbService): AdbStream = TODO("W2")     // R0: 3
-    suspend fun close(): Unit = TODO("W2") }
+class AdbConnection private constructor(private val core: ConnectionCore) {   // sketch; W2 owns the shape inside :adb:wire
+    companion object { suspend fun open(socket: AdbSocket, signer: AdbSigner, tls: TlsUpgrader?, onAwaitingAllow: suspend (String) -> Unit, firstAuthTimeoutMs: Long = 120_000): AdbConnection = AdbConnection(ConnectionCore.open(socket, signer, tls, onAwaitingAllow, firstAuthTimeoutMs)) }
+    val features: Set<String> get() = core.features
+    val maxPayload: Int get() = core.maxPayload
+    suspend fun openStream(service: AdbService): AdbStream = core.openStream(service)     // R0: 3
+    suspend fun close(): Unit = core.close()
+    // W2, additive (DECISIONS-W2.md): lets the session see the pump die without polling.
+    val isClosed: Boolean get() = core.isClosed
+    fun invokeOnClose(handler: (AdbError) -> Unit): Unit = core.invokeOnClose(handler) }
 interface AdbStream : AutoCloseable { suspend fun read(): ByteArray?; suspend fun write(bytes: ByteArray) }

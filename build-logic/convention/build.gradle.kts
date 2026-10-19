@@ -9,6 +9,7 @@ dependencies {
     implementation(libs.kotlin.gradlePlugin)
     implementation(libs.compose.gradlePlugin)
     implementation(libs.serialization.gradlePlugin)
+    implementation(libs.roborazzi.gradlePlugin)
     testImplementation(libs.junit4)
 }
 
@@ -37,6 +38,10 @@ gradlePlugin {
         register("androidCompose") {
             id = "cleanyourtv.android.compose"
             implementationClass = "AndroidComposeConventionPlugin"
+        }
+        register("androidRoborazzi") {
+            id = "cleanyourtv.android.roborazzi"
+            implementationClass = "AndroidRoborazziConventionPlugin"
         }
         register("androidFeature") {
             id = "cleanyourtv.android.feature"
