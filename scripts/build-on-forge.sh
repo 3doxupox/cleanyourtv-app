@@ -46,7 +46,7 @@ rsync -az --delete -e "ssh -i $SSH_KEY -o BatchMode=yes" \
 
 echo "==> ./gradlew $TASKS in $IMAGE"
 set +e
-"${SSH[@]}" "docker run --rm --name '$CONTAINER' --memory 3g --cpus 4 \
+"${SSH[@]}" "mkdir -p /home/builder/build && flock -w 3600 /home/builder/build/.cyt-forge.lock docker run --rm --name '$CONTAINER' --memory 3g --cpus 4 \
   -e HOME=/cache/home -e OWNER=\$(id -u):\$(id -g) \
   -v $VOLUME:/cache -v '$REMOTE_DIR':/src -w /src $IMAGE bash -euc '
     export ANDROID_HOME=/cache/sdk GRADLE_USER_HOME=/cache/gradle

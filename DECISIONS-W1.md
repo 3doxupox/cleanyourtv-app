@@ -132,3 +132,17 @@ Added because the section 5 prose names it: `core.probe.ProbeException(stage, de
   lists it as a later job (W9). Generating it now would freeze the dependency set on day 1.
 - The `Plan` JSON codec (R0 "deliberately left open") will be the third `@RawShell` opt-in; W3's
   single-call-site lint must allow it.
+
+## Rulings (main loop, 2026-10-19)
+
+- RFC-W1-1 accepted: `:core:engine` sits one layer above `:core:planner`; the engine executes plans,
+  so the edge is natural. Plan types stay in `:core:planner`.
+- RFC-W1-2: allow the single literal `android` in `PackageName` in addition to `PACKAGE_RE`, so the
+  probe reports the framework package faithfully. It is on the hard-coded protected list, so no
+  op can ever target it; W3 adds a test that proves the planner and the renderer refuse it.
+- RFC-W1-3 accepted: compileSdk 37, targetSdk 36, minSdk 28. D10 reads "target 36, compile 37".
+- RFC-W1-4 accepted: ARCHITECTURE 1.2 gains `:adb:wire -> :core:model` and serialization-json in
+  `:core:model`.
+- Forge has about 7 GB free beside its model server, so `build-on-forge.sh` takes a host-wide
+  `flock` and builds run one at a time. Streams should batch their checks rather than build
+  after every small edit.
