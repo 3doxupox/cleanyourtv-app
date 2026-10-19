@@ -4,32 +4,19 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onRoot
-import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.LayoutDirection
-import com.github.takahirom.roborazzi.captureRoboImage
+import androidx.compose.ui.unit.dp
 import java.io.ByteArrayOutputStream
 import java.util.TimeZone
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
+import org.robolectric.ParameterizedRobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import tv.cleanyour.core.engine.PauseReason
+import tv.cleanyour.core.flows.AppConfirm
 import tv.cleanyour.core.flows.AppPrefsValue
 import tv.cleanyour.core.flows.AppSettingsState
 import tv.cleanyour.core.flows.ChipState
@@ -37,6 +24,7 @@ import tv.cleanyour.core.flows.LeftoversState
 import tv.cleanyour.core.flows.ManageState
 import tv.cleanyour.core.flows.OffGroup
 import tv.cleanyour.core.flows.OffRow
+import tv.cleanyour.core.flows.OpenWrite
 import tv.cleanyour.core.flows.SwitchedOffState
 import tv.cleanyour.core.flows.TvCard
 import tv.cleanyour.core.flows.TvSettingsState
@@ -44,41 +32,13 @@ import tv.cleanyour.core.flows.UpdateCheck
 import tv.cleanyour.core.model.DebugState
 import tv.cleanyour.core.model.Level
 import tv.cleanyour.core.model.PackageName
+import tv.cleanyour.core.model.PlanId
+import tv.cleanyour.core.model.TvId
+import tv.cleanyour.core.planner.PlanKind
 import tv.cleanyour.testing.fixtures.Samples
 
-// Roborazzi screenshots of every screen state of :feature:manage (PRODUCT-SPEC 4: M1, M4, M5, M7,
-// M8). Record with recordRoborazziDebug, compare with verifyRoborazziDebug. Images land in
-// src/test/screenshots. Sheets (M1a DebugStepSheet, the level explanation, "Forget this TV"
-// confirmation, Licences, Privacy, diagnostics preview, Reset my key and Delete everything
-// confirmations) are ModalBottomSheet windows that Robolectric does not capture, so they have no
-// screenshot here.
-
-@Composable
-private fun ShotTheme(content: @Composable () -> Unit) {
-    MaterialTheme(
-        colorScheme = darkColorScheme(
-            background = Color(0xFF000000), onBackground = Color(0xFFF5F5F7),
-            surface = Color(0xFF1C1C1E), onSurface = Color(0xFFF5F5F7),
-            surfaceVariant = Color(0xFF2A2A2E), onSurfaceVariant = Color(0xFFA1A1A6),
-            primary = Color(0xFFF5F5F7), onPrimary = Color(0xFF000000),
-            tertiary = Color(0xFF8C9BFF), outline = Color(0x33FFFFFF),
-        ),
-    ) {
-        Box(Modifier.fillMaxSize().background(Color(0xFF000000))) { content() }
-    }
-}
-
-private fun ComposeContentTestRule.shot(name: String, fontScale: Float? = null, rtl: Boolean = false, content: @Composable () -> Unit) {
-    setContent {
-        val density = LocalDensity.current
-        CompositionLocalProvider(
-            LocalDensity provides if (fontScale != null) Density(density.density, fontScale) else density,
-            LocalLayoutDirection provides if (rtl) LayoutDirection.Rtl else LocalLayoutDirection.current,
-        ) { ShotTheme(content) }
-    }
-    waitForIdle()
-    onRoot().captureRoboImage("src/test/screenshots/$name.png")
-}
+// Every section 4 state of :feature:manage (PRODUCT-SPEC 4: M1, M1a, the open-run card, M4, M5,
+// M7, M8 and their sheets), each in dark, light, 200% font and right to left, with ATF on.
 
 private fun fakeShot(): ByteArray {
     val bmp = Bitmap.createBitmap(640, 360, Bitmap.Config.ARGB_8888)
@@ -94,11 +54,12 @@ private fun fakeShot(): ByteArray {
 private const val NOW = Samples.NOW_MS
 private val tvId = Samples.miTvId()
 private val dockNames = listOf("Netflix", "YouTube", "Prime Video", "Live TV")
+private val shotPng by lazy { fakeShot() }
 
 private fun card(
-    clean: Boolean = true, level: Level = Level.SIMPLE, chip: ChipState = ChipState.CONNECTED, thumbnail: ByteArray? = fakeShot(),
+    clean: Boolean = true, level: Level = Level.SIMPLE, chip: ChipState = ChipState.CONNECTED, thumbnail: Boolean = true,
     switchedOff: Int = 23, room: String? = "Living room", restorePointAtMs: Long? = NOW, debugging: DebugState = DebugState.ON,
-) = TvCard(tvId, "Mi TV 4A", room, clean, NOW, level, chip, thumbnail, switchedOff, dockNames, restorePointAtMs, debugging)
+) = TvCard(tvId, "Mi TV 4A", room, clean, NOW, level, chip, if (thumbnail) shotPng else null, switchedOff, dockNames, restorePointAtMs, debugging)
 
 private fun manage(card: TvCard = card(), offline: Boolean = false, reconnecting: Boolean = false, others: List<TvCard> = emptyList()) =
     ManageState(cards = listOf(card) + others, selected = tvId, offline = offline, reconnecting = reconnecting, loading = false)
@@ -122,10 +83,13 @@ private val askGroups = listOf(
         off("com.google.android.katniss", "Google Assistant", "Voice search and commands", off = false),
     )),
     OffGroup("updates", "Software updates", listOf(
-        off("com.mitv.ota", "System updater", "Kept on so the TV keeps getting security fixes. Switching off stops update nags too.", off = false),
+        off("com.mitv.ota", "System updater", "Kept on so the TV keeps getting security fixes.", off = false),
         off("com.mitv.otaextra", "Update helper", "Checks for new TV software", off = true),
     )),
 )
+
+private fun switchedOff(level: Level = Level.SIMPLE, groups: List<OffGroup> = offGroups, ask: List<OffGroup> = emptyList(), busy: String? = null, count: Int = 6) =
+    SwitchedOffState("Mi TV 4A", level, groups, ask, busy?.let { PackageName(it) }, loading = false, count = count)
 
 private fun appSettings(update: UpdateCheck = UpdateCheck.Idle, backing: String = "STRONGBOX") = AppSettingsState(
     version = "0.1.0", prefs = AppPrefsValue(haptics = true, largeTextFollowsSystem = true),
@@ -133,103 +97,98 @@ private fun appSettings(update: UpdateCheck = UpdateCheck.Idle, backing: String 
     keyBacking = backing, keyFingerprint = "AB:CD:EF:01:23:45:67:89:AB:CD:EF:01:23:45:7F:2A", update = update,
 )
 
-@RunWith(RobolectricTestRunner::class)
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [35], qualifiers = "w411dp-h891dp-xxhdpi")
-class ManageScreenshotTest {
-    @get:Rule val compose = createComposeRule()
+private fun tvSettings(level: Level = Level.SIMPLE, room: String? = "Living room") = TvSettingsState("Mi TV 4A", room, level, "192.168.1.50", NOW)
 
-    @Before fun fixedTimeZone() { TimeZone.setDefault(TimeZone.getTimeZone("UTC")) }
+private fun openWrite(kind: PlanKind = PlanKind.SWITCH_OFF, reason: PauseReason = PauseReason.CONNECTION_LOST, busy: Boolean = false, notTaken: Boolean = false) =
+    OpenWrite(tvId, "Mi TV 4A", PlanId("01JAZ0000000000000000000"), kind, reason, busy, notTaken)
 
-    // M1 Manage
-    @Test fun manage_clean() = compose.shot("manage_clean") { ManageScreen(manage(), {}) }
-    @Test fun manage_custom_level() = compose.shot("manage_custom_level") { ManageScreen(manage(card(level = Level.CUSTOM)), {}) }
-    @Test fun manage_offline_banner() = compose.shot("manage_offline_banner") {
-        ManageScreen(manage(card(chip = ChipState.OFFLINE), offline = true), {})
-    }
-    @Test fun manage_offline_reconnecting() = compose.shot("manage_offline_reconnecting") {
-        ManageScreen(manage(card(chip = ChipState.OFFLINE), offline = true, reconnecting = true), {})
-    }
-    @Test fun manage_original() = compose.shot("manage_original") {
-        ManageScreen(manage(card(clean = false, switchedOff = 0)), {})
-    }
-    @Test fun manage_debugging_off() = compose.shot("manage_debugging_off") {
-        ManageScreen(manage(card(chip = ChipState.DEBUGGING_OFF, debugging = DebugState.OFF)), {})
-    }
-    @Test fun manage_no_thumbnail() = compose.shot("manage_no_thumbnail") { ManageScreen(manage(card(thumbnail = null)), {}) }
-    @Test fun manage_two_tvs() = compose.shot("manage_two_tvs") {
-        val other = card().copy(id = tv.cleanyour.core.model.TvId("1111222233334444"), name = "Bedroom Chromecast", room = null)
-        ManageScreen(manage(others = listOf(other)), {})
-    }
+private val diagnostics = """
+    clean-your-tv 0.1.0 diagnostics
+    tv: Mi TV 4A (model MiTV-AXSO0, Android TV 9)
+    address: [removed]  serial: [removed]
+    run 01JAZ0: SWITCH_OFF 6 steps, paused CONNECTION_LOST at step 4
+    step 1 pm disable-user com.mitv.patchwall: ok
+""".trimIndent()
 
-    // M4 Switched off
-    @Test fun switchedoff_groups() = compose.shot("switchedoff_groups") {
-        SwitchedOffScreen(SwitchedOffState("Mi TV 4A", Level.SIMPLE, offGroups, loading = false, count = 6), {}, {})
-    }
-    @Test fun switchedoff_busy() = compose.shot("switchedoff_busy") {
-        SwitchedOffScreen(SwitchedOffState("Mi TV 4A", Level.SIMPLE, offGroups, busy = PackageName("com.glance.tv"), loading = false, count = 6), {}, {})
-    }
-    @Test fun switchedoff_custom_ask_groups() = compose.shot("switchedoff_custom_ask_groups") {
-        SwitchedOffScreen(SwitchedOffState("Mi TV 4A", Level.CUSTOM, offGroups, askGroups, loading = false, count = 6), {}, {})
-    }
-    @Test fun switchedoff_empty() = compose.shot("switchedoff_empty") {
-        SwitchedOffScreen(SwitchedOffState("Mi TV 4A", Level.SIMPLE, emptyList(), loading = false, count = 0), {}, {})
-    }
-    @Test fun switchedoff_loading() = compose.shot("switchedoff_loading") {
-        SwitchedOffScreen(SwitchedOffState(), {}, {})
-    }
+private val tall = 1100.dp
 
-    // M5 Check for leftovers
-    @Test fun leftovers_checking() = compose.shot("leftovers_checking") { LeftoversScreen(LeftoversState.Checking, {}, {}) }
-    @Test fun leftovers_found() = compose.shot("leftovers_found") {
-        LeftoversScreen(LeftoversState.Found(listOf("PatchWall", "Glance", "Xiaomi Analytics"), Samples.plan(emptyList())), {}, {})
-    }
-    @Test fun leftovers_found_one() = compose.shot("leftovers_found_one") {
-        LeftoversScreen(LeftoversState.Found(listOf("PatchWall"), Samples.plan(emptyList())), {}, {})
-    }
-    @Test fun leftovers_nothing() = compose.shot("leftovers_nothing") { LeftoversScreen(LeftoversState.Nothing, {}, {}) }
-    @Test fun leftovers_working() = compose.shot("leftovers_working") { LeftoversScreen(LeftoversState.Working(40), {}, {}) }
-    @Test fun leftovers_done() = compose.shot("leftovers_done") { LeftoversScreen(LeftoversState.Done(3), {}, {}) }
-    @Test fun leftovers_failed() = compose.shot("leftovers_failed") { LeftoversScreen(LeftoversState.Failed, {}, {}) }
+object ManageShots {
+    val all: List<Shot> = listOf(
+        // M1 Manage
+        Shot("manage_clean") { ManageScreen(manage(), {}) },
+        Shot("manage_custom_level") { ManageScreen(manage(card(level = Level.CUSTOM)), {}) },
+        Shot("manage_original") { ManageScreen(manage(card(clean = false, switchedOff = 0)), {}) },
+        Shot("manage_offline") { ManageScreen(manage(card(chip = ChipState.OFFLINE), offline = true), {}) },
+        Shot("manage_reconnecting") { ManageScreen(manage(card(chip = ChipState.OFFLINE), offline = true, reconnecting = true), {}) },
+        Shot("manage_debugging_off") { ManageScreen(manage(card(chip = ChipState.DEBUGGING_OFF, debugging = DebugState.OFF)), {}) },
+        Shot("manage_working") { ManageScreen(manage(card(chip = ChipState.WORKING)), {}) },
+        Shot("manage_no_thumbnail") { ManageScreen(manage(card(thumbnail = false, room = null)), {}) },
+        Shot("manage_two_tvs", tall) {
+            val other = card().copy(id = TvId("1111222233334444"), name = "Bedroom Chromecast", room = "Bedroom")
+            ManageScreen(manage(others = listOf(other)), {})
+        },
 
-    // M7 TV settings
-    @Test fun tvsettings_simple() = compose.shot("tvsettings_simple") {
-        TvSettingsScreen(TvSettingsState("Mi TV 4A", "Living room", Level.SIMPLE, "192.168.1.50", NOW), {}, {})
-    }
-    @Test fun tvsettings_custom() = compose.shot("tvsettings_custom") {
-        TvSettingsScreen(TvSettingsState("Mi TV 4A", null, Level.CUSTOM, "192.168.1.50", NOW), {}, {})
-    }
+        // M1a the debugging step for a returning write
+        Shot("debugstep_waiting") { SheetOver({ ManageScreen(manage(), {}) }) { DebugStepContent("Mi TV 4A", connecting = false) {} } },
+        Shot("debugstep_connecting") { SheetOver({ ManageScreen(manage(), {}) }) { DebugStepContent("Mi TV 4A", connecting = true) {} } },
 
-    // M8 App settings
-    @Test fun appsettings_idle() = compose.shot("appsettings_idle") { AppSettingsScreen(appSettings(), {}, {}, {}) }
-    @Test fun appsettings_checking() = compose.shot("appsettings_checking") { AppSettingsScreen(appSettings(UpdateCheck.Checking), {}, {}, {}) }
-    @Test fun appsettings_update_available() = compose.shot("appsettings_update_available") { AppSettingsScreen(appSettings(UpdateCheck.Available("0.2")), {}, {}, {}) }
-    @Test fun appsettings_up_to_date() = compose.shot("appsettings_up_to_date") { AppSettingsScreen(appSettings(UpdateCheck.Latest), {}, {}, {}) }
-    @Test fun appsettings_update_failed() = compose.shot("appsettings_update_failed") { AppSettingsScreen(appSettings(UpdateCheck.Failed), {}, {}, {}) }
-    @Test fun appsettings_key_tee() = compose.shot("appsettings_key_tee") { AppSettingsScreen(appSettings(backing = "TEE"), {}, {}, {}) }
-    @Test fun appsettings_key_wrapped() = compose.shot("appsettings_key_wrapped") { AppSettingsScreen(appSettings(backing = "WRAPPED_SOFTWARE"), {}, {}, {}) }
+        // The open-run card (R5-W8 O2)
+        Shot("openwrite_connection_lost") { SheetOver({ ManageScreen(manage(), {}) }) { OpenWriteContent(openWrite(), {}, {}, {}) } },
+        Shot("openwrite_step_failed") { SheetOver({ ManageScreen(manage(), {}) }) { OpenWriteContent(openWrite(reason = PauseReason.STEP_FAILED), {}, {}, {}) } },
+        Shot("openwrite_busy") { SheetOver({ ManageScreen(manage(), {}) }) { OpenWriteContent(openWrite(busy = true), {}, {}, {}) } },
+        Shot("openwrite_not_taken") { SheetOver({ ManageScreen(manage(), {}) }) { OpenWriteContent(openWrite(notTaken = true), {}, {}, {}) } },
+        Shot("openwrite_setup") { SheetOver({ ManageScreen(manage(), {}) }) { OpenWriteContent(openWrite(kind = PlanKind.SETUP), {}, {}, {}) } },
+
+        // M4 Switched off
+        Shot("switchedoff_groups", tall) { SwitchedOffScreen(switchedOff(), {}, {}) },
+        Shot("switchedoff_busy", tall) { SwitchedOffScreen(switchedOff(busy = "com.glance.tv"), {}, {}) },
+        Shot("switchedoff_custom", tall) { SwitchedOffScreen(switchedOff(Level.CUSTOM, ask = askGroups), {}, {}) },
+        Shot("switchedoff_empty") { SwitchedOffScreen(switchedOff(groups = emptyList(), count = 0), {}, {}) },
+        Shot("switchedoff_loading") { SwitchedOffScreen(SwitchedOffState(), {}, {}) },
+
+        // M5 Check for leftovers
+        Shot("leftovers_checking") { LeftoversScreen(LeftoversState.Checking, {}, {}) },
+        Shot("leftovers_found") { LeftoversScreen(LeftoversState.Found(listOf("PatchWall", "Glance", "Xiaomi Analytics"), Samples.plan(emptyList())), {}, {}) },
+        Shot("leftovers_found_one") { LeftoversScreen(LeftoversState.Found(listOf("PatchWall"), Samples.plan(emptyList())), {}, {}) },
+        Shot("leftovers_nothing") { LeftoversScreen(LeftoversState.Nothing, {}, {}) },
+        Shot("leftovers_working") { LeftoversScreen(LeftoversState.Working(40), {}, {}) },
+        Shot("leftovers_done") { LeftoversScreen(LeftoversState.Done(3), {}, {}) },
+        Shot("leftovers_failed") { LeftoversScreen(LeftoversState.Failed, {}, {}) },
+
+        // M7 TV settings
+        Shot("tvsettings_simple", tall) { TvSettingsScreen(tvSettings(), {}, {}) },
+        Shot("tvsettings_custom", tall) { TvSettingsScreen(tvSettings(Level.CUSTOM, room = null), {}, {}) },
+        Shot("tvsettings_forget") { SheetOver({ TvSettingsScreen(tvSettings(), {}, {}) }) { ForgetContent("Mi TV 4A") {} } },
+
+        // M8 App settings
+        Shot("appsettings_idle", tall) { AppSettingsScreen(appSettings(), {}, {}, {}) },
+        Shot("appsettings_checking", tall) { AppSettingsScreen(appSettings(UpdateCheck.Checking), {}, {}, {}) },
+        Shot("appsettings_update_available", tall) { AppSettingsScreen(appSettings(UpdateCheck.Available("0.2.0")), {}, {}, {}) },
+        Shot("appsettings_up_to_date", tall) { AppSettingsScreen(appSettings(UpdateCheck.Latest), {}, {}, {}) },
+        Shot("appsettings_update_failed", tall) { AppSettingsScreen(appSettings(UpdateCheck.Failed), {}, {}, {}) },
+        Shot("appsettings_key_tee", tall) { AppSettingsScreen(appSettings(backing = "TEE"), {}, {}, {}) },
+        Shot("appsettings_key_wrapped", tall) { AppSettingsScreen(appSettings(backing = "WRAPPED_SOFTWARE"), {}, {}, {}) },
+        Shot("appsettings_licences") { SheetOver({ AppSettingsScreen(appSettings(), {}, {}, {}) }) { LicencesContent() } },
+        Shot("appsettings_privacy") { SheetOver({ AppSettingsScreen(appSettings(), {}, {}, {}) }) { PrivacyContent() } },
+        Shot("appsettings_diagnostics") { SheetOver({ AppSettingsScreen(appSettings(), {}, {}, {}) }) { DiagnosticsContent(diagnostics) {} } },
+        Shot("appsettings_reset_key") { SheetOver({ AppSettingsScreen(appSettings(), {}, {}, {}) }) { ConfirmContent(AppConfirm.RESET_KEY, working = false) {} } },
+        Shot("appsettings_delete_all") { SheetOver({ AppSettingsScreen(appSettings(), {}, {}, {}) }) { ConfirmContent(AppConfirm.DELETE_EVERYTHING, working = false) {} } },
+    )
 }
 
-// 200% font scale of the key screen of this module.
-@RunWith(RobolectricTestRunner::class)
+@RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [35], qualifiers = "w411dp-h891dp-xxhdpi")
-class ManageScreenshotFontScaleTest {
+@Config(sdk = [35], qualifiers = "w360dp-h2400dp-xhdpi")
+class ManageScreenshotTest(private val shot: Shot, private val variant: Variant) {
     @get:Rule val compose = createComposeRule()
 
     @Before fun fixedTimeZone() { TimeZone.setDefault(TimeZone.getTimeZone("UTC")) }
 
-    @Test fun manage_clean_font200() = compose.shot("manage_clean_font200", fontScale = 2f) { ManageScreen(manage(), {}) }
-}
+    @Test fun shot() = compose.shoot(shot, variant)
 
-// Right-to-left layout direction of the key screen of this module.
-@RunWith(RobolectricTestRunner::class)
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [35], qualifiers = "w411dp-h891dp-xxhdpi")
-class ManageScreenshotRtlTest {
-    @get:Rule val compose = createComposeRule()
-
-    @Before fun fixedTimeZone() { TimeZone.setDefault(TimeZone.getTimeZone("UTC")) }
-
-    @Test fun manage_clean_rtl() = compose.shot("manage_clean_rtl", rtl = true) { ManageScreen(manage(), {}) }
+    companion object {
+        @JvmStatic
+        @ParameterizedRobolectricTestRunner.Parameters(name = "{0} {1}")
+        fun params(): List<Array<Any>> = ManageShots.all.flatMap { s -> Variant.entries.map { v -> arrayOf<Any>(s, v) } }
+    }
 }
