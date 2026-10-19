@@ -90,12 +90,23 @@ class SingleCallSiteLintTest {
             "core/probe/src/main/",                                                    // W4's fixed probe scripts
             "adb/session/src/main/",                                                   // W2 implements TvSession
         )
+        // TvSession wrappers that only forward the line they were handed: one call each, and it must
+        // pass the received `line` and `spec` straight through, so they cannot originate a command.
+        val forwarders = setOf(
+            "app/src/main/kotlin/tv/cleanyour/app/LiveSessionEngine.kt",   // T7: CurrentSession follows the live session
+            "e2e/src/main/kotlin/tv/cleanyour/e2e/Harness.kt",             // W9: the e2e recording session (test harness)
+        )
         val offenders = mutableListOf<String>()
         for (f in mainSources) {
             val text = f.readText()
             val calls = Regex("\\.exec\\(").findAll(text).count()
             if (calls == 0) continue
             val path = rel(f)
+            if (path in forwarders) {
+                val passThrough = Regex("\\.exec\\(line, spec\\)").findAll(text).count()
+                if (calls != 1 || passThrough != 1) offenders += "$path ($calls, not a pure pass-through)"
+                continue
+            }
             if (allowed.none { path.startsWith(it) }) offenders += "$path ($calls)"
             if (path == allowed[0]) assertEquals(1, calls, "the engine has exactly one exec call site")
         }
