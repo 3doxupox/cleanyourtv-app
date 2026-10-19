@@ -14,13 +14,13 @@ import androidx.compose.ui.unit.sp
 import tv.cleanyour.ui.design.R
 
 // Outfit (SIL OFL 1.1), the launcher's own variable font, bundled from the upstream submodule.
-// The licence text ships as R.raw.outfit_ofl for the Licences screen (M8).
+// The licence text ships as R.raw.cyt_outfit_ofl for the Licences screen (M8).
 @OptIn(ExperimentalTextApi::class)
 val Outfit: FontFamily = FontFamily(
-    Font(R.font.outfit, FontWeight.ExtraLight, variationSettings = FontVariation.Settings(FontVariation.weight(200))),
-    Font(R.font.outfit, FontWeight.Light, variationSettings = FontVariation.Settings(FontVariation.weight(300))),
-    Font(R.font.outfit, FontWeight.Normal, variationSettings = FontVariation.Settings(FontVariation.weight(400))),
-    Font(R.font.outfit, FontWeight.Medium, variationSettings = FontVariation.Settings(FontVariation.weight(500))),
+    Font(R.font.cyt_outfit, FontWeight.ExtraLight, variationSettings = FontVariation.Settings(FontVariation.weight(200))),
+    Font(R.font.cyt_outfit, FontWeight.Light, variationSettings = FontVariation.Settings(FontVariation.weight(300))),
+    Font(R.font.cyt_outfit, FontWeight.Normal, variationSettings = FontVariation.Settings(FontVariation.weight(400))),
+    Font(R.font.cyt_outfit, FontWeight.Medium, variationSettings = FontVariation.Settings(FontVariation.weight(500))),
 )
 
 // DESIGN-SYSTEM 3. Weights 200 and 300 only at 22 sp and above. `overline` is ALL CAPS: use the
