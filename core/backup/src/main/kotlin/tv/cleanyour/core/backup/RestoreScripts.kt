@@ -286,7 +286,9 @@ function Say([string]${'$'}Text) {
 
 function Invoke-TvAdb([string[]]${'$'}AdbArgs) {
     if (${'$'}Serial) { ${'$'}AdbArgs = @('-s', ${'$'}Serial) + ${'$'}AdbArgs }
-    ${'$'}out = (& ${'$'}Adb @AdbArgs 2>&1 | Out-String)
+    # each stderr line as its plain text: Windows PowerShell 5.1 would otherwise wrap it in an
+    # error record whose text says NativeCommandError and RemoteException
+    ${'$'}out = (& ${'$'}Adb @AdbArgs 2>&1 | ForEach-Object { "${'$'}_" } | Out-String)
     return @{ Code = ${'$'}LASTEXITCODE; Out = ${'$'}out.Trim() }
 }
 
@@ -334,7 +336,7 @@ function Test-Tv {
 function Step([string]${'$'}What, [string]${'$'}Line) {
     if (${'$'}DryRun) { Write-Output ${'$'}Line; return }
     ${'$'}r = Invoke-TvAdb @('shell', ${'$'}Line)
-    if (${'$'}r.Code -eq 0 -and ${'$'}r.Out -notmatch 'Error:|Failure|Exception') {
+    if (${'$'}r.Code -eq 0 -and ${'$'}r.Out -cnotmatch 'Error:|Failure|Exception') {
         ${'$'}script:Done++
         Write-Output ('ok       ' + ${'$'}What)
     } else {

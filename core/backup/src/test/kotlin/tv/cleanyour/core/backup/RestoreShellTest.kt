@@ -58,6 +58,23 @@ class RestoreShellTest {
         File(dir, "restore-note.txt").writeText(PlainRestoreNote().text(Scenario.tv(), changes, tv.cleanyour.testing.fixtures.MapFactsTable(), "Android TV Home", "19 October 2026"))
     }
 
+    // Leaves what a PowerShell run of restore.ps1 needs under build/ps-harness: the scripts from a
+    // read-back zip (also one made for a hostile nickname and model), the stub adb, the fake TV
+    // after the plans (after/tv) and at the baseline (before/tv). No pwsh in the build container;
+    // the files are run in a separate PowerShell container (REVIEW-R5.md).
+    @Test fun writeAPowerShellHarness() {
+        val dir = File("build/ps-harness").also { it.deleteRecursively(); it.mkdirs() }
+        val b = bundle()
+        File(dir, "restore.ps1").writeBytes(b.entries.getValue(RestoreBundle.RESTORE_PS1))
+        File(dir, "restore.sh").writeBytes(b.entries.getValue(RestoreBundle.RESTORE_SH))
+        val tv0 = Scenario.tv()
+        val hostile = bundle(tv0.copy(nickname = "Den'; touch PWNED1; \"\$(touch PWNED2)\"`touch PWNED3` \$env:X #", facts = tv0.facts.copy(model = "M'\$(touch PWNED5)'')")))
+        File(dir, "restore-hostile.ps1").writeBytes(hostile.entries.getValue(RestoreBundle.RESTORE_PS1))
+        FakeTvDir(File(dir, "after"), "192.0.2.10:5555", props).write(after)
+        FakeTvDir(File(dir, "before"), "192.0.2.10:5555", props).write(before)
+        File(dir, "missing-pkg").writeText(Scenario.disabledAfter.first { it != Scenario.putBackPkg && it != Scenario.defaultStatePkg }.value)
+    }
+
     @Test fun theScenarioChangesTheTv() {
         // guards the test itself: the fake TV after the plans differs from the baseline in every way restore.sh must undo
         assertTrue(after.packages != before.packages && after.home != before.home && after.settings != before.settings && after.files.isNotEmpty())
