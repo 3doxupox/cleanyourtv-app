@@ -1,0 +1,150 @@
+import com.android.build.api.dsl.ApplicationExtension
+import com.android.build.api.dsl.LibraryExtension
+import com.android.build.api.variant.ApplicationAndroidComponentsExtension
+import com.android.build.api.artifact.SingleArtifact
+import org.gradle.api.Plugin
+import org.gradle.api.Project
+import org.gradle.api.tasks.testing.Test
+import org.gradle.kotlin.dsl.configure
+import org.gradle.kotlin.dsl.dependencies
+import org.gradle.kotlin.dsl.register
+import org.gradle.kotlin.dsl.withType
+import tv.cleanyour.buildlogic.ApkSizeCheckTask
+import tv.cleanyour.buildlogic.Toolchain
+import tv.cleanyour.buildlogic.cytNamespace
+import tv.cleanyour.buildlogic.libs
+import tv.cleanyour.buildlogic.repoRootProperty
+
+// Android library. AGP 9 built-in Kotlin: no kotlin-android plugin (ARCHITECTURE 1.1).
+class AndroidLibConventionPlugin : Plugin<Project> {
+    override fun apply(target: Project) = with(target) {
+        pluginManager.apply("com.android.library")
+        extensions.configure<LibraryExtension> {
+            namespace = cytNamespace()
+            compileSdk = Toolchain.COMPILE_SDK
+            defaultConfig {
+                minSdk = Toolchain.MIN_SDK
+            }
+            compileOptions {
+                sourceCompatibility = Toolchain.JAVA
+                targetCompatibility = Toolchain.JAVA
+            }
+            lint {
+                abortOnError = true
+                warningsAsErrors = false
+                checkReleaseBuilds = false
+            }
+        }
+        dependencies {
+            add("testImplementation", libs.findLibrary("junit4").get())
+            add("testImplementation", libs.findLibrary("kotlin-test-junit").get())
+        }
+        configureTests()
+    }
+}
+
+// Android library with Compose (used by :ui:design; features build on it).
+class AndroidComposeConventionPlugin : Plugin<Project> {
+    override fun apply(target: Project) = with(target) {
+        pluginManager.apply("cleanyourtv.android.lib")
+        pluginManager.apply("org.jetbrains.kotlin.plugin.compose")
+        extensions.configure<LibraryExtension> {
+            buildFeatures { compose = true }
+        }
+        addCompose()
+    }
+}
+
+// Feature module: Compose plus the only three things a feature may see (rule 3).
+class AndroidFeatureConventionPlugin : Plugin<Project> {
+    override fun apply(target: Project) = with(target) {
+        pluginManager.apply("cleanyourtv.android.compose")
+        dependencies {
+            add("implementation", project(":ui:design"))
+            add("implementation", project(":core:flows"))
+            add("implementation", project(":core:model"))
+        }
+    }
+}
+
+// The application, with the APK size gate (8 MB hard, PRODUCT-SPEC 7.2, ARCHITECTURE D14).
+class AndroidAppConventionPlugin : Plugin<Project> {
+    override fun apply(target: Project) = with(target) {
+        pluginManager.apply("com.android.application")
+        pluginManager.apply("org.jetbrains.kotlin.plugin.compose")
+        extensions.configure<ApplicationExtension> {
+            namespace = "tv.cleanyour.app"
+            compileSdk = Toolchain.COMPILE_SDK
+            defaultConfig {
+                applicationId = "tv.cleanyour.app"
+                minSdk = Toolchain.MIN_SDK
+                targetSdk = Toolchain.TARGET_SDK
+                versionCode = 1
+                versionName = "0.1.0"
+            }
+            buildTypes {
+                getByName("release") {
+                    isMinifyEnabled = true
+                    isShrinkResources = true
+                    proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+                }
+            }
+            compileOptions {
+                sourceCompatibility = Toolchain.JAVA
+                targetCompatibility = Toolchain.JAVA
+            }
+            buildFeatures {
+                compose = true
+                buildConfig = false
+            }
+            // Reproducibility (ARCHITECTURE 6.8): F-Droid rejects the signed dependency block.
+            dependenciesInfo {
+                includeInApk = false
+                includeInBundle = false
+            }
+            lint {
+                abortOnError = true
+                warningsAsErrors = false
+                checkReleaseBuilds = false
+            }
+        }
+        addCompose()
+        configureTests()
+
+        val limit = providers.gradleProperty("cleanyourtv.apkSizeLimitBytes").map { it.toLong() }
+            .orElse(ApkSizeCheckTask.DEFAULT_LIMIT_BYTES)
+        extensions.configure<ApplicationAndroidComponentsExtension> {
+            onVariants { variant ->
+                val name = variant.name.replaceFirstChar { it.uppercase() }
+                tasks.register<ApkSizeCheckTask>("checkApkSize$name") {
+                    group = "verification"
+                    description = "Fails when the $name APK is larger than the size gate."
+                    apkFolder.set(variant.artifacts.get(SingleArtifact.APK))
+                    builtArtifactsLoader.set(variant.artifacts.getBuiltArtifactsLoader())
+                    limitBytes.set(limit)
+                    variantName.set(variant.name)
+                }
+            }
+        }
+    }
+}
+
+private fun Project.addCompose() {
+    dependencies {
+        val bom = libs.findLibrary("androidx-compose-bom").get()
+        add("implementation", platform(bom))
+        add("implementation", libs.findLibrary("androidx-compose-runtime").get())
+        add("implementation", libs.findLibrary("androidx-compose-ui").get())
+        add("implementation", libs.findLibrary("androidx-compose-foundation").get())
+        add("implementation", libs.findLibrary("androidx-compose-material3").get())
+        add("implementation", libs.findLibrary("androidx-compose-ui-tooling-preview").get())
+        add("debugImplementation", libs.findLibrary("androidx-compose-ui-tooling").get())
+    }
+}
+
+private fun Project.configureTests() {
+    tasks.withType<Test>().configureEach {
+        useJUnit()
+        systemProperty(repoRootProperty, rootDir.absolutePath)
+    }
+}
