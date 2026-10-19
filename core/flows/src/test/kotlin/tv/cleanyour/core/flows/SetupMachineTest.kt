@@ -17,6 +17,10 @@ import tv.cleanyour.core.engine.PauseReason
 import tv.cleanyour.core.engine.RunState
 import tv.cleanyour.core.engine.RunStatus
 import tv.cleanyour.core.model.AdbError
+import tv.cleanyour.core.model.BlobRef
+import tv.cleanyour.core.model.RemoteDir
+import tv.cleanyour.core.model.RemotePath
+import tv.cleanyour.core.model.Sha256
 import tv.cleanyour.core.model.DebugState
 import tv.cleanyour.core.model.Level
 import tv.cleanyour.core.model.Op
@@ -342,6 +346,81 @@ class SetupMachineTest {
         assertEquals(Finishing.DONE, m.extras.value.finishing)
     }
 
+    // R5: a STALE pause leaves the run open; the machine ends it so the fresh plan can start.
+    @Test fun aStaleRunIsEndedSoTheFreshPlanCanStart() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+        val first = h.setupPlan
+        val second = h.plan(listOf(Op.Disable(adPkg)), id = "01FAKEPLAN0000000000000002")
+        h.engine.onStart = { p ->
+            if (p.id == first.id) { h.setupPlan = second; emit(p.tvId, RunState.Paused(p, 0, PauseReason.STALE, null)) }
+            else finish(p, RunStatus.COMPLETED)
+        }
+        val m = h.setup(backgroundScope)
+        toFound(h, m)
+        m.dispatch(SetupIntent.MakeItClean); settle()
+        assertTrue(h.engine.calls.any { it is FakeEngine.Call.Abandon }, "the stale run is ended")
+        assertEquals(second.id, assertIs<SetupState.Found>(m.state.value).plan.id)
+        assertTrue(m.extras.value.staleNotice)
+        m.dispatch(SetupIntent.MakeItClean); settle()
+        assertEquals(StartResult.Started, h.engine.calls.filterIsInstance<FakeEngine.Call.Start>().last().result)
+        assertIs<SetupState.Done>(m.state.value)
+    }
+
+    // R5: a start refused RUN_OPEN shows the open run instead of leaving the screen on Found.
+    @Test fun anOpenRunIsShownWhenTheStartIsRefused() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+        val m = h.setup(backgroundScope)
+        toFound(h, m)
+        val open = h.plan(listOf(Op.Disable(promoPkg)), id = "01FAKEPLAN0000000000000009")
+        h.engine.emit(open.tvId, RunState.Paused(open, 1, PauseReason.USER_STOP, null))
+        m.dispatch(SetupIntent.MakeItClean); settle()
+        val s = assertIs<SetupState.Stopped>(m.state.value)
+        assertEquals(StopCase.RESUME_AFTER_DEATH, s.card.case)
+        assertEquals(open.id, s.card.planId)
+        assertFalse(m.extras.value.starting)
+    }
+
+    // R5, D7: the 10 minute background rule only switches debugging off where a write ran.
+    @Test fun tenMinutesInTheBackgroundSwitchesDebuggingOffOnlyAfterAWrite() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+        val m = h.setup(backgroundScope)
+        h.sessionEnd.watch(backgroundScope)
+        toFound(h, m)
+        h.foreground.set(false); settle(10 * 60_000L + 100)
+        assertFalse(h.planner.requests.any { it == PlanRequest.DebugOff }, "a probe-only session never sends debug_off")
+        h.foreground.set(true); settle()
+        m.dispatch(SetupIntent.MakeItClean); settle()
+        assertIs<SetupState.Done>(m.state.value)
+        h.discovery.open5555[HOST] = false
+        h.foreground.set(false); settle(10 * 60_000L + 100)
+        assertEquals(1, h.planner.requests.count { it == PlanRequest.DebugOff })
+        assertNull(h.engine.calls.filterIsInstance<FakeEngine.Call.Start>().last().pass)
+        assertEquals(DebugState.OFF, h.tvs.tvs.value.single().debugging)
+    }
+
+    // R5, D7: Finish only says "done" when the probe confirmed debugging is off.
+    @Test fun finishDoesNotClaimDebuggingOffWhenThePortStaysOpen() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+        val m = h.setup(backgroundScope)
+        toFound(h, m)
+        m.dispatch(SetupIntent.MakeItClean); settle()
+        assertIs<SetupState.Done>(m.state.value)
+        val before = h.discovery.probes.size
+        m.effects.test {
+            m.dispatch(SetupIntent.Finish)
+            settle(3_100)
+            assertEquals(SetupEffect.Navigate("manage/${Samples.miTvId().value}"), drain().last())
+        }
+        assertEquals(3, h.discovery.probes.size - before, "three probes a second apart before recording on")
+        assertEquals(DebugState.ON, h.tvs.tvs.value.single().debugging)
+        assertTrue(m.extras.value.finishing != Finishing.DONE)
+        assertTrue(m.extras.value.chip != ChipState.DEBUGGING_OFF)
+    }
+
     @Test fun keepDebuggingOnSkipsDebugOffAtFinish() = runTest(timeout = 30.seconds) {
         val h = Harness()
         h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
@@ -433,6 +512,42 @@ class SetupMachineTest {
         h.engine.emit(tv.id, RunState.Paused(h.setupPlan, 1, PauseReason.IN_DOUBT, null))
         m.stopAction(StopAction.TERTIARY); settle()
         assertTrue(h.engine.calls.any { it is FakeEngine.Call.Abandon })
+    }
+
+    // R5, D7: after process death the journal shows writes ran, so the TV is ended like any other.
+    @Test fun resumeAfterProcessDeathKeepsTheDebugOffPromise() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val tv = Samples.tv()
+        h.tvs.upsert(tv)
+        h.ledger.record(h.setupPlan)
+        h.journal.append(JournalRecord.PlanStart(h.setupPlan.id, tv.id, Samples.zeroHash, 2, h.setupPlan.hash, "0.1.0", 0))
+        h.journal.append(JournalRecord.Begin(h.setupPlan.id, 0, Op.Disable(adPkg), listOf("fake"), null, 1))
+        h.journal.append(JournalRecord.Done(h.setupPlan.id, 0, 0, true, 5))
+        h.discovery.open5555[HOST] = true
+        h.setup(backgroundScope, SetupStart.Resume(tv.id, h.setupPlan.id))
+        settle()
+        h.discovery.open5555[HOST] = false
+        h.sessionEnd.endAll()
+        assertTrue(h.planner.requests.any { it == PlanRequest.DebugOff })
+    }
+
+    // R5, D15: Done remembers the digest of the config.json the run pushed, so Manage can warn on drift.
+    @Test fun doneRemembersThePushedConfigDigest() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+        h.setupPlan = h.plan(listOf(Op.Disable(adPkg)), takeover = true)
+        val digest = Sha256("ab".repeat(32))
+        val push = Op.PushAsset(BlobRef(digest, 10, "blobs/config"), RemotePath(RemoteDir.OVERLAY, listOf("config.json")), digest)
+        h.engine.onStart = { p ->
+            h.journal.append(JournalRecord.Begin(p.id, 0, push, listOf("fake"), null, 1))
+            h.journal.append(JournalRecord.Done(p.id, 0, 0, true, 5))
+            finish(p, RunStatus.COMPLETED, HomeOutcome.CONFIRMED)
+        }
+        val m = h.setup(backgroundScope)
+        toFound(h, m)
+        m.dispatch(SetupIntent.MakeItClean); settle()
+        assertIs<SetupState.Done>(m.state.value)
+        assertEquals(digest, h.tvs.tvs.value.single().launcher?.ourOverlayDigest)
     }
 
     @Test fun startDestinationFollowsTheDisk() = runTest(timeout = 30.seconds) {

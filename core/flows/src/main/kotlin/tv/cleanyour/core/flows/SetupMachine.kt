@@ -36,6 +36,7 @@ import tv.cleanyour.core.model.PlanId
 import tv.cleanyour.core.model.Platform
 import tv.cleanyour.core.model.Profile
 import tv.cleanyour.core.model.Quirk
+import tv.cleanyour.core.model.RemoteDir
 import tv.cleanyour.core.model.Snapshot
 import tv.cleanyour.core.model.SnapshotReason
 import tv.cleanyour.core.model.TrustRecord
@@ -177,6 +178,7 @@ class SetupMachine(
     private var notFoundJob: Job? = null
     private var reconnectJob: Job? = null
     private var restartJob: Job? = null
+    private var draftJob: Job? = null
 
     private sealed interface Ev {
         data class Disc(val event: DiscoveryEvent) : Ev
@@ -210,7 +212,7 @@ class SetupMachine(
         }
     }
 
-    // ---- public additions to the frozen intents (RFC-W8-1) ----
+    // public additions to the frozen intents (RFC-W8-1)
 
     // System back. Returns false when the wizard should be left (the app pops the entry).
     override fun intent(intent: SetupIntent) = dispatch(intent)
@@ -230,7 +232,7 @@ class SetupMachine(
     override fun rejectIdentity() = send(Ev.RejectIdentity)
     override fun dismissCard() = mutableExtras.update { it.copy(card = null) }
 
-    // ---- reducer ----
+    // reducer
 
     override fun reduce(state: SetupState, event: Any): SetupState = when (event) {
         is Ev.Disc -> reduceDiscovery(state, event.event)
@@ -314,7 +316,7 @@ class SetupMachine(
         else -> null
     }
 
-    // ---- side effects ----
+    // side effects
 
     override fun handle(event: Any, before: SetupState, after: SetupState) {
         // A new door (another TV, a typed address, a fresh start) clears the retry brakes.
@@ -340,7 +342,15 @@ class SetupMachine(
             is SetupIntent.SetDock -> editDraft { it.copy(dock = event.dock.take(8)) }
             is SetupIntent.SetTheme -> editDraft { it.copy(themeId = event.id) }
             is SetupIntent.KeepDebuggingOn -> editDraft { it.copy(keepDebuggingOn = event.on) }
-            SetupIntent.MakeItClean -> if (after is SetupState.Found && !mutableExtras.value.starting) scope.launch { makeItClean(after.plan, null) }
+            SetupIntent.MakeItClean -> if (after is SetupState.Found && !mutableExtras.value.starting) {
+                mutableExtras.update { it.copy(starting = true) }
+                scope.launch {
+                    // A Keep, dock or theme change just before the tap replans in the background; the
+                    // run must be the plan with that change, never the one before it.
+                    draftJob?.join()
+                    makeItClean((state.value as? SetupState.Found)?.plan ?: after.plan, null)
+                }
+            }
             is SetupIntent.CredentialPassed -> { deps.gate.remember(event.pass); (state.value as? SetupState.Found)?.let { f -> if (mutableExtras.value.starting) scope.launch { makeItClean(f.plan, event.pass) } } }
             SetupIntent.CredentialFailed -> mutableExtras.update { it.copy(starting = false) }
             SetupIntent.StopAndUndo -> scope.launch { stopAndUndo() }
@@ -467,7 +477,7 @@ class SetupMachine(
         scope.launch { delay(600); send(Ev.GoProbe) }
     }
 
-    // ---- probe and plan (S2d to S3) ----
+    // probe and plan (S2d to S3)
 
     private suspend fun probe() {
         val s = session ?: return
@@ -562,7 +572,7 @@ class SetupMachine(
         val updated = record.copy(wizard = next, level = next.level)
         tv = updated
         if (next.keepDebuggingOn != draft.keepDebuggingOn) deps.sessionEnd.keepDebuggingOn(record.id, next.keepDebuggingOn)
-        scope.launch {
+        draftJob = scope.launch {
             deps.tvs.upsert(updated)
             replan(updated)
         }
@@ -570,11 +580,12 @@ class SetupMachine(
 
     private fun setLevel(level: Level) = editDraft { it.copy(level = level) }
 
-    // ---- the run (S3 to S4) ----
+    // the run (S3 to S4)
 
     private suspend fun makeItClean(plan: Plan, given: GatePass?) {
-        val record = tv ?: return
-        val s = session ?: return
+        val record = tv
+        val s = session
+        if (record == null || s == null) { mutableExtras.update { it.copy(starting = false) }; return }
         mutableExtras.update { it.copy(starting = true) }
         var pass = given ?: deps.gate.cached(record.id)
         if (pass == null && GateKeeper.needsPass(plan)) {
@@ -603,7 +614,12 @@ class SetupMachine(
             is StartResult.Refused -> when (result.reason) {
                 StartRefusal.HASH_MISMATCH -> replan(record, fresh = true)
                 StartRefusal.GATE_REQUIRED, StartRefusal.GATE_EXPIRED -> deps.gate.forget(record.id)
-                StartRefusal.RUN_OPEN -> { deps.engine.runState(record.id).value.planOrNull()?.let { currentPlanId = it.id } }
+                StartRefusal.RUN_OPEN -> {
+                    // The flow will not emit again for a run that is already paused, so its current
+                    // state is shown now (its stop card, or the Working screen it is in).
+                    val open = deps.engine.runState(record.id).value
+                    open.planOrNull()?.let { currentPlanId = it.id; send(Ev.Run(record.id, open)) }
+                }
                 StartRefusal.NOT_CONNECTED -> send(Ev.Stop(record.id, card(StopCase.CONNECTION_LOST, plan.id, args = counts(plan, 0))))
                 StartRefusal.WRONG_TV -> send(Ev.Stop(record.id, card(StopCase.IDENTITY_CHANGED, plan.id, args = mapOf("name" to record.nickname))))
             }
@@ -654,7 +670,11 @@ class SetupMachine(
                 send(Ev.Stop(tvId, card(case, p.plan.id, args = c)))
             }
             PauseReason.STALE -> {
+                // The engine paused before any write; the run is still open, so it is ended here or the
+                // new plan's start would be refused RUN_OPEN and the screen would stay on Found.
                 mutableExtras.update { it.copy(staleNotice = true) }
+                currentPlanId = null
+                attempt { deps.engine.abandon(tvId) }
                 tv?.let { replan(it, fresh = true) }
             }
             PauseReason.IN_DOUBT, PauseReason.USER_STOP -> send(Ev.Stop(tvId, resumeCard(tvId, p.plan.id, c, home = false)))
@@ -702,9 +722,13 @@ class SetupMachine(
         val recommended = p == null || Quirk.HOME_TAKEOVER_SETUPWRAITH in p.quirks || p.tested?.rebootTested != true
         val restorePointAt = deps.snapshots.latest(tvId)?.takenAtMs ?: deps.clock.nowMs()
         val launcher = deps.launcherPin.bundled()
+        // D15: the digest of the config.json this run pushed, so Manage can warn when it drifts.
+        val pushed = plan?.let { pl -> deps.ledger.changes(tvId).lastOrNull { c -> c.planId == pl.id && (c.op as? Op.PushAsset)?.dest?.let { d -> d.dir == RemoteDir.OVERLAY && d.segments.last() == "config.json" } == true } }
+        val digest = (pushed?.op as? Op.PushAsset)?.sha256
         val done = record.copy(
             wizard = null,
-            launcher = if (homeOn) LauncherState(launcher.versionCode, launcher.signer, record.launcher?.overlayDigest, record.launcher?.ourOverlayDigest) else record.launcher,
+            launcher = if (homeOn) LauncherState(launcher.versionCode, launcher.signer, digest ?: record.launcher?.overlayDigest, digest ?: record.launcher?.ourOverlayDigest)
+                else record.launcher?.let { l -> if (digest != null) l.copy(overlayDigest = digest, ourOverlayDigest = digest) else l },
             lastSeenAt = deps.clock.nowMs(),
         )
         tv = done
@@ -730,6 +754,7 @@ class SetupMachine(
         watchRun(id)
         reconnectJob?.cancel()
         mutableExtras.update { it.copy(reconnect = null) }
+        deps.sessionEnd.touched(id)
         deps.engine.continueRun(id, pass)
     }
 
@@ -741,6 +766,7 @@ class SetupMachine(
         watchRun(record.id)
         reconnectJob?.cancel()
         mutableExtras.update { it.copy(reconnect = null) }
+        deps.sessionEnd.touched(record.id)
         deps.engine.undoRun(record.id, pass)
     }
 
@@ -813,7 +839,7 @@ class SetupMachine(
         scope.launch { effect(SetupEffect.Share(deps.diagnostics.redactedText())) }
     }
 
-    // ---- Done (S5) ----
+    // Done (S5)
 
     // D24 restart test, UX 4.8: reboot, wait, 3 minute note, 5 minute card; debugging stays on.
     private suspend fun restart(d: SetupState.Done) {
@@ -873,14 +899,17 @@ class SetupMachine(
         val keep = tv?.wizard?.keepDebuggingOn == true || mutableExtras.value.draft?.keepDebuggingOn == true || deps.sessionEnd.keepsDebuggingOn(tvId)
         if (!keep) {
             mutableExtras.update { it.copy(finishing = Finishing.SWITCHING) }
-            deps.sessionEnd.switchOff(tvId)
-            mutableExtras.update { it.copy(finishing = Finishing.DONE, chip = ChipState.DEBUGGING_OFF) }
-            delay(600)
+            // "done" and the "Debugging off" chip only when a failed probe confirmed it (D7); otherwise
+            // Manage opens at once and its card shows what the record says.
+            if (deps.sessionEnd.switchOff(tvId) == DebugState.OFF) {
+                mutableExtras.update { it.copy(finishing = Finishing.DONE, chip = ChipState.DEBUGGING_OFF) }
+                delay(600)
+            }
         }
         effect(SetupEffect.Navigate("manage/${tvId.value}"))
     }
 
-    // ---- start modes ----
+    // start modes
 
     private suspend fun continueDraft(tvId: TvId) {
         val record = deps.tvs.tvs.value.firstOrNull { it.id == tvId } ?: run { send(Ev.ToWelcome); return }
@@ -898,6 +927,9 @@ class SetupMachine(
         val progress = deps.ledger.progress(planId)
         val args = mapOf("tv" to record.nickname, "done" to progress.doneDisables, "total" to (entry?.disables ?: progress.doneDisables))
         send(Ev.Stop(tvId, resumeCard(tvId, planId, args, home = progress.openSection)))
+        // The process that ran the steps is gone and with it the touched set: the journal says
+        // writes reached this TV, so D7's background and session-close rules apply to it again.
+        if (progress.doneSteps > 0 || progress.openSection) deps.sessionEnd.touched(tvId)
         when (val r = deps.access.session(tvId)) {
             is AccessResult.Ok -> {
                 session = r.session
@@ -905,11 +937,15 @@ class SetupMachine(
                 mutableExtras.update { it.copy(chip = ChipState.CONNECTED) }
                 attempt { deps.engine.resume(tvId, r.session) }
             }
+            is AccessResult.Failed -> {
+                mutableExtras.update { it.copy(chip = ChipState.OFFLINE) }
+                if (r.error is AdbError.Policy.WrongTv) send(Ev.Stop(tvId, card(StopCase.IDENTITY_CHANGED, planId, args = mapOf("name" to record.nickname))))
+            }
             else -> mutableExtras.update { it.copy(chip = ChipState.OFFLINE) }
         }
     }
 
-    // ---- copy and small helpers ----
+    // copy and small helpers
 
     private fun resumeCard(tvId: TvId, planId: PlanId?, args: Map<String, Any>, home: Boolean): StopCard {
         val a = args + ("tv" to (tv?.nickname ?: deps.tvs.tvs.value.firstOrNull { it.id == tvId }?.nickname ?: ""))
