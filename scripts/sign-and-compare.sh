@@ -36,10 +36,14 @@ fi
 
 echo "==> 2. sign build A"
 SIGNED="$OUT/$NAME.apk"
+# --min-sdk-version 24 only steers the scheme choice: with 28 apksigner writes v3 alone (Android 9
+# verifies v3 itself), and PRODUCT-SPEC 7.3 asks for v2 and v3; v1 stays off explicitly.
+# --alignment-preserved keeps the zip exactly as built, so apksigcopier can compare it with build B.
 # One password for store and key (PKCS#12). --key-pass is left out on purpose: given the same file
 # twice, apksigner reads the key password from its second line.
 apksigner sign --ks "$KS" --ks-key-alias "$KS_ALIAS" --ks-pass "file:$KS_PASS_FILE" \
-  --min-sdk-version 28 --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled true \
+  --min-sdk-version 24 --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled true \
+  --alignment-preserved \
   ${LINEAGE:+--lineage "$LINEAGE"} --out "$SIGNED" "$UA"
 rm -f "$SIGNED.idsig"
 apksigner verify --verbose --print-certs "$SIGNED" | grep -E "Verified using|Signer #1 certificate (DN|SHA-256)|Number of signers" | tee "$OUT/apksigner-verify.txt"
