@@ -12,7 +12,7 @@ debugging from the phone. Private repository; not announced.
 - `android/*`, `ui/design`, `feature/*`, `app`: Android modules.
 - `testing/fixtures`: a fake for every core interface, fixture loaders and shared samples.
 - `fixtures/`: the reference TV capture (redacted) and the module card test app sources.
-- `third_party/cleanyourtv`: the launcher repository as a submodule, pinned to `7205769`.
+- `third_party/cleanyourtv`: the launcher repository as a submodule, pinned to `1bbf0c9` (bumped by W5 for the bundled launcher).
 
 Clone with `git clone --recurse-submodules`, or run `git submodule update --init` afterwards.
 
