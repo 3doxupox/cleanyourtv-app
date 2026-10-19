@@ -26,6 +26,7 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.security.MessageDigest
 import java.time.Instant
+import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -94,7 +95,7 @@ class ZipRestoreBundleWriter(
         val profile = tv.profileId?.let { id -> profiles?.all()?.firstOrNull { it.id == id } }
         val header = ScriptHeader(tv.id, tv.nickname, tv.facts.model, DateTimeFormatter.ISO_LOCAL_DATE.format(Instant.ofEpochMilli(now).atZone(zone)), appVersion)
         val steps = RestoreCommands(renderer).steps(changes)
-        val ordered = changes.sortedBy { it.atMs }
+        val ordered = changes.sortedWith(RestoreCommands.CHRONOLOGICAL)
 
         val entries = LinkedHashMap<String, ByteArray>()
         entries[RestoreBundle.SNAPSHOT] = SnapshotCodec.canonical(RestoreBundle.redact(baseline))
@@ -129,7 +130,9 @@ class ZipRestoreBundleWriter(
         })
         zip.use { z ->
             (listOf(RestoreBundle.MANIFEST to manifest) + entries.toList()).forEach { (name, bytes) ->
-                z.putNextEntry(ZipEntry(name).apply { time = now })
+                // the local time in the writer's zone, not the JVM default zone (ZipEntry.time), so
+                // the bytes do not depend on the device's time zone setting
+                z.putNextEntry(ZipEntry(name).apply { timeLocal = LocalDateTime.ofInstant(Instant.ofEpochMilli(now), zone) })
                 z.write(bytes)
                 z.closeEntry()
             }
@@ -171,10 +174,15 @@ object RestoreBundleReader {
         val listed = try {
             if (manifest["schema"]?.jsonPrimitive?.int != RestoreBundle.SCHEMA) fail("manifest schema is not ${RestoreBundle.SCHEMA}")
             if (manifest["kind"]?.jsonPrimitive?.content != RestoreBundle.KIND) fail("not a Clean Your TV restore zip")
-            manifest.getValue("entries").jsonArray.associate {
+            val m = LinkedHashMap<String, Pair<Long, String>>()
+            manifest.getValue("entries").jsonArray.forEach {
                 val o = it.jsonObject
-                o.getValue("name").jsonPrimitive.content to (o.getValue("size").jsonPrimitive.long to o.getValue("sha256").jsonPrimitive.content)
+                val name = o.getValue("name").jsonPrimitive.content
+                if (m.put(name, o.getValue("size").jsonPrimitive.long to o.getValue("sha256").jsonPrimitive.content) != null) {
+                    fail("manifest.json lists ${name.take(80)} twice")
+                }
             }
+            m
         } catch (e: RestoreBundleException) { throw e } catch (e: Exception) { fail("manifest.json is malformed") }
         for ((name, bytes) in files) {
             if (name == RestoreBundle.MANIFEST) continue

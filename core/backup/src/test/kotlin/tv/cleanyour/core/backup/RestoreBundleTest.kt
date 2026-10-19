@@ -11,6 +11,7 @@ import tv.cleanyour.testing.fixtures.Fixtures
 import tv.cleanyour.testing.fixtures.Samples
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.util.TimeZone
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
@@ -102,6 +103,30 @@ class RestoreBundleTest {
         refused(rezip(good.filter { it.first != RestoreBundle.LAUNCHER_WALLPAPER }))   // listed in the manifest, missing from the zip
         refused(rezip(good.map { (n, b) -> if (n == RestoreBundle.MANIFEST) n to b.decodeToString().replace("\"schema\":1", "\"schema\":9").encodeToByteArray() else n to b }))
         refused(byteArrayOf(1, 2, 3))
+    }
+
+    @Test fun aManifestThatListsAnEntryTwiceIsRefused() {
+        val good = entries(zip()).toList()
+        val doubled = good.map { (n, b) ->
+            if (n != RestoreBundle.MANIFEST) return@map n to b
+            val m = b.decodeToString()
+            val first = Regex("\\{\"name\":\"${RestoreBundle.RESTORE_SH}\"[^}]*\\}").find(m)!!.value
+            n to m.replace(first, "$first,$first").encodeToByteArray()
+        }
+        val e = assertFailsWith<RestoreBundleException> { RestoreBundleReader.read(ByteArrayInputStream(rezip(doubled))) }
+        assertTrue(e.message!!.contains("twice"), e.message)
+    }
+
+    @Test fun theBytesDoNotDependOnTheDefaultTimeZone() {
+        val saved = TimeZone.getDefault()
+        try {
+            TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
+            val utc = zip()
+            TimeZone.setDefault(TimeZone.getTimeZone("Asia/Kolkata"))
+            assertContentEquals(utc, zip())
+        } finally {
+            TimeZone.setDefault(saved)
+        }
     }
 
     @Test fun anOversizedEntryIsRefused() {
