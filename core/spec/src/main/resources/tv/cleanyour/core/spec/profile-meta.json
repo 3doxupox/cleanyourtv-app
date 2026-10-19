@@ -118,6 +118,7 @@
       },
       "packages": {
         "com.amazon.hybridadidservice": { "category": "ads", "ask": false },
+        "com.amazon.tahoe": { "category": "brand", "ask": true },
         "com.amazon.tv.democontent.provider": { "category": "demo", "ask": false },
         "com.amazon.tv.csapp": { "category": "brand", "ask": false },
         "com.amazon.minerva.client.api": { "category": "tracking", "ask": false },
@@ -426,7 +427,7 @@
       },
       "packages": {
         "com.tcl.usercenter": { "category": "brand", "ask": false },
-        "com.tcl.suspension": { "category": "brand", "ask": false },
+        "com.tcl.suspension": { "category": "brand", "ask": true },
         "android.autoinstalls.config.google.gtvpai": { "category": "ads", "ask": false },
         "com.google.android.feedback": { "category": "tracking", "ask": false },
         "com.google.android.marvin.talkback": { "category": "accessibility", "ask": false },
@@ -639,7 +640,7 @@
         "com.mitv.gallery": { "category": "preloads", "ask": false },
         "com.mitv.dream": { "category": "screensaver", "ask": false },
         "com.google.android.backdrop": { "category": "screensaver", "ask": false },
-        "com.mitv.tvlock": { "category": "brand", "ask": false },
+        "com.mitv.tvlock": { "category": "brand", "ask": true },
         "com.xiaomo.tv.milegal": { "category": "other", "ask": false },
         "com.mstar.android.tv.disclaimercustomization": { "category": "other", "ask": false },
         "com.mediatek.wwtv.webview": { "category": "other", "ask": false },
