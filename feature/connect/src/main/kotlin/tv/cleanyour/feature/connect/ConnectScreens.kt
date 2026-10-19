@@ -24,6 +24,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -101,9 +102,11 @@ private fun InlineCard(extras: SetupExtras, actions: SetupActions) {
     // The card is the news: it scrolls into view when it appears instead of sitting under the
     // pinned Start (R4-W8).
     val bring = remember { BringIntoViewRequester() }
-    LaunchedEffect(c.case) { bring.bringIntoView() }
+    // The request waits for the card's first placement: a request made before layout is a no-op.
+    var placed by remember(c.case) { mutableStateOf(false) }
+    LaunchedEffect(placed) { if (placed) bring.bringIntoView() }
     StopCard(
-        c.title, c.body, Modifier.padding(top = 20.dp).bringIntoViewRequester(bring),
+        c.title, c.body, Modifier.padding(top = 20.dp).bringIntoViewRequester(bring).onGloballyPositioned { placed = true },
         primaryLabel = c.primary, onPrimary = { actions.intent(SetupIntent.StopAction(StopAction.PRIMARY)) },
         secondaryLabel = c.secondary, onSecondary = { actions.intent(SetupIntent.StopAction(StopAction.SECONDARY)) },
         primaryGuarded = c.case.primaryActs(),
