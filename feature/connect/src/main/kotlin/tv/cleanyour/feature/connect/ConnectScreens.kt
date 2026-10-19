@@ -1,5 +1,5 @@
 // CytBottomSheet takes the Material 3 sheet state, which is still marked experimental.
-@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 
 package tv.cleanyour.feature.connect
 
@@ -12,11 +12,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -95,8 +98,12 @@ fun ConnectFlow(state: SetupState, extras: SetupExtras, actions: SetupActions, o
 @Composable
 private fun InlineCard(extras: SetupExtras, actions: SetupActions) {
     val c = extras.card ?: return
+    // The card is the news: it scrolls into view when it appears instead of sitting under the
+    // pinned Start (R4-W8).
+    val bring = remember { BringIntoViewRequester() }
+    LaunchedEffect(c.case) { bring.bringIntoView() }
     StopCard(
-        c.title, c.body, Modifier.padding(top = 20.dp),
+        c.title, c.body, Modifier.padding(top = 20.dp).bringIntoViewRequester(bring),
         primaryLabel = c.primary, onPrimary = { actions.intent(SetupIntent.StopAction(StopAction.PRIMARY)) },
         secondaryLabel = c.secondary, onSecondary = { actions.intent(SetupIntent.StopAction(StopAction.SECONDARY)) },
         primaryGuarded = c.case.primaryActs(),
