@@ -7,7 +7,9 @@ import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import org.junit.Assert.assertEquals
@@ -17,6 +19,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import tv.cleanyour.ui.design.component.Banner
+import tv.cleanyour.ui.design.component.BannerTone
 import tv.cleanyour.ui.design.component.CountdownConfirm
 import tv.cleanyour.ui.design.component.CytIconButton
 import tv.cleanyour.ui.design.component.DestructiveButton
@@ -25,6 +29,9 @@ import tv.cleanyour.ui.design.component.SecondaryButton
 import tv.cleanyour.ui.design.component.SmallGlassButton
 import tv.cleanyour.ui.design.component.StopCard
 import tv.cleanyour.ui.design.component.TertiaryButton
+import tv.cleanyour.ui.design.component.ThemeOption
+import tv.cleanyour.ui.design.component.ThemePicker
+import tv.cleanyour.ui.design.component.themeSwatch
 import tv.cleanyour.ui.design.icon.CytIcons
 import tv.cleanyour.ui.design.theme.CytTheme
 
@@ -123,6 +130,34 @@ class ObscuredTouchTest {
         tap(compose.onNodeWithContentDescription("Back"), MotionEvent.FLAG_WINDOW_IS_OBSCURED)
         assertEquals(listOf("secondary", "tertiary", "unguarded primary", "unguarded card", "card secondary", "back"), hits)
         compose.onNodeWithText(hint).assertDoesNotExist()
+    }
+
+    // R4-W8: a secondary, a tertiary, a banner action and the theme picker are guarded when the
+    // caller says they write to the TV, and only then.
+    @Test
+    fun writingSecondariesBannersAndThemeRowsAreGuardedWhenAsked() {
+        val hits = mutableListOf<String>()
+        val themes = listOf(ThemeOption("default", "Default", "Black", themeSwatch("default")), ThemeOption("aurora", "Aurora", "Blue", themeSwatch("aurora")))
+        show {
+            SecondaryButton("Undo what we did", { hits += "secondary" }, guardObscured = true)
+            TertiaryButton("Undo what we did too", { hits += "tertiary" }, quiet = true, guardObscured = true)
+            Banner("The home screen settings on the TV changed.", BannerTone.WARNING, actionLabel = "Restore mine", onAction = { hits += "banner" }, guardAction = true)
+            ThemePicker(themes, "default", { hits += "theme ${it.id}" }, guardObscured = true)
+            StopCard("We were in the middle of setting up", "Carry on?", primaryLabel = "Carry on", onPrimary = { hits += "primary" },
+                secondaryLabel = "Undo everything we did", onSecondary = { hits += "card secondary" }, secondaryGuarded = true)
+        }
+        tap("Undo what we did", MotionEvent.FLAG_WINDOW_IS_OBSCURED)
+        tap("Undo what we did too", MotionEvent.FLAG_WINDOW_IS_OBSCURED)
+        tap("Restore mine", MotionEvent.FLAG_WINDOW_IS_PARTIALLY_OBSCURED)
+        tap("Aurora", MotionEvent.FLAG_WINDOW_IS_OBSCURED)
+        tap("Undo everything we did", MotionEvent.FLAG_WINDOW_IS_OBSCURED)
+        assertEquals(emptyList<String>(), hits)
+        compose.onAllNodesWithText(hint).assertCountEquals(5)
+        tap("Undo what we did", 0)
+        tap("Restore mine", 0)
+        tap("Aurora", 0)
+        tap("Undo everything we did", 0)
+        assertEquals(listOf("secondary", "banner", "theme aurora", "card secondary"), hits)
     }
 
     @Test

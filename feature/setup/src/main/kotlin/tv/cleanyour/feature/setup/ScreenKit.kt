@@ -61,6 +61,19 @@ fun StopCase.primaryActs(): Boolean = when (this) {
     else -> true
 }
 
+// The same rule for the second and third buttons (R4-W8): "Undo what we did" rolls the run back,
+// "Stop here" puts the old home screen back when a home section is open, "Try again" retakes
+// Home. "Leave it as is", "Keep {launcher}", "Show details", Back and OK do not write.
+fun StopCase.secondaryActs(): Boolean = when (this) {
+    StopCase.CONNECTION_LOST, StopCase.STEP_FAILED, StopCase.RESUME_AFTER_DEATH, StopCase.HOME_TIMED_OUT -> true
+    else -> false
+}
+
+fun StopCase.tertiaryActs(): Boolean = when (this) {
+    StopCase.CONNECTION_LOST, StopCase.STEP_FAILED -> true
+    else -> false
+}
+
 // One paragraph in text.secondary.
 @Composable
 internal fun Body(text: String, modifier: Modifier = Modifier, color: Color = CytTheme.colors.textSecondary) =

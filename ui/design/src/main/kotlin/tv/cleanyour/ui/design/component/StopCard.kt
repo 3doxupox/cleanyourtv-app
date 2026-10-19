@@ -27,7 +27,9 @@ import tv.cleanyour.ui.design.theme.CytTheme
 // DESIGN-SYSTEM 9 "Stopped": a surface.2 card with a grey icon and the next step. Never red, no
 // red glow. What happened, what it means, what to do. busyText shows a spinner line
 // ("Reconnecting..."). The way out is always a button on the card. primaryGuarded = false when the
-// primary is Back, a plain OK or navigation (rejectObscuredTouches).
+// primary is Back, a plain OK or navigation; secondaryGuarded and tertiaryGuarded = true when that
+// button writes to the TV ("Undo what we did", "Stop here" with a home section open, "Try again"),
+// see rejectObscuredTouches.
 @Composable
 fun StopCard(
     title: String,
@@ -44,6 +46,8 @@ fun StopCard(
     onDetails: () -> Unit = {},
     busyText: String? = null,
     primaryGuarded: Boolean = true,
+    secondaryGuarded: Boolean = false,
+    tertiaryGuarded: Boolean = false,
 ) {
     val c = CytTheme.colors
     val shape = CytTheme.shapes.medium
@@ -60,8 +64,8 @@ fun StopCard(
         if (primaryLabel != null || secondaryLabel != null || tertiaryLabel != null) {
             ActionColumn(Modifier.padding(top = 20.dp)) {
                 if (primaryLabel != null) PrimaryButton(primaryLabel, onPrimary, guardObscured = primaryGuarded)
-                if (secondaryLabel != null) SecondaryButton(secondaryLabel, onSecondary)
-                if (tertiaryLabel != null) TertiaryButton(tertiaryLabel, onTertiary, quiet = true)
+                if (secondaryLabel != null) SecondaryButton(secondaryLabel, onSecondary, guardObscured = secondaryGuarded)
+                if (tertiaryLabel != null) TertiaryButton(tertiaryLabel, onTertiary, quiet = true, guardObscured = tertiaryGuarded)
             }
         }
         if (detailsLabel != null) TertiaryButton(detailsLabel, onDetails, Modifier.padding(top = 4.dp).align(Alignment.CenterHorizontally))
@@ -73,6 +77,8 @@ fun StopCard(
 // quiet footnote banner like "Phone and TV must be on the same Wi-Fi").
 enum class BannerTone { SUCCESS, WARNING, DANGER, NEUTRAL, INFO }
 
+// guardAction = true when the action writes to the TV ("Restore mine" on the drift banner); the
+// hint after a dropped tap shows under the action (rejectObscuredTouches).
 @Composable
 fun Banner(
     text: AnnotatedString,
@@ -81,6 +87,7 @@ fun Banner(
     icon: ImageVector? = defaultBannerIcon(tone),
     actionLabel: String? = null,
     onAction: () -> Unit = {},
+    guardAction: Boolean = false,
 ) {
     val c = CytTheme.colors
     val shape = CytTheme.shapes.row
@@ -103,20 +110,24 @@ fun Banner(
         Column(Modifier.weight(1f)) {
             Text(text, color = fg, style = CytTheme.type.bodyMedium)
             if (actionLabel != null) {
-                Text(
-                    actionLabel,
-                    Modifier.clickable(role = Role.Button, onClick = onAction).padding(vertical = 14.dp),
-                    color = if (tone == BannerTone.NEUTRAL || tone == BannerTone.INFO) c.accent else fg,
-                    style = CytTheme.type.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                )
+                Guarded(Modifier, guardAction) { outer, guard ->
+                    Text(
+                        actionLabel,
+                        outer.clickable(role = Role.Button, onClick = onAction).then(guard).padding(vertical = 14.dp),
+                        color = if (tone == BannerTone.NEUTRAL || tone == BannerTone.INFO) c.accent else fg,
+                        style = CytTheme.type.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-fun Banner(text: String, tone: BannerTone, modifier: Modifier = Modifier, icon: ImageVector? = defaultBannerIcon(tone), actionLabel: String? = null, onAction: () -> Unit = {}) =
-    Banner(AnnotatedString(text), tone, modifier, icon, actionLabel, onAction)
+fun Banner(
+    text: String, tone: BannerTone, modifier: Modifier = Modifier, icon: ImageVector? = defaultBannerIcon(tone),
+    actionLabel: String? = null, onAction: () -> Unit = {}, guardAction: Boolean = false,
+) = Banner(AnnotatedString(text), tone, modifier, icon, actionLabel, onAction, guardAction)
 
 fun defaultBannerIcon(tone: BannerTone): ImageVector = when (tone) {
     BannerTone.SUCCESS -> CytIcons.Check
