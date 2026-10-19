@@ -1,5 +1,7 @@
 package tv.cleanyour.ui.design.component
 
+import android.os.Build
+import android.view.MotionEvent
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -10,6 +12,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,19 +23,30 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInteropFilter
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
+import tv.cleanyour.ui.design.R
 import tv.cleanyour.ui.design.theme.CytMotion
 import tv.cleanyour.ui.design.theme.CytTheme
 import tv.cleanyour.ui.design.theme.glass
@@ -41,10 +55,76 @@ import tv.cleanyour.ui.design.theme.pressScale
 // DESIGN-SYSTEM 8.1. All pills are full width inside the gutter unless the caller says otherwise,
 // 56 dp tall at least, and grow in height at 200% font (labels wrap to two lines at most).
 
-// Primary: the white pill (black in light). Loading: a 20 dp ring plus the verb (pass the verb as
-// text), width unchanged. Disabled: surface.3 with text.tertiary.
+// Obscured-touch guard (SECURITY 4.3 and P8, D35, spec 7.3 item 6): a touch that reaches the window
+// through another app's overlay is dropped, the Compose form of filterTouchesWhenObscured. It goes
+// on actions that confirm, apply, pair or forget: the primary pill, the destructive pill, the small
+// card action and so the CountdownConfirm "Yes". Never on Back, Cancel, close, the secondary and
+// tertiary buttons or navigation (R5-W8 O1): with a screen dimmer running the person must always
+// have a way out. Place it after `clickable`, so it sees the events first and the click never
+// fires. onRejected runs once per dropped tap (on its down event).
+@OptIn(ExperimentalComposeUiApi::class)
+fun Modifier.rejectObscuredTouches(onRejected: () -> Unit = {}): Modifier = pointerInteropFilter { e ->
+    val obscured = isObscured(e)
+    if (obscured && e.actionMasked == MotionEvent.ACTION_DOWN) onRejected()
+    obscured   // true consumes (drops) the event, false lets the button see it
+}
+
+internal fun isObscured(e: MotionEvent): Boolean =
+    (e.flags and MotionEvent.FLAG_WINDOW_IS_OBSCURED) != 0 ||
+        (Build.VERSION.SDK_INT >= 29 && (e.flags and MotionEvent.FLAG_WINDOW_IS_PARTIALLY_OBSCURED) != 0)
+
+// How long the hint stays under a guarded button after a dropped tap.
+internal const val OBSCURED_HINT_MS = 6_000L
+
+// A guarded action plus its hint: after a dropped tap, one calm line under the button says why
+// nothing happened (polite live region, so TalkBack reads it once). The caller's modifier sits on
+// the outer column, so ColumnScope and RowScope modifiers from the caller still apply.
 @Composable
-fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, loading: Boolean = false) {
+private fun Guarded(
+    modifier: Modifier,
+    guard: Boolean,
+    content: @Composable (outer: Modifier, guard: Modifier) -> Unit,
+) {
+    if (!guard) {
+        content(modifier, Modifier)
+        return
+    }
+    var drops by remember { mutableIntStateOf(0) }
+    var showing by remember { mutableStateOf(false) }
+    // Each dropped tap restarts the timer.
+    LaunchedEffect(drops) {
+        if (drops == 0) return@LaunchedEffect
+        delay(OBSCURED_HINT_MS)
+        showing = false
+    }
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        content(Modifier, Modifier.rejectObscuredTouches { drops++; showing = true })
+        if (showing) {
+            Text(
+                stringResource(R.string.cyt_obscured_hint),
+                Modifier.padding(top = 8.dp, start = 8.dp, end = 8.dp).semantics { liveRegion = LiveRegionMode.Polite },
+                color = CytTheme.colors.textSecondary, style = CytTheme.type.bodySmall, textAlign = TextAlign.Center,
+            )
+        }
+    }
+}
+
+// Primary: the white pill (black in light). Loading: a 20 dp ring plus the verb (pass the verb as
+// text), width unchanged. Disabled: surface.3 with text.tertiary. guardObscured: drops touches
+// through an overlay (see rejectObscuredTouches); pass false only for a primary that is Back, OK to
+// a plain message, or navigation.
+@Composable
+fun PrimaryButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    loading: Boolean = false,
+    guardObscured: Boolean = true,
+) = Guarded(modifier, guardObscured) { outer, guard -> PrimaryPill(text, onClick, outer, guard, enabled, loading) }
+
+@Composable
+private fun PrimaryPill(text: String, onClick: () -> Unit, modifier: Modifier, guard: Modifier, enabled: Boolean, loading: Boolean) {
     val c = CytTheme.colors
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
@@ -57,7 +137,7 @@ fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifi
     PillBase(
         modifier = modifier.pressScale(source).clip(CytTheme.shapes.pill).background(fill, CytTheme.shapes.pill),
         onClick = onClick, enabled = enabled && !loading, source = source,
-        stateDescription = null,
+        stateDescription = null, guard = guard,
     ) {
         if (loading) {
             Spinner(size = 20.dp, color = content)
@@ -104,18 +184,24 @@ fun TertiaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modif
 // The one destructive action in the app, "Put everything back", inside its confirmation sheet only:
 // an outlined pill, 1.5 dp danger stroke, danger label, no fill. Never animated into place.
 @Composable
-fun DestructiveButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
-    val c = CytTheme.colors
-    val source = remember { MutableInteractionSource() }
-    PillBase(
-        modifier = modifier.clip(CytTheme.shapes.pill).border(1.5.dp, if (enabled) c.danger else c.textTertiary, CytTheme.shapes.pill),
-        onClick = onClick, enabled = enabled, source = source, stateDescription = null,
-    ) { PillLabel(text, if (enabled) c.danger else c.textTertiary) }
-}
+fun DestructiveButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) =
+    Guarded(modifier, guard = true) { outer, guard ->
+        val c = CytTheme.colors
+        val source = remember { MutableInteractionSource() }
+        PillBase(
+            modifier = outer.clip(CytTheme.shapes.pill).border(1.5.dp, if (enabled) c.danger else c.textTertiary, CytTheme.shapes.pill),
+            onClick = onClick, enabled = enabled, source = source, stateDescription = null, guard = guard,
+        ) { PillLabel(text, if (enabled) c.danger else c.textTertiary) }
+    }
 
 // A compact glass pill for an action inside a card ("Restart"): 36 dp visible, 48 dp touch target.
+// It acts on the TV, so it is guarded like the primary pill.
 @Composable
-fun SmallGlassButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
+fun SmallGlassButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, guardObscured: Boolean = true) =
+    Guarded(modifier, guardObscured) { outer, guard -> SmallGlassPill(text, onClick, outer, guard, enabled) }
+
+@Composable
+private fun SmallGlassPill(text: String, onClick: () -> Unit, modifier: Modifier, guard: Modifier, enabled: Boolean) {
     val c = CytTheme.colors
     val source = remember { MutableInteractionSource() }
     Box(
@@ -126,6 +212,7 @@ fun SmallGlassButton(text: String, onClick: () -> Unit, modifier: Modifier = Mod
             .glass(CytTheme.shapes.pill, CytTheme.glass)
             .clip(CytTheme.shapes.pill)
             .clickable(source, ripple(), enabled = enabled, role = Role.Button, onClick = onClick)
+            .then(guard)
             .padding(horizontal = 16.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -182,6 +269,7 @@ private fun PillBase(
     enabled: Boolean,
     source: MutableInteractionSource,
     stateDescription: String?,
+    guard: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
     Row(
@@ -189,6 +277,7 @@ private fun PillBase(
             .fillMaxWidth()
             .defaultMinSize(minHeight = 56.dp)
             .clickable(source, ripple(), enabled = enabled, role = Role.Button, onClick = onClick)
+            .then(guard)
             .then(if (stateDescription != null) Modifier.semantics { this.stateDescription = stateDescription } else Modifier)
             .padding(horizontal = 24.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.Center,
