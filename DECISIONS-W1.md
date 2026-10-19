@@ -159,3 +159,9 @@ Added because the section 5 prose names it: `core.probe.ProbeException(stage, de
   F6 (revocation in a fetched keys file not learned when the fetched index fails), F7 (Android 9
   signer fallback on rotated module keys, verify on the emulator matrix).
 - Per-branch R5 reviews live in `reviews/R5-<stream>.md` after merge.
+- From R5 of W4 (merged after fixes): O1 probe SCREENSHOT batches mkdir and screencap, and
+  `installedSha256` uses a pipeline; decide at R1 to split or record an exception to D40. O2
+  classify install refusal codes at I1 from real captures. O3 setupwraith overrides curated
+  takeover quirks (rca-ai-pont, tcl-65c725), O4 sony BRAVIA_ATV2 model vs device (product call),
+  O5 the Xiaomi sure set disables PatchWall: R3 must verify `Protected` covers the current HOME.
+- RFCs from streams live in `docs/rfcs/<stream>.md` after merge.
