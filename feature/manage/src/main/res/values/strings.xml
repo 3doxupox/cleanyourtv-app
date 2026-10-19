@@ -15,14 +15,6 @@
     <string name="action_done">Done</string>
     <string name="action_undo">Undo</string>
 
-    <!-- Status chip (D42). The state word is passed into chip_label already translated. -->
-    <string name="chip_connected">Connected</string>
-    <string name="chip_waiting">Waiting</string>
-    <string name="chip_working">Working</string>
-    <string name="chip_debugging_off">Debugging off</string>
-    <string name="chip_offline">Offline</string>
-    <string name="chip_label">{tv} · {state}</string>
-
     <!-- Credential prompt (D17) -->
     <string name="gate_title">Confirm it\'s you</string>
     <string name="gate_subtitle">Before we change anything on {tv}</string>
@@ -46,8 +38,6 @@
     <string name="manage_level_custom">Custom</string>
     <string name="manage_level_simple_note">Switches off the usual clutter and keeps everything else.</string>
     <string name="manage_level_custom_note">Lets you choose each item, the dock and the look.</string>
-    <string name="manage_level_chip_cd">Level: {level}. Tap to see what the levels mean.</string>
-    <string name="manage_level_sheet_title">Levels</string>
     <string name="manage_row_home">Home screen</string>
     <string name="manage_row_cards">Cards and modules</string>
     <string name="manage_row_cards_none">No cards yet</string>
@@ -93,8 +83,6 @@
     <string name="switchedoff_group_shop">Shop and demo mode</string>
     <string name="switchedoff_group_needed">Needed for the new home screen</string>
     <string name="switchedoff_group_other">Chosen under Customise</string>
-    <string name="switchedoff_pill_off">Off</string>
-    <string name="switchedoff_pill_kept">Kept</string>
     <string name="switchedoff_put_back">Put back</string>
     <string name="switchedoff_put_back_cd">Put {name} back</string>
     <string name="switchedoff_snackbar">{name} is back on.</string>

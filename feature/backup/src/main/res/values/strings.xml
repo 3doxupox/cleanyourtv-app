@@ -14,14 +14,6 @@
     <string name="action_ok">OK</string>
     <string name="action_done">Done</string>
 
-    <!-- Status chip (D42). The state word is passed into chip_label already translated. -->
-    <string name="chip_connected">Connected</string>
-    <string name="chip_waiting">Waiting</string>
-    <string name="chip_working">Working</string>
-    <string name="chip_debugging_off">Debugging off</string>
-    <string name="chip_offline">Offline</string>
-    <string name="chip_label">{tv} · {state}</string>
-
     <!-- Credential prompt (D17), raised by "Put everything back" -->
     <string name="gate_title">Confirm it\'s you</string>
     <string name="gate_subtitle">Before we change anything on {tv}</string>

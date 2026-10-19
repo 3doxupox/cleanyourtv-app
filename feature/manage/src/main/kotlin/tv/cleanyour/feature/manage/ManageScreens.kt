@@ -1,9 +1,14 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package tv.cleanyour.feature.manage
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -13,15 +18,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import java.text.SimpleDateFormat
 import java.util.Date
+import tv.cleanyour.core.engine.PauseReason
 import tv.cleanyour.core.flows.AppConfirm
 import tv.cleanyour.core.flows.AppSettingsIntent
 import tv.cleanyour.core.flows.AppSettingsState
-import tv.cleanyour.core.flows.ChipState
 import tv.cleanyour.core.flows.LeftoversIntent
 import tv.cleanyour.core.flows.LeftoversState
 import tv.cleanyour.core.flows.ManageIntent
@@ -35,69 +40,116 @@ import tv.cleanyour.core.flows.SwitchedOffState
 import tv.cleanyour.core.flows.TvSettingsIntent
 import tv.cleanyour.core.flows.TvSettingsState
 import tv.cleanyour.core.flows.UpdateCheck
-import tv.cleanyour.core.engine.PauseReason
 import tv.cleanyour.core.model.Level
+import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.planner.PlanKind
+import tv.cleanyour.ui.design.component.ActionColumn
+import tv.cleanyour.ui.design.component.Banner
+import tv.cleanyour.ui.design.component.BannerTone
+import tv.cleanyour.ui.design.component.CheckLine
+import tv.cleanyour.ui.design.component.ChoiceList
+import tv.cleanyour.ui.design.component.ChoiceOption
+import tv.cleanyour.ui.design.component.CytBottomSheet
+import tv.cleanyour.ui.design.component.CytIconButton
+import tv.cleanyour.ui.design.component.CytTextField
+import tv.cleanyour.ui.design.component.CytTopBar
+import tv.cleanyour.ui.design.component.DiffGroup
+import tv.cleanyour.ui.design.component.DiffGroupSection
+import tv.cleanyour.ui.design.component.DiffItem
+import tv.cleanyour.ui.design.component.Gap
+import tv.cleanyour.ui.design.component.Lead
+import tv.cleanyour.ui.design.component.LinkRow
+import tv.cleanyour.ui.design.component.ListDivider
+import tv.cleanyour.ui.design.component.ListGroup
+import tv.cleanyour.ui.design.component.ListRow
+import tv.cleanyour.ui.design.component.MonospaceBlock
+import tv.cleanyour.ui.design.component.PrimaryButton
+import tv.cleanyour.ui.design.component.ProgressBar
+import tv.cleanyour.ui.design.component.ScreenScaffold
+import tv.cleanyour.ui.design.component.ScreenTitle
+import tv.cleanyour.ui.design.component.SecondaryButton
+import tv.cleanyour.ui.design.component.SheetHeader
+import tv.cleanyour.ui.design.component.Spinner
+import tv.cleanyour.ui.design.component.StepCard
+import tv.cleanyour.ui.design.component.StopCard
+import tv.cleanyour.ui.design.component.SwitchRow
+import tv.cleanyour.ui.design.component.TertiaryButton
+import tv.cleanyour.ui.design.component.TvCard
+import tv.cleanyour.ui.design.component.TvStatus
+import tv.cleanyour.ui.design.component.TvStatusChip
+import tv.cleanyour.ui.design.icon.CytIcons
+import tv.cleanyour.ui.design.theme.CytTheme
+import tv.cleanyour.ui.design.theme.Glow
 
-// Screens M1, M1a, M4, M5, M7 and M8 (PRODUCT-SPEC 4, UX 4.3, 4.11, 4.13, 6.1).
+// Screens M1, M1a, M4, M5, M7 and M8 (PRODUCT-SPEC 4, UX 4.3, 4.11, 4.13, 6.1), built from the
+// :ui:design components (ui/design/API.md). Each sheet keeps its body in an internal *Content
+// composable, so the screenshot tests can draw it on SheetSurface (a modal window is not captured).
 
 fun shortDate(ms: Long, locale: java.util.Locale): String = SimpleDateFormat("d MMM", locale).format(Date(ms))
 fun shortDateTime(ms: Long, locale: java.util.Locale): String = SimpleDateFormat("d MMM, HH:mm", locale).format(Date(ms))
 
-@Composable
-private fun chip(name: String, status: ChipState): String = msg(R.string.chip_label, "tv" to name, "state" to chipWord(status,
-    R.string.chip_connected, R.string.chip_waiting, R.string.chip_working, R.string.chip_debugging_off, R.string.chip_offline))
+private val titleTop = Modifier.padding(top = 20.dp)
 
 // M1 Manage: the app's home once a TV exists. Nothing is more than two taps away.
 @Composable
 fun ManageScreen(state: ManageState, onIntent: (ManageIntent) -> Unit, modifier: Modifier = Modifier) {
     val tv = state.current
     val locale = LocalConfiguration.current.locales[0]
-    var levels by rememberSaveable { mutableStateOf(false) }
-    PendingScreenScaffold(modifier, topBar = {
-        PendingTopBar(center = { if (tv != null) PendingTvStatusChip(chip(tv.name, tv.chip), tv.chip) },
-            trailing = {
-                val cd = stringResource(R.string.manage_settings_cd)
-                PendingTertiaryButton("⚙", { onIntent(ManageIntent.AppSettings) }, Modifier.semantics { contentDescription = cd })
-            })
+    ScreenScaffold(Glow.Tv, modifier, topBar = {
+        CytTopBar(
+            center = { if (tv != null) TvStatusChip(tv.name, tv.chip.toTvStatus()) },
+            trailing = { CytIconButton(CytIcons.Settings, stringResource(R.string.manage_settings_cd), { onIntent(ManageIntent.AppSettings) }) },
+        )
     }) {
-        PendingScreenTitle(stringResource(R.string.manage_title))
-        if (state.offline) PendingBanner(stringResource(R.string.manage_offline_banner), PendingBannerTone.WARNING,
-            actionLabel = stringResource(if (state.reconnecting) R.string.manage_reconnecting else R.string.manage_reconnect), onAction = { onIntent(ManageIntent.Reconnect) })
-        state.cards.filter { it.id != tv?.id }.forEach { other ->
-            PendingListRow(other.name, subtitle = other.room, onClick = { onIntent(ManageIntent.Select(other.id)) })
+        ScreenTitle(stringResource(R.string.manage_title), titleTop)
+        if (state.offline) {
+            Banner(
+                stringResource(R.string.manage_offline_banner), BannerTone.NEUTRAL, Modifier.padding(top = 16.dp), icon = CytIcons.WifiOff,
+                actionLabel = if (state.reconnecting) null else stringResource(R.string.manage_reconnect), onAction = { onIntent(ManageIntent.Reconnect) },
+            )
+            if (state.reconnecting) LiveLine(stringResource(R.string.manage_reconnecting))
         }
         if (tv != null) {
+            val room = tv.room
             val stateWord = stringResource(if (tv.clean) R.string.manage_state_clean else R.string.manage_state_original)
             val checked = msg(R.string.manage_checked, "date" to shortDate(tv.checkedAtMs, locale))
-            PendingListGroup {
-                val room = tv.room
-                PendingListRow(if (room != null) msg(R.string.manage_tv_title, "tv" to tv.name, "room" to room) else msg(R.string.manage_tv_title_noroom, "tv" to tv.name),
-                    subtitle = "$stateWord. $checked", trailing = {
-                        PendingInfoChip(stringResource(if (tv.level == Level.CUSTOM) R.string.manage_level_custom else R.string.manage_level_simple),
-                            Modifier.clickable(role = Role.Button) { levels = true })
-                    })
-                PendingTvThumbnail(tv.thumbnail, msg(R.string.manage_thumbnail_cd, "tv" to tv.name), Modifier.clickable { onIntent(ManageIntent.RefreshThumbnail) })
-            }
-            if (!tv.clean) PendingPrimaryButton(stringResource(R.string.manage_clean_again), { onIntent(ManageIntent.CleanAgain) })
-            PendingListGroup {
-                PendingListRow(stringResource(R.string.manage_row_home), subtitle = tv.dockNames.joinToString(", ").ifEmpty { null }, onClick = { onIntent(ManageIntent.Open(ManageSection.HOME_SCREEN)) })
-                PendingListRow(stringResource(R.string.manage_row_cards), onClick = { onIntent(ManageIntent.Open(ManageSection.MODULES)) })
-                PendingListRow(msg(R.string.manage_row_switched_off, "count" to tv.switchedOff), subtitle = stringResource(R.string.manage_row_switched_off_sub),
+            TvCard(
+                name = if (room != null) msg(R.string.manage_tv_title, "tv" to tv.name, "room" to room) else msg(R.string.manage_tv_title_noroom, "tv" to tv.name),
+                statusLine = "$stateWord. $checked.",
+                thumbnail = rememberPng(tv.thumbnail),
+                thumbnailDescription = msg(R.string.manage_thumbnail_cd, "tv" to tv.name),
+                modifier = Modifier.padding(top = 20.dp),
+                level = stringResource(if (tv.level == Level.CUSTOM) R.string.manage_level_custom else R.string.manage_level_simple),
+                onClick = { onIntent(ManageIntent.RefreshThumbnail) },
+            )
+            // Navigation into the wizard, whose own "Make it clean" is the guarded action (R5-W8 O1).
+            if (!tv.clean) PrimaryButton(stringResource(R.string.manage_clean_again), { onIntent(ManageIntent.CleanAgain) }, Modifier.padding(top = 16.dp), guardObscured = false)
+            ListGroup(Modifier.padding(top = 16.dp)) {
+                ListRow(stringResource(R.string.manage_row_home), subtitle = tv.dockNames.joinToString(", ").ifEmpty { null },
+                    onClick = { onIntent(ManageIntent.Open(ManageSection.HOME_SCREEN)) })
+                ListDivider()
+                ListRow(stringResource(R.string.manage_row_cards), onClick = { onIntent(ManageIntent.Open(ManageSection.MODULES)) })
+                ListDivider()
+                ListRow(msg(R.string.manage_row_switched_off, "count" to tv.switchedOff), subtitle = stringResource(R.string.manage_row_switched_off_sub),
                     onClick = { onIntent(ManageIntent.Open(ManageSection.SWITCHED_OFF)) })
-                PendingListRow(stringResource(R.string.manage_row_leftovers), subtitle = stringResource(R.string.manage_row_leftovers_sub), onClick = { onIntent(ManageIntent.Open(ManageSection.LEFTOVERS)) })
-                PendingListRow(stringResource(R.string.manage_row_restore), subtitle = tv.restorePointAtMs?.let { msg(R.string.manage_row_restore_sub, "date" to shortDateTime(it, locale)) },
+                ListDivider()
+                ListRow(stringResource(R.string.manage_row_leftovers), subtitle = stringResource(R.string.manage_row_leftovers_sub),
+                    onClick = { onIntent(ManageIntent.Open(ManageSection.LEFTOVERS)) })
+                ListDivider()
+                ListRow(stringResource(R.string.manage_row_restore), subtitle = tv.restorePointAtMs?.let { msg(R.string.manage_row_restore_sub, "date" to shortDateTime(it, locale)) },
                     onClick = { onIntent(ManageIntent.Open(ManageSection.RESTORE_POINT)) })
-                PendingListRow(stringResource(R.string.manage_row_tvsettings), onClick = { onIntent(ManageIntent.Open(ManageSection.TV_SETTINGS)) })
+                ListDivider()
+                ListRow(stringResource(R.string.manage_row_tvsettings), onClick = { onIntent(ManageIntent.Open(ManageSection.TV_SETTINGS)) })
             }
         }
-        PendingTertiaryButton(stringResource(R.string.manage_add_tv), { onIntent(ManageIntent.SetUpAnother) })
-    }
-    if (levels) PendingBottomSheet({ levels = false }) {
-        PendingSheetHeader(stringResource(R.string.manage_level_sheet_title))
-        PendingListRow(stringResource(R.string.manage_level_simple), subtitle = stringResource(R.string.manage_level_simple_note))
-        PendingListRow(stringResource(R.string.manage_level_custom), subtitle = stringResource(R.string.manage_level_custom_note))
-        PendingGap()
+        val others = state.cards.filter { it.id != tv?.id }
+        ListGroup(Modifier.padding(top = 12.dp, bottom = 16.dp)) {
+            others.forEach { other ->
+                ListRow(other.name, subtitle = other.room, onClick = { onIntent(ManageIntent.Select(other.id)) })
+                ListDivider()
+            }
+            LinkRow(stringResource(R.string.manage_add_tv), { onIntent(ManageIntent.SetUpAnother) }, chevron = false, minHeight = 56.dp)
+        }
     }
 }
 
@@ -112,14 +164,16 @@ fun DebugStepSheet(reach: Reach, onCancel: () -> Unit) {
         is Reach.WrongNetwork -> reach.tvName
         Reach.Idle -> return
     }
-    PendingBottomSheet(onCancel) {
-        PendingTvStatusChip(chip(name, if (reach is Reach.Connecting) ChipState.CONNECTED else ChipState.WAITING), ChipState.WAITING)
-        PendingStepCard(stringResource(R.string.debugstep_title), stringResource(R.string.debugstep_body))
-        PendingBody(stringResource(R.string.debugstep_note))
-        PendingLiveLine(stringResource(if (reach is Reach.Connecting) R.string.debugstep_connecting else R.string.debugstep_waiting), found = false)
-        PendingTertiaryButton(stringResource(R.string.action_cancel), onCancel, Modifier.align(Alignment.CenterHorizontally), quiet = true)
-        PendingGap()
-    }
+    CytBottomSheet(onCancel) { DebugStepContent(name, connecting = reach is Reach.Connecting, onCancel) }
+}
+
+@Composable
+internal fun ColumnScope.DebugStepContent(tvName: String, connecting: Boolean, onCancel: () -> Unit) {
+    Box(Modifier.fillMaxWidth().padding(top = 8.dp), contentAlignment = Alignment.Center) { TvStatusChip(tvName, TvStatus.WAITING) }
+    StepCard(stringResource(R.string.debugstep_title), stringResource(R.string.debugstep_body), Modifier.padding(top = 16.dp))
+    Body(stringResource(R.string.debugstep_note), Modifier.padding(top = 12.dp, start = 4.dp, end = 4.dp))
+    LiveLine(stringResource(if (connecting) R.string.debugstep_connecting else R.string.debugstep_waiting))
+    TertiaryButton(stringResource(R.string.action_cancel), onCancel, Modifier.align(Alignment.CenterHorizontally).padding(top = 12.dp), quiet = true)
 }
 
 // A Manage write that paused left its run open (R5-W8 O2): every later write on that TV would be
@@ -127,122 +181,156 @@ fun DebugStepSheet(reach: Reach, onCancel: () -> Unit) {
 // resume card instead, which owns the home screen check.
 @Composable
 fun OpenWriteSheet(open: OpenWrite, onAction: (OpenWriteAction) -> Unit, onOpenSetup: () -> Unit, onDismiss: () -> Unit) {
+    CytBottomSheet(onDismiss) { OpenWriteContent(open, onAction, onOpenSetup, onDismiss) }
+}
+
+@Composable
+internal fun ColumnScope.OpenWriteContent(open: OpenWrite, onAction: (OpenWriteAction) -> Unit, onOpenSetup: () -> Unit, onDismiss: () -> Unit) {
     val setup = open.kind == PlanKind.SETUP
-    PendingBottomSheet(onDismiss) {
-        val body = when {
-            open.notTaken -> stringResource(R.string.openwrite_not_taken)
-            setup -> msg(R.string.openwrite_body_setup, "tv" to open.tvName)
-            open.reason == PauseReason.CONNECTION_LOST -> stringResource(R.string.openwrite_body_lost)
-            else -> stringResource(R.string.openwrite_body)
-        }
-        if (setup) PendingStopCard(msg(R.string.openwrite_title, "tv" to open.tvName), body,
+    val body = when {
+        open.notTaken -> stringResource(R.string.openwrite_not_taken)
+        setup -> msg(R.string.openwrite_body_setup, "tv" to open.tvName)
+        open.reason == PauseReason.CONNECTION_LOST -> stringResource(R.string.openwrite_body_lost)
+        else -> stringResource(R.string.openwrite_body)
+    }
+    val title = msg(R.string.openwrite_title, "tv" to open.tvName)
+    Gap(8.dp)
+    if (setup) {
+        StopCard(title, body,
             primaryLabel = stringResource(R.string.openwrite_open_setup), onPrimary = onOpenSetup,
-            tertiaryLabel = stringResource(R.string.openwrite_later), onTertiary = onDismiss)
-        else PendingStopCard(msg(R.string.openwrite_title, "tv" to open.tvName), body,
+            tertiaryLabel = stringResource(R.string.openwrite_later), onTertiary = onDismiss,
+            primaryGuarded = false)   // navigation: it only opens the wizard's resume card
+    } else {
+        StopCard(title, body,
             primaryLabel = if (open.busy) null else stringResource(R.string.openwrite_carry_on), onPrimary = { onAction(OpenWriteAction.CARRY_ON) },
             secondaryLabel = if (open.busy) null else stringResource(R.string.openwrite_undo), onSecondary = { onAction(OpenWriteAction.UNDO) },
             tertiaryLabel = if (open.busy) null else stringResource(R.string.openwrite_stop), onTertiary = { onAction(OpenWriteAction.STOP_HERE) },
             busyText = if (open.busy) stringResource(R.string.openwrite_busy) else null)
-        PendingGap()
     }
 }
 
 // M4 Switched off: "Put back" is one op with a 5 s undo snackbar (the app shows the snackbar).
 @Composable
 fun SwitchedOffScreen(state: SwitchedOffState, onIntent: (SwitchedOffIntent) -> Unit, onBack: () -> Unit, modifier: Modifier = Modifier) {
-    PendingScreenScaffold(modifier, topBar = { PendingTopBar(onBack = onBack, backDescription = stringResource(R.string.action_back)) }) {
-        PendingScreenTitle(msg(R.string.switchedoff_title, "count" to state.count))
-        if (state.loading) { PendingSpinner(); return@PendingScreenScaffold }
-        if (state.groups.isEmpty()) {
-            PendingLead(stringResource(R.string.switchedoff_empty))
-            PendingBody(stringResource(R.string.switchedoff_empty_sub))
-        } else PendingLead(stringResource(R.string.switchedoff_intro))
+    ScreenScaffold(Glow.Tv, modifier, topBar = { CytTopBar(onBack = onBack) }) {
+        ScreenTitle(msg(R.string.switchedoff_title, "count" to state.count), titleTop)
+        if (state.loading) {
+            Box(Modifier.fillMaxWidth().padding(top = 32.dp), contentAlignment = Alignment.Center) { Spinner(size = 24.dp) }
+            return@ScreenScaffold
+        }
+        if (state.groups.isEmpty() && state.askGroups.isEmpty()) {
+            Lead(stringResource(R.string.switchedoff_empty), Modifier.padding(top = 12.dp))
+            Body(stringResource(R.string.switchedoff_empty_sub), Modifier.padding(top = 8.dp))
+        } else {
+            Lead(stringResource(R.string.switchedoff_intro), Modifier.padding(top = 12.dp))
+        }
         state.groups.forEach { g ->
-            PendingOverline(g.title.ifEmpty { stringResource(R.string.switchedoff_group_other) })
-            PendingListGroup {
-                g.rows.forEach { r ->
+            SectionLabel(g.title.ifEmpty { stringResource(R.string.switchedoff_group_other) })
+            ListGroup {
+                g.rows.forEachIndexed { i, r ->
+                    if (i > 0) ListDivider()
                     val cd = msg(R.string.switchedoff_put_back_cd, "name" to r.name)
-                    PendingListRow(r.name, subtitle = r.description, trailing = {
-                        if (state.busy == r.pkg) PendingSpinner()
-                        else PendingTertiaryButton(stringResource(R.string.switchedoff_put_back), { onIntent(SwitchedOffIntent.PutBack(r.pkg)) },
+                    ListRow(r.name, subtitle = r.description, trailing = {
+                        if (state.busy == r.pkg) Box(Modifier.padding(horizontal = 16.dp)) { Spinner() }
+                        else TertiaryButton(stringResource(R.string.switchedoff_put_back), { onIntent(SwitchedOffIntent.PutBack(r.pkg)) },
                             Modifier.semantics { contentDescription = cd }, enabled = state.busy == null)
                     })
                 }
             }
         }
-        // Custom adds the ask groups with Off / Kept pills (D2).
+        // Custom adds the ask groups with Off / Kept pills and the package names in grey (D2).
         state.askGroups.forEach { g ->
-            PendingOverline(g.title)
-            PendingListGroup {
-                g.rows.forEach { r ->
-                    PendingDiffRow(r.name, r.description, r.pkg.value, r.off, stringResource(R.string.switchedoff_pill_off), stringResource(R.string.switchedoff_pill_kept),
-                        onToggle = if (state.busy == null) ({ onIntent(SwitchedOffIntent.SetOff(r.pkg, !r.off)) }) else null)
-                }
-            }
+            val group = DiffGroup(g.id, g.title, g.rows.map { DiffItem(it.pkg.value, it.name, it.description.orEmpty(), it.pkg.value, it.off) })
+            DiffGroupSection(
+                group, { item -> if (state.busy == null) onIntent(SwitchedOffIntent.SetOff(PackageName(item.key), !item.off)) },
+                Modifier.padding(top = 20.dp), showPackageNames = true,
+            )
         }
+        Gap(24.dp)
     }
 }
 
 // M5 Check for leftovers (D22).
 @Composable
 fun LeftoversScreen(state: LeftoversState, onIntent: (LeftoversIntent) -> Unit, onBack: () -> Unit, modifier: Modifier = Modifier) {
-    PendingScreenScaffold(modifier, topBar = { PendingTopBar(onBack = onBack, backDescription = stringResource(R.string.action_back)) }, bottomBar = {
-        when (state) {
-            is LeftoversState.Found -> {
-                PendingPrimaryButton(stringResource(R.string.leftovers_switch_off), { onIntent(LeftoversIntent.SwitchOff) })
-                PendingTertiaryButton(stringResource(R.string.leftovers_not_now), { onIntent(LeftoversIntent.NotNow) }, Modifier.align(Alignment.CenterHorizontally))
+    val bottom: (@Composable ColumnScope.() -> Unit)? = when (state) {
+        is LeftoversState.Found -> ({
+            ActionColumn {
+                PrimaryButton(stringResource(R.string.leftovers_switch_off), { onIntent(LeftoversIntent.SwitchOff) })
+                TertiaryButton(stringResource(R.string.leftovers_not_now), { onIntent(LeftoversIntent.NotNow) })
             }
-            LeftoversState.Failed -> PendingSecondaryButton(stringResource(R.string.leftovers_title), { onIntent(LeftoversIntent.CheckAgain) })
-            else -> {}
-        }
-    }) {
-        PendingScreenTitle(stringResource(R.string.leftovers_title))
+        })
+        LeftoversState.Failed -> ({ SecondaryButton(stringResource(R.string.leftovers_title), { onIntent(LeftoversIntent.CheckAgain) }) })
+        else -> null
+    }
+    ScreenScaffold(Glow.Tv, modifier, topBar = { CytTopBar(onBack = onBack) }, bottomBar = bottom) {
+        ScreenTitle(stringResource(R.string.leftovers_title), titleTop)
         when (state) {
-            LeftoversState.Checking -> PendingLiveLine(stringResource(R.string.leftovers_checking), found = false)
+            LeftoversState.Checking -> LiveLine(stringResource(R.string.leftovers_checking))
             is LeftoversState.Found -> {
-                PendingLead(msg(R.string.leftovers_found, "count" to state.names.size))
-                PendingListGroup { state.names.forEach { PendingListRow(it) } }
+                Lead(msg(R.string.leftovers_found, "count" to state.names.size), Modifier.padding(top = 12.dp))
+                ListGroup(Modifier.padding(top = 20.dp)) {
+                    state.names.forEachIndexed { i, name ->
+                        if (i > 0) ListDivider()
+                        ListRow(name)
+                    }
+                }
             }
-            LeftoversState.Nothing -> PendingLead(stringResource(R.string.leftovers_none))
-            is LeftoversState.Working -> { PendingLiveLine(stringResource(R.string.leftovers_checking), found = false); PendingProgressBar(state.percent / 100f) }
-            is LeftoversState.Done -> PendingCheckLine(stringResource(R.string.leftovers_done))
-            LeftoversState.Failed -> PendingLead(stringResource(R.string.leftovers_error))
+            LeftoversState.Nothing -> Lead(stringResource(R.string.leftovers_none), Modifier.padding(top = 12.dp))
+            is LeftoversState.Working -> {
+                LiveLine(stringResource(R.string.leftovers_checking))
+                ProgressBar(state.percent / 100f, Modifier.padding(top = 16.dp))
+            }
+            is LeftoversState.Done -> CheckLine(stringResource(R.string.leftovers_done), Modifier.padding(top = 20.dp, start = 4.dp))
+            LeftoversState.Failed -> Lead(stringResource(R.string.leftovers_error), Modifier.padding(top = 12.dp))
         }
     }
 }
 
-// M7 TV settings (D46; "Keep debugging on" is Expert, 0.2, and absent).
+// M7 TV settings (D46; "Keep debugging on" is Expert, 0.2, and absent). The level choice carries
+// the one-line explanation of each level.
 @Composable
 fun TvSettingsScreen(state: TvSettingsState, onIntent: (TvSettingsIntent) -> Unit, onBack: () -> Unit, modifier: Modifier = Modifier) {
     val locale = LocalConfiguration.current.locales[0]
     var name by rememberSaveable(state.name) { mutableStateOf(state.name) }
     var room by rememberSaveable(state.room) { mutableStateOf(state.room.orEmpty()) }
-    PendingScreenScaffold(modifier, topBar = { PendingTopBar(onBack = onBack, backDescription = stringResource(R.string.action_back)) }) {
-        PendingScreenTitle(stringResource(R.string.tvsettings_title))
-        PendingOverline(stringResource(R.string.tvsettings_name_room))
-        PendingTextField(name, { name = it.take(40) }, stringResource(R.string.tvsettings_name_label))
-        PendingTextField(room, { room = it.take(40) }, stringResource(R.string.tvsettings_room_label))
-        if (name != state.name || room != state.room.orEmpty()) PendingSecondaryButton(stringResource(R.string.action_done), { onIntent(TvSettingsIntent.Rename(name, room)) }, enabled = name.isNotBlank())
-        PendingOverline(stringResource(R.string.tvsettings_level_label))
-        PendingListGroup {
-            PendingListRow(stringResource(R.string.tvsettings_level_simple), value = if (state.level == Level.SIMPLE) "✓" else null, onClick = { onIntent(TvSettingsIntent.SetLevel(Level.SIMPLE)) })
-            PendingListRow(stringResource(R.string.tvsettings_level_custom), value = if (state.level == Level.CUSTOM) "✓" else null, onClick = { onIntent(TvSettingsIntent.SetLevel(Level.CUSTOM)) })
+    ScreenScaffold(Glow.Tv, modifier, topBar = { CytTopBar(onBack = onBack) }) {
+        ScreenTitle(stringResource(R.string.tvsettings_title), titleTop)
+        SectionLabel(stringResource(R.string.tvsettings_name_room))
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            CytTextField(name, { name = it.take(40) }, stringResource(R.string.tvsettings_name_label))
+            CytTextField(room, { room = it.take(40) }, stringResource(R.string.tvsettings_room_label))
         }
-        PendingBody(stringResource(R.string.tvsettings_level_note))
-        PendingListGroup {
-            PendingListRow(stringResource(R.string.tvsettings_address), subtitle = state.lastSeenAtMs?.let { msg(R.string.tvsettings_last_seen, "date" to shortDateTime(it, locale)) },
+        if (name != state.name || room != state.room.orEmpty()) {
+            SecondaryButton(stringResource(R.string.action_done), { onIntent(TvSettingsIntent.Rename(name, room)) }, Modifier.padding(top = 12.dp), enabled = name.isNotBlank())
+        }
+        SectionLabel(stringResource(R.string.tvsettings_level_label))
+        ChoiceList(
+            listOf(
+                ChoiceOption(Level.SIMPLE.name, stringResource(R.string.tvsettings_level_simple), stringResource(R.string.manage_level_simple_note), icon = null),
+                ChoiceOption(Level.CUSTOM.name, stringResource(R.string.tvsettings_level_custom), stringResource(R.string.manage_level_custom_note), icon = null),
+            ),
+            state.level.name,
+            { onIntent(TvSettingsIntent.SetLevel(Level.valueOf(it.key))) },
+        )
+        Body(stringResource(R.string.tvsettings_level_note), Modifier.padding(top = 10.dp, start = 4.dp, end = 4.dp))
+        ListGroup(Modifier.padding(top = 20.dp)) {
+            ListRow(stringResource(R.string.tvsettings_address), subtitle = state.lastSeenAtMs?.let { msg(R.string.tvsettings_last_seen, "date" to shortDateTime(it, locale)) },
                 value = state.address)
         }
-        PendingGap()
-        PendingSecondaryButton(stringResource(R.string.tvsettings_forget), { onIntent(TvSettingsIntent.AskForget) }, enabled = !state.forgetting)
-        PendingBody(stringResource(R.string.tvsettings_forget_explain))
+        SecondaryButton(stringResource(R.string.tvsettings_forget), { onIntent(TvSettingsIntent.AskForget) }, Modifier.padding(top = 24.dp), enabled = !state.forgetting)
+        Body(stringResource(R.string.tvsettings_forget_explain), Modifier.padding(top = 10.dp, start = 4.dp, end = 4.dp, bottom = 24.dp))
     }
-    if (state.confirmingForget) PendingBottomSheet({ onIntent(TvSettingsIntent.CancelForget) }) {
-        PendingSheetHeader(msg(R.string.tvsettings_forget_title, "tv" to state.name))
-        PendingBody(stringResource(R.string.tvsettings_forget_explain))
-        PendingSecondaryButton(stringResource(R.string.tvsettings_forget_confirm), { onIntent(TvSettingsIntent.Forget) })
-        PendingTertiaryButton(stringResource(R.string.action_cancel), { onIntent(TvSettingsIntent.CancelForget) })
-        PendingGap()
+    if (state.confirmingForget) CytBottomSheet({ onIntent(TvSettingsIntent.CancelForget) }) { ForgetContent(state.name, onIntent) }
+}
+
+@Composable
+internal fun ColumnScope.ForgetContent(tvName: String, onIntent: (TvSettingsIntent) -> Unit) {
+    SheetHeader(msg(R.string.tvsettings_forget_title, "tv" to tvName))
+    Body(stringResource(R.string.tvsettings_forget_explain), Modifier.padding(top = 8.dp))
+    ActionColumn(Modifier.padding(top = 20.dp)) {
+        PrimaryButton(stringResource(R.string.tvsettings_forget_confirm), { onIntent(TvSettingsIntent.Forget) })
+        TertiaryButton(stringResource(R.string.action_cancel), { onIntent(TvSettingsIntent.CancelForget) }, quiet = true)
     }
 }
 
@@ -251,72 +339,100 @@ fun TvSettingsScreen(state: TvSettingsState, onIntent: (TvSettingsIntent) -> Uni
 fun AppSettingsScreen(state: AppSettingsState, onIntent: (AppSettingsIntent) -> Unit, onBack: () -> Unit, onOpenRelease: () -> Unit, modifier: Modifier = Modifier) {
     var licences by rememberSaveable { mutableStateOf(false) }
     var privacy by rememberSaveable { mutableStateOf(false) }
-    PendingScreenScaffold(modifier, topBar = { PendingTopBar(onBack = onBack, backDescription = stringResource(R.string.action_back)) }) {
-        PendingScreenTitle(stringResource(R.string.appsettings_title))
-        PendingListGroup {
-            PendingSwitchRow(stringResource(R.string.appsettings_large_text), state.prefs.largeTextFollowsSystem, { onIntent(AppSettingsIntent.SetLargeText(it)) },
+    ScreenScaffold(Glow.Tv, modifier, topBar = { CytTopBar(onBack = onBack) }) {
+        ScreenTitle(stringResource(R.string.appsettings_title), titleTop)
+        ListGroup(Modifier.padding(top = 20.dp)) {
+            SwitchRow(stringResource(R.string.appsettings_large_text), state.prefs.largeTextFollowsSystem, { onIntent(AppSettingsIntent.SetLargeText(it)) },
                 subtitle = stringResource(R.string.appsettings_large_text_note))
-            PendingSwitchRow(stringResource(R.string.appsettings_haptics), state.prefs.haptics, { onIntent(AppSettingsIntent.SetHaptics(it)) },
+            ListDivider()
+            SwitchRow(stringResource(R.string.appsettings_haptics), state.prefs.haptics, { onIntent(AppSettingsIntent.SetHaptics(it)) },
                 subtitle = stringResource(R.string.appsettings_haptics_note))
         }
-        PendingOverline(stringResource(R.string.appsettings_about))
-        PendingListGroup {
-            PendingListRow(msg(R.string.appsettings_version, "version" to state.version))
-            PendingListRow(stringResource(R.string.appsettings_launcher_pin_label))
-            PendingMonospaceBlock(listOf(msg(R.string.appsettings_launcher_pin_line, "package" to state.launcherPkg, "version" to state.launcherVersion, "digest" to state.launcherDigest)))
-            PendingListRow(stringResource(R.string.appsettings_key_label), subtitle = stringResource(when (state.keyBacking) {
+        SectionLabel(stringResource(R.string.appsettings_about))
+        ListGroup {
+            ListRow(msg(R.string.appsettings_version, "version" to state.version))
+            ListDivider()
+            ListRow(stringResource(R.string.appsettings_launcher_pin_label))
+            MonospaceBlock(
+                listOf(msg(R.string.appsettings_launcher_pin_line, "package" to state.launcherPkg, "version" to state.launcherVersion, "digest" to state.launcherDigest)),
+                Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+            )
+            ListDivider()
+            ListRow(stringResource(R.string.appsettings_key_label), subtitle = stringResource(when (state.keyBacking) {
                 "STRONGBOX" -> R.string.appsettings_key_strongbox
                 "TEE" -> R.string.appsettings_key_tee
                 else -> R.string.appsettings_key_wrapped
             }))
-            if (state.keyFingerprint.isNotEmpty()) PendingMonospaceBlock(listOf(state.keyFingerprint))
+            if (state.keyFingerprint.isNotEmpty()) MonospaceBlock(listOf(state.keyFingerprint), Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp))
+            ListDivider()
             val update = state.update
-            PendingListRow(stringResource(R.string.appsettings_check_updates), subtitle = when (update) {
+            ListRow(stringResource(R.string.appsettings_check_updates), subtitle = when (update) {
                 UpdateCheck.Checking -> stringResource(R.string.appsettings_checking)
                 is UpdateCheck.Available -> msg(R.string.appsettings_update_available, "version" to update.version)
                 UpdateCheck.Latest -> stringResource(R.string.appsettings_up_to_date)
                 UpdateCheck.Failed -> stringResource(R.string.appsettings_update_error)
                 UpdateCheck.Idle -> null
-            }, onClick = { if (update is UpdateCheck.Available) onOpenRelease() else onIntent(AppSettingsIntent.CheckUpdates) })
+            }, trailing = if (update == UpdateCheck.Checking) ({ Spinner() }) else null,
+                onClick = { if (update is UpdateCheck.Available) onOpenRelease() else onIntent(AppSettingsIntent.CheckUpdates) })
         }
-        PendingListGroup {
-            PendingListRow(stringResource(R.string.appsettings_licences), onClick = { licences = true })
-            PendingListRow(stringResource(R.string.appsettings_privacy), onClick = { privacy = true })
-            PendingListRow(stringResource(R.string.appsettings_diagnostics), onClick = { onIntent(AppSettingsIntent.PreviewDiagnostics) })
+        ListGroup(Modifier.padding(top = 12.dp)) {
+            ListRow(stringResource(R.string.appsettings_licences), onClick = { licences = true })
+            ListDivider()
+            ListRow(stringResource(R.string.appsettings_privacy), onClick = { privacy = true })
+            ListDivider()
+            ListRow(stringResource(R.string.appsettings_diagnostics), onClick = { onIntent(AppSettingsIntent.PreviewDiagnostics) })
         }
-        PendingListGroup {
-            PendingListRow(stringResource(R.string.appsettings_reset_key), subtitle = stringResource(R.string.appsettings_reset_key_note), onClick = { onIntent(AppSettingsIntent.Ask(AppConfirm.RESET_KEY)) })
-            PendingListRow(stringResource(R.string.appsettings_delete_all), subtitle = stringResource(R.string.appsettings_delete_all_note), onClick = { onIntent(AppSettingsIntent.Ask(AppConfirm.DELETE_EVERYTHING)) })
+        ListGroup(Modifier.padding(top = 12.dp, bottom = 24.dp)) {
+            ListRow(stringResource(R.string.appsettings_reset_key), subtitle = stringResource(R.string.appsettings_reset_key_note),
+                onClick = { onIntent(AppSettingsIntent.Ask(AppConfirm.RESET_KEY)) })
+            ListDivider()
+            ListRow(stringResource(R.string.appsettings_delete_all), subtitle = stringResource(R.string.appsettings_delete_all_note),
+                onClick = { onIntent(AppSettingsIntent.Ask(AppConfirm.DELETE_EVERYTHING)) })
         }
     }
-    if (licences) PendingBottomSheet({ licences = false }) {
-        PendingSheetHeader(stringResource(R.string.appsettings_licences))
-        listOf(R.string.appsettings_licence_app, R.string.appsettings_licence_font, R.string.appsettings_licence_apache, R.string.appsettings_licence_bouncycastle)
-            .forEach { PendingListRow(stringResource(it)) }
-        PendingGap()
-    }
-    if (privacy) PendingBottomSheet({ privacy = false }) {
-        PendingSheetHeader(stringResource(R.string.appsettings_privacy))
-        PendingBody(stringResource(R.string.appsettings_privacy_text), color = MaterialTheme.colorScheme.onSurface)
-        PendingGap()
-    }
+    if (licences) CytBottomSheet({ licences = false }) { LicencesContent() }
+    if (privacy) CytBottomSheet({ privacy = false }) { PrivacyContent() }
     state.diagnostics?.let { text ->
-        PendingBottomSheet({ onIntent(AppSettingsIntent.CloseDiagnostics) }) {
-            PendingSheetHeader(stringResource(R.string.appsettings_diagnostics_preview_title), subtitle = stringResource(R.string.appsettings_diagnostics_preview_body))
-            PendingMonospaceBlock(text.lines().take(200))
-            PendingPrimaryButton(stringResource(R.string.appsettings_diagnostics_share), { onIntent(AppSettingsIntent.ShareDiagnostics) })
-            PendingGap()
-        }
+        CytBottomSheet({ onIntent(AppSettingsIntent.CloseDiagnostics) }) { DiagnosticsContent(text, onIntent) }
     }
     state.confirm?.let { what ->
-        PendingBottomSheet({ onIntent(AppSettingsIntent.CancelConfirm) }) {
-            val reset = what == AppConfirm.RESET_KEY
-            PendingSheetHeader(stringResource(if (reset) R.string.appsettings_reset_key_title else R.string.appsettings_delete_all_title))
-            PendingBody(stringResource(if (reset) R.string.appsettings_reset_key_note else R.string.appsettings_delete_all_note), color = MaterialTheme.colorScheme.onSurface)
-            PendingSecondaryButton(stringResource(if (reset) R.string.appsettings_reset_key_confirm else R.string.appsettings_delete_all_confirm),
-                { onIntent(if (reset) AppSettingsIntent.ResetKey else AppSettingsIntent.DeleteEverything) }, enabled = !state.working)
-            PendingTertiaryButton(stringResource(R.string.action_cancel), { onIntent(AppSettingsIntent.CancelConfirm) })
-            PendingGap()
-        }
+        CytBottomSheet({ onIntent(AppSettingsIntent.CancelConfirm) }) { ConfirmContent(what, state.working, onIntent) }
+    }
+}
+
+@Composable
+internal fun ColumnScope.LicencesContent() {
+    SheetHeader(stringResource(R.string.appsettings_licences))
+    ListGroup(Modifier.padding(top = 16.dp)) {
+        listOf(R.string.appsettings_licence_app, R.string.appsettings_licence_font, R.string.appsettings_licence_apache, R.string.appsettings_licence_bouncycastle)
+            .forEachIndexed { i, id ->
+                if (i > 0) ListDivider()
+                ListRow(stringResource(id))
+            }
+    }
+}
+
+@Composable
+internal fun ColumnScope.PrivacyContent() {
+    SheetHeader(stringResource(R.string.appsettings_privacy))
+    Body(stringResource(R.string.appsettings_privacy_text), Modifier.padding(top = 8.dp), color = CytTheme.colors.textPrimary)
+}
+
+@Composable
+internal fun ColumnScope.DiagnosticsContent(text: String, onIntent: (AppSettingsIntent) -> Unit) {
+    SheetHeader(stringResource(R.string.appsettings_diagnostics_preview_title), subtitle = stringResource(R.string.appsettings_diagnostics_preview_body))
+    MonospaceBlock(text.lines().take(200), Modifier.padding(top = 16.dp))
+    PrimaryButton(stringResource(R.string.appsettings_diagnostics_share), { onIntent(AppSettingsIntent.ShareDiagnostics) }, Modifier.padding(top = 20.dp))
+}
+
+@Composable
+internal fun ColumnScope.ConfirmContent(what: AppConfirm, working: Boolean, onIntent: (AppSettingsIntent) -> Unit) {
+    val reset = what == AppConfirm.RESET_KEY
+    SheetHeader(stringResource(if (reset) R.string.appsettings_reset_key_title else R.string.appsettings_delete_all_title))
+    Body(stringResource(if (reset) R.string.appsettings_reset_key_note else R.string.appsettings_delete_all_note), Modifier.padding(top = 8.dp))
+    ActionColumn(Modifier.padding(top = 20.dp)) {
+        PrimaryButton(stringResource(if (reset) R.string.appsettings_reset_key_confirm else R.string.appsettings_delete_all_confirm),
+            { onIntent(if (reset) AppSettingsIntent.ResetKey else AppSettingsIntent.DeleteEverything) }, enabled = !working)
+        TertiaryButton(stringResource(R.string.action_cancel), { onIntent(AppSettingsIntent.CancelConfirm) }, quiet = true)
     }
 }
