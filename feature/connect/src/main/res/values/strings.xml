@@ -26,6 +26,8 @@
     <string name="welcome_none_yet">No TV yet. Keep going, we\'ll keep looking.</string>
     <string name="welcome_start">Start</string>
     <string name="welcome_returning">I\'ve set up a TV before</string>
+    <!-- S1b and UX 4.1 copy: offered on Welcome too, so a wrong or missing find is never a dead end -->
+    <string name="welcome_address">Enter the TV\'s address</string>
 
     <!-- S1b Which TV? -->
     <string name="picker_title">Which TV?</string>
