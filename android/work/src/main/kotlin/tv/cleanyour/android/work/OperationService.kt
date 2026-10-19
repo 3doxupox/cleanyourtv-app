@@ -33,8 +33,10 @@ class OperationService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val first = Bus.notice.value
-        if (first == null) { stopSelf(); return START_NOT_STICKY }
+        // A service started with startForegroundService must call startForeground before it stops,
+        // even when the run ended before this ran (Android 9+ crashes the app otherwise); the
+        // collector below then stops it at once on the null notice.
+        val first = Bus.notice.value ?: Bus.last
         startInForeground(build(first))
         watch?.cancel()
         watch = scope.launch {
@@ -60,18 +62,18 @@ class OperationService : Service() {
         else startForeground(NOTIFICATION_ID, n)
     }
 
-    private fun build(n: OperationNotice): Notification {
+    private fun build(n: OperationNotice?): Notification {
         ensureChannel(this)
         val open = packageManager.getLaunchIntentForPackage(packageName)?.apply { addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP) }
         val pi = open?.let { PendingIntent.getActivity(this, 0, it, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT) }
         val b = Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(Bus.smallIcon)
-            .setContentTitle(n.text)
+            .setContentTitle(n?.text ?: Bus.channelName)
             .setOngoing(true)
-            .setOnlyAlertOnce(!n.look)
-            .setCategory(if (n.look) Notification.CATEGORY_CALL else Notification.CATEGORY_PROGRESS)
+            .setOnlyAlertOnce(n?.look != true)
+            .setCategory(if (n?.look == true) Notification.CATEGORY_CALL else Notification.CATEGORY_PROGRESS)
             .setContentIntent(pi)
-        n.percent?.let { b.setProgress(100, it, false) }
+        n?.percent?.let { b.setProgress(100, it, false) }
         return b.build()
     }
 
@@ -79,12 +81,15 @@ class OperationService : Service() {
     object Bus {
         private val mutable = MutableStateFlow<OperationNotice?>(null)
         val notice: StateFlow<OperationNotice?> = mutable.asStateFlow()
+        @Volatile var last: OperationNotice? = null
+            private set
         var smallIcon: Int = android.R.drawable.stat_sys_upload
         var channelName: String = "Setting up a TV"
 
         fun publish(context: Context, notice: OperationNotice?) {
             val wasIdle = mutable.value == null
             mutable.value = notice
+            if (notice != null) last = notice
             if (notice != null && wasIdle) {
                 val i = Intent(context, OperationService::class.java)
                 runCatching { context.startForegroundService(i) }
