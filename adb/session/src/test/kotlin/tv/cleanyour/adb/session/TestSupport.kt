@@ -1,6 +1,9 @@
 package tv.cleanyour.adb.session
 
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import tv.cleanyour.adb.session.AdbTvSession
 import tv.cleanyour.adb.wire.SoftwareRsaAdbSigner
 import tv.cleanyour.core.model.BlobRef
@@ -18,6 +21,7 @@ import tv.cleanyour.testing.fakeadbd.Faults
 import tv.cleanyour.testing.fakeadbd.Personas
 import tv.cleanyour.testing.fakeadbd.sha256Hex
 import java.io.File
+import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.io.path.createTempFile
 import kotlin.test.assertIs
 
@@ -37,13 +41,26 @@ class Rig(scope: TestScope, tv: FakeTv = Personas.miTv(), val faults: Faults = F
     val adbd = FakeAdbd(tv, faults, scope.backgroundScope).also { if (trusted) it.trust(Keys.signer) }
     val factory = FakeAdbdSocketFactory(mapOf(HOST to adbd))
     val clock = TestClock(scope)
-    val manager = AdbSessionManager(factory, Keys.signer, null, clock, scope.backgroundScope)
+    val manager = AdbSessionManager(factory, Keys.signer, null, clock, scope.backgroundScope, EmptyCoroutineContext)
     val endpoint = Endpoint.PlainTcp(HOST)
     val tv: FakeTv get() = adbd.tv
 
     suspend fun open(expected: TvId? = null, onAllow: suspend (String) -> Unit = {}): AdbTvSession =
         assertIs<OpenResult.Ok>(manager.open(endpoint, expected, onAllow)).session as AdbTvSession
 }
+
+// Lets background work (the fake adbd, the session's reconnects) run for a while of virtual
+// time. advanceUntilIdle stops as soon as only background tasks remain, so it is not enough here.
+@OptIn(ExperimentalCoroutinesApi::class)
+fun TestScope.settle(ms: Long = 2_000) {
+    advanceTimeBy(ms)
+    runCurrent()
+}
+
+// What the fake saw, for failure messages.
+fun Rig.diag(): String = "events=" + adbd.events.joinToString(" | ") +
+    " connections=" + adbd.connections.joinToString { "closed=${it.closed} opened=${it.openedServices}" } +
+    " attempts=" + factory.attempts.size
 
 @OptIn(RawShell::class)
 fun line(text: String): ShellLine = ShellLine(text)

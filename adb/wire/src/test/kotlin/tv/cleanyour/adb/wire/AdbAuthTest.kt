@@ -1,5 +1,7 @@
 package tv.cleanyour.adb.wire
 
+import org.junit.Rule
+import org.junit.rules.Timeout
 import kotlinx.coroutines.runBlocking
 import java.math.BigInteger
 import java.security.interfaces.RSAPublicKey
@@ -13,6 +15,8 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class AdbAuthTest {
+    // Every test is bounded (a hang once blocked the shared forge build lock).
+    @get:Rule val timeout: Timeout = Timeout.seconds(60)
     private val signer = TestKeys.signer
     private val publicKey = signer.keyPair.public as RSAPublicKey
 
@@ -61,7 +65,7 @@ class AdbAuthTest {
         assertEquals(AdbPublicKeyCodec.fingerprint(publicKey), fp)
     }
 
-    @Test fun signatureIsPkcs1OverDigestInfoAndToken() = runBlocking {
+    @Test fun signatureIsPkcs1OverDigestInfoAndToken() = runBlocking<Unit> {
         val token = ByteArray(20) { it.toByte() }
         val sig = signer.sign(AuthToken(token))
         assertEquals(256, sig.size)
@@ -78,7 +82,7 @@ class AdbAuthTest {
         assertContentEquals(token, m.copyOfRange(236, 256))
     }
 
-    @Test fun verifyRejectsTheBareTokenFormAndWrongSizes() = runBlocking {
+    @Test fun verifyRejectsTheBareTokenFormAndWrongSizes() = runBlocking<Unit> {
         val token = ByteArray(20) { 7 }
         val sig = signer.sign(AuthToken(token))
         assertFalse(AdbSignature.verify(publicKey, token + byteArrayOf(0), sig))
@@ -97,11 +101,11 @@ class AdbAuthTest {
         assertFailsWith<IllegalArgumentException> { AuthToken(ByteArray(256)) }
     }
 
-    @Test fun selfTestPassesForTheSoftwareSigner() = runBlocking {
+    @Test fun selfTestPassesForTheSoftwareSigner() = runBlocking<Unit> {
         assertIs<SignerSelfTest.Pass>(signer.selfTest())
     }
 
-    @Test fun selfTestCatchesALyingSigner() = runBlocking {
+    @Test fun selfTestCatchesALyingSigner() = runBlocking<Unit> {
         val liar = object : AdbSigner by signer {
             override suspend fun sign(token: AuthToken): ByteArray = ByteArray(256)
         }
@@ -113,7 +117,7 @@ class AdbAuthTest {
         assertIs<SignerSelfTest.Fail>(wrongComment.selfTest())
     }
 
-    @Test fun resetMakesANewKey() = runBlocking {
+    @Test fun resetMakesANewKey() = runBlocking<Unit> {
         val s = TestKeys.fresh()
         val before = s.fingerprint
         s.reset()

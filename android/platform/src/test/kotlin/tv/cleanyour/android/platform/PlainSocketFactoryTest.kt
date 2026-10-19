@@ -1,5 +1,7 @@
 package tv.cleanyour.android.platform
 
+import org.junit.Rule
+import org.junit.rules.Timeout
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -29,8 +31,10 @@ import kotlin.test.assertTrue
 
 // Plain JVM test: the factory and the TCP socket use java.net only, so no Robolectric is needed.
 class PlainSocketFactoryTest {
+    // Every test is bounded (a hang once blocked the shared forge build lock).
+    @get:Rule val timeout: Timeout = Timeout.seconds(60)
 
-    @Test fun connectsHandshakesAndRunsAShellOverLoopback() = runBlocking {
+    @Test fun connectsHandshakesAndRunsAShellOverLoopback() = runBlocking<Unit> {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         val signer = SoftwareRsaAdbSigner(SoftwareRsaAdbSigner.generateKeyPair())
         val adbd = FakeAdbd(Personas.miTv(), Faults(), scope).also { it.trust(signer) }
@@ -64,14 +68,14 @@ class PlainSocketFactoryTest {
         }
     }
 
-    @Test fun refusedPortIsAConnectException() = runBlocking {
+    @Test fun refusedPortIsAConnectException() = runBlocking<Unit> {
         val ss = java.net.ServerSocket(0, 1, java.net.InetAddress.getLoopbackAddress())
         val port = ss.localPort
         ss.close()
         assertFailsWith<ConnectException> { PlainSocketFactory().connect(Endpoint.PlainTcp("127.0.0.1", port), 2_000) }
     }
 
-    @Test fun onlyLiteralAddressesAreConnected() = runBlocking {
+    @Test fun onlyLiteralAddressesAreConnected() = runBlocking<Unit> {
         assertFailsWith<UnknownHostException> { PlainSocketFactory().connect(Endpoint.PlainTcp("tv.local", 5555), 1_000) }
         assertFailsWith<UnknownHostException> { PlainSocketFactory().connect(Endpoint.PlainTcp("192.168.0.300", 5555), 1_000) }
         assertTrue(PlainSocketFactory.isLiteralAddress("192.168.1.23"))
@@ -80,7 +84,7 @@ class PlainSocketFactoryTest {
         assertFalse(PlainSocketFactory.isLiteralAddress("192.168.0"))
     }
 
-    @Test fun tlsEndpointsAreRefusedInThisVersion() = runBlocking {
+    @Test fun tlsEndpointsAreRefusedInThisVersion() = runBlocking<Unit> {
         assertFailsWith<AdbException> { PlainSocketFactory().connect(Endpoint.Tls("127.0.0.1", 5555, null), 1_000) }
     }
 }

@@ -1,5 +1,7 @@
 package tv.cleanyour.testing.fakeadbd
 
+import org.junit.Rule
+import org.junit.rules.Timeout
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import kotlin.test.Test
@@ -8,6 +10,8 @@ import kotlin.test.assertTrue
 
 // The Mi TV persona answers the capture's commands with the capture's bytes (R2: fidelity).
 class PersonaFidelityTest {
+    // Every test is bounded (a hang once blocked the shared forge build lock).
+    @get:Rule val timeout: Timeout = Timeout.seconds(60)
     private val dir = Personas.captureDir("mitv-axso0-2026-10-18")
     private fun capture(name: String) = File(dir, name).readText()
 
@@ -39,7 +43,7 @@ class PersonaFidelityTest {
         assertEquals(capture("home-activity.txt"), run(tv, "cmd package resolve-activity --brief -c android.intent.category.HOME -a android.intent.action.MAIN"))
     }
 
-    @Test fun disablingChangesWhatTheListsSay() = runBlocking {
+    @Test fun disablingChangesWhatTheListsSay() = runBlocking<Unit> {
         val tv = Personas.miTv()
         val shell = FakeShell(tv, Faults())
         val target = tv.packages.values.first { it.system && it.name != "android" }.name

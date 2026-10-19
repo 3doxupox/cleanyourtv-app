@@ -1,7 +1,8 @@
 package tv.cleanyour.adb.session
 
+import org.junit.Rule
+import org.junit.rules.Timeout
 import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.runTest
 import tv.cleanyour.core.model.AdbError
@@ -20,6 +21,8 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class SessionExecTest {
+    // Every test is bounded (a hang once blocked the shared forge build lock).
+    @get:Rule val timeout: Timeout = Timeout.seconds(60)
 
     @Test fun execReturnsOutputAndExit() = runTest {
         val s = Rig(this).open()
@@ -93,7 +96,7 @@ class SessionExecTest {
             val e2 = assertFailsWith<AdbException>(text) { s.lines(line(text)).toList() }
             assertIs<AdbError.Policy.GuardFailed>(e2.error)
         }
-        advanceUntilIdle()
+        settle()
         assertTrue(rig.adbd.connections.single().openedServices.none { it.contains("pm ") && it.contains(";") })
         assertTrue(rig.tv.violations.isEmpty())
         // Single pm writes and chained reads pass.
@@ -143,7 +146,7 @@ class SessionExecTest {
         val hold = s.hold()
         val e = assertFailsWith<AdbException> { s.exec(line("flaky")) }
         assertEquals(AdbError.Transport.Closed, e.error)
-        advanceUntilIdle()
+        settle()
         assertIs<ConnectionState.Connected>(s.state.value)
         drops = 0
         val r = s.exec(line("flaky"), ExecSpec(retry = RetryClass.IDEMPOTENT_READ))

@@ -1,5 +1,7 @@
 package tv.cleanyour.adb.wire
 
+import org.junit.Rule
+import org.junit.rules.Timeout
 import kotlinx.coroutines.runBlocking
 import tv.cleanyour.core.model.AdbError
 import tv.cleanyour.core.model.AdbException
@@ -12,6 +14,8 @@ import kotlin.test.assertIs
 import kotlin.test.assertNull
 
 class FrameCodecTest {
+    // Every test is bounded (a hang once blocked the shared forge build lock).
+    @get:Rule val timeout: Timeout = Timeout.seconds(60)
 
     private fun decode(bytes: ByteArray): AdbMessage? = runBlocking {
         val (a, b) = PipeSocket.pair()

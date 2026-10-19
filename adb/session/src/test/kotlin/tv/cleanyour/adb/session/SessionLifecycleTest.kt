@@ -1,7 +1,8 @@
 package tv.cleanyour.adb.session
 
+import org.junit.Rule
+import org.junit.rules.Timeout
 import kotlinx.coroutines.test.advanceTimeBy
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeoutOrNull
 import tv.cleanyour.core.model.AdbError
@@ -20,6 +21,8 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class SessionLifecycleTest {
+    // Every test is bounded (a hang once blocked the shared forge build lock).
+    @get:Rule val timeout: Timeout = Timeout.seconds(60)
 
     @Test fun noHolderClosesTheSocketAfterSixtySeconds() = runTest {
         val rig = Rig(this)
@@ -89,7 +92,7 @@ class SessionLifecycleTest {
         s.reboot()
         assertIs<ConnectionState.WaitingForBoot>(s.state.value)
         assertEquals(1, rig.tv.rebootCount)
-        val outcome = assertIs<BootOutcome.Back>(s.awaitBoot(120_000))
+        val outcome = assertIs<BootOutcome.Back>(s.awaitBoot(120_000), rig.diag())
         assertTrue(outcome.bootId != before)
         assertEquals(rig.tv.bootId, outcome.bootId)
         assertIs<ConnectionState.Connected>(s.state.value)
@@ -110,7 +113,7 @@ class SessionLifecycleTest {
         val s = rig.open()
         rig.faults.wrongTvOnReconnect = Personas.tclG05()
         rig.adbd.closeConnections()
-        advanceUntilIdle()
+        settle()
         val e = assertFailsWith<AdbException> { s.exec(line("echo never")) }
         val err = assertIs<AdbError.Policy.WrongTv>(e.error)
         assertEquals(s.tvId, err.expected)
@@ -124,8 +127,8 @@ class SessionLifecycleTest {
         val s = rig.open()
         val r = runCatching { s.exec(line("settings put global adb_enabled 0")) }
         r.exceptionOrNull()?.let { assertEquals(AdbError.Transport.Closed, assertIs<AdbException>(it).error) }
-        advanceUntilIdle()
-        assertTrue(!rig.adbd.adbEnabled)
+        settle()
+        assertTrue(!rig.adbd.adbEnabled, "${r.exceptionOrNull()} ${rig.diag()}")
         val reopen = rig.manager.open(rig.endpoint, s.tvId, {})
         assertEquals(AdbError.Transport.Refused, assertIs<OpenResult.Failed>(reopen).error)
     }
@@ -146,7 +149,7 @@ class SessionLifecycleTest {
         assertNull(withTimeoutOrNull(500) { s.exec(line("sleep 100")) })
         assertIs<ConnectionState.Connected>(s.state.value)
         assertEquals("fine\n", s.exec(line("echo fine")).stdout)
-        advanceUntilIdle()
+        settle()
         assertEquals(1, rig.adbd.connections.size)
     }
 

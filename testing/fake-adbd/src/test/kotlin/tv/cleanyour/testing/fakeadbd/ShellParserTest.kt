@@ -1,5 +1,7 @@
 package tv.cleanyour.testing.fakeadbd
 
+import org.junit.Rule
+import org.junit.rules.Timeout
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -9,6 +11,8 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ShellParserTest {
+    // Every test is bounded (a hang once blocked the shared forge build lock).
+    @get:Rule val timeout: Timeout = Timeout.seconds(60)
     private fun argv(line: String) = ShellParser.parse(line).commands.map { it.argv }
 
     @Test fun singleQuotedTokens() {
@@ -46,7 +50,7 @@ class ShellParserTest {
         assertNull(ShellParser.parse("echo \$HOME").unsupported)
     }
 
-    @Test fun interpreterRefusesChainedPmWrites() = runBlocking {
+    @Test fun interpreterRefusesChainedPmWrites() = runBlocking<Unit> {
         val tv = Personas.tclG05()
         val shell = FakeShell(tv, Faults())
         val r = shell.run("pm disable-user --user 0 com.tcl.browser; pm disable-user --user 0 com.tcl.tv")
@@ -64,7 +68,7 @@ class ShellParserTest {
         assertEquals(1, tv.violations.size)
     }
 
-    @Test fun vocabularyChangesState() = runBlocking {
+    @Test fun vocabularyChangesState() = runBlocking<Unit> {
         val tv = Personas.chromecast()
         val shell = FakeShell(tv, Faults())
         assertEquals("1\n", String(shell.run("settings get global adb_enabled").stdout))
@@ -90,7 +94,7 @@ class ShellParserTest {
         assertEquals(1, shell.run("pm path com.nope").exit)
     }
 
-    @Test fun installsComeFromTheCatalog() = runBlocking {
+    @Test fun installsComeFromTheCatalog() = runBlocking<Unit> {
         val tv = Personas.tclG05()
         val shell = FakeShell(tv, Faults())
         val apk = ByteArray(1000) { 3 }
@@ -107,7 +111,7 @@ class ShellParserTest {
         assertEquals("Failure [INSTALL_FAILED_INSUFFICIENT_STORAGE]\n", String(shell.run("pm install -r /data/local/tmp/cleanyourtv/x.apk").stdout))
     }
 
-    @Test fun handlersComeFirst() = runBlocking {
+    @Test fun handlersComeFirst() = runBlocking<Unit> {
         val tv = Personas.tclG05()
         tv.handlers += { argv, _ -> if (argv.firstOrNull() == "dumpsys" && argv.getOrNull(1) == "hdmi_control") ExecOutcome("custom\n") else null }
         val shell = FakeShell(tv, Faults())

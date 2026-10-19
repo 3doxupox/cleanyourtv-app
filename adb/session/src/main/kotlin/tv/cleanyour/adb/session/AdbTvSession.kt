@@ -75,6 +75,8 @@ class AdbTvSession internal constructor(
     private val scope: CoroutineScope,
     private val onStateChange: (TvId, ConnectionState) -> Unit,
     private val onClosed: (AdbTvSession) -> Unit,
+    // Where blob files on the phone are read; tests pass the test dispatcher's context.
+    private val blobIo: CoroutineContext = Dispatchers.IO,
 ) : TvSession {
     override val tvId: TvId get() = identity.tvId
 
@@ -116,12 +118,21 @@ class AdbTvSession internal constructor(
         }
     }
 
+    // Waits its turn behind the call in flight (which saw the same drop), then reconnects only if
+    // a hold still wants the socket and nobody reconnected meanwhile.
     private suspend fun reconnectInBackground() {
-        if (!mutex.tryLock()) return
-        try {
-            runCatching { ensureConnectedLocked() }
-        } finally {
-            mutex.unlock()
+        mutex.withLock {
+            if (closedForGood.get()) return
+            if (connection?.isClosed == false) return
+            if (holds.get() == 0) {
+                if (mutableState.value is ConnectionState.Reconnecting) setState(ConnectionState.Idle)
+                return
+            }
+            try {
+                ensureConnectedLocked()
+            } catch (e: AdbException) {
+                // ensureConnectedLocked has published Failed; the next call reports it.
+            }
         }
     }
 
@@ -300,7 +311,7 @@ class AdbTvSession internal constructor(
         fun hex(): String = digest.digest().joinToString("") { "%02x".format(it) }
     }
 
-    private suspend fun readChunk(input: InputStream, buf: ByteArray): ByteArray? = withContext(Dispatchers.IO) {
+    private suspend fun readChunk(input: InputStream, buf: ByteArray): ByteArray? = withContext(blobIo) {
         val n = input.read(buf)
         if (n <= 0) null else buf.copyOf(n)
     }

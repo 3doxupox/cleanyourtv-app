@@ -1,5 +1,7 @@
 package tv.cleanyour.adb.wire
 
+import org.junit.Rule
+import org.junit.rules.Timeout
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import tv.cleanyour.core.model.AdbError
@@ -16,6 +18,8 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class StreamTest {
+    // Every test is bounded (a hang once blocked the shared forge build lock).
+    @get:Rule val timeout: Timeout = Timeout.seconds(60)
 
     @Test fun shellRoundTrip() = runTest {
         val tv = adbd()
@@ -84,7 +88,7 @@ class StreamTest {
         conn.invokeOnClose { closedWith += it }
         val stream = conn.openStream(AdbService.ShellV2(line("sleep 100")))
         conn.close()
-        assertEquals(listOf(AdbError.Transport.Closed), closedWith)
+        assertEquals(listOf<AdbError>(AdbError.Transport.Closed), closedWith)
         assertTrue(conn.isClosed)
         assertEquals(AdbError.Transport.Closed, assertFailsWith<AdbException> { stream.read() }.error)
         assertEquals(AdbError.Transport.Closed, assertFailsWith<AdbException> { conn.openStream(AdbService.Ping) }.error)
@@ -101,7 +105,7 @@ class StreamTest {
         conn.invokeOnClose { closedWith += it }
         tv.closeConnections()
         advanceUntilIdle()
-        assertEquals(listOf(AdbError.Transport.Closed), closedWith)
+        assertEquals(listOf<AdbError>(AdbError.Transport.Closed), closedWith)
     }
 
     @Test fun aPeerThatIgnoresFlowControlIsCutOff() = runTest {

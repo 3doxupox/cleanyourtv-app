@@ -1,3 +1,5 @@
+import java.time.Duration
+
 plugins { id("cleanyourtv.jvm") }
 
 // Implements the core.session interfaces of :core:model over :adb:wire (W2).
@@ -8,4 +10,15 @@ dependencies {
     testImplementation(project(":testing:fake-adbd"))
     testImplementation(project(":testing:fixtures"))
     testImplementation(libs.kotlinx.coroutines.test)
+}
+
+// A hung test must never hold the shared forge build lock.
+tasks.withType<Test>().configureEach { timeout.set(Duration.ofMinutes(5)) }
+
+// docs/W2-device-check.md: RealTvCheck runs only when a TV address is passed on the command line.
+tasks.withType<Test>().configureEach {
+    for (p in listOf("cleanyourtv.realTv", "cleanyourtv.realTvKey", "cleanyourtv.realTvExpectNoPrompt")) {
+        providers.gradleProperty(p).orNull?.let { systemProperty(p, it) }
+    }
+    testLogging { showStandardStreams = providers.gradleProperty("cleanyourtv.realTv").isPresent }
 }

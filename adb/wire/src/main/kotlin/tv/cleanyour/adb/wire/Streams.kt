@@ -102,8 +102,8 @@ object ShellV2 {
     const val ID_STDOUT = 1
     const val ID_STDERR = 2
     const val ID_EXIT = 3
-    const val ID_CLOSE_STDIN = 3
-    const val ID_WINDOW_SIZE_CHANGE = 4
+    const val ID_CLOSE_STDIN = 4
+    const val ID_WINDOW_SIZE_CHANGE = 5
     const val MAX_PACKET = AdbProtocol.MAX_PAYLOAD
 
     fun encode(id: Int, payload: ByteArray = FrameCodec.EMPTY): ByteArray {

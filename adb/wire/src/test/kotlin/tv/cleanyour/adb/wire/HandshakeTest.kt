@@ -1,5 +1,7 @@
 package tv.cleanyour.adb.wire
 
+import org.junit.Rule
+import org.junit.rules.Timeout
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.currentTime
@@ -17,6 +19,8 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class HandshakeTest {
+    // Every test is bounded (a hang once blocked the shared forge build lock).
+    @get:Rule val timeout: Timeout = Timeout.seconds(60)
 
     @Test fun knownKeySignsOnceAndNeverPrompts() = runTest {
         val tv = adbd()

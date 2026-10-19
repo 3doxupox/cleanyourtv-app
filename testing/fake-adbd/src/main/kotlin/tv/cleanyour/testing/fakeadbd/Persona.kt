@@ -14,9 +14,10 @@ class FakePackage(
     var state: String = "enabled",      // enabled, disabled-user, disabled, default
     val versionCode: Long = 1,
     val signer: String? = null,          // sha256 hex of the signing certificate, when known
+    // Updated system apps also live under /data/app, so a capture says which are third party.
+    val system: Boolean = !path.startsWith("/data/app"),
 ) {
-    val system: Boolean get() = !path.startsWith("/data/app")
-    fun copy(): FakePackage = FakePackage(name, path, state, versionCode, signer)
+    fun copy(): FakePackage = FakePackage(name, path, state, versionCode, signer, system)
 }
 
 // The device model behind the fake adbd. The shell interpreter changes it, so what `pm list
@@ -155,20 +156,33 @@ object Personas {
 
     fun fromCaptureDir(dir: File, name: String, debloated: Boolean): FakeTv {
         fun read(f: String) = File(dir, f).readText()
+        val thirdParty = read("packages-3rdparty.txt").lines().filter { it.startsWith("package:") }.map { it.removePrefix("package:") }.toSet()
         val disabled = if (debloated) read("packages-disabled-after.txt").lines().filter { it.startsWith("package:") }.map { it.removePrefix("package:") }.toSet() else emptySet()
         val packages = read("packages-all.txt").lines().filter { it.startsWith("package:") }.map { line ->
             val body = line.removePrefix("package:")
             val path = body.substringBeforeLast('=')
             val pkg = body.substringAfterLast('=')
-            FakePackage(pkg, path, if (pkg in disabled) "disabled-user" else "enabled")
+            FakePackage(pkg, path, if (pkg in disabled) "disabled-user" else "enabled", system = pkg !in thirdParty)
         }
-        val settings = listOf("global", "secure", "system").associateWith { ns ->
-            read("settings-$ns.txt").lines().filter { '=' in it }.map { it.substringBefore('=') to it.substringAfter('=') }
-        }
+        val settings = listOf("global", "secure", "system").associateWith { ns -> parseSettings(read("settings-$ns.txt")) }
         val home = read("home-activity.txt").lines().firstOrNull { '/' in it && !it.contains('=') }?.trim() ?: "com.google.android.tvlauncher/.MainActivity"
         val propLines = read("getprop.txt").lines().let { if (it.lastOrNull() == "") it.dropLast(1) else it }
         return FakeTv(name, propLines, packages, settings, home, MI_TV_FEATURES)
     }
+
+    // `settings list` output: a line that starts with a key and '=' begins an entry; any other line
+    // continues the previous value (JSON values span lines on the Mi TV).
+    fun parseSettings(text: String): List<Pair<String, String>> {
+        val out = ArrayList<Pair<String, String>>()
+        val lines = text.lines().let { if (it.lastOrNull() == "") it.dropLast(1) else it }
+        for (line in lines) {
+            if (SETTING_START.containsMatchIn(line) || out.isEmpty()) out += line.substringBefore('=') to line.substringAfter('=', "")
+            else out[out.size - 1] = out.last().let { it.first to it.second + "\n" + line }
+        }
+        return out
+    }
+
+    private val SETTING_START = Regex("^[A-Za-z0-9_.:-]+=")
 
     private fun props(vararg kv: Pair<String, String>): List<String> = kv.map { "[${it.first}]: [${it.second}]" }
 

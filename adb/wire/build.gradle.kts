@@ -1,3 +1,5 @@
+import java.time.Duration
+
 plugins { id("cleanyourtv.jvm") }
 
 // Endpoint, Sha256 and ShellLine appear in the 5.3 signatures. Vendored from dadb 2.0.0 (NOTICE);
@@ -17,4 +19,8 @@ val fuzzSeed = providers.gradleProperty("cleanyourtv.fuzzSeed").orElse("")
 tasks.withType<Test>().configureEach {
     systemProperty("cleanyourtv.fuzzSeconds", fuzzSeconds.get())
     if (fuzzSeed.get().isNotEmpty()) systemProperty("cleanyourtv.fuzzSeed", fuzzSeed.get())
+    // A hung test must never hold the shared forge build lock: 5 minutes, plus the fuzz budget
+    // when a longer fuzz run is asked for.
+    val extra = (fuzzSeconds.get().toLongOrNull() ?: 15L).let { if (it > 15L) 2 * it else 0L }
+    timeout.set(Duration.ofMinutes(5).plusSeconds(extra))
 }

@@ -1,5 +1,7 @@
 package tv.cleanyour.adb.wire
 
+import org.junit.Rule
+import org.junit.rules.Timeout
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.byte
 import io.kotest.property.arbitrary.byteArray
@@ -8,6 +10,7 @@ import io.kotest.property.checkAll
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeoutOrNull
 import tv.cleanyour.core.model.AdbException
 import tv.cleanyour.testing.fakeadbd.Faults
 import tv.cleanyour.testing.fakeadbd.PipeSocket
@@ -24,6 +27,8 @@ import kotlin.test.assertTrue
 // Throwable, an allocation past the bounds, a hang) fails. The time budget comes from
 // -Pcleanyourtv.fuzzSeconds (default 15; CI's 10-minute run passes 600).
 class HostileFrameFuzzTest {
+    // Every test is bounded (a hang once blocked the shared forge build lock).
+    @get:Rule val timeout: Timeout = Timeout.seconds((System.getProperty("cleanyourtv.fuzzSeconds")?.toLongOrNull() ?: 15L) * 2 + 60)
     private val budgetMs = (System.getProperty("cleanyourtv.fuzzSeconds")?.toLongOrNull() ?: 15L) * 1000
     private val seed = System.getProperty("cleanyourtv.fuzzSeed")?.toLongOrNull() ?: System.nanoTime()
 
@@ -137,8 +142,10 @@ class HostileFrameFuzzTest {
             try {
                 val conn = tv.open()
                 advanceUntilIdle()
+                // A truncated frame can leave both sides waiting for bytes that never come; on a
+                // real TV the session's exec clocks end that wait, so bound it the same way here.
                 try {
-                    conn.shell("echo x")
+                    withTimeoutOrNull(5_000) { conn.shell("echo x") }
                 } catch (e: AdbException) {
                 }
                 conn.close()
@@ -154,7 +161,7 @@ class HostileFrameFuzzTest {
         report("live connection", iterations.toLong(), failures)
     }
 
-    @Test fun encodeDecodeIsAnIdentityForEveryValidFrame() = runBlocking {
+    @Test fun encodeDecodeIsAnIdentityForEveryValidFrame() = runBlocking<Unit> {
         val commands = listOf(AdbProtocol.A_CNXN, AdbProtocol.A_AUTH, AdbProtocol.A_OPEN, AdbProtocol.A_WRTE)
         checkAll(300, Arb.int(0, 3), Arb.int(), Arb.int(), Arb.byteArray(Arb.int(0, 2048), Arb.byte())) { ci, a0, a1, payload ->
             val c = commands[ci]

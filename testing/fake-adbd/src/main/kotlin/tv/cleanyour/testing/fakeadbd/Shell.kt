@@ -68,6 +68,8 @@ object ShellParser {
                 }
                 c == '\\' && i + 1 < n -> { cur.append(line[i + 1]); inToken = true; i += 2 }
                 c == ';' || c == '\n' -> { endCommand(";"); i++ }
+                // 2>&1 and >&2: the ampersand belongs to the redirection token.
+                c == '&' && inToken && (cur.endsWith(">") || cur.endsWith("<")) -> { cur.append(c); i++ }
                 c == '&' && i + 1 < n && line[i + 1] == '&' -> { endCommand("&&"); i += 2 }
                 c == '|' && i + 1 < n && line[i + 1] == '|' -> { endCommand("||"); i += 2 }
                 c == '&' -> { endCommand(";", background = true); i++ }

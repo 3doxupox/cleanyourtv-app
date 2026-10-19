@@ -36,6 +36,7 @@ class AdbSessionManager(
     private val tls: TlsUpgrader? = null,
     private val clock: Clock = SystemClock,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+    private val blobIo: CoroutineContext = Dispatchers.IO,
 ) : SessionManager {
     private val sessions = ConcurrentHashMap<TvId, AdbTvSession>()
     private val mutableStates = MutableStateFlow<Map<TvId, ConnectionState>>(emptyMap())
@@ -90,7 +91,7 @@ class AdbSessionManager(
                 existing.adopt(conn, endpoint)
                 return@withLock OpenResult.Ok(existing)
             }
-            val session = AdbTvSession(identity, endpoint, conn, Link(socketFactory, signer, tls, onAwaitingAllow), clock, scope, ::publish, ::remove)
+            val session = AdbTvSession(identity, endpoint, conn, Link(socketFactory, signer, tls, onAwaitingAllow), clock, scope, ::publish, ::remove, blobIo)
             sessions[identity.tvId] = session
             publish(identity.tvId, session.state.value)
             OpenResult.Ok(session)

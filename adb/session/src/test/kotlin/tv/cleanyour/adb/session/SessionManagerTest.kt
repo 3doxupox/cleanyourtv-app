@@ -1,6 +1,7 @@
 package tv.cleanyour.adb.session
 
-import kotlinx.coroutines.test.advanceUntilIdle
+import org.junit.Rule
+import org.junit.rules.Timeout
 import kotlinx.coroutines.test.runTest
 import tv.cleanyour.core.model.AdbError
 import tv.cleanyour.core.model.ConnectionState
@@ -20,6 +21,8 @@ import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class SessionManagerTest {
+    // Every test is bounded (a hang once blocked the shared forge build lock).
+    @get:Rule val timeout: Timeout = Timeout.seconds(60)
 
     @Test fun opensTheMiTvAndReadsItsIdentity() = runTest {
         val rig = Rig(this)
@@ -45,9 +48,9 @@ class SessionManagerTest {
         assertNull(rig.manager.existing(err.found))
         assertIs<ConnectionState.Failed>(rig.manager.states.value[expected])
         val conn = rig.adbd.connections.singleOrNull()
-        advanceUntilIdle()
+        settle()
         if (conn != null) assertEquals(listOf("shell,v2,raw:getprop"), conn.openedServices)
-        assertTrue(rig.adbd.connections.isEmpty(), "the socket is closed, nothing else was sent")
+        assertTrue(rig.adbd.connections.isEmpty(), "the socket is closed, nothing else was sent: ${rig.diag()}")
     }
 
     @Test fun expectedTvMatches() = runTest {
@@ -96,11 +99,11 @@ class SessionManagerTest {
     @Test fun openingTheSameTvAgainAdoptsTheNewConnection() = runTest {
         val rig = Rig(this)
         val first = rig.open()
-        advanceUntilIdle()
+        settle()
         val second = rig.open()
         assertSame(first, second)
-        advanceUntilIdle()
-        assertEquals(1, rig.adbd.connections.size, "the older socket is closed")
+        settle()
+        assertEquals(1, rig.adbd.connections.size, "the older socket is closed: ${rig.diag()}")
         assertEquals("ok\n", first.exec(line("echo ok")).stdout)
     }
 
@@ -111,7 +114,7 @@ class SessionManagerTest {
         assertEquals(ConnectionState.Idle, session.state.value)
         assertNull(rig.manager.existing(session.tvId))
         assertTrue(rig.manager.states.value.isEmpty())
-        advanceUntilIdle()
-        assertTrue(rig.adbd.connections.isEmpty())
+        settle()
+        assertTrue(rig.adbd.connections.isEmpty(), rig.diag())
     }
 }

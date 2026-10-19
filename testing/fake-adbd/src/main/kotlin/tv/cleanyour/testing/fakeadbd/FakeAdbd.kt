@@ -5,9 +5,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.awaitCancellation
-import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -205,11 +205,16 @@ class ServerConnection(private val adbd: FakeAdbd, private val socket: AdbSocket
         return m
     }
 
-    suspend fun run() = coroutineScope {
+    // Services run in their own job, so the connection ends when the socket does, whatever a
+    // service is waiting for; close() cancels them.
+    private val serviceJob = SupervisorJob()
+
+    suspend fun run() {
+        val services = CoroutineScope(currentCoroutineContext().minusKey(Job) + serviceJob)
         try {
-            val cnxn = readFrame() ?: return@coroutineScope
-            if (cnxn.command != A_CNXN) { adbd.events += "protocol: expected CNXN, got ${AdbProtocol.name(cnxn.command)}"; return@coroutineScope }
-            if (cnxn.arg1 < AdbProtocol.MIN_PEER_PAYLOAD) { adbd.events += "protocol: client window ${cnxn.arg1}"; return@coroutineScope }
+            val cnxn = readFrame() ?: return
+            if (cnxn.command != A_CNXN) { adbd.events += "protocol: expected CNXN, got ${AdbProtocol.name(cnxn.command)}"; return }
+            if (cnxn.arg1 < AdbProtocol.MIN_PEER_PAYLOAD) { adbd.events += "protocol: client window ${cnxn.arg1}"; return }
             clientMaxPayload = minOf(cnxn.arg1, AdbProtocol.MAX_PAYLOAD)
             faults.garbageBeforeConnect?.let { socket.write(it, 0, it.size); socket.flush() }
             if (faults.requireTls) {
@@ -217,7 +222,7 @@ class ServerConnection(private val adbd: FakeAdbd, private val socket: AdbSocket
                 adbd.events += "sent STLS"
                 awaitCancellation()
             }
-            if (tv.adbSecure && !authenticate()) return@coroutineScope
+            if (tv.adbSecure && !authenticate()) return
             if (faults.cnxnDelayMs > 0) delay(faults.cnxnDelayMs)
             val banner = tv.banner().toByteArray(Charsets.US_ASCII)
             send(A_CNXN, AdbProtocol.VERSION, tv.maxPayload, banner.copyOf(banner.size + 1))
@@ -226,7 +231,7 @@ class ServerConnection(private val adbd: FakeAdbd, private val socket: AdbSocket
             while (true) {
                 if (faults.halfOpenAfterFrames >= 0 && framesRead >= faults.halfOpenAfterFrames) awaitCancellation()
                 val m = readFrame() ?: break
-                dispatch(m, this)
+                dispatch(m, services)
             }
         } catch (e: AdbException) {
             adbd.events += "protocol error from the client: ${e.error}"
@@ -234,7 +239,6 @@ class ServerConnection(private val adbd: FakeAdbd, private val socket: AdbSocket
             adbd.events += "socket: ${e.message}"
         } finally {
             close()
-            coroutineContext.cancelChildren()
         }
     }
 
@@ -297,11 +301,18 @@ class ServerConnection(private val adbd: FakeAdbd, private val socket: AdbSocket
                     return
                 }
                 val s = ServerStream(this, clientId = m.arg0, ourId = nextId.incrementAndGet())
+                // Fault knob: a sync stream stops acknowledging after the SEND request and N chunks.
+                if (service == "sync:" && faults.stallPushAfterChunks >= 0) s.ackLimit = 1 + faults.stallPushAfterChunks
                 byClientId[s.clientId] = s
                 send(A_OKAY, s.ourId, s.clientId)
                 scope.launch { serve(s, service) }
             }
-            A_WRTE -> byClientId[m.arg0]?.takeIf { it.ourId == m.arg1 }?.inbox?.trySend(m.payload)
+            // Like adbd, a WRTE is acknowledged once it is queued for the service, not when the
+            // service reads it, so a service that answers before reading never deadlocks the client.
+            A_WRTE -> byClientId[m.arg0]?.takeIf { it.ourId == m.arg1 }?.let { s ->
+                s.inbox.trySend(m.payload)
+                if (!s.ackPaused && s.framesIn++ < s.ackLimit) send(A_OKAY, s.ourId, s.clientId)
+            }
             A_OKAY -> byClientId[m.arg0]?.takeIf { it.ourId == m.arg1 }?.okays?.trySend(Unit)
             A_CLSE -> byClientId.remove(m.arg0)?.onClientClose()
             else -> adbd.events += "unexpected ${AdbProtocol.name(m.command)} after connect"
@@ -347,10 +358,18 @@ class ServerConnection(private val adbd: FakeAdbd, private val socket: AdbSocket
     private suspend fun shellV2(s: ServerStream, line: String) {
         val out = adbd.shell.run(line)
         if (out.effect == Effect.Hang) awaitCancellation()
-        writePackets(s, ShellV2.ID_STDOUT, out.stdout)
-        writePackets(s, ShellV2.ID_STDERR, out.stderr)
-        s.write(ShellV2.exitPacket(out.exit))
-        when (out.effect) {
+        // The effect happens even when the client hangs up first (a real reboot does not wait).
+        try {
+            writePackets(s, ShellV2.ID_STDOUT, out.stdout)
+            writePackets(s, ShellV2.ID_STDERR, out.stderr)
+            s.write(ShellV2.exitPacket(out.exit))
+        } finally {
+            applyEffect(out.effect)
+        }
+    }
+
+    private fun applyEffect(effect: Effect?) {
+        when (effect) {
             Effect.Reboot -> adbd.onReboot()
             Effect.AdbOff -> adbd.onAdbOff()
             else -> {}
@@ -379,12 +398,7 @@ class ServerConnection(private val adbd: FakeAdbd, private val socket: AdbSocket
             else -> {
                 val out = adbd.shell.run(command)
                 if (out.effect == Effect.Hang) awaitCancellation()
-                s.write(out.stdout + out.stderr)
-                when (out.effect) {
-                    Effect.Reboot -> adbd.onReboot()
-                    Effect.AdbOff -> adbd.onAdbOff()
-                    else -> {}
-                }
+                try { s.write(out.stdout + out.stderr) } finally { applyEffect(out.effect) }
             }
         }
     }
@@ -460,6 +474,7 @@ class ServerConnection(private val adbd: FakeAdbd, private val socket: AdbSocket
     fun close() {
         if (closed) return
         closed = true
+        serviceJob.cancel()
         for (s in byClientId.values) s.onClientClose()
         byClientId.clear()
         runCatching { socket.close() }
@@ -475,6 +490,8 @@ class ServerStream(private val conn: ServerConnection, val clientId: Int, val ou
     @Volatile var clientClosed = false
         private set
     @Volatile var ackPaused = false
+    @Volatile var ackLimit = Int.MAX_VALUE
+    var framesIn = 0
     @Volatile private var finished = false
 
     fun onClientClose() {
@@ -486,9 +503,7 @@ class ServerStream(private val conn: ServerConnection, val clientId: Int, val ou
     override suspend fun read(): ByteArray? {
         val r = inbox.receiveCatching()
         if (r.isClosed) return null
-        val bytes = r.getOrThrow()
-        if (!ackPaused && !clientClosed) conn.send(A_OKAY, ourId, clientId)
-        return bytes
+        return r.getOrThrow()
     }
 
     override suspend fun write(bytes: ByteArray) {

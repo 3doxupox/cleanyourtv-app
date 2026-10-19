@@ -1,5 +1,7 @@
 package tv.cleanyour.adb.session
 
+import org.junit.Rule
+import org.junit.rules.Timeout
 import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.runTest
 import tv.cleanyour.core.model.AdbError
@@ -19,6 +21,8 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class SessionTransferTest {
+    // Every test is bounded (a hang once blocked the shared forge build lock).
+    @get:Rule val timeout: Timeout = Timeout.seconds(60)
     private val dest = RemotePath(RemoteDir.TMP, listOf("a.bin"))
 
     @Test fun pushVerifiesBothHashesAndReportsProgress() = runTest {
