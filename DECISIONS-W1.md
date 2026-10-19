@@ -155,3 +155,7 @@ Added because the section 5 prose names it: `core.probe.ProbeException(stage, de
   `RestoreShellTest` with W3's real renderer (M2).
 - RFC-W4-1 accepted: `LauncherConfigDoc` and `EffectiveConfig` gain `inputAction` and
   `moduleCards` (upstream main 1bbf0c9 keys). Apply at the W4 merge.
+- From R5 of W5, open Lows to close before I4: F5 (index high-water marks lost with the cache),
+  F6 (revocation in a fetched keys file not learned when the fetched index fails), F7 (Android 9
+  signer fallback on rotated module keys, verify on the emulator matrix).
+- Per-branch R5 reviews live in `reviews/R5-<stream>.md` after merge.

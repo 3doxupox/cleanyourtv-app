@@ -39,7 +39,7 @@ class FixturesLoadTest {
 
     @Test fun upstreamSubmoduleFixturesLoad() {
         val examples = Fixtures.upstreamExamples()
-        assertEquals(26, examples.size, "every upstream examples/*/debloat.txt at the pinned commit")
+        assertEquals(30, examples.size, "every upstream examples/*/debloat.txt at the pinned commit (1bbf0c9)")
         assertTrue(examples.all { it.debloatTxt.isNotBlank() })
         assertTrue(examples.any { it.folder == "xiaomi-mitv-axso0" })
         val themes = Fixtures.upstreamThemes().associateBy { it.name }
