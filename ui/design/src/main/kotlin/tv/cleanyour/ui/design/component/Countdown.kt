@@ -100,7 +100,9 @@ fun CountdownRing(remainingMs: Long, totalMs: Long, modifier: Modifier = Modifie
 // thumbnail, the sentence naming what should be visible, the Home check card, the ring with the
 // timeout sentence, then "Yes, I see it" and "No, put it back", which are the first two focus
 // stops after the heading. Nothing moves except the ring, the time and the thumbnail crossfade.
-// Put it below the top bar (with the status chip) in a ScreenScaffold without a bottomBar.
+// Put it below the top bar (with the status chip) in a ScreenScaffold without a bottomBar. The
+// ring and its sentence stay pinned above the buttons with them (R4-W8): at 200% font the picture
+// and the sentence scroll, the time left and what happens at zero never leave the screen.
 @Composable
 fun CountdownConfirm(
     overline: String,
@@ -140,13 +142,13 @@ fun CountdownConfirm(
                     Text(liveCheck, color = if (liveCheckPassed) c.onSuccessContainer else c.textSecondary, style = CytTheme.type.bodyMedium)
                 }
             }
-            Row(Modifier.fillMaxWidth().padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                CountdownRing(remainingMs, totalMs, stopped = stopped)
-                Text(timeoutSentence, Modifier.weight(1f), color = c.textSecondary, style = CytTheme.type.bodySmall)
-            }
             Spacer(Modifier.height(16.dp))
         }
-        ActionColumn(Modifier.padding(top = 12.dp, bottom = 16.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            CountdownRing(remainingMs, totalMs, stopped = stopped)
+            Text(timeoutSentence, Modifier.weight(1f), color = c.textSecondary, style = CytTheme.type.bodySmall)
+        }
+        ActionColumn(Modifier.padding(top = 16.dp, bottom = 16.dp)) {
             PrimaryButton(yesLabel, onYes, Modifier.semantics { traversalIndex = -2f })
             SecondaryButton(noLabel, onNo, Modifier.semantics { traversalIndex = -1f })
         }

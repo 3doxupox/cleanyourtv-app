@@ -1,5 +1,5 @@
 // CytBottomSheet takes the Material 3 sheet state, which is still marked experimental.
-@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 
 package tv.cleanyour.feature.connect
 
@@ -12,15 +12,19 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -95,8 +99,14 @@ fun ConnectFlow(state: SetupState, extras: SetupExtras, actions: SetupActions, o
 @Composable
 private fun InlineCard(extras: SetupExtras, actions: SetupActions) {
     val c = extras.card ?: return
+    // The card is the news: it scrolls into view when it appears instead of sitting under the
+    // pinned Start (R4-W8).
+    val bring = remember { BringIntoViewRequester() }
+    // The request waits for the card's first placement: a request made before layout is a no-op.
+    var placed by remember(c.case) { mutableStateOf(false) }
+    LaunchedEffect(placed) { if (placed) bring.bringIntoView() }
     StopCard(
-        c.title, c.body, Modifier.padding(top = 20.dp),
+        c.title, c.body, Modifier.padding(top = 20.dp).bringIntoViewRequester(bring).onGloballyPositioned { placed = true },
         primaryLabel = c.primary, onPrimary = { actions.intent(SetupIntent.StopAction(StopAction.PRIMARY)) },
         secondaryLabel = c.secondary, onSecondary = { actions.intent(SetupIntent.StopAction(StopAction.SECONDARY)) },
         primaryGuarded = c.case.primaryActs(),
@@ -108,7 +118,6 @@ private fun InlineCard(extras: SetupExtras, actions: SetupActions) {
 fun WelcomeScreen(state: SetupState.Welcome, extras: SetupExtras, actions: SetupActions, onReturning: () -> Unit, modifier: Modifier = Modifier) {
     ScreenScaffold(
         Glow.Brand, modifier,
-        topBar = { Overline(stringResource(R.string.welcome_overline), Modifier.padding(start = 20.dp, top = 28.dp)) },
         bottomBar = {
             ActionColumn {
                 PrimaryButton(stringResource(R.string.welcome_start), { actions.intent(SetupIntent.Start) })
@@ -116,6 +125,9 @@ fun WelcomeScreen(state: SetupState.Welcome, extras: SetupExtras, actions: Setup
             }
         },
     ) {
+        // The product name scrolls with the hero (no top bar on Welcome), so a stop card scrolled
+        // into view never slides the film under it (R4-W8).
+        Overline(stringResource(R.string.welcome_overline), Modifier.padding(top = 28.dp))
         WelcomeIllustration(Modifier.padding(top = 28.dp), contentDescription = stringResource(R.string.welcome_hero_cd))
         ScreenTitle(stringResource(R.string.welcome_title), Modifier.padding(top = 32.dp), size = TitleSize.DISPLAY)
         Lead(stringResource(R.string.welcome_body), Modifier.padding(top = 12.dp))

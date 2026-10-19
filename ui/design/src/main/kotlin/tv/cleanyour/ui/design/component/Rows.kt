@@ -25,12 +25,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.toUpperCase
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -152,6 +154,52 @@ fun AppTile(name: String, modifier: Modifier = Modifier, icon: ImageBitmap? = nu
         } else {
             val letter = name.trim().firstOrNull()?.toString()?.toUpperCase(Locale.current) ?: "?"
             Text(letter, color = c.textSecondary, style = CytTheme.type.titleMedium)
+        }
+    }
+}
+
+// A dock editor row (S3b): the app tile, the name and the controls at the end (move up, move down,
+// take out; or the plus of "Other apps on the TV"). The controls sit beside the name while the
+// name's longest word fits next to them; otherwise they drop under the name (R4-W8), so an app
+// name never breaks mid-word ("YouTu / be") at 200% font and "Prime Video" keeps one line at 100%.
+// The whole row is the touch target when onClick is given (the plus rows); the controls carry
+// their own labels.
+@Composable
+fun DockRow(
+    name: String,
+    modifier: Modifier = Modifier,
+    tile: @Composable () -> Unit = { AppTile(name) },
+    onClick: (() -> Unit)? = null,
+    controls: (@Composable () -> Unit)? = null,
+) {
+    val c = CytTheme.colors
+    val style = CytTheme.type.titleMedium.copy(fontWeight = FontWeight.Normal, fontSize = 16.sp)
+    Layout(
+        contents = listOf(tile, { Text(name, color = c.textPrimary, style = style) }, { if (controls != null) controls() }),
+        modifier = modifier.fillMaxWidth().heightIn(min = 56.dp)
+            .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+    ) { (tileM, nameM, controlsM), constraints ->
+        val gap = 14.dp.roundToPx()
+        val stackGap = 4.dp.roundToPx()
+        val loose = constraints.copy(minWidth = 0, minHeight = 0)
+        val tile = tileM.first().measure(loose)
+        val ctrl = controlsM.firstOrNull()?.measure(loose)?.takeIf { it.width > 0 }
+        val afterTile = (constraints.maxWidth - tile.width - gap).coerceAtLeast(0)
+        val nameM1 = nameM.first()
+        val beside = ctrl == null || nameM1.minIntrinsicWidth(constraints.maxHeight) + gap + ctrl.width <= afterTile
+        val nameWidth = if (beside && ctrl != null) afterTile - ctrl.width - gap else afterTile
+        val name = nameM1.measure(Constraints(maxWidth = nameWidth.coerceAtLeast(0)))
+        val firstLine = maxOf(tile.height, name.height, if (beside) ctrl?.height ?: 0 else 0)
+        val height = if (beside || ctrl == null) firstLine else firstLine + stackGap + ctrl.height
+        layout(constraints.maxWidth, maxOf(height, constraints.minHeight)) {
+            val top = (maxOf(height, constraints.minHeight) - height) / 2
+            tile.placeRelative(0, top + (firstLine - tile.height) / 2)
+            name.placeRelative(tile.width + gap, top + (firstLine - name.height) / 2)
+            if (ctrl != null) {
+                if (beside) ctrl.placeRelative(constraints.maxWidth - ctrl.width, top + (firstLine - ctrl.height) / 2)
+                else ctrl.placeRelative(constraints.maxWidth - ctrl.width, top + firstLine + stackGap)
+            }
         }
     }
 }

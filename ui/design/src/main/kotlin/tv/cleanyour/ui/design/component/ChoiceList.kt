@@ -141,29 +141,43 @@ private fun ChoiceRow(option: ChoiceOption, selected: Boolean, onClick: () -> Un
 @Immutable
 data class ThemeOption(val id: String, val name: String, val description: String, val swatch: List<Color>)
 
+// The preview colours of the three launcher themes by id (background, glow, then dock tiles): a
+// picture of the TV's theme (D-W7-5), not phone UI colours. Shared by S3a and M2 so the two
+// pickers look the same (R4-W8). Unknown ids get the Default picture.
+fun themeSwatch(id: String): List<Color> = when (id) {
+    "aurora" -> listOf(Color(0xFF041018), Color(0xFF1FA597), Color(0xFF0B5E57), Color(0xFF1D4FBF))
+    "six-columns" -> listOf(Color.Black, Color(0xFFB9C2CC), Color(0xFF3B3B40), Color(0xFF76767D))
+    else -> listOf(Color.Black, Color(0xFF5B6CFF), Color(0xFF2A2A2E), Color(0xFF3A86E8))
+}
+
 // The theme picker (S3a "Look", M2): three rows with a small preview of the home screen in the
 // theme's colours, the name and one line; the glass highlight springs to the chosen one.
+// guardObscured = true where a tap applies the theme to the TV at once (M2); the hint after a
+// dropped tap shows under the list (rejectObscuredTouches).
 @Composable
-fun ThemePicker(options: List<ThemeOption>, selectedId: String?, onSelect: (ThemeOption) -> Unit, modifier: Modifier = Modifier) {
+fun ThemePicker(options: List<ThemeOption>, selectedId: String?, onSelect: (ThemeOption) -> Unit, modifier: Modifier = Modifier, guardObscured: Boolean = false) {
     val selected = options.indexOfFirst { it.id == selectedId }
-    HighlightColumn(options.size, selected, modifier) { i, isSelected ->
-        val o = options[i]
-        val c = CytTheme.colors
-        val shape = CytTheme.shapes.row
-        Row(
-            Modifier.fillMaxWidth().heightIn(min = 72.dp).clip(shape)
-                .then(if (isSelected) Modifier else Modifier.background(c.surface1, shape).border(1.dp, c.outline, shape))
-                .selectable(isSelected, role = Role.RadioButton) { onSelect(o) }
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            ThemeSwatch(o.swatch)
-            Column(Modifier.weight(1f)) {
-                Text(o.name, color = if (isSelected) c.textPrimary else c.textSecondary, style = CytTheme.type.titleMedium)
-                Text(o.description, color = if (isSelected) c.textSecondary else c.textTertiary, style = CytTheme.type.bodySmall)
+    Guarded(modifier, guardObscured) { outer, guard ->
+        HighlightColumn(options.size, selected, outer) { i, isSelected ->
+            val o = options[i]
+            val c = CytTheme.colors
+            val shape = CytTheme.shapes.row
+            Row(
+                Modifier.fillMaxWidth().heightIn(min = 72.dp).clip(shape)
+                    .then(if (isSelected) Modifier else Modifier.background(c.surface1, shape).border(1.dp, c.outline, shape))
+                    .selectable(isSelected, role = Role.RadioButton) { onSelect(o) }
+                    .then(guard)
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                ThemeSwatch(o.swatch)
+                Column(Modifier.weight(1f)) {
+                    Text(o.name, color = if (isSelected) c.textPrimary else c.textSecondary, style = CytTheme.type.titleMedium)
+                    Text(o.description, color = if (isSelected) c.textSecondary else c.textTertiary, style = CytTheme.type.bodySmall)
+                }
+                if (isSelected) CytIcon(CytIcons.Check, null, tint = c.textPrimary)
             }
-            if (isSelected) CytIcon(CytIcons.Check, null, tint = c.textPrimary)
         }
     }
 }

@@ -15,7 +15,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -27,7 +26,6 @@ import tv.cleanyour.core.flows.HomeScreenState
 import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.planner.Plan
 import tv.cleanyour.ui.design.component.ActionColumn
-import tv.cleanyour.ui.design.component.AppTile
 import tv.cleanyour.ui.design.component.Banner
 import tv.cleanyour.ui.design.component.BannerTone
 import tv.cleanyour.ui.design.component.CheckLine
@@ -36,6 +34,7 @@ import tv.cleanyour.ui.design.component.CytBottomSheet
 import tv.cleanyour.ui.design.component.CytIcon
 import tv.cleanyour.ui.design.component.CytIconButton
 import tv.cleanyour.ui.design.component.CytTopBar
+import tv.cleanyour.ui.design.component.DockRow
 import tv.cleanyour.ui.design.component.ListDivider
 import tv.cleanyour.ui.design.component.ListGroup
 import tv.cleanyour.ui.design.component.ListRow
@@ -47,6 +46,7 @@ import tv.cleanyour.ui.design.component.SheetHeader
 import tv.cleanyour.ui.design.component.TertiaryButton
 import tv.cleanyour.ui.design.component.ThemeOption
 import tv.cleanyour.ui.design.component.ThemePicker
+import tv.cleanyour.ui.design.component.themeSwatch
 import tv.cleanyour.ui.design.icon.CytIcons
 import tv.cleanyour.ui.design.theme.CytTheme
 import tv.cleanyour.ui.design.theme.Glow
@@ -63,7 +63,7 @@ fun HomeScreen(state: HomeScreenState, onIntent: (HomeScreenIntent) -> Unit, onB
         ScreenTitle(stringResource(R.string.home_title), Modifier.padding(top = 20.dp))
         if (state.drift) {
             Banner(stringResource(R.string.home_drift_banner), BannerTone.WARNING, Modifier.padding(top = 16.dp),
-                actionLabel = stringResource(R.string.home_drift_restore), onAction = { onIntent(HomeScreenIntent.RestoreMine) })
+                actionLabel = stringResource(R.string.home_drift_restore), onAction = { onIntent(HomeScreenIntent.RestoreMine) }, guardAction = true)
         }
         if (busy != null) {
             LiveLine(stringResource(R.string.home_applying))
@@ -92,26 +92,22 @@ fun HomeScreen(state: HomeScreenState, onIntent: (HomeScreenIntent) -> Unit, onB
     }
 }
 
-// The three launcher themes with their one-line descriptions and the colours of their preview
-// tile. The colours are a picture of the TV's theme (D-W7-5), not phone UI colours.
+// The three launcher themes with their one-line descriptions; the preview tile colours come from
+// :ui:design (themeSwatch), shared with the wizard's picker.
 private val themeDescriptions = mapOf(
     "default" to R.string.theme_default_desc,
     "aurora" to R.string.theme_aurora_desc,
     "six-columns" to R.string.theme_six_columns_desc,
 )
-private val themeSwatches = mapOf(
-    "default" to listOf(Color.Black, Color(0xFF5B6CFF), Color(0xFF2A2A2E), Color(0xFF3A86E8)),
-    "aurora" to listOf(Color(0xFF041018), Color(0xFF1FA597), Color(0xFF0B5E57), Color(0xFF1D4FBF)),
-    "six-columns" to listOf(Color.Black, Color(0xFFB9C2CC), Color(0xFF3B3B40), Color(0xFF76767D)),
-)
 
+// A tap here applies the look to the TV, so the rows are guarded like a primary (R4-W8).
 @Composable
 internal fun ColumnScope.LookContent(state: HomeScreenState, onSelect: (String) -> Unit) {
     SheetHeader(stringResource(R.string.theme_title))
     val options = state.themes.map { t ->
-        ThemeOption(t.id, t.name, themeDescriptions[t.id]?.let { stringResource(it) } ?: t.description, themeSwatches[t.id] ?: themeSwatches.getValue("default"))
+        ThemeOption(t.id, t.name, themeDescriptions[t.id]?.let { stringResource(it) } ?: t.description, themeSwatch(t.id))
     }
-    ThemePicker(options, state.themeId ?: "default", { onSelect(it.id) }, Modifier.padding(top = 16.dp))
+    ThemePicker(options, state.themeId ?: "default", { onSelect(it.id) }, Modifier.padding(top = 16.dp), guardObscured = true)
 }
 
 @Composable
@@ -142,7 +138,7 @@ internal fun ColumnScope.DockContent(dock: List<AppChoice>, apps: List<AppChoice
         dock.forEachIndexed { i, app ->
             if (i > 0) ListDivider()
             val inCd = msg(R.string.dock_item_in_cd, "name" to app.name, "position" to i + 1)
-            ListRow(app.name, Modifier.semantics { contentDescription = inCd }, leading = { AppTile(app.name) }, trailing = {
+            DockRow(app.name, Modifier.semantics { contentDescription = inCd }, controls = {
                 Row {
                     if (i > 0) CytIconButton(CytIcons.ArrowUp, msg(R.string.dock_move_up_cd, "name" to app.name),
                         { onChange(dock.toMutableList().apply { add(i - 1, removeAt(i)) }) })
@@ -160,8 +156,8 @@ internal fun ColumnScope.DockContent(dock: List<AppChoice>, apps: List<AppChoice
             if (i > 0) ListDivider()
             val full = dock.size >= 4
             val cd = if (full) msg(R.string.dock_item_out_cd, "name" to app.name) else msg(R.string.dock_add_cd, "name" to app.name)
-            ListRow(app.name, Modifier.semantics { contentDescription = cd }, leading = { AppTile(app.name) },
-                trailing = if (full) null else ({ CytIcon(CytIcons.Plus, null, tint = CytTheme.colors.accent) }),
+            DockRow(app.name, Modifier.semantics { contentDescription = cd },
+                controls = if (full) null else ({ CytIcon(CytIcons.Plus, null, tint = CytTheme.colors.accent) }),
                 onClick = if (full) null else ({ onChange(dock + app) }))
         }
     }

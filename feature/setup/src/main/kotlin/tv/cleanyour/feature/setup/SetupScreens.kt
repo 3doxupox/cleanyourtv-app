@@ -1,5 +1,5 @@
 // CytBottomSheet takes the Material 3 sheet state, which is still marked experimental.
-@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 
 package tv.cleanyour.feature.setup
 
@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -23,6 +25,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -49,14 +52,11 @@ import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.planner.GroupSummary
 import tv.cleanyour.core.planner.RowSummary
 import tv.cleanyour.ui.design.component.ActionColumn
-import tv.cleanyour.ui.design.component.AppTile
 import tv.cleanyour.ui.design.component.Banner
 import tv.cleanyour.ui.design.component.BannerTone
 import tv.cleanyour.ui.design.component.CheckLine
 import tv.cleanyour.ui.design.component.CheckState
 import tv.cleanyour.ui.design.component.CollapsedGroupsCard
-import tv.cleanyour.ui.design.component.ChoiceList
-import tv.cleanyour.ui.design.component.ChoiceOption
 import tv.cleanyour.ui.design.component.CountdownConfirm
 import tv.cleanyour.ui.design.component.CytBottomSheet
 import tv.cleanyour.ui.design.component.CytIcon
@@ -65,6 +65,7 @@ import tv.cleanyour.ui.design.component.CytTopBar
 import tv.cleanyour.ui.design.component.DiffGroup
 import tv.cleanyour.ui.design.component.DiffGroupSection
 import tv.cleanyour.ui.design.component.DiffItem
+import tv.cleanyour.ui.design.component.DockRow
 import tv.cleanyour.ui.design.component.Gap
 import tv.cleanyour.ui.design.component.GlassCheckMark
 import tv.cleanyour.ui.design.component.GroupTone
@@ -94,9 +95,12 @@ import tv.cleanyour.ui.design.component.SummaryGroup
 import tv.cleanyour.ui.design.component.SwitchRow
 import tv.cleanyour.ui.design.component.TertiaryButton
 import tv.cleanyour.ui.design.component.TextActionRow
+import tv.cleanyour.ui.design.component.ThemeOption
+import tv.cleanyour.ui.design.component.ThemePicker
 import tv.cleanyour.ui.design.component.TitleSize
 import tv.cleanyour.ui.design.component.TvStatusChip
 import tv.cleanyour.ui.design.component.TvThumbnail
+import tv.cleanyour.ui.design.component.themeSwatch
 import tv.cleanyour.ui.design.component.UndoSnackbarHost
 import tv.cleanyour.ui.design.component.UndoSnackbarState
 import tv.cleanyour.ui.design.component.rememberEmphasis
@@ -158,6 +162,9 @@ fun FoundScreen(state: SetupState.Found, extras: SetupExtras, actions: SetupActi
         Glow.Tv, modifier,
         topBar = { TopBar(extras, onBack = { actions.back() }) },
         bottomBar = {
+            // UX 7.3 rule 8: the safety sentence sits above the button that needs it, so it is
+            // pinned with the button rather than scrolled under it (R4-W8).
+            SafetyLine(stringResource(R.string.found_safety), Modifier.padding(start = 4.dp, end = 4.dp, bottom = 14.dp))
             ActionColumn {
                 PrimaryButton(stringResource(R.string.found_make_clean), { actions.intent(SetupIntent.MakeItClean) }, loading = extras.starting)
                 TertiaryButton(stringResource(R.string.found_customise), { actions.intent(SetupIntent.Open(Sheet.CUSTOMISE)) })
@@ -190,9 +197,8 @@ fun FoundScreen(state: SetupState.Found, extras: SetupExtras, actions: SetupActi
         } else {
             Banner(msg(R.string.stop_tv_refuses_home_body, "brand" to (extras.tvName ?: "")), BannerTone.INFO, Modifier.padding(top = 16.dp))
         }
-        SafetyLine(stringResource(R.string.found_safety), Modifier.padding(start = 4.dp, top = 14.dp))
-        if (extras.noScreenLock) Body(stringResource(R.string.found_no_lock), Modifier.padding(start = 4.dp, top = 8.dp))
-        Gap(16.dp)
+        if (extras.noScreenLock) Body(stringResource(R.string.found_no_lock), Modifier.padding(start = 4.dp, top = 12.dp))
+        Gap(8.dp)
     }
     when (state.sheet) {
         Sheet.LIST, Sheet.CUSTOMISE -> CustomiseSheet(state, extras, actions, onCopyCommands)
@@ -326,10 +332,9 @@ internal fun DockContent(dock: List<AppChoice>, apps: List<AppChoice>, onChange:
         dock.forEachIndexed { i, app ->
             if (i > 0) ListDivider()
             val inCd = msg(R.string.dock_item_in_cd, "name" to app.name, "position" to i + 1)
-            ListRow(
+            DockRow(
                 app.name, Modifier.semantics { contentDescription = inCd },
-                leading = { AppTile(app.name) },
-                trailing = {
+                controls = {
                     Row {
                         if (i > 0) CytIconButton(CytIcons.ArrowUp, msg(R.string.dock_move_up_cd, "name" to app.name), { onChange(dock.toMutableList().apply { add(i - 1, removeAt(i)) }) })
                         if (i < dock.size - 1) CytIconButton(CytIcons.ArrowDown, msg(R.string.dock_move_down_cd, "name" to app.name), { onChange(dock.toMutableList().apply { add(i + 1, removeAt(i)) }) })
@@ -348,12 +353,10 @@ internal fun DockContent(dock: List<AppChoice>, apps: List<AppChoice>, onChange:
                 if (i > 0) ListDivider()
                 val room = dock.size < 4
                 val cd = msg(if (room) R.string.dock_add_cd else R.string.dock_item_out_cd, "name" to app.name)
-                ListRow(
+                DockRow(
                     app.name, Modifier.semantics { contentDescription = cd },
-                    leading = { AppTile(app.name) },
-                    trailing = if (room) ({ CytIcon(CytIcons.Plus, null, tint = CytTheme.colors.accent) }) else null,
+                    controls = if (room) ({ CytIcon(CytIcons.Plus, null, tint = CytTheme.colors.accent) }) else null,
                     onClick = if (room) ({ onChange(dock + app) }) else null,
-                    chevron = false,
                 )
             }
         }
@@ -365,9 +368,18 @@ internal fun DockContent(dock: List<AppChoice>, apps: List<AppChoice>, onChange:
 @Composable
 internal fun ThemeContent(extras: SetupExtras, actions: SetupActions) {
     SheetHeader(stringResource(R.string.theme_title))
-    val options = listOf(ChoiceOption("default", stringResource(R.string.theme_default), stringResource(R.string.theme_default_desc), icon = null)) +
-        extras.themes.filter { it.id != "default" }.map { ChoiceOption(it.id, it.name, it.description, icon = null) }
-    ChoiceList(options, extras.draft?.themeId ?: "default", { actions.intent(SetupIntent.SetTheme(it.key)) }, Modifier.padding(top = 16.dp))
+    // The same picker as M2 (ThemePicker with the preview tiles), so the look reads the same in
+    // the wizard and on Manage (R4-W8). A tap here only changes the draft, so it is not guarded.
+    val options = listOf(ThemeOption("default", stringResource(R.string.theme_default), stringResource(R.string.theme_default_desc), themeSwatch("default"))) +
+        extras.themes.filter { it.id != "default" }.map { ThemeOption(it.id, it.name, themeDescription(it.id) ?: it.description, themeSwatch(it.id)) }
+    ThemePicker(options, extras.draft?.themeId ?: "default", { actions.intent(SetupIntent.SetTheme(it.id)) }, Modifier.padding(top = 16.dp))
+}
+
+@Composable
+private fun themeDescription(id: String): String? = when (id) {
+    "aurora" -> stringResource(R.string.theme_aurora_desc)
+    "six-columns" -> stringResource(R.string.theme_six_columns_desc)
+    else -> null
 }
 
 // S4a Making it clean: narration, live thumbnail, the quiet "Stop and undo" (UX 4a, D18, D32).
@@ -478,6 +490,8 @@ fun StoppedScreen(state: SetupState.Stopped, extras: SetupExtras, actions: Setup
                 else -> null
             },
             primaryGuarded = c.case.primaryActs(),
+            secondaryGuarded = c.case.secondaryActs(),
+            tertiaryGuarded = c.case.tertiaryActs(),
         )
         if (c.case == StopCase.CONNECTION_LOST && extras.reconnect == Reconnect.BACK) {
             Banner(stringResource(R.string.stop_connection_lost_back), BannerTone.SUCCESS, Modifier.padding(top = 16.dp))
@@ -525,8 +539,14 @@ fun DoneScreen(state: SetupState.Done, extras: SetupExtras, actions: SetupAction
         }
         RestartCard(state, extras, actions)
         extras.card?.takeIf { it.case == StopCase.NOT_BACK_AFTER_RESTART }?.let { c ->
+            // The card is the news: scroll it into view when it appears instead of leaving it
+            // under the pinned Finish (R4-W8).
+            val bring = remember { BringIntoViewRequester() }
+            // The request waits for the card's first placement: a request made before layout is a no-op.
+            var placed by remember(c.case) { mutableStateOf(false) }
+            LaunchedEffect(placed) { if (placed) bring.bringIntoView() }
             StopCard(
-                c.title, c.body, Modifier.padding(top = 10.dp),
+                c.title, c.body, Modifier.padding(top = 10.dp).bringIntoViewRequester(bring).onGloballyPositioned { placed = true },
                 primaryLabel = c.primary, onPrimary = { actions.intent(SetupIntent.StopAction(StopAction.PRIMARY)) },
                 secondaryLabel = c.secondary, onSecondary = { actions.intent(SetupIntent.StopAction(StopAction.SECONDARY)) },
                 primaryGuarded = c.case.primaryActs(),

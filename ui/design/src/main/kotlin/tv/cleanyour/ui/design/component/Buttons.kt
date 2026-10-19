@@ -56,12 +56,15 @@ import tv.cleanyour.ui.design.theme.pressScale
 // 56 dp tall at least, and grow in height at 200% font (labels wrap to two lines at most).
 
 // Obscured-touch guard (SECURITY 4.3 and P8, D35, spec 7.3 item 6): a touch that reaches the window
-// through another app's overlay is dropped, the Compose form of filterTouchesWhenObscured. It goes
-// on actions that confirm, apply, pair or forget: the primary pill, the destructive pill, the small
-// card action and so the CountdownConfirm "Yes". Never on Back, Cancel, close, the secondary and
-// tertiary buttons or navigation (R5-W8 O1): with a screen dimmer running the person must always
-// have a way out. Place it after `clickable`, so it sees the events first and the click never
-// fires. onRejected runs once per dropped tap (on its down event).
+// through another app's overlay is dropped, the Compose form of filterTouchesWhenObscured. The rule
+// (R4-W8): every control whose tap starts a write to the TV is guarded, whatever it looks like.
+// That is the primary pill, the destructive pill, the small card action, the CountdownConfirm
+// "Yes", and, where the caller says so, a secondary or tertiary button ("Undo what we did"), a
+// banner action ("Restore mine") and the theme picker on Manage. Never on Back, Cancel, close or
+// navigation (R5-W8 O1): with a screen dimmer running the person must always have a way out, and
+// the hint under a guarded control says why nothing happened. Place it after `clickable`, so it
+// sees the events first and the click never fires. onRejected runs once per dropped tap (on its
+// down event).
 @OptIn(ExperimentalComposeUiApi::class)
 fun Modifier.rejectObscuredTouches(onRejected: () -> Unit = {}): Modifier = pointerInteropFilter { e ->
     val obscured = isObscured(e)
@@ -80,7 +83,7 @@ internal const val OBSCURED_HINT_MS = 6_000L
 // nothing happened (polite live region, so TalkBack reads it once). The caller's modifier sits on
 // the outer column, so ColumnScope and RowScope modifiers from the caller still apply.
 @Composable
-private fun Guarded(
+internal fun Guarded(
     modifier: Modifier,
     guard: Boolean,
     content: @Composable (outer: Modifier, guard: Modifier) -> Unit,
@@ -148,38 +151,43 @@ private fun PrimaryPill(text: String, onClick: () -> Unit, modifier: Modifier, g
 }
 
 // Secondary: a glass pill, same height, text.primary ("No, put it back", "I don't see it on the TV").
+// guardObscured = true when the secondary writes to the TV ("Undo what we did" on a stop card).
 @Composable
-fun SecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
-    val c = CytTheme.colors
-    val source = remember { MutableInteractionSource() }
-    PillBase(
-        modifier = modifier.pressScale(source).glass(CytTheme.shapes.pill, CytTheme.glass).clip(CytTheme.shapes.pill),
-        onClick = onClick, enabled = enabled, source = source, stateDescription = null,
-    ) { PillLabel(text, if (enabled) c.textPrimary else c.textTertiary) }
-}
+fun SecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, guardObscured: Boolean = false) =
+    Guarded(modifier, guardObscured) { outer, guard ->
+        val c = CytTheme.colors
+        val source = remember { MutableInteractionSource() }
+        PillBase(
+            modifier = outer.pressScale(source).glass(CytTheme.shapes.pill, CytTheme.glass).clip(CytTheme.shapes.pill),
+            onClick = onClick, enabled = enabled, source = source, stateDescription = null, guard = guard,
+        ) { PillLabel(text, if (enabled) c.textPrimary else c.textTertiary) }
+    }
 
 // Tertiary: a 48 dp text button in accent ("Customise", "I've set up a TV before"). Quiet: in
-// text.secondary ("Stop and undo": always present, never hidden, never red).
+// text.secondary ("Stop and undo": always present, never hidden, never red). guardObscured = true
+// when the tertiary writes to the TV ("Undo what we did" as the third button of a stop card).
 @Composable
-fun TertiaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, quiet: Boolean = false) {
-    val c = CytTheme.colors
-    val color = when {
-        !enabled -> c.textTertiary
-        quiet -> c.textSecondary
-        else -> c.accent
+fun TertiaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, quiet: Boolean = false, guardObscured: Boolean = false) =
+    Guarded(modifier, guardObscured) { outer, guard ->
+        val c = CytTheme.colors
+        val color = when {
+            !enabled -> c.textTertiary
+            quiet -> c.textSecondary
+            else -> c.accent
+        }
+        val source = remember { MutableInteractionSource() }
+        Box(
+            outer
+                .heightIn(min = 48.dp)
+                .clip(CytTheme.shapes.pill)
+                .clickable(source, ripple(), enabled = enabled, role = Role.Button, onClick = onClick)
+                .then(guard)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(text, color = color, style = CytTheme.type.labelLarge, textAlign = TextAlign.Center)
+        }
     }
-    val source = remember { MutableInteractionSource() }
-    Box(
-        modifier
-            .heightIn(min = 48.dp)
-            .clip(CytTheme.shapes.pill)
-            .clickable(source, ripple(), enabled = enabled, role = Role.Button, onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(text, color = color, style = CytTheme.type.labelLarge, textAlign = TextAlign.Center)
-    }
-}
 
 // The one destructive action in the app, "Put everything back", inside its confirmation sheet only:
 // an outlined pill, 1.5 dp danger stroke, danger label, no fill. Never animated into place.
