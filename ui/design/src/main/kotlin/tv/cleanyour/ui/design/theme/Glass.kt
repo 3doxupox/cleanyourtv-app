@@ -163,5 +163,7 @@ fun Modifier.animatedAmbientGlow(glow: Glow): Modifier {
         }
     }
     val pair = shown.colors(c) ?: return this
-    return this.ambientGlow(pair.first, pair.second, c.glowCoreAlpha, c.glowMidAlpha) { alpha.value }
+    val core = if (shown == Glow.Done) c.glowCoreAlpha * 0.75f else c.glowCoreAlpha
+    val mid = if (shown == Glow.Done) c.glowMidAlpha * 1.2f else c.glowMidAlpha
+    return this.ambientGlow(pair.first, pair.second, core, mid) { alpha.value }
 }

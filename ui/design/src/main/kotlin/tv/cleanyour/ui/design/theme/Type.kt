@@ -8,6 +8,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.sp
 import tv.cleanyour.ui.design.R
@@ -42,15 +43,17 @@ data class CytType(
 
 private val Trim = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None)
 
-private fun outfit(size: Int, line: Int, weight: FontWeight, tracking: Double, tnum: Boolean = false) = TextStyle(
+private fun outfit(size: Int, line: Int, weight: FontWeight, tracking: Double, tnum: Boolean = false, heading: Boolean = false) = TextStyle(
     fontFamily = Outfit, fontSize = size.sp, lineHeight = line.sp, fontWeight = weight,
     letterSpacing = tracking.sp, lineHeightStyle = Trim,
     fontFeatureSettings = if (tnum) "tnum" else null,
+    // Titles wrap into balanced lines ("things to / switch off"), never truncate.
+    lineBreak = if (heading) LineBreak.Heading else LineBreak.Simple,
 )
 
 val DefaultCytType = CytType(
-    display = outfit(40, 46, FontWeight.Light, -0.5),
-    headline = outfit(30, 36, FontWeight.Light, -0.25),
+    display = outfit(40, 46, FontWeight.Light, -0.5, heading = true),
+    headline = outfit(30, 36, FontWeight.Light, -0.25, heading = true),
     titleLarge = outfit(22, 28, FontWeight.Normal, 0.0),
     titleMedium = outfit(17, 24, FontWeight.Medium, 0.0),
     bodyLarge = outfit(16, 24, FontWeight.Normal, 0.0),

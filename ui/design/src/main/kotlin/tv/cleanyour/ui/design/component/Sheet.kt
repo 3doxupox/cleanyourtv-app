@@ -56,7 +56,7 @@ fun CytBottomSheet(
         scrimColor = c.scrim,
         dragHandle = { SheetDragHandle() },
     ) {
-        Column(Modifier.fillMaxWidth().sheetTopRim().padding(horizontal = 20.dp).padding(bottom = 16.dp), content = content)
+        Column(Modifier.fillMaxWidth().sheetTopRim(c.rim).padding(horizontal = 20.dp).padding(bottom = 16.dp), content = content)
     }
 }
 
@@ -66,7 +66,7 @@ fun CytBottomSheet(
 fun SheetSurface(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     val c = CytTheme.colors
     Column(
-        modifier.fillMaxWidth().clip(CytTheme.shapes.sheet).background(c.surface2).sheetTopRim(),
+        modifier.fillMaxWidth().clip(CytTheme.shapes.sheet).background(c.surface2).sheetTopRim(c.rim),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         SheetDragHandle()
@@ -89,7 +89,7 @@ fun SheetHeader(title: String, modifier: Modifier = Modifier, trailing: Annotate
 }
 
 // The 1 dp highlight line along the top edge of the sheet (inset box-shadow in the mockup).
-private fun Modifier.sheetTopRim(): Modifier = this.drawBehind {
-    drawLine(Color.White.copy(alpha = 0.2f), Offset(28.dp.toPx(), 0.5f), Offset(size.width - 28.dp.toPx(), 0.5f), strokeWidth = 1f)
+private fun Modifier.sheetTopRim(color: Color): Modifier = this.drawBehind {
+    drawLine(color, Offset(28.dp.toPx(), 0.5f), Offset(size.width - 28.dp.toPx(), 0.5f), strokeWidth = 1f)
 }
 

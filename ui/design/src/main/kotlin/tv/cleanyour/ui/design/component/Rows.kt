@@ -189,7 +189,7 @@ fun CheckLine(text: String, modifier: Modifier = Modifier, state: CheckState = C
                 CheckState.PENDING -> Spinner()
             }
         }
-        Text(text, Modifier.weight(1f), color = if (emphasised || state == CheckState.DONE) c.textPrimary else c.textSecondary, style = CytTheme.type.bodyMedium)
+        Text(text, Modifier.weight(1f), color = if (emphasised) c.textPrimary else c.textSecondary, style = CytTheme.type.bodyMedium)
     }
 }
 

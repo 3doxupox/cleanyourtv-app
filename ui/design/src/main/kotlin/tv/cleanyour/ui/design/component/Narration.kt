@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
@@ -96,7 +97,7 @@ fun ProgressNarration(
             for (line in lines.drop(collapsed)) key(line.key) { NarrationRow(line, animate = true) }
         }
         if (footnote != null) Text(footnote, Modifier.padding(top = 20.dp), color = c.textTertiary, style = CytTheme.type.bodySmall)
-        if (stopLabel != null) TertiaryButton(stopLabel, onStop, Modifier.padding(top = 4.dp), quiet = true)
+        if (stopLabel != null) TertiaryButton(stopLabel, onStop, Modifier.padding(top = 4.dp).offset(x = (-16).dp), quiet = true)
     }
 }
 

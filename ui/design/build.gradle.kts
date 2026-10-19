@@ -10,6 +10,11 @@ composeCompiler {
     metricsDestination = layout.buildDirectory.dir("compose-metrics")
 }
 
+// The reports are outputs of the release compile, so a build-cache hit restores them too.
+tasks.matching { it.name == "compileReleaseKotlin" }.configureEach {
+    outputs.dir(layout.buildDirectory.dir("compose-reports")).withPropertyName("composeReports")
+}
+
 // Fails when a class of :ui:design is reported unstable by the Compose compiler.
 val checkComposeStability by tasks.registering {
     group = "verification"

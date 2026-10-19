@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="cyt_back">Back</string>
     <string name="cyt_close">Close</string>
     <string name="cyt_help">Help</string>
@@ -47,7 +47,7 @@
     <string name="cyt_mirror_allow_title">Allow USB debugging?</string>
     <string name="cyt_mirror_allow_body">The computer\'s RSA key fingerprint is:</string>
     <string name="cyt_mirror_allow_always">Always allow from this computer</string>
-    <string name="cyt_mirror_cancel">CANCEL</string>
+    <string name="cyt_mirror_cancel" tools:ignore="ButtonCase">CANCEL</string>
     <string name="cyt_mirror_ok">OK</string>
     <string name="cyt_mirror_card_title">New card from %1$s</string>
     <string name="cyt_mirror_card_body">%1$s can show a card on your home screen. Keeping it hidden leaves the app\'s normal tile as it is.</string>

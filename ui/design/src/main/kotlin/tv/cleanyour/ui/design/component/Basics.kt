@@ -110,7 +110,10 @@ fun rememberEmphasis(text: String, vararg emphasised: String): AnnotatedString {
 
 // Package names, key digests and fingerprints read left to right in every locale (DESIGN-SYSTEM 10):
 // wrap them in a first-strong-isolate pair so they never reorder inside RTL text.
-fun ltr(s: String): String = "⁦$s⁩"
+fun ltr(s: String): String = buildString { append(LRI); append(s); append(PDI) }
+
+private val LRI = 0x2066.toChar() // LEFT-TO-RIGHT ISOLATE
+private val PDI = 0x2069.toChar() // POP DIRECTIONAL ISOLATE
 
 // Text forced left to right (package names, digests, commands).
 @Composable

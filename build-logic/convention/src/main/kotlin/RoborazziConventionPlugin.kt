@@ -40,6 +40,11 @@ class AndroidRoborazziConventionPlugin : Plugin<Project> {
             maxHeapSize = "1280m"
             systemProperty("robolectric.graphicsMode", "NATIVE")
             systemProperty("robolectric.pixelCopyRenderMode", "hardware")
+            testLogging {
+                events("failed")
+                exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+                showStandardStreams = false
+            }
         }
     }
 }

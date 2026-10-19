@@ -168,3 +168,22 @@ Home, Undo, Restart, Key, Download, Phone, Delete, Share, Edit, Lock, External, 
 wrap; RTL mirrors layout, chevrons, the step axis and the ring; package names, digests and
 commands stay LTR; no animation under reduced motion beyond fades; the countdown never changes
 colour; nothing red except `DestructiveButton` and danger banners.
+
+## Decisions taken in W7
+
+- D-W7-1 `CytTheme(darkTheme = true)` by default: dark is the brand (DESIGN-SYSTEM 2). W8 decides
+  whether to follow the system setting.
+- D-W7-2 The ambient glow follows the approved mockups where they differ from DESIGN-SYSTEM 5.2's
+  numbers: centre (32%, 26%), radius about 108% of the width, 10% stop at about half the radius.
+  Core alpha stays 24% (14% light).
+- D-W7-3 Done uses `Glow.Done`: the brand glow with a success core, as mockup 06 draws it (D31).
+- D-W7-4 Icons are hand-drawn outline vectors on a 24 grid (1.5 stroke), matching the mockups'
+  SVGs, instead of Material Symbols glyphs: no icon font or icons-extended dependency.
+- D-W7-5 TV art (frame, mirrored dialogs, illustrations) keeps the TV's own colours in light theme,
+  stays left to right and ignores the phone's font scale: it is a picture of the TV.
+- D-W7-6 The app icon ships as `@mipmap/cyt_ic_launcher` (adaptive, with monochrome) and
+  `@drawable/cyt_ic_notification` from this module, for `:app` to reference.
+- D-W7-7 The glass specular is a gradient that ends transparent at 40% of the height, so no clip is
+  needed; the rim is the same outline inset by half the stroke. `GlassTraceTest` records the draw
+  calls (no saveLayer, no clip). Fades use `CompositingStrategy.ModulateAlpha`, never an offscreen
+  layer.

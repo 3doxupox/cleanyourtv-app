@@ -66,15 +66,19 @@ fun CountdownRing(remainingMs: Long, totalMs: Long, modifier: Modifier = Modifie
     )
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val seconds = ((remainingMs + 999) / 1000).toInt()
-    val announcement = when {
-        stopped -> null
-        seconds in 51..60 -> stringResource(R.string.cyt_countdown_60)
-        seconds in 21..30 -> stringResource(R.string.cyt_countdown_30)
-        seconds in 1..10 -> stringResource(R.string.cyt_countdown_10)
-        else -> null
+    // The spoken text changes only at the 60, 30 and 10 s marks, so the polite live region speaks
+    // three times at most; above 60 s it names the whole window once.
+    val spoken = when {
+        seconds <= 10 -> stringResource(R.string.cyt_countdown_10)
+        seconds <= 30 -> stringResource(R.string.cyt_countdown_30)
+        seconds <= 60 -> stringResource(R.string.cyt_countdown_60)
+        else -> stringResource(R.string.cyt_countdown_left, formatCountdown(totalMs))
     }
     val time = formatCountdown(remainingMs)
-    Box(modifier.size(64.dp), contentAlignment = Alignment.Center) {
+    Box(
+        modifier.size(64.dp).semantics { liveRegion = LiveRegionMode.Polite; contentDescription = spoken },
+        contentAlignment = Alignment.Center,
+    ) {
         Canvas(Modifier.size(64.dp)) {
             val sw = 5.dp.toPx()
             val inset = sw / 2 + 1.5.dp.toPx()
@@ -86,8 +90,6 @@ fun CountdownRing(remainingMs: Long, totalMs: Long, modifier: Modifier = Modifie
             }
         }
         Text(time, Modifier.clearAndSetSemantics {}, color = c.textPrimary, style = CytTheme.type.bodyLarge.copy(fontSize = 16.sp, fontWeight = FontWeight.Normal, fontFeatureSettings = "tnum"))
-        // The spoken cue: only changes at the 60, 30 and 10 s marks.
-        Box(Modifier.size(1.dp).semantics { liveRegion = LiveRegionMode.Polite; contentDescription = announcement ?: "" })
     }
 }
 
