@@ -50,11 +50,13 @@ jobs:
       - name: Tag facts
         id: facts
         run: |
-          echo "epoch=$(git log -1 --format=%ct)" >> "$GITHUB_OUTPUT"
-          echo "version=${VERSION#v}" >> "$GITHUB_OUTPUT"
-          echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          echo "submodule=$(git -C third_party/cleanyourtv rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          case "$VERSION" in *alpha*|*beta*|*rc*) echo "prerelease=true" >> "$GITHUB_OUTPUT";; *) echo "prerelease=false" >> "$GITHUB_OUTPUT";; esac
+          {
+            echo "epoch=$(git log -1 --format=%ct)"
+            echo "version=${VERSION#v}"
+            echo "commit=$(git rev-parse HEAD)"
+            echo "submodule=$(git -C third_party/cleanyourtv rev-parse HEAD)"
+            case "$VERSION" in *alpha*|*beta*|*rc*) echo "prerelease=true";; *) echo "prerelease=false";; esac
+          } >> "$GITHUB_OUTPUT"
 
       - name: Reproducible-build image
         run: docker build -t cyt-build -f docker/repro/Dockerfile docker/repro
@@ -93,6 +95,7 @@ jobs:
           lineage_env=""
           if [ -n "$LINEAGE_B64" ]; then echo "$LINEAGE_B64" | base64 -d > "$keys/lineage"; lineage_env="-e LINEAGE=/keys/lineage"; fi
           mkdir -p "$RUNNER_TEMP/out"
+          # shellcheck disable=SC2086 # lineage_env is empty or one -e pair on purpose
           docker run --rm -e KS=/keys/release.ks -e KS_ALIAS="$KS_ALIAS" -e KS_PASS_FILE=/keys/release.pass \
             -e EXPECT_CERT $lineage_env -v "$keys:/keys:ro" -v "$RUNNER_TEMP:/in:ro" -v "$RUNNER_TEMP/out:/out" \
             cyt-build bash -euc 'tar -xf /in/in/src.tar -C / && cd /src && scripts/sign-and-compare.sh /in/a /in/b /out "'"$NAME"'"'
@@ -134,7 +137,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cd "$RUNNER_TEMP/out"
-          apk=$(ls *.apk)
+          apk=$(basename "$(ls ./*.apk)")
           {
             echo "Internal build. Not for distribution until the announcement."
             echo
