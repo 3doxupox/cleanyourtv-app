@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -112,13 +113,14 @@ fun CytSwitch(checked: Boolean, onCheckedChange: ((Boolean) -> Unit)?, modifier:
     )
 }
 
-// "Keep debugging on" with its risk line in warning: the whole row toggles.
+// "Keep debugging on" with its risk line in warning: the whole row toggles and carries the on or
+// off state for TalkBack (the switch inside is only the picture of it).
 @Composable
 fun SwitchRow(title: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit, modifier: Modifier = Modifier, subtitle: String? = null, warning: Boolean = false, enabled: Boolean = true) {
     val c = CytTheme.colors
     Row(
         modifier.fillMaxWidth().heightIn(min = 56.dp)
-            .clickable(enabled = enabled, role = Role.Switch) { onCheckedChange(!checked) }
+            .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -127,7 +129,7 @@ fun SwitchRow(title: String, checked: Boolean, onCheckedChange: (Boolean) -> Uni
             Text(title, color = c.textPrimary, style = CytTheme.type.bodyLarge)
             if (subtitle != null) Text(subtitle, color = if (warning) c.warning else c.textTertiary, style = CytTheme.type.bodySmall)
         }
-        CytSwitch(checked, null, enabled = enabled)
+        CytSwitch(checked, null, Modifier.clearAndSetSemantics {}, enabled = enabled)
     }
 }
 
