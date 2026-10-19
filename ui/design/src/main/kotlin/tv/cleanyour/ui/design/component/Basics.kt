@@ -24,6 +24,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.toUpperCase
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -117,8 +118,15 @@ private val PDI = 0x2069.toChar() // POP DIRECTIONAL ISOLATE
 
 // Text forced left to right (package names, digests, commands).
 @Composable
-fun LtrText(text: String, modifier: Modifier = Modifier, style: TextStyle = CytTheme.type.bodySmall, color: Color = CytTheme.colors.textTertiary, maxLines: Int = Int.MAX_VALUE) {
-    Text(ltr(text), modifier, color = color, style = style.copy(textDirection = TextDirection.Ltr), maxLines = maxLines)
+fun LtrText(
+    text: String,
+    modifier: Modifier = Modifier,
+    style: TextStyle = CytTheme.type.bodySmall,
+    color: Color = CytTheme.colors.textTertiary,
+    maxLines: Int = Int.MAX_VALUE,
+    overflow: TextOverflow = TextOverflow.Clip,
+) {
+    Text(ltr(text), modifier, color = color, style = style.copy(textDirection = TextDirection.Ltr), maxLines = maxLines, overflow = overflow)
 }
 
 // The 1 px divider between rows inside a card (outline, white 12% on dark).

@@ -136,7 +136,8 @@ fun DiffRow(item: DiffItem, onToggle: ((DiffItem) -> Unit)?, modifier: Modifier 
             Text(item.name, color = c.textPrimary, style = CytTheme.type.titleMedium.copy(fontSize = 16.sp))
             Text(item.description, color = c.textTertiary, style = CytTheme.type.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
             if (showPackageName && item.packageName != null) {
-                LtrText(item.packageName, maxLines = 1)
+                // One line; a long package keeps its start and end ("com.mitv…home.atv").
+                LtrText(item.packageName, maxLines = 1, overflow = TextOverflow.MiddleEllipsis)
             }
         }
         if (onToggle != null) OffKeptPill(item.off, Modifier.clearAndSetSemantics {})

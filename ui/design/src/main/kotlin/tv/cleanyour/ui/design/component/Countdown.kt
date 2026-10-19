@@ -26,6 +26,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -75,11 +76,13 @@ fun CountdownRing(remainingMs: Long, totalMs: Long, modifier: Modifier = Modifie
         else -> stringResource(R.string.cyt_countdown_left, formatCountdown(totalMs))
     }
     val time = formatCountdown(remainingMs)
+    // The ring grows with the font (up to 1.6x) so the time inside never touches the stroke.
+    val ringSize = 64.dp * LocalDensity.current.fontScale.coerceIn(1f, 1.6f)
     Box(
-        modifier.size(64.dp).semantics { liveRegion = LiveRegionMode.Polite; contentDescription = spoken },
+        modifier.size(ringSize).semantics { liveRegion = LiveRegionMode.Polite; contentDescription = spoken },
         contentAlignment = Alignment.Center,
     ) {
-        Canvas(Modifier.size(64.dp)) {
+        Canvas(Modifier.size(ringSize)) {
             val sw = 5.dp.toPx()
             val inset = sw / 2 + 1.5.dp.toPx()
             val arcSize = Size(size.width - inset * 2, size.height - inset * 2)
