@@ -36,7 +36,9 @@ fi
 
 echo "==> 2. sign build A"
 SIGNED="$OUT/$NAME.apk"
-apksigner sign --ks "$KS" --ks-key-alias "$KS_ALIAS" --ks-pass "file:$KS_PASS_FILE" --key-pass "file:$KS_PASS_FILE" \
+# One password for store and key (PKCS#12). --key-pass is left out on purpose: given the same file
+# twice, apksigner reads the key password from its second line.
+apksigner sign --ks "$KS" --ks-key-alias "$KS_ALIAS" --ks-pass "file:$KS_PASS_FILE" \
   --min-sdk-version 28 --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled true \
   ${LINEAGE:+--lineage "$LINEAGE"} --out "$SIGNED" "$UA"
 rm -f "$SIGNED.idsig"
