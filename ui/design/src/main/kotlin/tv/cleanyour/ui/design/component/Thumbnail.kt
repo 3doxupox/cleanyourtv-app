@@ -1,6 +1,6 @@
 package tv.cleanyour.ui.design.component
 
-import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -13,11 +13,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -50,12 +57,7 @@ fun TvThumbnail(
         modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(shape).background(Color.Black).border(1.dp, c.rim, shape)
             .semantics(mergeDescendants = true) { this.contentDescription = contentDescription; role = Role.Image },
     ) {
-        Crossfade(image, Modifier.fillMaxSize(), animationSpec = tween(if (reduced) 0 else CytMotion.THUMBNAIL_CROSSFADE_MS), label = "thumb") { frame ->
-            Box(Modifier.fillMaxSize()) {
-                if (frame != null) Image(frame, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                else placeholder()
-            }
-        }
+        FrameCrossfade(image, reduced, placeholder)
         if (label != null) {
             Text(
                 label,
@@ -63,6 +65,40 @@ fun TvThumbnail(
                 color = Color(0xFFA1A1A6), style = CytTheme.type.bodySmall,
             )
         }
+    }
+}
+
+// The crossfade: the last frame stays underneath while the new one fades in over it. Each frame
+// is one plain draw, so ModulateAlpha applies and no offscreen buffer is used (D-W7-7), unlike
+// Crossfade's saveLayer. A frame that goes away (null) shows the placeholder at once.
+@Composable
+private fun BoxScope.FrameCrossfade(image: ImageBitmap?, reduced: Boolean, placeholder: @Composable BoxScope.() -> Unit) {
+    var previous by remember { mutableStateOf<ImageBitmap?>(null) }
+    var current by remember { mutableStateOf(image) }
+    val alpha = remember { Animatable(1f) }
+    LaunchedEffect(image) {
+        if (image === current) return@LaunchedEffect
+        previous = current
+        current = image
+        if (reduced || image == null) {
+            alpha.snapTo(1f)
+        } else {
+            alpha.snapTo(0f)
+            alpha.animateTo(1f, tween(CytMotion.THUMBNAIL_CROSSFADE_MS))
+        }
+        previous = null
+    }
+    val under = previous
+    val top = current
+    if (under != null && top != null) Image(under, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+    if (top != null) {
+        Image(
+            top, null,
+            Modifier.fillMaxSize().graphicsLayer { this.alpha = alpha.value; compositingStrategy = CompositingStrategy.ModulateAlpha },
+            contentScale = ContentScale.Crop,
+        )
+    } else {
+        placeholder()
     }
 }
 
