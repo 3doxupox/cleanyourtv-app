@@ -55,6 +55,10 @@ class CheckTest {
         ok(r.check(Op.SettingsPut(SettingKey.DEVICE_NAME, null), "other=1\n", null))
         ok(r.check(Op.SettingsPut(SettingKey.DEVICE_NAME, "Mi TV 4A"), "device_name=Mi TV 4A\n", null))
         bad(r.check(Op.SettingsPut(SettingKey.DEVICE_NAME, "Mi TV 4A"), "device_name=Mi TV 4A old\n", null))
+        // R1 R-12: an untrimmed typed name applies as typed and verifies (the read's lines are trimmed).
+        ok(r.check(Op.SettingsPut(SettingKey.DEVICE_NAME, "Mi TV "), "device_name=Mi TV \n", null))
+        ok(r.check(Op.SettingsPut(SettingKey.DEVICE_NAME, " TV"), "device_name= TV\n", null))
+        bad(r.check(Op.SettingsPut(SettingKey.DEVICE_NAME, " TV"), "device_name=TV\n", null))
     }
 
     @Test fun installAndDefaultStateReadTheDump() {

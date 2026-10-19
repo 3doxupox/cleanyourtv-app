@@ -204,7 +204,9 @@ class ShellRenderer(private val watchdogVariant: WatchdogVariant = WatchdogVaria
                 val found = lines.firstOrNull { it.startsWith(prefix) }?.removePrefix(prefix)
                 when {
                     op.value == null && found == null -> VerifyResult.Ok
-                    op.value != null && found == op.value -> VerifyResult.Ok
+                    // The verify lines are trimmed, so a value with trailing spaces (a typed device
+                    // name, R1 R-12) is compared without them; leading spaces survive the trim.
+                    op.value != null && found == op.value?.trimEnd() -> VerifyResult.Ok
                     else -> VerifyResult.Mismatch(prefix + (op.value ?: "<unset>"), found?.let { prefix + it } ?: "<unset>")
                 }
             }
