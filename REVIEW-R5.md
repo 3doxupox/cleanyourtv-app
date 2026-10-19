@@ -32,7 +32,7 @@ Line numbers refer to `6b70e39` unless a file is new in a fix.
 | 12 | Low | scripts/update-verification-metadata.sh | `--refresh-dependencies` refetches everything, so one Maven Central 502 fails the run (happened once in this review, `istack-commons-runtime-3.0.8.pom`). Rerun when it does | Note |
 | 13 | Low | .github/workflows/pr.yml (main, W1) | Same unpinned actions as 4; not W9's file | For the coordinator |
 | 14 | Low | release.yml SBOM step | The tag's Gradle build runs in the job that has `id-token: write`, so build code could mint an OIDC token. Tag code is trusted and dependencies are verified; splitting SBOM and attestation into jobs would remove it | Residual |
-| 15 | Low | build-internal-apk.sh:94 | The keystore is copied to a jarvis temp dir to build the tar it streams. Same disk as the secrets dir, removed afterwards; forge never sees it on disk, as claimed | Residual |
+| 15 | Low | build-internal-apk.sh:98 | The keystore is copied to a jarvis temp dir to build the tar it streams. Same disk as the secrets dir, removed afterwards; forge never sees it on disk, as claimed | Residual |
 | 16 | Low | build-logic AndroidAppConventionPlugin | The new `benchmark` build type adds `testBenchmarkUnitTest` to every `check` | Note |
 | 17 | Info | release.yml minisign step | Password piped on stdin to `minisign -S`; not exercised here (no minisign key exists yet) | Check at the first CI release |
 
