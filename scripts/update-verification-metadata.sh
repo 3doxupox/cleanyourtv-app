@@ -11,7 +11,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 FETCH_BACK="gradle/verification-metadata.xml" scripts/build-on-forge.sh \
-  --write-verification-metadata sha256 --no-configuration-cache --continue \
+  --write-verification-metadata sha256 --refresh-dependencies --no-configuration-cache --no-build-cache --continue \
   --init-script scripts/verification/resolve-catalog.init.gradle.kts \
   check assembleDebug :app:assembleRelease :app:assembleBenchmark :benchmark:assembleBenchmark \
   :e2e:emulatorTestClasses resolveCatalogForVerification \
