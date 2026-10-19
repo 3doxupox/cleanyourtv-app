@@ -1,6 +1,13 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package tv.cleanyour.feature.launcher
 
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -8,65 +15,115 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import tv.cleanyour.core.flows.AppChoice
 import tv.cleanyour.core.flows.Busy
 import tv.cleanyour.core.flows.HomeScreenIntent
 import tv.cleanyour.core.flows.HomeScreenState
 import tv.cleanyour.core.model.PackageName
+import tv.cleanyour.core.planner.Plan
+import tv.cleanyour.ui.design.component.ActionColumn
+import tv.cleanyour.ui.design.component.AppTile
+import tv.cleanyour.ui.design.component.Banner
+import tv.cleanyour.ui.design.component.BannerTone
+import tv.cleanyour.ui.design.component.CheckLine
+import tv.cleanyour.ui.design.component.CheckState
+import tv.cleanyour.ui.design.component.CytBottomSheet
+import tv.cleanyour.ui.design.component.CytIcon
+import tv.cleanyour.ui.design.component.CytIconButton
+import tv.cleanyour.ui.design.component.CytTopBar
+import tv.cleanyour.ui.design.component.ListDivider
+import tv.cleanyour.ui.design.component.ListGroup
+import tv.cleanyour.ui.design.component.ListRow
+import tv.cleanyour.ui.design.component.PrimaryButton
+import tv.cleanyour.ui.design.component.ProgressBar
+import tv.cleanyour.ui.design.component.ScreenScaffold
+import tv.cleanyour.ui.design.component.ScreenTitle
+import tv.cleanyour.ui.design.component.SheetHeader
+import tv.cleanyour.ui.design.component.TertiaryButton
+import tv.cleanyour.ui.design.component.ThemeOption
+import tv.cleanyour.ui.design.component.ThemePicker
+import tv.cleanyour.ui.design.icon.CytIcons
+import tv.cleanyour.ui.design.theme.CytTheme
+import tv.cleanyour.ui.design.theme.Glow
 
 // M2 Home screen: Dock (S3b), Look (theme picker), "Use the TV's own home screen" with its preview,
-// and the drift banner with "Restore mine" (D15).
+// and the drift banner with "Restore mine" (D15). Each sheet keeps its body in an internal *Content
+// composable, so the screenshot tests can draw it on SheetSurface.
 @Composable
 fun HomeScreen(state: HomeScreenState, onIntent: (HomeScreenIntent) -> Unit, onBack: () -> Unit, modifier: Modifier = Modifier) {
     var dockOpen by rememberSaveable { mutableStateOf(false) }
     var lookOpen by rememberSaveable { mutableStateOf(false) }
-    PendingScreenScaffold(modifier, topBar = { PendingTopBar(onBack = onBack, backDescription = stringResource(R.string.action_back)) }) {
-        PendingScreenTitle(stringResource(R.string.home_title))
-        if (state.drift) PendingBanner(stringResource(R.string.home_drift_banner), PendingBannerTone.WARNING,
-            actionLabel = stringResource(R.string.home_drift_restore), onAction = { onIntent(HomeScreenIntent.RestoreMine) })
-        val busy = state.busy
+    val busy = state.busy
+    ScreenScaffold(Glow.Tv, modifier, topBar = { CytTopBar(onBack = onBack) }) {
+        ScreenTitle(stringResource(R.string.home_title), Modifier.padding(top = 20.dp))
+        if (state.drift) {
+            Banner(stringResource(R.string.home_drift_banner), BannerTone.WARNING, Modifier.padding(top = 16.dp),
+                actionLabel = stringResource(R.string.home_drift_restore), onAction = { onIntent(HomeScreenIntent.RestoreMine) })
+        }
         if (busy != null) {
-            PendingLiveLine(stringResource(R.string.home_applying), found = false)
-            if (busy is Busy.Working) PendingProgressBar(busy.percent / 100f)
+            LiveLine(stringResource(R.string.home_applying))
+            if (busy is Busy.Working) ProgressBar(busy.percent / 100f, Modifier.padding(top = 16.dp))
         }
-        PendingListGroup {
-            PendingListRow(stringResource(R.string.home_row_dock), subtitle = state.dock.joinToString(", ") { it.name }.ifEmpty { null },
+        ListGroup(Modifier.padding(top = 20.dp)) {
+            ListRow(stringResource(R.string.home_row_dock), subtitle = state.dock.joinToString(", ") { it.name }.ifEmpty { null },
                 onClick = if (busy == null) ({ dockOpen = true }) else null)
+            ListDivider()
             val theme = state.themes.firstOrNull { it.id == state.themeId }?.name ?: stringResource(R.string.theme_default)
-            PendingListRow(stringResource(R.string.home_row_look), subtitle = theme, onClick = if (busy == null) ({ lookOpen = true }) else null)
+            ListRow(stringResource(R.string.home_row_look), subtitle = theme, onClick = if (busy == null) ({ lookOpen = true }) else null)
         }
-        if (state.stock != null && state.homeScreenOurs) PendingListGroup {
-            PendingListRow(stringResource(R.string.home_row_stock), subtitle = stringResource(R.string.home_row_stock_note),
-                onClick = if (busy == null) ({ onIntent(HomeScreenIntent.PreviewStock) }) else null)
+        if (state.stock != null && state.homeScreenOurs) {
+            ListGroup(Modifier.padding(top = 12.dp)) {
+                ListRow(stringResource(R.string.home_row_stock), subtitle = stringResource(R.string.home_row_stock_note),
+                    onClick = if (busy == null) ({ onIntent(HomeScreenIntent.PreviewStock) }) else null)
+            }
         }
     }
     if (dockOpen) DockSheet(state.dock, state.apps, onDone = { onIntent(HomeScreenIntent.SetDock(it)); dockOpen = false }, onDismiss = { dockOpen = false })
-    if (lookOpen) PendingBottomSheet({ lookOpen = false }) {
-        PendingSheetHeader(stringResource(R.string.theme_title))
-        PendingListGroup {
-            val descriptions = mapOf("default" to R.string.theme_default_desc, "aurora" to R.string.theme_aurora_desc, "six-columns" to R.string.theme_six_columns_desc)
-            state.themes.forEach { t ->
-                val selected = t.id == state.themeId || (state.themeId == null && t.id == "default")
-                val desc = descriptions[t.id]?.let { stringResource(it) } ?: t.description
-                val cd = msg(if (selected) R.string.theme_card_selected_cd else R.string.theme_card_cd, "name" to t.name, "description" to desc)
-                PendingListRow(t.name, Modifier.semantics { contentDescription = cd }, subtitle = desc, value = if (selected) "✓" else null,
-                    onClick = { onIntent(HomeScreenIntent.SetTheme(t.id)); lookOpen = false })
-            }
-        }
-        PendingGap()
+    if (lookOpen) CytBottomSheet({ lookOpen = false }) {
+        LookContent(state) { onIntent(HomeScreenIntent.SetTheme(it)); lookOpen = false }
     }
     state.stockPreview?.let { plan ->
-        PendingBottomSheet({ onIntent(HomeScreenIntent.CancelPreview) }) {
-            PendingSheetHeader(stringResource(R.string.home_stock_preview_title))
-            PendingBody(stringResource(R.string.home_stock_preview_body), color = MaterialTheme.colorScheme.onSurface)
-            plan.steps.map { it.narration }.distinct().forEach { PendingCheckLine(it, done = false) }
-            PendingPrimaryButton(stringResource(R.string.home_stock_confirm), { onIntent(HomeScreenIntent.UseStock) })
-            PendingTertiaryButton(stringResource(R.string.action_cancel), { onIntent(HomeScreenIntent.CancelPreview) })
-            PendingGap()
-        }
+        CytBottomSheet({ onIntent(HomeScreenIntent.CancelPreview) }) { StockPreviewContent(plan, onIntent) }
+    }
+}
+
+// The three launcher themes with their one-line descriptions and the colours of their preview
+// tile. The colours are a picture of the TV's theme (D-W7-5), not phone UI colours.
+private val themeDescriptions = mapOf(
+    "default" to R.string.theme_default_desc,
+    "aurora" to R.string.theme_aurora_desc,
+    "six-columns" to R.string.theme_six_columns_desc,
+)
+private val themeSwatches = mapOf(
+    "default" to listOf(Color.Black, Color(0xFF5B6CFF), Color(0xFF2A2A2E), Color(0xFF3A86E8)),
+    "aurora" to listOf(Color(0xFF041018), Color(0xFF1FA597), Color(0xFF0B5E57), Color(0xFF1D4FBF)),
+    "six-columns" to listOf(Color.Black, Color(0xFFB9C2CC), Color(0xFF3B3B40), Color(0xFF76767D)),
+)
+
+@Composable
+internal fun ColumnScope.LookContent(state: HomeScreenState, onSelect: (String) -> Unit) {
+    SheetHeader(stringResource(R.string.theme_title))
+    val options = state.themes.map { t ->
+        ThemeOption(t.id, t.name, themeDescriptions[t.id]?.let { stringResource(it) } ?: t.description, themeSwatches[t.id] ?: themeSwatches.getValue("default"))
+    }
+    ThemePicker(options, state.themeId ?: "default", { onSelect(it.id) }, Modifier.padding(top = 16.dp))
+}
+
+@Composable
+internal fun ColumnScope.StockPreviewContent(plan: Plan, onIntent: (HomeScreenIntent) -> Unit) {
+    SheetHeader(stringResource(R.string.home_stock_preview_title))
+    Body(stringResource(R.string.home_stock_preview_body), Modifier.padding(top = 8.dp))
+    Column(Modifier.padding(top = 16.dp, start = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        plan.steps.map { it.narration }.distinct().forEach { CheckLine(it, state = CheckState.NONE) }
+    }
+    ActionColumn(Modifier.padding(top = 20.dp)) {
+        PrimaryButton(stringResource(R.string.home_stock_confirm), { onIntent(HomeScreenIntent.UseStock) })
+        TertiaryButton(stringResource(R.string.action_cancel), { onIntent(HomeScreenIntent.CancelPreview) }, quiet = true)
     }
 }
 
@@ -74,31 +131,39 @@ fun HomeScreen(state: HomeScreenState, onIntent: (HomeScreenIntent) -> Unit, onB
 @Composable
 fun DockSheet(current: List<AppChoice>, apps: List<AppChoice>, onDone: (List<PackageName>) -> Unit, onDismiss: () -> Unit) {
     var dock by remember(current) { mutableStateOf(current) }
-    PendingBottomSheet(onDismiss) {
-        PendingSheetHeader(stringResource(R.string.dock_title), subtitle = stringResource(R.string.dock_body))
-        PendingOverline(stringResource(R.string.dock_section_in))
-        PendingListGroup {
-            dock.forEachIndexed { i, app ->
-                val inCd = msg(R.string.dock_item_in_cd, "name" to app.name, "position" to i + 1)
-                val upCd = msg(R.string.dock_move_up_cd, "name" to app.name)
-                val downCd = msg(R.string.dock_move_down_cd, "name" to app.name)
-                val outCd = msg(R.string.dock_remove_cd, "name" to app.name)
-                PendingListRow(app.name, Modifier.semantics { contentDescription = inCd }, trailing = {
-                    if (i > 0) PendingTertiaryButton("▲", { dock = dock.toMutableList().apply { add(i - 1, removeAt(i)) } }, Modifier.semantics { contentDescription = upCd })
-                    if (i < dock.size - 1) PendingTertiaryButton("▼", { dock = dock.toMutableList().apply { add(i + 1, removeAt(i)) } }, Modifier.semantics { contentDescription = downCd })
-                    PendingTertiaryButton("−", { dock = dock - app }, Modifier.semantics { contentDescription = outCd })
-                })
-            }
+    CytBottomSheet(onDismiss) { DockContent(dock, apps, { dock = it }, { onDone(dock.map { it.pkg }) }) }
+}
+
+@Composable
+internal fun ColumnScope.DockContent(dock: List<AppChoice>, apps: List<AppChoice>, onChange: (List<AppChoice>) -> Unit, onDone: () -> Unit) {
+    SheetHeader(stringResource(R.string.dock_title), subtitle = stringResource(R.string.dock_body))
+    SectionLabel(stringResource(R.string.dock_section_in))
+    ListGroup {
+        dock.forEachIndexed { i, app ->
+            if (i > 0) ListDivider()
+            val inCd = msg(R.string.dock_item_in_cd, "name" to app.name, "position" to i + 1)
+            ListRow(app.name, Modifier.semantics { contentDescription = inCd }, leading = { AppTile(app.name) }, trailing = {
+                Row {
+                    if (i > 0) CytIconButton(CytIcons.ArrowUp, msg(R.string.dock_move_up_cd, "name" to app.name),
+                        { onChange(dock.toMutableList().apply { add(i - 1, removeAt(i)) }) })
+                    if (i < dock.size - 1) CytIconButton(CytIcons.ArrowDown, msg(R.string.dock_move_down_cd, "name" to app.name),
+                        { onChange(dock.toMutableList().apply { add(i + 1, removeAt(i)) }) })
+                    CytIconButton(CytIcons.Minus, msg(R.string.dock_remove_cd, "name" to app.name), { onChange(dock - app) })
+                }
+            })
         }
-        if (dock.size >= 4) PendingBody(stringResource(R.string.dock_full_note))
-        PendingOverline(stringResource(R.string.dock_section_other))
-        PendingListGroup {
-            apps.filter { a -> dock.none { it.pkg == a.pkg } }.forEach { app ->
-                val addCd = msg(R.string.dock_add_cd, "name" to app.name)
-                PendingListRow(app.name, Modifier.semantics { contentDescription = addCd }, onClick = if (dock.size < 4) ({ dock = dock + app }) else null)
-            }
-        }
-        PendingPrimaryButton(stringResource(R.string.action_done), { onDone(dock.map { it.pkg }) })
-        PendingGap()
     }
+    if (dock.size >= 4) Body(stringResource(R.string.dock_full_note), Modifier.padding(top = 10.dp, start = 4.dp, end = 4.dp))
+    SectionLabel(stringResource(R.string.dock_section_other))
+    ListGroup {
+        apps.filter { a -> dock.none { it.pkg == a.pkg } }.forEachIndexed { i, app ->
+            if (i > 0) ListDivider()
+            val full = dock.size >= 4
+            val cd = if (full) msg(R.string.dock_item_out_cd, "name" to app.name) else msg(R.string.dock_add_cd, "name" to app.name)
+            ListRow(app.name, Modifier.semantics { contentDescription = cd }, leading = { AppTile(app.name) },
+                trailing = if (full) null else ({ CytIcon(CytIcons.Plus, null, tint = CytTheme.colors.accent) }),
+                onClick = if (full) null else ({ onChange(dock + app) }))
+        }
+    }
+    PrimaryButton(stringResource(R.string.action_done), onDone, Modifier.padding(top = 20.dp))
 }
