@@ -26,6 +26,8 @@ LOG_DIR="${CYT_E2E_OUT:-$PWD/build/e2e}"
 export ANDROID_AVD_HOME="${ANDROID_AVD_HOME:-/tmp/avd}"
 export ANDROID_EMULATOR_HOME="${ANDROID_EMULATOR_HOME:-/tmp/emuhome}"
 # A private HOME for adb: the session gets a fresh host key in ~/.android, never a shared one.
+# Gradle keeps its own home (and its caches) whatever HOME becomes.
+export GRADLE_USER_HOME="${GRADLE_USER_HOME:-$HOME/.gradle}"
 export HOME="${E2E_HOME:-/tmp/e2e-home}"
 mkdir -p "$ANDROID_AVD_HOME" "$ANDROID_EMULATOR_HOME" "$HOME/.android" "$LOG_DIR"
 # An empty console token turns console auth off for this throwaway emulator.
