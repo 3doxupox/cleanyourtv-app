@@ -118,7 +118,6 @@ private fun InlineCard(extras: SetupExtras, actions: SetupActions) {
 fun WelcomeScreen(state: SetupState.Welcome, extras: SetupExtras, actions: SetupActions, onReturning: () -> Unit, modifier: Modifier = Modifier) {
     ScreenScaffold(
         Glow.Brand, modifier,
-        topBar = { Overline(stringResource(R.string.welcome_overline), Modifier.padding(start = 20.dp, top = 28.dp)) },
         bottomBar = {
             ActionColumn {
                 PrimaryButton(stringResource(R.string.welcome_start), { actions.intent(SetupIntent.Start) })
@@ -126,6 +125,9 @@ fun WelcomeScreen(state: SetupState.Welcome, extras: SetupExtras, actions: Setup
             }
         },
     ) {
+        // The product name scrolls with the hero (no top bar on Welcome), so a stop card scrolled
+        // into view never slides the film under it (R4-W8).
+        Overline(stringResource(R.string.welcome_overline), Modifier.padding(top = 28.dp))
         WelcomeIllustration(Modifier.padding(top = 28.dp), contentDescription = stringResource(R.string.welcome_hero_cd))
         ScreenTitle(stringResource(R.string.welcome_title), Modifier.padding(top = 32.dp), size = TitleSize.DISPLAY)
         Lead(stringResource(R.string.welcome_body), Modifier.padding(top = 12.dp))
