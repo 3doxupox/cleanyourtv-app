@@ -1,0 +1,14 @@
+# build output
+build/
+.gradle/
+.kotlin/
+local.properties
+*.iml
+.idea/
+.DS_Store
+# signing material never goes in git
+*.jks
+*.keystore
+keystore/
+# local artefacts from scripts/build-on-forge.sh
+dist/
