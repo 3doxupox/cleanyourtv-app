@@ -87,7 +87,7 @@ class HostileFrameFuzzTest {
 
     @Test fun frameDecoderSurvivesRandomAndMutatedFrames() {
         var failures = 0
-        val n = timeBounded(0.35) { random ->
+        val n = timeBounded(0.5) { random ->
             val bytes = when (random.nextInt(3)) {
                 0 -> ByteArray(random.nextInt(2048)).also { random.nextBytes(it) }
                 1 -> mutate(validFrame(random), random)
@@ -100,7 +100,7 @@ class HostileFrameFuzzTest {
 
     @Test fun shellAndSyncReadersSurviveRandomStreams() {
         var failures = 0
-        val n = timeBounded(0.35) { random ->
+        val n = timeBounded(0.5) { random ->
             val bytes = when (random.nextInt(3)) {
                 0 -> ByteArray(random.nextInt(1024)).also { random.nextBytes(it) }
                 1 -> mutate(ShellV2.encode(1 + random.nextInt(3), ByteArray(random.nextInt(64))) + ShellV2.exitPacket(random.nextInt(256)), random)
