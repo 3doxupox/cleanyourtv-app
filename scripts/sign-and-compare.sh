@@ -50,9 +50,17 @@ apksigner verify --verbose --print-certs --min-sdk-version 24 "$SIGNED" | grep -
 CERT=$(apksigner verify --print-certs "$SIGNED" | sed -n 's/.*certificate SHA-256 digest: //p' | head -1)
 
 echo "==> 3. apksigcopier compare (signed A against unsigned B)"
-apksigcopier compare "$SIGNED" --unsigned "$UB" && echo "apksigcopier compare: match" | tee "$OUT/apksigcopier.txt"
+# Not `cmd && echo`: set -e ignores a failure on the left of &&, so a mismatch would carry on.
+if ! apksigcopier compare "$SIGNED" --unsigned "$UB"; then
+  echo "apksigcopier compare: MISMATCH, the signed APK is not build B plus a signature" >&2
+  exit 1
+fi
+echo "apksigcopier compare: match" | tee "$OUT/apksigcopier.txt"
 
 echo "==> 4. APK assertions"
+if [ -z "${EXPECT_CERT:-}" ] && [ "${TEST_KEY:-0}" != "1" ]; then
+  echo "WARNING: EXPECT_CERT unset, the signer certificate is checked against itself only" >&2
+fi
 set +e
 python3 scripts/check-apk.py "$SIGNED" --expect-cert "${EXPECT_CERT:-$CERT}" --json "$OUT/check-apk.json" | tee "$OUT/check-apk.txt"
 CHECK=${PIPESTATUS[0]}
