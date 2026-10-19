@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.RoborazziATFAccessibilityCheckOptions
 import com.github.takahirom.roborazzi.RoborazziATFAccessibilityChecker
+import com.github.takahirom.roborazzi.RoborazziOptions
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.checkRoboAccessibility
 import java.util.TimeZone
@@ -98,7 +99,12 @@ class ConnectScreenshotTest(private val shot: Shot, private val variant: Variant
         compose.setContent { Rendered(shot, variant) }
         compose.waitForIdle()
         val node = compose.onNodeWithTag(SHOT_TAG)
-        node.captureRoboImage("src/test/screenshots/${shot.name}_${variant.name.lowercase()}.png")
+        // Rendered at xhdpi for the checks, saved at half scale to keep the goldens small (R4-W8:
+        // one scale for every module).
+        node.captureRoboImage(
+            "src/test/screenshots/${shot.name}_${variant.name.lowercase()}.png",
+            roborazziOptions = RoborazziOptions(recordOptions = RoborazziOptions.RecordOptions(resizeScale = 0.5)),
+        )
         node.checkRoboAccessibility(
             RoborazziATFAccessibilityCheckOptions(
                 checker = RoborazziATFAccessibilityChecker(suppressions = Matchers.not(Matchers.anything())),

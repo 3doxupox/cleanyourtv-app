@@ -172,8 +172,8 @@ private val narrationAllStates = listOf(
 @Composable
 private fun card(case: StopCase, title: Int, body: Int, primary: Int, secondary: Int? = null, tertiary: Int? = null, args: Map<String, Any> = emptyMap()) =
     StopCard(
-        case, msg(title, *args.toList().toTypedArray()), msg(body, *args.toList().toTypedArray()), stringResource(primary),
-        secondary?.let { stringResource(it) }, planId = null, tertiary = tertiary?.let { stringResource(it) },
+        case, msg(title, *args.toList().toTypedArray()), msg(body, *args.toList().toTypedArray()), msg(primary, *args.toList().toTypedArray()),
+        secondary?.let { msg(it, *args.toList().toTypedArray()) }, planId = null, tertiary = tertiary?.let { msg(it, *args.toList().toTypedArray()) },
     )
 
 private val lostArgs = mapOf<String, Any>("done" to 14, "total" to 23, "tv" to "Mi TV 4A")
