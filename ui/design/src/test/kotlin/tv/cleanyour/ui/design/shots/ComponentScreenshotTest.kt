@@ -5,6 +5,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.RoborazziATFAccessibilityCheckOptions
 import com.github.takahirom.roborazzi.RoborazziATFAccessibilityChecker
+import com.github.takahirom.roborazzi.RoborazziOptions
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.checkRoboAccessibility
 import org.junit.Rule
@@ -32,7 +33,11 @@ class ComponentScreenshotTest(private val sample: Sample, private val variant: V
         compose.setContent { Rendered(sample, variant) }
         compose.waitForIdle()
         val node = compose.onNodeWithTag(SHOT_TAG)
-        node.captureRoboImage("src/test/screenshots/${sample.name}_${variant.name.lowercase()}.png")
+        // Rendered at xhdpi for the checks, saved at half scale like every feature module (R4-W8).
+        node.captureRoboImage(
+            "src/test/screenshots/${sample.name}_${variant.name.lowercase()}.png",
+            roborazziOptions = RoborazziOptions(recordOptions = RoborazziOptions.RecordOptions(resizeScale = 0.5)),
+        )
         run {
             node.checkRoboAccessibility(
                 RoborazziATFAccessibilityCheckOptions(
