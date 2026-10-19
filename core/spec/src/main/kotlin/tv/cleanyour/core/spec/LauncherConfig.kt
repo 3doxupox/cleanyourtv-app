@@ -17,9 +17,9 @@ data class EffectiveConfig(val dockApps: List<String>, val hiddenApps: List<Stri
     val vpnApp: String, val showHomeSettingsShortcut: Boolean, val backgroundColorArgb: Int, val wallpaper: Boolean)
 sealed interface DecodeResult { data class Ok(val doc: LauncherConfigDoc, val warnings: List<String>) : DecodeResult; data class Rejected(val reason: String) : DecodeResult }
 object LauncherConfigCodec {
-    fun decode(bytes: ByteArray): DecodeResult = TODO("W4")                       // Config.java semantics: 64 KB cap, BOM, per-key type and range
-    fun encode(doc: LauncherConfigDoc): ByteArray = TODO("W4")                     // canonical key order, UTF-8, no BOM, no unknown keys unless carried
-    fun effective(doc: LauncherConfigDoc?, defaults: EffectiveConfig): EffectiveConfig = TODO("W4")
-    val builtInDefaults: EffectiveConfig get() = TODO("W4") }
+    fun decode(bytes: ByteArray): DecodeResult = ConfigCodecImpl.decode(bytes)                       // Config.java semantics: 64 KB cap, BOM, per-key type and range
+    fun encode(doc: LauncherConfigDoc): ByteArray = ConfigCodecImpl.encode(doc)                     // canonical key order, UTF-8, no BOM, no unknown keys unless carried
+    fun effective(doc: LauncherConfigDoc?, defaults: EffectiveConfig): EffectiveConfig = ConfigCodecImpl.effective(doc, defaults)
+    val builtInDefaults: EffectiveConfig get() = ConfigCodecImpl.BUILT_IN }
 data class Theme(val id: String, val name: String, val description: String, val doc: LauncherConfigDoc, val wallpaper: BlobRef?)
 interface ThemeSource { fun bundled(): List<Theme> }
