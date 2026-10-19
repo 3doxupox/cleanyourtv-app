@@ -148,8 +148,10 @@ class SectionTest {
         assertTrue(h.clock.monotonicMs() < 40_000, "rolled back at once, not at the deadline")
     }
 
-    @Test fun theWizardFocusAndTheStockLauncherFocusRollBackToo() = runTest(timeout = TEST_TIMEOUT) {
-        for (focus in listOf(Component(PackageName("com.google.android.tungsten.setupwraith"), ".RecoveryActivity"), Samples.stockLauncher)) {
+    // The resolver (HOME key with no default, package android, R1 R-8) rolls back like the others.
+    @Test fun theWizardTheStockLauncherAndTheResolverFocusRollBackToo() = runTest(timeout = TEST_TIMEOUT) {
+        val resolver = Component(PackageName("android"), "com.android.internal.app.ResolverActivity")
+        for (focus in listOf(Component(PackageName("com.google.android.tungsten.setupwraith"), ".RecoveryActivity"), Samples.stockLauncher, resolver)) {
             val h = Harness(this)
             val engine = h.engine()
             val plan = h.setupPlan()

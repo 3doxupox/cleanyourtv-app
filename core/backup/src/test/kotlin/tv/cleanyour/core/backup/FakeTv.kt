@@ -22,7 +22,7 @@ data class TvState(val packages: Map<String, String>, val home: String?, val set
                 is Op.DefaultState -> p[op.pkg.value] = "DEFAULT"
                 is Op.Install -> p[op.pkg.value] = "ENABLED"
                 is Op.InstallStream -> p[op.pkg.value] = "ENABLED"
-                is Op.Uninstall -> p.remove(op.pkg.value)
+                is Op.Uninstall -> { p.remove(op.pkg.value); f.removeAll { it.startsWith("/sdcard/Android/data/${op.pkg.value}/") } }   // its folder goes with it
                 is Op.SettingsPut -> {
                     val k = op.key.ns.name.lowercase(Locale.ROOT) + "/" + op.key.key
                     if (op.value == null) s.remove(k) else s[k] = op.value!!

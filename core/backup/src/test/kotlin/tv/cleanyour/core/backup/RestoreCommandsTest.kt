@@ -1,31 +1,61 @@
 package tv.cleanyour.core.backup
 
+import tv.cleanyour.core.model.BlobRef
 import tv.cleanyour.core.model.ChangeRecord
 import tv.cleanyour.core.model.EnabledState
 import tv.cleanyour.core.model.Op
 import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.model.PlanId
 import tv.cleanyour.core.model.Prior
+import tv.cleanyour.core.model.RemoteDir
 import tv.cleanyour.core.model.SettingKey
-import tv.cleanyour.core.model.BlobRef
+import tv.cleanyour.core.model.Snapshot
 import tv.cleanyour.core.ops.OpRenderer
-import tv.cleanyour.testing.fixtures.sha256Of
+import tv.cleanyour.core.ops.ShellRenderer
+import tv.cleanyour.core.ops.UndoOrder
+import tv.cleanyour.core.planner.DefaultPlanner
+import tv.cleanyour.core.planner.PlanRequest
+import tv.cleanyour.core.planner.PlanResult
+import tv.cleanyour.testing.fixtures.FakeClock
+import tv.cleanyour.testing.fixtures.FakeConfigTransport
+import tv.cleanyour.testing.fixtures.FakeIdGen
+import tv.cleanyour.testing.fixtures.MapFactsTable
 import tv.cleanyour.testing.fixtures.Samples
+import tv.cleanyour.testing.fixtures.sha256Of
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.test.fail
 
 class RestoreCommandsTest {
-    private val steps = RestoreCommands(ReferenceRenderer()).steps(Scenario.changes())
+    private val renderer = ShellRenderer()
+    private val steps = RestoreCommands(renderer).steps(Scenario.changes())
 
-    @Test fun newestFirstAndOnlyLastingChanges() {
+    private fun phase(s: RestoreStep): UndoOrder.Phase = UndoOrder.target(s.change.op)!!.phase
+
+    // The lines of the phone's Undo everything for the same records, planned with the real planner
+    // and renderer from the TV the records leave behind, without the ops that leave nothing lasting
+    // on the TV (verify, press HOME, restart; the laptop files never carry them).
+    private fun phoneUndo(changes: List<ChangeRecord>, removeLauncher: Boolean): List<String> {
+        val planner = DefaultPlanner(FakeClock(), FakeIdGen(), renderer, FakeConfigTransport(), "0.1.0")
+        val r = planner.plan(PlanRequest.UndoEverything(changes, removeLauncher), Scenario.snapshotAfter(changes), MapFactsTable(), changes)
+        val plan = (r as? PlanResult.Ok)?.plan ?: fail("refused: $r")
+        return plan.steps.filterNot { RestoreCommands.isTransient(it.op) }.flatMap { s -> s.rendered.lines.map { it.text } }
+    }
+
+    private fun lines(s: List<RestoreStep>, vararg kinds: RestoreStepKind) = s.filter { it.kind in kinds }.flatMap { it.lines }
+
+    @Test fun phaseByPhaseFromTheEarliestRecordAndOnlyLastingChanges() {
         val ops = steps.map { it.inverse }
-        // the put back is undone first, the debloat last; reads, the watchdog, restarts, mkdir,
-        // settle, debugging off and the restore point files leave no step
-        assertEquals(Op.Disable(Scenario.putBackPkg), ops.first())
-        assertEquals(Op.Enable(Scenario.disabledAfter.first()), ops.last())
+        // package states first (the stock launcher, switched off last, comes first), our files last;
+        // reads, the watchdog, restarts, mkdir, settle, debugging off and the restore point files leave no step
+        assertEquals(Op.Enable(Scenario.stock.pkg), ops.first())
+        assertEquals(UndoOrder.Phase.entries, steps.map(::phase).distinct())
+        assertEquals(steps.map(::phase).sorted(), steps.map(::phase))
         assertTrue(steps.none { it.change.op is Op.Read || it.change.op is Op.Mkdir || it.change.op is Op.KillWatchdog || it.change.op is Op.DebugOff })
         assertTrue(steps.none { RestoreCommands.isRestorePointFile(it.change.op) })
+        // the later put back is not undone: the app's earliest record (the debloat) says it was on
+        assertTrue(Op.Enable(Scenario.putBackPkg) in ops && Op.Disable(Scenario.putBackPkg) !in ops, ops.toString())
         val stockOn = ops.indexOf(Op.Enable(Scenario.stock.pkg))
         val homeBack = ops.indexOf(Op.SetHome(Scenario.stock))
         val removeOurs = ops.indexOf(Op.Uninstall(Scenario.launcher.pkg))
@@ -41,36 +71,129 @@ class RestoreCommandsTest {
             ChangeRecord(plan, 1, Op.Disable(b), Prior(packageState = EnabledState.ENABLED), 5),
             ChangeRecord(plan, 0, Op.Disable(a), Prior(packageState = EnabledState.ENABLED), 5),
         )
-        assertEquals(listOf(Op.Enable(b), Op.Enable(a)), RestoreCommands(ReferenceRenderer()).steps(changes).map { it.inverse })
+        assertEquals(listOf(Op.Enable(b), Op.Enable(a)), RestoreCommands(renderer).steps(changes).map { it.inverse })
     }
 
     @Test fun kindsAndUndoRules() {
         assertEquals(RestoreStepKind.REMOVE_APP, steps.single { it.inverse is Op.Uninstall }.kind)
         assertEquals(Op.DefaultState(Scenario.defaultStatePkg), steps.single { it.change.op == Op.Disable(Scenario.defaultStatePkg) }.inverse)
         assertEquals(Op.SettingsPut(SettingKey.SCREENSAVER_COMPONENTS, null), steps.single { (it.change.op as? Op.SettingsPut)?.key == SettingKey.SCREENSAVER_COMPONENTS }.inverse)
-        assertTrue(steps.filter { it.kind != RestoreStepKind.NOT_FROM_LAPTOP }.all { it.lines.isNotEmpty() && it.note == null })
-        assertEquals(listOf("pm enable --user 0 'com.xiaomi.statistic'"), steps.single { it.inverse == Op.Enable(PackageName("com.xiaomi.statistic")) }.lines)
+        assertTrue(steps.none { it.kind == RestoreStepKind.NOT_FROM_LAPTOP }, steps.toString())
+        assertTrue(steps.all { it.lines.isNotEmpty() && it.note == null })
+        assertEquals(listOf("'pm' 'enable' '--user' '0' 'com.xiaomi.statistic'"), steps.single { it.inverse == Op.Enable(PackageName("com.xiaomi.statistic")) }.lines)
+    }
+
+    // R5-W6 M1: setup, then "TV's own home screen", then "remove the new one". The steps come in the
+    // planner's phases; the stock launcher is switched on before HOME moves; nothing is aimed at the
+    // launcher the user removed (no uninstall, no set-home-activity to it, no file in its folder,
+    // and no "cannot be reinstalled" entry), nor at the card app's install file the plan deleted.
+    @Test fun setupThenTheTvsOwnHomeScreenThenRemoveTheNewOne() {
+        val s = RestoreCommands(renderer).steps(Scenario.m1Changes())
+        val ops = s.map { it.inverse }
+        val debloat = Scenario.disabledAfter.reversed().map { if (it == Scenario.defaultStatePkg) Op.DefaultState(it) else Op.Enable(it) }
+        assertEquals(listOf(Op.Enable(Scenario.stock.pkg)) + debloat +
+            listOf(Op.SettingsPut(SettingKey.SCREENSAVER_ENABLED, "1"), Op.SetHome(Scenario.stock), Op.Uninstall(Scenario.module)), ops)
+        assertEquals(listOf(UndoOrder.Phase.PACKAGES, UndoOrder.Phase.SETTINGS, UndoOrder.Phase.HOME, UndoOrder.Phase.APPS), s.map(::phase).distinct())
+        assertTrue(ops.indexOf(Op.Enable(Scenario.stock.pkg)) < ops.indexOf(Op.SetHome(Scenario.stock)))
+        assertTrue(s.none { it.kind == RestoreStepKind.NOT_FROM_LAPTOP }, s.toString())
+        assertTrue(s.none { st -> st.lines.any { Scenario.launcher.pkg.value in it } }, s.toString())
+        assertEquals(RestoreStepKind.REMOVE_APP, s.last().kind)
+    }
+
+    // One ordering for both undos: on a TV that still shows every change, the laptop steps are the
+    // phone's Undo everything for the same records, rendered by the same renderer.
+    @Test fun theStepsAreThePhonesUndoEverything() {
+        val changes = Scenario.changes(putBack = false)
+        val s = RestoreCommands(renderer).steps(changes)
+        // the default script (no --remove-apps) runs exactly what the phone runs when it keeps the launcher
+        assertEquals(phoneUndo(changes, removeLauncher = false), lines(s, RestoreStepKind.PUT_BACK))
+        // with --remove-apps the script also runs the phone's uninstall, in the same place; the phone
+        // then leaves out the file in the launcher's folder, which goes with the app
+        val inLauncherFolder = s.filter { (it.inverse as? Op.RemoveFile)?.path?.dir == RemoteDir.OVERLAY }
+        assertEquals(1, inLauncherFolder.size)
+        assertEquals(phoneUndo(changes, removeLauncher = true), lines(s - inLauncherFolder.toSet(), RestoreStepKind.PUT_BACK, RestoreStepKind.REMOVE_APP))
+    }
+
+    // The phone reads the TV and skips an item already back in its first state; the script cannot
+    // read it and keeps that line, which changes nothing. Apart from those lines the two are the
+    // same lines in the same order, also after a put back and in the M1 flow.
+    @Test fun whereThePhoneSkipsAnItemAlreadyBackTheScriptRepeatsIt() {
+        for (changes in listOf(Scenario.changes(), Scenario.m1Changes())) {
+            val after = Scenario.snapshotAfter(changes)
+            val laptop = RestoreCommands(renderer).steps(changes).filter { it.inverse != Op.Uninstall(Scenario.launcher.pkg) }
+            val phone = phoneUndo(changes, removeLauncher = false)
+            var j = 0
+            for (st in laptop) for (line in st.lines) {
+                if (j < phone.size && line == phone[j]) { j++; continue }
+                assertTrue(alreadyBack(st.inverse, after), "the script has $line, which the phone does not run, and the TV is not back there")
+            }
+            assertEquals(phone.size, j, "every phone line is in the script, in order")
+        }
+    }
+
+    private fun alreadyBack(op: Op?, after: Snapshot): Boolean = when (op) {
+        is Op.Enable -> after.packages[op.pkg]?.enabled == EnabledState.ENABLED
+        is Op.SetHome -> after.home.resolved == op.component
+        else -> false
     }
 
     @Test fun whatCannotBeDoneFromALaptopSaysWhy() {
-        val pkg = PackageName("com.example.app")
         val plan = PlanId("p")
         val changes = listOf(
-            ChangeRecord(plan, 0, Op.Disable(pkg), null, 1),                                                    // no prior
-            ChangeRecord(plan, 1, Op.Uninstall(pkg), Prior(present = true), 2),                                  // no inverse
-            ChangeRecord(plan, 2, Op.SettingsPut(SettingKey.ADB_ENABLED, "0"), Prior(settingValue = "1"), 3),   // refused: adb_enabled only takes 0
+            ChangeRecord(plan, 0, Op.Disable(PackageName("com.example.unknown")), null, 1),                              // no prior
+            ChangeRecord(plan, 1, Op.Uninstall(PackageName("com.example.app")), Prior(present = true), 2),                 // no inverse
+            ChangeRecord(plan, 2, Op.SettingsPut(SettingKey.SCREENSAVER_ENABLED, "0"), Prior(settingValue = "yes"), 3),    // refused: not 0 or 1
         )
-        val s = RestoreCommands(ReferenceRenderer()).steps(changes)
+        val s = RestoreCommands(renderer).steps(changes)
         assertEquals(3, s.size)
         assertTrue(s.all { it.kind == RestoreStepKind.NOT_FROM_LAPTOP && it.lines.isEmpty() && !it.note.isNullOrEmpty() }, s.toString())
-        assertTrue(s[0].note!!.contains("refused"), s[0].note)
+        // phases: the package, the setting, the app
+        assertTrue(s[0].note!!.contains("no record"), s[0].note)
+        assertTrue(s[1].note!!.contains("refused"), s[1].note)
+        assertTrue(s[2].note!!.contains("cannot be reinstalled"), s[2].note)
+    }
+
+    // W3 has no inverse for a change that left an item as it was (R5-W6 M2): that is no step, not a
+    // "cannot be put back" entry. Debugging is never switched back on from a script either.
+    @Test fun aChangeThatLeftItAsItWasHasNoStep() {
+        val plan = PlanId("p")
+        val changes = listOf(
+            ChangeRecord(plan, 0, Op.Disable(PackageName("com.example.off")), Prior(packageState = EnabledState.DISABLED_USER), 1),
+            ChangeRecord(plan, 1, Op.Enable(PackageName("com.example.on")), Prior(packageState = EnabledState.ENABLED), 2),
+            ChangeRecord(plan, 2, Op.DefaultState(PackageName("com.example.default")), Prior(packageState = EnabledState.DEFAULT), 3),
+            ChangeRecord(plan, 3, Op.SettingsPut(SettingKey.ADB_WIFI_ENABLED, "0"), Prior(settingValue = "1"), 4),
+            ChangeRecord(plan, 4, Op.SettingsPut(SettingKey.ADB_ENABLED, "0"), Prior(settingValue = "1"), 5),
+        )
+        assertEquals(emptyList(), RestoreCommands(renderer).steps(changes))
+    }
+
+    // An app we installed and removed again, and a file we wrote and deleted again, leave nothing to
+    // put back; an app that was on the TV before us and is gone now says so.
+    @Test fun whatTheRecordsAlreadyTookBackHasNoStep() {
+        val plan = PlanId("p")
+        val ours = PackageName("com.example.ours")
+        val theirs = PackageName("com.example.theirs")
+        val apk = tv.cleanyour.core.model.RemotePath(RemoteDir.TMP, listOf("a.apk"))
+        val blob = BlobRef(sha256Of("a"), 1, "mem:a")
+        val changes = listOf(
+            ChangeRecord(plan, 0, Op.PushAsset(blob, apk, blob.sha256), Prior(present = false), 1),
+            ChangeRecord(plan, 1, Op.Install(apk, blob.sha256, ours, 1, Samples.zeroHash, emptySet()), Prior(present = false), 2),
+            ChangeRecord(plan, 2, Op.RemoveFile(apk), null, 3),
+            ChangeRecord(plan, 3, Op.Disable(ours), Prior(packageState = EnabledState.ENABLED), 4),
+            ChangeRecord(plan, 4, Op.Uninstall(ours), Prior(present = true), 5),
+            ChangeRecord(plan, 5, Op.Install(apk, blob.sha256, theirs, 2, Samples.zeroHash, emptySet()), Prior(present = true), 6),
+            ChangeRecord(plan, 6, Op.Uninstall(theirs), Prior(present = true), 7),
+        )
+        val s = RestoreCommands(renderer).steps(changes)
+        assertEquals(Op.Uninstall(theirs), s.single().change.op)
+        assertTrue(s.single().kind == RestoreStepKind.NOT_FROM_LAPTOP && s.single().note!!.contains("cannot be reinstalled"), s.toString())
     }
 
     @Test fun anUndoThatNeedsAFileFromThePhoneIsNotALaptopLine() {
         // a renderer whose undo of an uninstall is a reinstall from the phone's cache (a transfer)
         val blob = BlobRef(sha256Of("apk"), 3, "mem:apk")
         val pkg = PackageName("com.example.app")
-        val reinstalling = object : OpRenderer by ReferenceRenderer() {
+        val reinstalling = object : OpRenderer by ShellRenderer() {
             override fun inverse(op: Op, prior: Prior): Op? =
                 if (op is Op.Uninstall) Op.InstallStream(blob, blob.sha256, op.pkg, 1, Samples.zeroHash) else null
         }
