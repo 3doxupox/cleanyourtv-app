@@ -51,6 +51,7 @@ object KeyCopy : FlowCopy {
 }
 
 const val HOST = "192.0.2.10"
+const val TYPED = "192.168.1.50"   // a home-network address the person types (192.0.2.x is not one)
 
 val miTvFound = FoundTv(HOST, "Mi TV 4A", "MiTV-AXSO0", setOf(DiscoverySource.GOOGLE_CAST), port5555Open = false,
     pairingService = null, connectService = null, lastSeenMs = Samples.NOW_MS)
@@ -108,10 +109,17 @@ class Harness(val clock: FakeClock = FakeClock(Samples.NOW_MS)) {
         return Samples.plan(all, kind = kind, id = tv.cleanyour.core.model.PlanId(id), sections = sections)
     }
 
+    // What the machines wrote to the diagnostics log, in order.
+    val logLines = java.util.concurrent.CopyOnWriteArrayList<String>()
+    // The launchable apps the TV reports (null: the TV could not say).
+    var launchable: Set<PackageName>? = null
+
     fun setupDeps(dock: DockPicker = DockPicker { _, _, _, _, _ -> listOf(PackageName("com.netflix.ninja")) }) = SetupDeps(
         discovery, sessions, prober, profiles, facts, runner, engine, gate, tvs, snapshots, ledger,
         FakeLauncherPin(Samples.launcherArtifact()), themes, restorePoint, FakeRestoreNote(), sessionEnd, access, clock, KeyCopy,
         dock = dock, screenLock = { true }, diagnostics = { "diagnostics" },
+        launchable = tv.cleanyour.core.probe.LaunchableApps { launchable ?: throw tv.cleanyour.core.probe.ProbeException(tv.cleanyour.core.probe.ProbeStage.LAUNCHER, "no answer") },
+        log = FlowLog { logLines += it },
     )
 
     fun setup(scope: CoroutineScope, start: SetupStart = SetupStart.Fresh) = SetupMachine(setupDeps(), scope, start)

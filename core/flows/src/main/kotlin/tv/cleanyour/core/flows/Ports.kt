@@ -115,6 +115,14 @@ fun interface UpdateChecker { suspend fun latestNewerThan(current: String): Stri
 // the user before the share sheet. The app builds it from the redacting logger's ring.
 fun interface Diagnostics { suspend fun redactedText(): String }
 
+// One diagnostics line per wizard milestone (connect, probe, plan, run), so "Share diagnostics"
+// has something to show. The app writes them through its redacting logger; the machines never
+// pass a serial, an address or a package list, only outcomes, counts and type names.
+fun interface FlowLog {
+    fun line(text: String)
+    companion object { val None = FlowLog {} }
+}
+
 // Foreground or background, from the single activity's start and stop (D7's 10 minute rule).
 class AppForeground(initial: Boolean = false) {
     private val state = MutableStateFlow(initial)

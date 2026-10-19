@@ -76,9 +76,12 @@ class HomeScreenMachine(
     private suspend fun load() {
         val tv = d.tv(tvId) ?: return
         val profile = d.profileOf(tv)
-        val packages = d.snapshots.latest(tvId)?.packages.orEmpty()
+        val snap = d.snapshots.latest(tvId)
+        val packages = snap?.packages.orEmpty()
         val choice = d.homePrefs.load(tvId)
-        val apps = packages.filter { (k, s) -> !s.system || d.facts.lookup(k) != null }.keys
+        // The stored snapshot cannot say which apps are launchable, so the rule without that
+        // answer applies: never a home screen, a provider or a system-only package.
+        val apps = (snap?.let { DockCandidates.of(it, null, profile, d.facts) } ?: emptySet())
             .map { AppChoice(it, d.nameOf(it, packages[it]?.label)) }.sortedBy { it.name.lowercase() }
         val dock = choice?.dock.orEmpty().map { AppChoice(it, d.nameOf(it, packages[it]?.label)) }
         send(Loaded(HomeScreenState(tv.nickname, dock, apps, choice?.themeId, state.value.themes, stock = profile?.stockLaunchers?.firstOrNull(),

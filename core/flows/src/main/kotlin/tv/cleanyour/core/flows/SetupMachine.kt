@@ -49,6 +49,7 @@ import tv.cleanyour.core.planner.Plan
 import tv.cleanyour.core.planner.PlanKind
 import tv.cleanyour.core.planner.PlanRequest
 import tv.cleanyour.core.planner.PlanResult
+import tv.cleanyour.core.probe.LaunchableApps
 import tv.cleanyour.core.probe.ProbeStage
 import tv.cleanyour.core.probe.Prober
 import tv.cleanyour.core.session.BootOutcome
@@ -135,6 +136,9 @@ class SetupDeps(
     val diagnostics: Diagnostics = Diagnostics { "" },
     val locale: () -> String = { "en" },
     val pollMs: Long = 2_000,
+    // Finding 3: the dock sheet's launchable apps; the app's AdbProber answers it.
+    val launchable: LaunchableApps? = prober as? LaunchableApps,
+    val log: FlowLog = FlowLog.None,
 )
 
 // The first-run wizard, screens S1 to S5 (PRODUCT-SPEC 4, UX 2 and 4). One machine per wizard run,
@@ -167,6 +171,9 @@ class SetupMachine(
     private var lastFinished: RunState.Finished? = null
     private var abandonJob: Job? = null   // R1 R-11: an abandon waiting for the TV to come back
     private var heldTv: TvId? = null      // T7 item 1: the TV whose session this wizard holds (TvAccess.keep)
+    private var launchable: Set<PackageName>? = null   // finding 3: null when the TV could not say
+    private val rejected = HashSet<String>()           // hosts answered "No" on the identity line, this run
+    private var lastRunLog: String? = null
 
     private var discoveryJob: Job? = null
     private var pollJob: Job? = null
@@ -320,15 +327,26 @@ class SetupMachine(
             blocked = false; connectFailed = false
         }
         when (event) {
-            is SetupIntent.EnterAddress -> mutableExtras.update {
-                if (isHomeAddress(event.ip)) it.copy(sheet = null, addressError = false, card = null) else it.copy(addressError = true)
+            is SetupIntent.EnterAddress -> {
+                // A typed address is the person's own choice, even one they said No to before.
+                if (isHomeAddress(event.ip)) rejected -= event.ip.trim()
+                mutableExtras.update {
+                    if (isHomeAddress(event.ip)) it.copy(sheet = null, addressError = false, card = null) else it.copy(addressError = true)
+                }
             }
             is SetupIntent.Open -> if (after !is SetupState.Found) mutableExtras.update { it.copy(sheet = event.sheet, addressError = false) }
                 else if (event.sheet == Sheet.CUSTOMISE && after.level == Level.SIMPLE) setLevel(Level.CUSTOM)
             SetupIntent.AskTvAgain -> askAgain()
             is Ev.Opened -> { connectFailed = false; if (!event.identityNeeded) connected() }
             SetupIntent.ConfirmIdentity -> if (before is SetupState.OpenDoor && before.phase == DoorPhase.IDENTITY) connected()
-            SetupIntent.RejectIdentity -> scope.launch { session?.let { s -> attempt { s.close() } }; session = null; tv = null }
+            SetupIntent.RejectIdentity -> {
+                // Finding 1: "No" must not lead back to the same device. It stays out of the list for
+                // this run, and the address sheet opens so the right TV can be typed.
+                (before as? SetupState.OpenDoor)?.tv?.host?.takeIf { it.isNotEmpty() }?.let { rejected += it }
+                deps.log.line("setup: identity rejected")
+                mutableExtras.update { it.copy(identity = null, sheet = Sheet.ADDRESS, addressError = false) }
+                scope.launch { session?.let { s -> attempt { s.close() } }; session = null; tv = null }
+            }
             Ev.GoProbe -> scope.launch { probe() }
             is Ev.OpenFailed -> onOpenFailed(event.error)
             is SetupIntent.Keep -> editDraft { d ->
@@ -364,9 +382,23 @@ class SetupMachine(
             is SetupIntent.StopAction -> onStopAction(after, event.action)
             else -> {}
         }
-        if (before::class != after::class || event is Ev.PortOpen || event is Ev.Door || event == SetupIntent.Start) afterTransition(after)
-        if (after is SetupState.OpenDoor && before is SetupState.OpenDoor && before.phase != after.phase) afterTransition(after)
+        // Bug 2 of the emulator run: a door whose address changed (the placeholder door to a typed
+        // address, a found TV adopted, a second address typed while waiting) is a new door. Its old
+        // port poll and connect belong to the old address, so they stop and the new ones start.
+        val doorMoved = before is SetupState.OpenDoor && after is SetupState.OpenDoor && before.tv.host != after.tv.host
+        if (doorMoved) leaveDoor()
+        if (before::class != after::class || doorMoved || event is Ev.PortOpen || event is Ev.Door || event == SetupIntent.Start) afterTransition(after)
+        else if (after is SetupState.OpenDoor && before is SetupState.OpenDoor && before.phase != after.phase) afterTransition(after)
         holdSession(after)
+    }
+
+    // The jobs and the session of a door that is being replaced by one at another address.
+    private fun leaveDoor() {
+        pollJob?.cancel(); pollJob = null
+        connectJob?.cancel(); connectJob = null
+        val old = session
+        if (old != null) { session = null; tv = null; scope.launch { attempt { old.close() } } }
+        mutableExtras.update { it.copy(identity = null, allowDenied = false) }
     }
 
     // T7 item 1: one hold on the session from the connect until Done or a stop card, so it never
@@ -421,6 +453,9 @@ class SetupMachine(
 
     private fun onDiscovery(e: DiscoveryEvent) {
         val s = state.value
+        // A device the person said No to stays out of this run's list (they can still type it).
+        val seen = (e as? DiscoveryEvent.Found)?.tv?.host ?: (e as? DiscoveryEvent.Updated)?.tv?.host
+        if (seen != null && rejected.contains(seen)) return
         if (s is SetupState.OpenDoor && s.tv.host.isEmpty() && (e is DiscoveryEvent.Found || e is DiscoveryEvent.Updated)) {
             val tv = (e as? DiscoveryEvent.Found)?.tv ?: (e as DiscoveryEvent.Updated).tv
             mutableExtras.update { it.copy(card = null) }
@@ -440,6 +475,7 @@ class SetupMachine(
         allowShown = false
         doorTv = found
         knownTv = known
+        deps.log.line("setup: connect start (${if (known != null) "known TV" else "new TV"}, ${found.sources.joinToString("+") { it.name.lowercase() }.ifEmpty { "found" }})")
         val result = attempt {
             deps.sessions.open(Endpoint.PlainTcp(found.host), known?.id) { fp -> allowShown = true; send(Ev.Allow(fp)) }
         }.getOrElse { OpenResult.Failed(AdbError.Transport.Unreachable) }
@@ -450,13 +486,17 @@ class SetupMachine(
                 // D38: a TV that raised no Allow dialog and is new to this phone gets the "Is this your
                 // TV?" line with a screenshot before anything else happens.
                 val needsIdentity = !allowShown && known == null
+                deps.log.line("setup: connected (allow dialog ${if (allowShown) "shown" else "not shown"}, identity check ${if (needsIdentity) "needed" else "not needed"})")
                 if (needsIdentity) {
                     val shot = attempt { deps.prober.screenshot(result.session) }.getOrNull()
                     mutableExtras.update { it.copy(identity = IdentityCheck(identity.model, identity.serialLast4, shot)) }
                 }
                 send(Ev.Opened(needsIdentity))
             }
-            is OpenResult.Failed -> send(Ev.OpenFailed(result.error))
+            is OpenResult.Failed -> {
+                deps.log.line("setup: connect failed ${errorName(result.error)}")
+                send(Ev.OpenFailed(result.error))
+            }
         }
     }
 
@@ -493,6 +533,8 @@ class SetupMachine(
     private suspend fun probe() {
         val s = session ?: return
         val tvId = s.tvId
+        deps.log.line("setup: probe start")
+        val startedMs = deps.clock.monotonicMs()
         send(Ev.Stage(tvId, ProbeStage.FACTS))
         val ok = attempt {
             val facts = deps.prober.facts(s)
@@ -503,11 +545,17 @@ class SetupMachine(
             val snap = deps.prober.snapshot(s, if (baseline == null) SnapshotReason.BASELINE else SnapshotReason.MANUAL) { st -> send(Ev.Stage(tvId, st)) }
             deps.snapshots.save(snap)
             snapshot = snap
+            // Finding 3: one read-only call for the apps a launcher would show; on any failure the
+            // dock sheet falls back to its own rule.
+            launchable = deps.launchable?.let { q -> attempt { q.launchable(s) }.getOrNull() }
+            deps.log.line("setup: probe done in ${maxOf(deps.clock.monotonicMs() - startedMs, 0)} ms, ${snap.packages.size} packages, " +
+                "${launchable?.size?.let { "$it launchable" } ?: "launchable unknown"}, profile ${if (res is ProfileResolution.Exact) "exact" else "none"}, sdk ${facts.sdk}")
             val record = upsertTv(s, facts, res)
             tv = record
             replan(record)
         }
         ok.exceptionOrNull()?.let { e ->
+            deps.log.line("setup: probe failed ${(e as? AdbException)?.let { errorName(it.error) } ?: e::class.simpleName}")
             val case = if (e is AdbException) StopCase.CONNECTION_LOST else StopCase.PROBE_FAILED
             send(Ev.Stop(tvId, card(case, null, args = mapOf("done" to 0, "total" to 0))))
         }
@@ -564,15 +612,20 @@ class SetupMachine(
             is PlanResult.Ok -> {
                 setupPlan = r.plan
                 val label = { p: PackageName -> deps.facts.lookup(p)?.friendlyName ?: snap.packages[p]?.label ?: p.value }
-                val apps = snap.packages.filter { (k, st) -> !st.system || deps.facts.lookup(k) != null }.keys
+                val apps = DockCandidates.of(snap, launchable, profile(), deps.facts)
                     .map { AppChoice(it, label(it)) }.sortedBy { it.name.lowercase() }
+                deps.log.line("setup: plan ready, ${r.plan.steps.size} steps, ${r.plan.steps.count { it.op is Op.Disable }} to switch off, " +
+                    "level ${draft.level}, dock ${dock.size}, ${apps.size} dock candidates")
                 mutableExtras.update {
                     it.copy(commands = commandsOf(r.plan), unknownModel = res !is ProfileResolution.Exact, homePossible = possible,
                         noScreenLock = !deps.screenLock.available(), draft = draft, dock = dock.map { p -> AppChoice(p, label(p)) }, apps = apps)
                 }
                 send(Ev.PlanReady(record.id, r.plan, draft.level))
             }
-            is PlanResult.Refused -> send(Ev.Stop(record.id, card(StopCase.PROBE_FAILED, null)))
+            is PlanResult.Refused -> {
+                deps.log.line("setup: plan refused")
+                send(Ev.Stop(record.id, card(StopCase.PROBE_FAILED, null)))
+            }
         }
     }
 
@@ -648,6 +701,8 @@ class SetupMachine(
     }
 
     private fun onRun(before: SetupState, ev: Ev.Run) {
+        val label = runLabel(ev.state)
+        if (label != lastRunLog) { lastRunLog = label; deps.log.line("setup: run $label") }
         when (val r = ev.state) {
             is RunState.Running -> mutableExtras.update { it.copy(rollingBack = false, chip = ChipState.WORKING) }
             is RunState.AwaitingConfirm -> if (before !is SetupState.Check) {
@@ -1071,6 +1126,18 @@ class SetupMachine(
 
     private fun nameOfPkg(pkg: PackageName): String =
         deps.facts.lookup(pkg)?.friendlyName ?: snapshot?.packages?.get(pkg)?.label ?: pkg.value
+
+    // Type names and counts only: an AdbError's own text may carry ids, so it never reaches a log.
+    private fun errorName(e: AdbError): String = e::class.simpleName ?: "error"
+
+    private fun runLabel(r: RunState): String = when (r) {
+        is RunState.Running -> "running"
+        is RunState.AwaitingConfirm -> "awaiting confirm"
+        is RunState.RollingBack -> "rolling back"
+        is RunState.Paused -> "paused ${r.reason} at step ${r.at}${r.error?.let { " (${errorName(it)})" } ?: ""}"
+        is RunState.Finished -> "finished ${r.status}${r.home?.let { ", home $it" } ?: ""}, ${r.skipped.size} skipped"
+        else -> r::class.simpleName ?: "state"
+    }
 
     private fun counts(plan: Plan, done: Int): Map<String, Any> = mapOf("done" to done, "total" to plan.steps.count { it.op is Op.Disable })
 

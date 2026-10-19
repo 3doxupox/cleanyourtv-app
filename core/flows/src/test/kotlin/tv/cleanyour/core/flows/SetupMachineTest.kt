@@ -591,6 +591,16 @@ class SetupMachineTest {
         assertIs<SetupState.Welcome>(m.state.value)
         assertTrue(FakeTvSession.Call.Close in h.session.calls)
         assertTrue(h.tvs.tvs.value.isEmpty())
+        // Finding 1: "No" offers the address entry, and the same device is not offered again.
+        assertEquals(Sheet.ADDRESS, m.extras.value.sheet)
+        assertNull(m.extras.value.identity)
+        h.discovery.emit(found()); settle()
+        assertTrue(assertIs<SetupState.Welcome>(m.state.value).found.isEmpty())
+        m.back(); settle()                                  // the sheet closes; Start waits for a TV
+        m.dispatch(SetupIntent.Start); settle()
+        assertEquals("", assertIs<SetupState.OpenDoor>(m.state.value).tv.host)
+        h.discovery.emit(found()); settle()
+        assertEquals("", assertIs<SetupState.OpenDoor>(m.state.value).tv.host)
     }
 
     // RFC-W8-5: the restart test is a REBOOT plan through the runner (journaled, no prompt), never a
@@ -699,5 +709,105 @@ class SetupMachineTest {
             assertEquals(SetupEffect.Navigate("manage/${tv.id.value}"), drain().last())
         }
         assertFalse(m.state.value is SetupState.Done)
+    }
+
+    // Bug 2 of the emulator run: an address typed on the "No TV found yet" card never probed port
+    // 5555, because the placeholder door and the typed door are the same state class and phase.
+    @Test fun anAddressTypedFromTheNotFoundCardProbesItsPortAndConnects() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.sessions.register(TYPED, h.session)
+        h.sessions.allowPromptFor[TYPED] = "AB:CD:7F:2A"
+        val m = h.setup(backgroundScope)
+        m.dispatch(SetupIntent.Start); settle()
+        settle(20_000)
+        assertEquals(StopCase.TV_NOT_FOUND, m.extras.value.card?.case)
+        m.dispatch(SetupIntent.StopAction(StopAction.SECONDARY)); settle()
+        assertEquals(Sheet.ADDRESS, m.extras.value.sheet)
+        h.discovery.open5555[TYPED] = true
+        m.dispatch(SetupIntent.EnterAddress(TYPED)); settle()
+        assertTrue(TYPED in h.discovery.probes)
+        assertEquals(0, h.discovery.activeCollectors)       // a typed door stops looking
+        assertNull(m.extras.value.card)
+        settle(700)
+        assertIs<SetupState.Found>(m.state.value)
+        assertEquals(listOf<tv.cleanyour.core.model.Endpoint>(tv.cleanyour.core.model.Endpoint.PlainTcp(TYPED)), h.sessions.opens)
+    }
+
+    @Test fun anAddressTypedOnWelcomeProbesItsPortAndConnects() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.sessions.register(TYPED, h.session)
+        h.sessions.allowPromptFor[TYPED] = "AB:CD:7F:2A"
+        val m = h.setup(backgroundScope)
+        h.discovery.emit(found()); settle()                  // one TV found, and still the address is offered
+        m.dispatch(SetupIntent.Open(Sheet.ADDRESS)); settle()
+        assertEquals(Sheet.ADDRESS, m.extras.value.sheet)
+        m.dispatch(SetupIntent.EnterAddress(TYPED)); settle()
+        assertEquals(TYPED, assertIs<SetupState.OpenDoor>(m.state.value).tv.host)
+        settle(4_100)
+        assertTrue(h.discovery.probes.count { it == TYPED } >= 2)   // waiting: the poll runs
+        h.discovery.open5555[TYPED] = true
+        settle(2_100)
+        settle(700)
+        assertIs<SetupState.Found>(m.state.value)
+        assertTrue(HOST !in h.discovery.probes)
+    }
+
+    @Test fun typingAnotherAddressWhileWaitingMovesThePollToIt() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.sessions.register(TYPED, h.session)
+        h.sessions.allowPromptFor[TYPED] = "AB:CD:7F:2A"
+        val m = h.setup(backgroundScope)
+        val wrong = "192.168.1.40"
+        m.dispatch(SetupIntent.EnterAddress(wrong)); settle()
+        settle(4_100)
+        assertTrue(h.discovery.probes.count { it == wrong } >= 2)
+        m.dispatch(SetupIntent.Open(Sheet.ADDRESS)); settle()
+        h.discovery.open5555[TYPED] = true
+        m.dispatch(SetupIntent.EnterAddress(TYPED)); settle()
+        val wrongProbes = h.discovery.probes.count { it == wrong }
+        assertTrue(TYPED in h.discovery.probes)
+        settle(4_100)
+        assertEquals(wrongProbes, h.discovery.probes.count { it == wrong })   // the old poll stopped
+        assertIs<SetupState.Found>(m.state.value)
+        assertEquals(listOf<tv.cleanyour.core.model.Endpoint>(tv.cleanyour.core.model.Endpoint.PlainTcp(TYPED)), h.sessions.opens)
+    }
+
+    // Finding 3: the dock sheet offers launchable apps only, never a home screen or a provider.
+    @Test fun theDockSheetOffersOnlyLaunchableApps() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val netflix = tv.cleanyour.core.model.PackageName("com.netflix.ninja")
+        val calendar = tv.cleanyour.core.model.PackageName("com.android.providers.calendar")
+        val stock = stockComponent.pkg
+        fun st(system: Boolean, enabled: tv.cleanyour.core.model.EnabledState = tv.cleanyour.core.model.EnabledState.ENABLED) =
+            tv.cleanyour.core.model.PackageState(enabled, system, 1, null, false, false, null, false)
+        val vlc = tv.cleanyour.core.model.PackageName("org.videolan.vlc")
+        val gboard = tv.cleanyour.core.model.PackageName("com.google.android.inputmethod.latin")
+        val packages = mapOf(netflix to st(true), calendar to st(true), stock to st(true), vlc to st(false), gboard to st(true), adPkg to st(true))
+        h.prober.snapshotFor = { Samples.snapshot(packages = packages, reason = it) }
+        h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+        h.launchable = setOf(netflix, stock, calendar, vlc)
+        val m = h.setup(backgroundScope)
+        toFound(h, m)
+        assertEquals(listOf(netflix, vlc).sortedBy { it.value }, m.extras.value.apps.map { it.pkg }.sortedBy { it.value })
+        // The TV could not say: user-installed apps and known streaming apps only.
+        assertEquals(setOf(vlc), DockCandidates.of(Samples.snapshot(packages = packages), null, miProfile, h.facts))
+        assertTrue(DockCandidates.isProvider(calendar) && !DockCandidates.isProvider(netflix))
+    }
+
+    // CytLog: the wizard writes redacted milestones for "Share diagnostics", never an address,
+    // a serial or a package name.
+    @Test fun theWizardLogsItsMilestonesWithoutAddressesSerialsOrPackages() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+        h.engine.onStart = { finish(it, RunStatus.COMPLETED, null) }
+        val m = h.setup(backgroundScope)
+        toFound(h, m)
+        m.dispatch(SetupIntent.MakeItClean); settle()
+        val log = h.logLines.joinToString("\n")
+        for (want in listOf("setup: connect start", "setup: connected", "setup: probe start", "setup: probe done", "setup: plan ready", "setup: run finished COMPLETED")) {
+            assertTrue(h.logLines.any { it.startsWith(want) }, "missing $want in\n$log")
+        }
+        val serial = Samples.miTvFacts().serialLast4
+        for (secret in listOf(HOST, serial, adPkg.value, promoPkg.value, "com.netflix.ninja", Samples.miTvId().value)) assertTrue(secret !in log, "$secret logged")
     }
 }
