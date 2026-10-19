@@ -134,11 +134,11 @@ class ProtectedTest {
     }
 
     // RFC-W1-2 ruling: `android` is on the hard-coded protected list; the renderer refuses it as a
-    // target of any op, whether or not the value class admits the literal.
+    // target of any op.
     @Test fun theFrameworkPackageIsRefusedByTheRenderer() {
         assertNotNull(Denylist.staticReason("android"))
         assertTrue("android" in Denylist.exact)
-        val android = runCatching { PackageName("android") }.getOrNull() ?: return   // the grammar refuses it today; once admitted, the rest applies
+        val android = PackageName("android")
         val r = ShellRenderer()
         for (op in listOf(Op.Disable(android), Op.Enable(android), Op.DefaultState(android), Op.Uninstall(android),
             Op.SetHome(Component(android, "com.android.internal.app.ResolverActivity")))) {

@@ -14,18 +14,13 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 
-// The RFC-W1-2 ruling: `android` is a valid PackageName but protected. Until W1 widens the grammar
-// the value is boxed past the init check, so this test runs today and after the change.
-fun frameworkPackage(): PackageName = runCatching { PackageName(Denylist.FRAMEWORK) }.getOrElse {
-    PackageName::class.java.getDeclaredMethod("box-impl", String::class.java).invoke(null, Denylist.FRAMEWORK) as PackageName
-}
-
+// The RFC-W1-2 ruling: `android` is a valid PackageName but protected.
 class FrameworkPackageTest {
-    private val android = frameworkPackage()
+    private val android = PackageName("android")
     private val r = ShellRenderer()
     private val sha = Sha256("a".repeat(64))
 
-    @Test fun theValueIsTheFrameworkPackage() = assertEquals("android", android.value)
+    @Test fun theValueIsTheFrameworkPackage() = assertEquals(Denylist.FRAMEWORK, android.value)
 
     @Test fun protectedNamesIt() {
         assertNotNull(Protected.isProtected(android, null, null))
