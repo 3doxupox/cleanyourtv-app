@@ -12,3 +12,8 @@ local.properties
 keystore/
 # local artefacts from scripts/build-on-forge.sh
 dist/
+# more signing material (W9 release scripts)
+*.p12
+*.pass
+# python caches from scripts/
+__pycache__/
