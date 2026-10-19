@@ -3,7 +3,9 @@ package tv.cleanyour.core.backup
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
+import tv.cleanyour.core.model.ChangeRecord
 import tv.cleanyour.core.model.Tv
+import tv.cleanyour.core.ops.ShellRenderer
 import tv.cleanyour.testing.fixtures.FakeClock
 import tv.cleanyour.testing.fixtures.Fixtures
 import tv.cleanyour.testing.fixtures.Samples
@@ -35,9 +37,9 @@ class RestoreShellTest {
     private val before = TvState.of(baseline)
     private val after = before.apply(changes)
 
-    private fun bundle(tv: Tv = Scenario.tv()): ReadBundle {
+    private fun bundle(tv: Tv = Scenario.tv(), changes: List<ChangeRecord> = this.changes): ReadBundle {
         val out = ByteArrayOutputStream()
-        runBlocking { ZipRestoreBundleWriter(ReferenceRenderer(), FakeClock(Samples.NOW_MS + 3_600_000), "0.1.0").write(tv, baseline, changes, null, null, out) }
+        runBlocking { ZipRestoreBundleWriter(ShellRenderer(), FakeClock(Samples.NOW_MS + 3_600_000), "0.1.0").write(tv, baseline, changes, null, null, out) }
         return RestoreBundleReader.read(ByteArrayInputStream(out.toByteArray()))
     }
 
@@ -59,9 +61,10 @@ class RestoreShellTest {
     }
 
     // Leaves what a PowerShell run of restore.ps1 needs under build/ps-harness: the scripts from a
-    // read-back zip (also one made for a hostile nickname and model), the stub adb, the fake TV
-    // after the plans (after/tv) and at the baseline (before/tv). No pwsh in the build container;
-    // the files are run in a separate PowerShell container (REVIEW-R5.md).
+    // read-back zip (also one made for a hostile nickname and model, and the R5-W6 M1 flow), the
+    // stub adb, the fake TV after the plans (after/tv, after-m1/tv) and at the baseline (before/tv).
+    // No pwsh in the build container; the files are run in a separate PowerShell container
+    // (reviews/R5-W6.md).
     @Test fun writeAPowerShellHarness() {
         val dir = File("build/ps-harness").also { it.deleteRecursively(); it.mkdirs() }
         val b = bundle()
@@ -70,7 +73,11 @@ class RestoreShellTest {
         val tv0 = Scenario.tv()
         val hostile = bundle(tv0.copy(nickname = "Den'; touch PWNED1; \"\$(touch PWNED2)\"`touch PWNED3` \$env:X #", facts = tv0.facts.copy(model = "M'\$(touch PWNED5)'')")))
         File(dir, "restore-hostile.ps1").writeBytes(hostile.entries.getValue(RestoreBundle.RESTORE_PS1))
+        val m1 = bundle(changes = Scenario.m1Changes())
+        File(dir, "restore-m1.ps1").writeBytes(m1.entries.getValue(RestoreBundle.RESTORE_PS1))
+        File(dir, "restore-m1.sh").writeBytes(m1.entries.getValue(RestoreBundle.RESTORE_SH))
         FakeTvDir(File(dir, "after"), "192.0.2.10:5555", props).write(after)
+        FakeTvDir(File(dir, "after-m1"), "192.0.2.10:5555", props).write(before.apply(Scenario.m1Changes()))
         FakeTvDir(File(dir, "before"), "192.0.2.10:5555", props).write(before)
         File(dir, "missing-pkg").writeText(Scenario.disabledAfter.first { it != Scenario.putBackPkg && it != Scenario.defaultStatePkg }.value)
     }
@@ -91,6 +98,22 @@ class RestoreShellTest {
             assertEquals(before, tv.read(), "$shell left the TV different from the baseline\n$r")
             assertIdentityCheckedFirst(tv.lines(), shell)
             assertTrue(r.out.contains("failed") && !r.out.contains("FAILED"), r.toString())
+        }
+    }
+
+    // R5-W6 M1: setup, "TV's own home screen", then "remove the new one". The script finishes with
+    // exit 0 at the baseline: no step fails on the removed launcher, and the TV has an enabled home
+    // screen at every step (the stock launcher is switched on before HOME moves).
+    @Test fun afterTheNewHomeScreenWasRemovedTheScriptStillEndsAtTheBaseline() {
+        val m1 = Scenario.m1Changes()
+        val b = bundle(changes = m1)
+        for ((i, shell) in shells().withIndex()) {
+            val tv = fakeTv("m1-$i", state = before.apply(m1))
+            val r = tv.run(shell, scriptFrom(b, tv.root), listOf("--remove-apps"))
+            assertEquals(0, r.exit, "$shell\n$r")
+            assertEquals(before, tv.read(), "$shell left the TV different from the baseline\n$r")
+            assertTrue(r.out.contains(", 0 failed, 0 kept, 0 not possible from here."), r.out)
+            assertTrue(tv.lines().none { Scenario.launcher.pkg.value in it }, tv.lines().joinToString("\n"))
         }
     }
 
@@ -165,7 +188,7 @@ class RestoreShellTest {
         assertTrue(tv.calls().isEmpty(), "a dry run must not call adb")
         val commands = b.entries.getValue(RestoreBundle.COMMANDS).decodeToString().lines().filter { it.isNotEmpty() && !it.startsWith("#") }
         assertEquals(commands, r.out.lines().filter { it.isNotEmpty() && !it.startsWith("#") })
-        assertTrue(r.out.contains("# kept (needs --remove-apps): pm uninstall --user 0 'com.gathin.tvhome'"), r.out)
+        assertTrue(r.out.contains("# kept (needs --remove-apps): 'pm' 'uninstall' '--user' '0' 'com.gathin.tvhome'"), r.out)
     }
 
     @Test fun aFailedStepIsReportedAndTheRestStillRun() {

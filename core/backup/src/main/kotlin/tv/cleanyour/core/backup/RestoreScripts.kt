@@ -39,8 +39,9 @@ object RestoreScripts {
         appendLine("#")
         appendLine("# Before changing anything the script checks that it talks to the right TV. It compares a")
         appendLine("# fingerprint of the TV's serial number and device name with TV_ID below; the serial number")
-        appendLine("# itself is not in this file. Changes are put back newest first. A step that fails is")
-        appendLine("# reported and the rest still run.")
+        appendLine("# itself is not in this file. Each thing goes back to how it was before Clean Your TV first")
+        appendLine("# changed it, in this order: apps switched on or off, settings, the home screen, the apps it")
+        appendLine("# installed, its files. A step that fails is reported and the rest still run.")
         appendLine()
         appendLine("set -u")
         appendLine()
@@ -80,8 +81,9 @@ object RestoreScripts {
         appendLine("#")
         appendLine("# Before changing anything the script checks that it talks to the right TV. It compares a")
         appendLine("# fingerprint of the TV's serial number and device name with TvId below; the serial number")
-        appendLine("# itself is not in this file. Changes are put back newest first. A step that fails is")
-        appendLine("# reported and the rest still run.")
+        appendLine("# itself is not in this file. Each thing goes back to how it was before Clean Your TV first")
+        appendLine("# changed it, in this order: apps switched on or off, settings, the home screen, the apps it")
+        appendLine("# installed, its files. A step that fails is reported and the rest still run.")
         appendLine("param(")
         appendLine("    [string]\$Serial = '',")
         appendLine("    [string]\$TvHost = '',")
@@ -110,7 +112,7 @@ object RestoreScripts {
     }
 
     fun commandsTxt(h: ScriptHeader, steps: List<RestoreStep>): String = buildString {
-        appendLine("# Clean Your TV: the TV commands that put back what we changed on ${TextSafety.ascii(h.tvName, 40)} (${TextSafety.ascii(h.model, 40)}), newest first.")
+        appendLine("# Clean Your TV: the TV commands that put back what we changed on ${TextSafety.ascii(h.tvName, 40)} (${TextSafety.ascii(h.model, 40)}).")
         appendLine("# Made on ${TextSafety.ascii(h.madeOn, 20)} by Clean Your TV ${TextSafety.ascii(h.appVersion, 20)}.")
         appendLine("# One command per line, for upstream tools/tv.py batch mode:")
         appendLine("#   TV_HOST=<tv ip> tools/venv/bin/python tools/tv.py --batch < commands.txt")

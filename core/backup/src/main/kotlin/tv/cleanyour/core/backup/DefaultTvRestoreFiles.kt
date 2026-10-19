@@ -9,6 +9,7 @@ import tv.cleanyour.core.model.ChangeRecord
 import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.model.Profile
 import tv.cleanyour.core.model.Tv
+import tv.cleanyour.core.ops.UndoOrder
 import tv.cleanyour.core.store.Clock
 import java.time.Instant
 import java.time.ZoneId
@@ -50,7 +51,7 @@ class DefaultTvRestoreFiles(
             })
             put("installed", JsonArray(sum.installed.map { JsonPrimitive(it.value) }))
             put("files", JsonArray(sum.files.map(::JsonPrimitive)))
-            put("changes", ChangeJson.array(RestoreCommands.newestFirst(changes).asReversed()))
+            put("changes", ChangeJson.array(changes.sortedWith(UndoOrder.CHRONOLOGICAL)))
         }.toString().encodeToByteArray()
     }
 

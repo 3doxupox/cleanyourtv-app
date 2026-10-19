@@ -74,6 +74,7 @@ class PlannerTest {
         assertEquals(launcher, section.expectedHome)
         assertEquals(listOf(Op.ConfirmHome(arm.token), Op.KillWatchdog(arm.token), Op.Enable(stock.pkg), Op.SetHome(stock), Op.VerifyHome(stock), Op.PressHome), section.rollback)
         assertTrue(stock.pkg in section.rollbackIfFocus && PackageName("com.android.settings") in section.rollbackIfFocus && wizard in section.rollbackIfFocus)
+        assertTrue(PackageName("android") in section.rollbackIfFocus, "the resolver's package (R1 R-8)")
         assertTrue(launcher.pkg !in section.rollbackIfFocus)
         assertEquals(Prior(home = stock), p.steps.first { it.op is Op.SetHome }.prior)
         assertEquals(renderer.planHash(p.steps.map { it.rendered }), p.hash)
@@ -343,11 +344,8 @@ class PlannerTest {
 
     // RFC-W1-2 ruling: the planner never emits an op on `android`, and refuses a request naming it.
     @Test fun theFrameworkPackageIsRefusedByThePlanner() {
-        // Until W1 widens the grammar (RFC-W1-2) the value is boxed past the init check.
-        val android = runCatching { PackageName(Denylist.FRAMEWORK) }.getOrElse {
-            PackageName::class.java.getDeclaredMethod("box-impl", String::class.java).invoke(null, Denylist.FRAMEWORK) as PackageName
-        }
-        assertEquals("android", android.value)
+        val android = PackageName("android")
+        assertEquals(Denylist.FRAMEWORK, android.value)
         val state = PackageState(EnabledState.ENABLED, true, 28, null, true, false, "Android System", false)
         val snap = snapshot(extra = mapOf(android to state))
         assertTrue(refused(PlanRequest.SwitchOff(setOf(android)), snap).single().contains("framework"))

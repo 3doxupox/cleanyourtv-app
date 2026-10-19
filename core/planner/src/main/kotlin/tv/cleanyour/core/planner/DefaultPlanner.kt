@@ -300,11 +300,12 @@ class DefaultPlanner(
                 Op.SetHome(stock), Op.VerifyHome(stock), Op.PressHome,
             )
             // Focus on any of these after the HOME key means the takeover did not hold: the TV's
-            // own home screens, the setup wizard, the resolver (package android) and FallbackHome.
+            // own home screens, the setup wizard, the resolver (package android, admitted by
+            // PackageName since RFC-W1-2, R1 R-8) and FallbackHome.
             val rollbackIfFocus: Set<PackageName> = (
                 stockLaunchers.map { it.pkg } +
                     claimants.filter { it != launcher }.map { it.pkg } +
-                    (Denylist.setupWizards + Denylist.FRAMEWORK).mapNotNull { runCatching { PackageName(it) }.getOrNull() } +
+                    (Denylist.setupWizards + Denylist.FRAMEWORK).map(::PackageName) +
                     PackageName("com.android.settings")
                 ).toSet()
             sections += GuardedSection(SECTION_HOME, from, to, token, confirmWindowMs, launcher, rollbackIfFocus, rollback)

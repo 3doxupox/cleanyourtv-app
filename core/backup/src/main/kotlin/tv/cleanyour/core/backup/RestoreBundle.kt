@@ -17,6 +17,7 @@ import tv.cleanyour.core.model.Snapshot
 import tv.cleanyour.core.model.Tv
 import tv.cleanyour.core.model.TvId
 import tv.cleanyour.core.ops.OpRenderer
+import tv.cleanyour.core.ops.UndoOrder
 import tv.cleanyour.core.spec.ProfileSource
 import tv.cleanyour.core.store.Clock
 import tv.cleanyour.core.store.SnapshotCodec
@@ -95,7 +96,7 @@ class ZipRestoreBundleWriter(
         val profile = tv.profileId?.let { id -> profiles?.all()?.firstOrNull { it.id == id } }
         val header = ScriptHeader(tv.id, tv.nickname, tv.facts.model, DateTimeFormatter.ISO_LOCAL_DATE.format(Instant.ofEpochMilli(now).atZone(zone)), appVersion)
         val steps = RestoreCommands(renderer).steps(changes)
-        val ordered = changes.sortedWith(RestoreCommands.CHRONOLOGICAL)
+        val ordered = changes.sortedWith(UndoOrder.CHRONOLOGICAL)
 
         val entries = LinkedHashMap<String, ByteArray>()
         entries[RestoreBundle.SNAPSHOT] = SnapshotCodec.canonical(RestoreBundle.redact(baseline))

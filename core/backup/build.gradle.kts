@@ -7,4 +7,6 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
 
     testImplementation(project(":testing:fixtures"))
+    // RestoreCommandsTest compares the laptop steps with the planner's UndoEverything (T5); test scope only
+    testImplementation(project(":core:planner"))
 }
