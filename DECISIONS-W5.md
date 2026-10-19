@@ -133,6 +133,9 @@ val artifacts = ResumableArtifactFetcher(http, blobs, blobs, inspector)
 // at start: registry.restore(); on "Add a card": registry.refresh(); install only from registry.installableIndex()
 ```
 
+- Never install from `registry.module(id)`: it also answers from a stale or failed list. Install
+  only from `registry.installableIndex()` and `VerifiedIndex.installable(module)`, and compare the
+  downloaded APK's package and versionCode (`ApkInfo`) with the index entry (SECURITY S1).
 - `sources = null` until a published copy exists; then `IndexSources.under("https://<allowed host>/...")`.
 - The network security config must allow exactly the `DownloadHosts.ALL` hosts with system trust
   anchors only and cleartext off (SECURITY 4.4).
