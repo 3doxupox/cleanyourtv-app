@@ -12,6 +12,11 @@ restore zip) and "-" for stdin, so a logcat can be piped in:
   adb logcat -d | scripts/check-redaction.py - --secret <tv serial> --secret 192.168.1.23
   scripts/check-redaction.py diagnostics.zip restore.zip fixtures/
 
+Patterns need a key or a shape: a bare serial (an `adb devices` line), a Wi-Fi name in free text
+or a MAC without separators is only found when it is given with --secret, so always pass the real
+TV serial, phone serial, LAN address and Wi-Fi name. Binary files and entries that are not zips or
+UTF-16 text are listed as not checked.
+
 Placeholders the code base uses for redacted values (REDACTED, FIXTURESERIAL0001, x.x masks) are
 never findings. --allow REGEX drops matches that are known to be harmless (repeatable).
 Exit 0 clean, 1 findings, 2 usage error. Stdlib only.
@@ -25,6 +30,9 @@ import zipfile
 
 RULES = [
     ("private-key", re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH |ENCRYPTED )?PRIVATE KEY-----")),
+    # The same keys as bare base64 without the PEM lines: PKCS#8 RSA ("MII..IBADANBgkqhkiG9w0BAQEFAASC",
+    # version 0 and rsaEncryption), PKCS#8 EC P-256, and a minisign secret key ("EdSc" + "B2").
+    ("private-key-base64", re.compile(r"MII[A-Za-z0-9+/]{3}IBADANBgkqhkiG9w0BAQEFAASC|MIGHAgEAMBMGByqGSM49AgEGCCqGSM49|\bRWRTY0Iy[A-Za-z0-9+/]{40,}")),
     # The adbd public key line: the RSAPublicKey struct (524 bytes, word count 64 first, so the
     # base64 starts "QAAAA") and a comment. Other long base64 (public certificates, config blobs)
     # is not a key of ours.
@@ -33,19 +41,24 @@ RULES = [
     ("github-token", re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{40,})\b")),
     ("auth-header", re.compile(r"(?i)\b(?:authorization|proxy-authorization)\s*[:=]\s*\S+")),
     ("bearer-token", re.compile(r"(?i)\bbearer\s+[A-Za-z0-9._~+/-]{12,}=*")),
-    ("token-assignment", re.compile(r"(?i)\b(?:token|secret|password|passwd|api[_-]?key)\s*[:=]\s*[\"']?[A-Za-z0-9._~+/-]{8,}")),
+    ("token-assignment", re.compile(r"(?i)\b(?:token|secret|password|passwd|api[_-]?key)[\"']?\s*[:=]\s*[\"']?[A-Za-z0-9._~+/-]{8,}")),
     ("pairing-code", re.compile(r"(?i)\b(?:pairing|wi-?fi pairing|pair)\s*code\D{0,12}\d{6}\b")),
-    ("serial", re.compile(r"(?i)(?:\bro\.(?:boot\.)?serialno\]?\s*[:=]\s*\[?|\bserial(?:no|_number)?\s*[:=]\s*)\[?([A-Za-z0-9]{6,})")),
-    ("android-id", re.compile(r"(?i)\bandroid_id\s*[:=]\s*([0-9a-f]{16})\b")),
+    # Key and value, also quoted as in JSON ("serial":"...") and spelled out ("Serial number: ...").
+    ("serial", re.compile(r"(?i)(?:\bro\.(?:boot\.)?serialno\]?\s*[:=]\s*\[?|\bserial(?:no|_?number| number)?[\"']?\s*[:=]\s*[\"']?)\[?([A-Za-z0-9]{6,})")),
+    ("android-id", re.compile(r"(?i)\bandroid_id[\"']?\s*[:=]\s*[\"']?([0-9a-f]{16})\b")),
     ("mac-address", re.compile(r"\b(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b")),
     ("ipv4", re.compile(r"(?<![\d.])(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}(?![\d.])")),
-    ("ipv6", re.compile(r"(?i)\b(?:[0-9a-f]{1,4}:){7}[0-9a-f]{1,4}\b|\bfe80::[0-9a-f:]{4,}")),
-    ("wifi-name", re.compile(r"(?i)\b(?:ssid|wifi_ssid|network name)\s*[:=]\s*\"?([^\",\s]{2,})")),
+    # Full form, link local, and the compressed form with at least two groups before "::"
+    # (fd12:3456::1, 2001:db8::8a2e:370:7334); "::1" and Kotlin's "Foo::bar" are not addresses.
+    ("ipv6", re.compile(r"(?i)\b(?:[0-9a-f]{1,4}:){7}[0-9a-f]{1,4}\b|\bfe80::[0-9a-f:]{4,}"
+                        r"|(?<![0-9a-z:])(?:[0-9a-f]{1,4}:){2,6}:(?:[0-9a-f]{1,4}:){0,5}[0-9a-f]{1,4}(?![0-9a-z:])")),
+    ("wifi-name", re.compile(r"(?i)\b(?:ssid|wifi_ssid|network name)[\"']?\s*[:=]\s*[\"']?([^\"',\s]{2,})")),
     ("email", re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")),
 ]
 
 # Values that are placeholders or not identifying, per rule.
-PLACEHOLDERS = re.compile(r"(?i)REDACTED|FIXTURESERIAL\d*|x\.x|<[a-z _-]+>|\*{3,}|[:=]\s*0{16}\b")
+# "x.x" only as its own word (192.168.x.x), not inside a real value such as "Box.Xfinity".
+PLACEHOLDERS = re.compile(r"(?i)REDACTED|FIXTURESERIAL\d*|\bx\.x\b|<[a-z _-]+>|<unknown|\*{3,}|[:=]\s*[\"']?0{16}\b")
 # Documentation ranges (RFC 5737), which redacted captures use on purpose.
 DOC_NET = re.compile(r"^(?:192\.0\.2|198\.51\.100|203\.0\.113)\.\d+$")
 HARMLESS = {
@@ -68,6 +81,7 @@ class Checker:
         self.allows = [re.compile(a) for a in allows]
         self.skip = set(skip_rules)
         self.findings = []
+        self.skipped = []
 
     def allowed(self, rule, value):
         if PLACEHOLDERS.search(value):
@@ -100,6 +114,28 @@ class Checker:
                 raw = raw.decode("utf-8", "replace")
             self.line(where, n, raw.rstrip("\n"))
 
+    def data(self, where, data):
+        """One file's bytes: a nested zip is opened, UTF-16 text (PowerShell, some Windows tools)
+        is decoded, other binary content is listed as skipped instead of passing in silence."""
+        if data[:4] == b"PK\x03\x04" and not where.endswith((".apk", ".jar", ".aar")):
+            try:
+                with zipfile.ZipFile(io.BytesIO(data)) as z:
+                    for info in z.infolist():
+                        if not info.is_dir():
+                            self.data(f"{where}!{info.filename}", z.read(info))
+                return
+            except zipfile.BadZipFile:
+                pass
+        head = data[:4096]
+        if head.startswith((b"\xff\xfe", b"\xfe\xff")) or (len(head) >= 4 and head[1::2].count(0) > len(head) // 4):
+            enc = "utf-16" if head.startswith((b"\xff\xfe", b"\xfe\xff")) else "utf-16-le"
+            self.text(where, io.StringIO(data.decode(enc, "replace")))
+            return
+        if b"\x00" in head:
+            self.skipped.append(where)
+            return
+        self.text(where, io.BytesIO(data))
+
     def path(self, p):
         if p == "-":
             self.text("<stdin>", sys.stdin)
@@ -108,22 +144,9 @@ class Checker:
                 dirs[:] = [d for d in dirs if d not in {".git", "build", ".gradle"}]
                 for f in sorted(files):
                     self.path(os.path.join(root, f))
-        elif zipfile.is_zipfile(p) and not p.endswith((".apk", ".jar", ".aar")):
-            with zipfile.ZipFile(p) as z:
-                for info in z.infolist():
-                    if info.is_dir():
-                        continue
-                    data = z.read(info)
-                    if b"\x00" in data[:4096]:
-                        continue  # binary entry
-                    self.text(f"{p}!{info.filename}", io.BytesIO(data))
         else:
             with open(p, "rb") as f:
-                head = f.read(4096)
-                if b"\x00" in head:
-                    return  # binary file
-                f.seek(0)
-                self.text(p, f)
+                self.data(p, f.read())
 
 
 def main(argv=None):
@@ -148,7 +171,10 @@ def main(argv=None):
     if not a.quiet:
         for where, n, rule, value in c.findings:
             print(f"{where}:{n}: {rule}: {value}")
-    print(f"check-redaction: {len(c.findings)} finding(s) in {len(a.inputs)} input(s)")
+    for where in c.skipped:
+        print(f"skipped (binary, not checked): {where}", file=sys.stderr)
+    print(f"check-redaction: {len(c.findings)} finding(s) in {len(a.inputs)} input(s)"
+          + (f", {len(c.skipped)} binary file(s) not checked" if c.skipped else ""))
     return 1 if c.findings else 0
 
 

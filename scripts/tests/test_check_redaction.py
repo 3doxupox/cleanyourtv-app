@@ -36,10 +36,27 @@ class Rules(unittest.TestCase):
             "ipv4": "connect 192.168.1.23:5555",
             "wifi-name": 'SSID: "HomeNet"',
             "email": "mail someone@gmail.com",
+            "private-key-base64": "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC09WnL",
         }
         for rule, text in cases.items():
             with self.subTest(rule=rule):
                 self.assertIn(rule, findings(text))
+
+    def test_quoted_spelled_out_and_compressed_forms_are_found(self):
+        # R5 probes: JSON keys, "Serial number", compressed IPv6, a value that contains "x.x".
+        cases = {
+            "serial": ['{"serial":"ABC123XYZ789"}', '{"serial": "ABC123XYZ789"}', "Serial number: ABC123XYZ789"],
+            "wifi-name": ['{"ssid":"HomeNet"}', 'SSID: "Box.Xfinity"'],
+            "token-assignment": ['{"token":"abcdef1234567890"}', '{"password": "hunter22hunter"}'],
+            "android-id": ['{"android_id":"0123456789abcdef"}'],
+            "ipv6": ["addr fd12:3456:789a::1", "2001:db8::8a2e:370:7334"],
+            "email": ["max.xu@gmail.com"],
+            "private-key-base64": ["MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg", "RWRTY0Iy" + "A" * 60],
+        }
+        for rule, texts in cases.items():
+            for text in texts:
+                with self.subTest(rule=rule, text=text):
+                    self.assertIn(rule, findings(text))
 
     def test_placeholders_and_harmless_values_pass(self):
         clean = "\n".join([
@@ -54,6 +71,10 @@ class Rules(unittest.TestCase):
             "fingerprint ends in 7F:2A",
             "author noreply@example.com",
             "Switching debugging off... done",
+            'mWifiInfo SSID: <unknown ssid>, BSSID: 02:00:00:00:00:00',
+            '{"android_id":"0000000000000000"}',
+            "val k = String::class; loopback ::1; ref Foo::bar",
+            "version 1.2.3 build 36.0.0",
         ])
         self.assertEqual([], findings(clean))
 
@@ -79,6 +100,24 @@ class Inputs(unittest.TestCase):
             with contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(0, cr.main([clean]))
                 self.assertEqual(1, cr.main([leaky]))
+
+    def test_utf16_nested_zips_and_binaries(self):
+        with tempfile.TemporaryDirectory() as d:
+            u16 = os.path.join(d, "restore-log.txt")
+            with open(u16, "wb") as f:
+                f.write("adb connect 192.168.1.23\r\n".encode("utf-16"))
+            inner = io.BytesIO()
+            with zipfile.ZipFile(inner, "w") as z:
+                z.writestr("log.txt", "connected to 192.168.1.23\n")
+            outer = os.path.join(d, "outer.zip")
+            with zipfile.ZipFile(outer, "w") as z:
+                z.writestr("diagnostics.zip", inner.getvalue())
+                z.writestr("screen.png", b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR")
+            c = cr.Checker([], [], [])
+            c.path(u16)
+            c.path(outer)
+            self.assertEqual([u16, outer + "!diagnostics.zip!log.txt"], [f[0] for f in c.findings])
+            self.assertEqual([outer + "!screen.png"], c.skipped)
 
     def test_repo_fixtures_are_clean(self):
         # The redacted Mi TV capture W1 imported must stay clean under this checker too.
