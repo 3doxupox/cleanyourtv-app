@@ -8,3 +8,6 @@ dependencies {
     implementation(project(":core:trust"))
     implementation(project(":core:registry"))
 }
+
+// W5: the bundled launcher APK (assets/bundled) must match its pin before anything is packaged.
+tasks.matching { it.name == "preBuild" }.configureEach { dependsOn(":core:trust:verifyLauncherPin") }
