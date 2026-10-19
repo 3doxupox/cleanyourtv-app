@@ -46,5 +46,9 @@ gradlePlugin {
             id = "cleanyourtv.android.app"
             implementationClass = "AndroidAppConventionPlugin"
         }
+        register("androidBenchmark") {
+            id = "cleanyourtv.android.benchmark"
+            implementationClass = "AndroidBenchmarkConventionPlugin"
+        }
     }
 }
