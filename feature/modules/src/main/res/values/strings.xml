@@ -16,14 +16,6 @@
     <string name="action_done">Done</string>
     <string name="action_undo">Undo</string>
 
-    <!-- Status chip (D42). The state word is passed into chip_label already translated. -->
-    <string name="chip_connected">Connected</string>
-    <string name="chip_waiting">Waiting</string>
-    <string name="chip_working">Working</string>
-    <string name="chip_debugging_off">Debugging off</string>
-    <string name="chip_offline">Offline</string>
-    <string name="chip_label">{tv} · {state}</string>
-
     <!-- Credential prompt (D17), raised by "Add to {tv}" -->
     <string name="gate_title">Confirm it\'s you</string>
     <string name="gate_subtitle">Before we change anything on {tv}</string>
@@ -85,6 +77,7 @@
     <string name="module_key_line">Key {key}, the same as on the TV</string>
     <string name="module_source">Source code</string>
     <string name="module_report">Report a problem</string>
+    <string name="module_hero_badge">Its card on your TV</string>
     <string name="module_add">Add to {tv}</string>
     <string name="module_paused_reason">Paused by the maintainers: {reason}</string>
     <string name="module_install_adding">Adding {name}...</string>
@@ -96,10 +89,7 @@
 
     <!-- M3c Look at the TV (card prompt, D1 and D45) -->
     <string name="cardprompt_title">Look at the TV</string>
-    <string name="cardprompt_art_title">{name} wants a card on your home screen</string>
-    <string name="cardprompt_art_key">Key {key}</string>
     <string name="cardprompt_art_keep">Keep hidden</string>
-    <string name="cardprompt_art_show">Show card</string>
     <string name="cardprompt_art_cd">The TV asks: {name} wants a card on your home screen. Key {key}. The choices are Keep hidden and Show card.</string>
     <string name="cardprompt_body">The TV double-checks with you so no app can put itself on the home screen without asking.</string>
     <string name="cardprompt_instruction">Choose \"Show card\" with the remote. The key on the TV should read {key}, the same as here.</string>
