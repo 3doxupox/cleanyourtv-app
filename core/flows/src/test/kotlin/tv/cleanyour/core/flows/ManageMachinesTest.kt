@@ -5,6 +5,9 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import tv.cleanyour.core.engine.JournalRecord
+import tv.cleanyour.core.engine.PauseReason
+import tv.cleanyour.core.engine.RunState
+import tv.cleanyour.core.model.AdbError
 import tv.cleanyour.core.engine.RunStatus
 import tv.cleanyour.core.model.ArtifactRef
 import tv.cleanyour.core.model.ApkInfo
@@ -304,6 +307,16 @@ class ManageMachinesTest {
         assertEquals(2, h.credential.prompts.size)
     }
 
+    // RFC-W8-4: the app-level pass ("Reset my key", "Delete everything") is never cached.
+    @Test fun theAppLevelPassIsNeverCached() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        assertNotNull(h.gate.passWithSubtitle(APP_GATE_ID, "Reset my key", forcePrompt = true))
+        assertNull(h.gate.cached(APP_GATE_ID))
+        assertNotNull(h.gate.passWithSubtitle(APP_GATE_ID, "Delete everything"))
+        assertEquals(2, h.credential.prompts.size)
+        assertNull(h.gate.cached(APP_GATE_ID))
+    }
+
     @Test fun tvAccessShowsTheDebuggingStepUntilThePortOpens() = runTest(timeout = 30.seconds) {
         val h = Harness()
         val tv = Samples.tv()
@@ -334,4 +347,102 @@ class ManageMachinesTest {
 }
 
 private fun kotlinx.coroutines.CoroutineScope.launchAccess(h: Harness, tv: Tv, done: (AccessResult) -> Unit) =
-    launch { done(h.access.session(tv.id)) }
+    launch { done(h.access.session(tv.id))
+
+    // R5-W8 O2: a Manage write paused by a lost connection shows the open-run card, not the generic
+    // "failed" snackbar; the next write on that TV shows the same card without a new plan or prompt;
+    // "Carry on" continues the run with the pass and the card goes once it finishes.
+    @Test fun aPausedWriteShowsTheOpenRunCardAndCarryOnFinishesIt() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val tv = h.knownTv()
+        h.ranDisable(tv, listOf(adPkg, promoPkg))
+        h.respond(PlanKind.PUT_BACK, listOf(Op.Enable(adPkg)))
+        h.engine.onStart = { p -> if (p.kind == PlanKind.PUT_BACK) emit(p.tvId, RunState.Paused(p, 0, PauseReason.CONNECTION_LOST, AdbError.Transport.Closed)) else finish(p, RunStatus.COMPLETED) }
+        val d = h.manageDeps()
+        val m = SwitchedOffMachine(d, backgroundScope, tv.id)
+        settle()
+        m.effects.test {
+            m.dispatch(SwitchedOffIntent.PutBack(adPkg)); settle()
+            assertTrue(drain().none { it is ManageEffect.Snackbar }, "no generic failed snackbar")
+            val card = assertNotNull(d.openWrites.current.value)
+            assertEquals(PlanKind.PUT_BACK, card.kind)
+            assertEquals(PauseReason.CONNECTION_LOST, card.reason)
+            assertEquals(tv.nickname, card.tvName)
+            val starts = h.engine.calls.count { it is FakeEngine.Call.Start }
+            d.openWrites.dismiss()
+            m.dispatch(SwitchedOffIntent.PutBack(promoPkg)); settle()
+            assertTrue(drain().none { it is ManageEffect.Snackbar })
+            assertEquals(starts, h.engine.calls.count { it is FakeEngine.Call.Start }, "no new run while one is open")
+            assertNotNull(d.openWrites.current.value, "the card is back for the next write")
+        }
+        val paused = h.engine.runState(tv.id).value as RunState.Paused
+        var result: WriteResult? = null
+        backgroundScope.launch { result = TvWriter(d).resolveOpen(tv.id, OpenWriteAction.CARRY_ON) }
+        settle()
+        val cont = h.engine.calls.filterIsInstance<FakeEngine.Call.ContinueRun>().single()
+        assertNotNull(cont.pass)
+        assertNull(cont.refused)
+        assertEquals(1, h.credential.prompts.size)   // one prompt for the TV (D17)
+        assertTrue(assertNotNull(d.openWrites.current.value).busy)
+        h.engine.emit(tv.id, RunState.Running(paused.plan, 0, emptyList(), 50, null)); settle()
+        h.engine.finish(paused.plan, RunStatus.COMPLETED); settle()
+        assertIs<WriteResult.Done>(result)
+        assertNull(d.openWrites.current.value)
+        assertTrue(h.planner.requests.any { it is PlanRequest.WriteRestorePoint })   // D44 once the run is over
+    }
+
+    // O2: "Undo what we did" undoes the open run; "Stop here" ends it; an action the engine does
+    // not take (the session went away again) leaves the card with the reconnect line.
+    @Test fun theOpenRunCardUndoesStopsAndSaysWhenTheTvDidNotAnswer() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val tv = h.knownTv()
+        h.ranDisable(tv, listOf(adPkg))
+        h.respond(PlanKind.PUT_BACK, listOf(Op.Enable(adPkg)))
+        h.engine.onStart = { p -> if (p.kind == PlanKind.PUT_BACK) emit(p.tvId, RunState.Paused(p, 0, PauseReason.STEP_FAILED, null)) else finish(p, RunStatus.COMPLETED) }
+        val d = h.manageDeps()
+        assertIs<WriteResult.Paused>(TvWriter(d).write(tv.id, PlanRequest.PutBack(adPkg)))
+        val paused = h.engine.runState(tv.id).value as RunState.Paused
+        var result: WriteResult? = null
+        backgroundScope.launch { result = TvWriter(d).resolveOpen(tv.id, OpenWriteAction.UNDO) }
+        settle(TvWriter.MOVE_WAIT_MS + 100)
+        assertTrue(h.engine.calls.any { it is FakeEngine.Call.UndoRun })
+        assertIs<WriteResult.Paused>(result)
+        assertTrue(assertNotNull(d.openWrites.current.value).notTaken)
+        assertEquals(paused, h.engine.runState(tv.id).value)
+        result = null
+        backgroundScope.launch { result = TvWriter(d).resolveOpen(tv.id, OpenWriteAction.STOP_HERE) }
+        settle()
+        assertTrue(h.engine.calls.any { it is FakeEngine.Call.Abandon })
+        assertEquals(RunStatus.ABANDONED, assertIs<WriteResult.Done>(result).finished.status)
+        assertNull(d.openWrites.current.value)
+    }
+
+    // O2 after process death: the engine has not loaded the open run, so start says RUN_OPEN; the
+    // writer resumes it (safety only) and shows its card instead of the failed snackbar.
+    @Test fun aRunOpenRefusalLoadsTheRunThroughResumeAndShowsItsCard() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val tv = h.knownTv()
+        h.ranDisable(tv, listOf(adPkg))
+        h.respond(PlanKind.PUT_BACK, listOf(Op.Enable(adPkg)))
+        val open = h.plan(listOf(Op.Disable(promoPkg)), kind = PlanKind.LEFTOVERS, id = "01FAKEOPENRUN000000000001")
+        h.engine.emit(tv.id, RunState.Running(open, 0, emptyList(), 0, null))   // the engine says RUN_OPEN
+        val d = h.manageDeps()
+        backgroundScope.launch { TvWriter(d).write(tv.id, PlanRequest.PutBack(adPkg)) }
+        settle()
+        assertTrue(h.engine.calls.any { it is FakeEngine.Call.Resume })
+        h.engine.emit(tv.id, RunState.Paused(open, 0, PauseReason.IN_DOUBT, null))
+        assertNotNull(TvWriter(d).openRun(tv, h.session))
+        assertEquals(PlanKind.LEFTOVERS, assertNotNull(d.openWrites.current.value).kind)
+    }
+
+    // W3 R-12: the typed name is trimmed before it is kept.
+    @Test fun renameTrimsTheTypedName() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val tv = h.knownTv()
+        val m = TvSettingsMachine(h.manageDeps(), backgroundScope, tv.id)
+        settle()
+        m.dispatch(TvSettingsIntent.Rename("  Lounge TV  ", "  Lounge ")); settle()
+        assertEquals("Lounge TV", h.tvs.tvs.value.single().nickname)
+        assertEquals("Lounge", h.tvs.tvs.value.single().room)
+    }
+}

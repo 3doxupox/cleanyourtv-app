@@ -107,7 +107,7 @@ class HomeScreenMachine(
             remember(sha256Of(bytes))
             send(Drift(false))
             effect(ManageEffect.Snackbar(SnackKind.HOME_SAVED, "", false))
-        } else if (r !is WriteResult.GateCancelled && r !is WriteResult.NoTv) {
+        } else if (r !is WriteResult.GateCancelled && r !is WriteResult.NoTv && r !is WriteResult.Paused) {   // Paused: the open-run card (O2)
             effect(ManageEffect.Snackbar(SnackKind.FAILED, "", false))
         }
         load()

@@ -27,13 +27,17 @@ import tv.cleanyour.core.flows.LeftoversState
 import tv.cleanyour.core.flows.ManageIntent
 import tv.cleanyour.core.flows.ManageSection
 import tv.cleanyour.core.flows.ManageState
+import tv.cleanyour.core.flows.OpenWrite
+import tv.cleanyour.core.flows.OpenWriteAction
 import tv.cleanyour.core.flows.Reach
 import tv.cleanyour.core.flows.SwitchedOffIntent
 import tv.cleanyour.core.flows.SwitchedOffState
 import tv.cleanyour.core.flows.TvSettingsIntent
 import tv.cleanyour.core.flows.TvSettingsState
 import tv.cleanyour.core.flows.UpdateCheck
+import tv.cleanyour.core.engine.PauseReason
 import tv.cleanyour.core.model.Level
+import tv.cleanyour.core.planner.PlanKind
 
 // Screens M1, M1a, M4, M5, M7 and M8 (PRODUCT-SPEC 4, UX 4.3, 4.11, 4.13, 6.1).
 
@@ -114,6 +118,31 @@ fun DebugStepSheet(reach: Reach, onCancel: () -> Unit) {
         PendingBody(stringResource(R.string.debugstep_note))
         PendingLiveLine(stringResource(if (reach is Reach.Connecting) R.string.debugstep_connecting else R.string.debugstep_waiting), found = false)
         PendingTertiaryButton(stringResource(R.string.action_cancel), onCancel, Modifier.align(Alignment.CenterHorizontally), quiet = true)
+        PendingGap()
+    }
+}
+
+// A Manage write that paused left its run open (R5-W8 O2): every later write on that TV would be
+// refused, so the app lays this card over whatever screen asked. A setup run opens the wizard's
+// resume card instead, which owns the home screen check.
+@Composable
+fun OpenWriteSheet(open: OpenWrite, onAction: (OpenWriteAction) -> Unit, onOpenSetup: () -> Unit, onDismiss: () -> Unit) {
+    val setup = open.kind == PlanKind.SETUP
+    PendingBottomSheet(onDismiss) {
+        val body = when {
+            open.notTaken -> stringResource(R.string.openwrite_not_taken)
+            setup -> msg(R.string.openwrite_body_setup, "tv" to open.tvName)
+            open.reason == PauseReason.CONNECTION_LOST -> stringResource(R.string.openwrite_body_lost)
+            else -> stringResource(R.string.openwrite_body)
+        }
+        if (setup) PendingStopCard(msg(R.string.openwrite_title, "tv" to open.tvName), body,
+            primaryLabel = stringResource(R.string.openwrite_open_setup), onPrimary = onOpenSetup,
+            tertiaryLabel = stringResource(R.string.openwrite_later), onTertiary = onDismiss)
+        else PendingStopCard(msg(R.string.openwrite_title, "tv" to open.tvName), body,
+            primaryLabel = if (open.busy) null else stringResource(R.string.openwrite_carry_on), onPrimary = { onAction(OpenWriteAction.CARRY_ON) },
+            secondaryLabel = if (open.busy) null else stringResource(R.string.openwrite_undo), onSecondary = { onAction(OpenWriteAction.UNDO) },
+            tertiaryLabel = if (open.busy) null else stringResource(R.string.openwrite_stop), onTertiary = { onAction(OpenWriteAction.STOP_HERE) },
+            busyText = if (open.busy) stringResource(R.string.openwrite_busy) else null)
         PendingGap()
     }
 }

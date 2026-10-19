@@ -68,7 +68,7 @@ class SwitchedOffMachine(
             load()
             when (r) {
                 is WriteResult.Done -> effect(ManageEffect.Snackbar(kind, d.nameOf(pkg), undo, pkg))
-                WriteResult.GateCancelled, WriteResult.NoTv -> {}
+                WriteResult.GateCancelled, WriteResult.NoTv, is WriteResult.Paused -> {}   // Paused: the open-run card shows (O2)
                 else -> effect(ManageEffect.Snackbar(SnackKind.FAILED, d.nameOf(pkg), false))
             }
         }

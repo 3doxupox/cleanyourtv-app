@@ -5,6 +5,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import tv.cleanyour.core.engine.RunState
+import tv.cleanyour.core.engine.StartRefusal
 import tv.cleanyour.core.model.Module
 import tv.cleanyour.core.model.ModuleVersion
 import tv.cleanyour.core.model.PermissionStatement
@@ -176,6 +177,8 @@ class ModulesMachine(
         val tv = d.tv(tvId) ?: return
         val v = bestVersion(m, tv) ?: return
         val session = (d.access.session(tvId) as? AccessResult.Ok)?.session ?: return
+        // An earlier write left its run open: its card, not a download that could never install (O2).
+        if (d.engine.runState(tvId).value is RunState.Paused) { TvWriter(d).openRun(tv, session); return }
         val pass = d.gate.pass(tvId, tv.nickname) ?: return
         send(Step(InstallStep.Downloading(0, v.artifact.size)))
         val blob = when (val f = attempt { d.fetcher.fetch(v.artifact) { done, total -> send(Step(InstallStep.Downloading(done, total))) } }
@@ -194,6 +197,9 @@ class ModulesMachine(
             val plan = (d.runner.plan(tv, PlanRequest.AddModule(m, v, blob), snapshot) as? PlanResult.Ok)?.plan ?: return@attempt null
             d.runner.run(tv, plan, session, pass, onStarted = { d.sessionEnd.touched(tvId) }) { s -> if (s is RunState.Running) send(Step(InstallStep.Installing(s.percent))) }
         }.getOrNull()
+        // A paused install (or a run another write left open) is the OpenWrites card's to resolve (O2).
+        if (outcome is RunOutcome.Paused) { d.openWrites.show(tv, outcome.state); return send(Step(null)) }
+        if (outcome is RunOutcome.StartRefused && outcome.refusal == StartRefusal.RUN_OPEN && TvWriter(d).openRun(tv, session) != null) return send(Step(null))
         if (outcome !is RunOutcome.Finished) return send(Step(InstallStep.Failed(m.name, null)))
         attempt { d.snapshots.save(d.runner.freshSnapshot(session)) }
         d.restorePoint.write(tv, session, d.profileOf(tv))

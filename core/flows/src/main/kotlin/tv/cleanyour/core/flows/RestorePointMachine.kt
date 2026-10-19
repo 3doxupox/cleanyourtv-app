@@ -113,7 +113,7 @@ class RestorePointMachine(
                 send(Phase(RestorePhase.Finished("undo", d.snapshots.baseline(tvId)?.takenAtMs ?: d.clock.nowMs())))
                 effect(ManageEffect.HapticDouble)
             }
-            WriteResult.GateCancelled, WriteResult.NoTv -> send(Phase(RestorePhase.Preview(p, confirming = false)))
+            WriteResult.GateCancelled, WriteResult.NoTv, is WriteResult.Paused -> send(Phase(RestorePhase.Preview(p, confirming = false)))   // Paused: the open-run card (O2)
             else -> send(Phase(RestorePhase.Failed))
         }
         load()
@@ -122,7 +122,7 @@ class RestorePointMachine(
     private suspend fun factoryReset() {
         send(Phase(RestorePhase.Working("factory", 0, emptyList())))
         val r = writer.write(tvId, PlanRequest.BeforeFactoryReset) { b -> if (b is Busy.Working) send(Phase(RestorePhase.Working("factory", b.percent, b.lines))) }
-        send(Phase(if (r is WriteResult.Done) RestorePhase.Finished("factory", d.clock.nowMs()) else if (r is WriteResult.GateCancelled || r is WriteResult.NoTv) RestorePhase.Idle else RestorePhase.Failed))
+        send(Phase(if (r is WriteResult.Done) RestorePhase.Finished("factory", d.clock.nowMs()) else if (r is WriteResult.GateCancelled || r is WriteResult.NoTv || r is WriteResult.Paused) RestorePhase.Idle else RestorePhase.Failed))
     }
 
     // Called by the app with the stream SAF opened for the CreateDocument effect.

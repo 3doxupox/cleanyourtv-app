@@ -53,6 +53,7 @@ import tv.cleanyour.core.flows.SetupStart
 import tv.cleanyour.core.flows.SetupState
 import tv.cleanyour.core.flows.SnackKind
 import tv.cleanyour.core.flows.StartDestination
+import tv.cleanyour.core.flows.TvWriter
 import tv.cleanyour.core.model.PlanId
 import tv.cleanyour.core.model.TvId
 import tv.cleanyour.feature.backup.RestoreScreen
@@ -63,6 +64,7 @@ import tv.cleanyour.feature.manage.AppSettingsScreen
 import tv.cleanyour.feature.manage.DebugStepSheet
 import tv.cleanyour.feature.manage.LeftoversScreen
 import tv.cleanyour.feature.manage.ManageScreen
+import tv.cleanyour.feature.manage.OpenWriteSheet
 import tv.cleanyour.feature.manage.SwitchedOffScreen
 import tv.cleanyour.feature.manage.TvSettingsScreen
 import tv.cleanyour.feature.modules.ModulesFlow
@@ -133,6 +135,7 @@ fun AppRoot(graph: AppGraph, start: Dest, onExit: () -> Unit) {
         val dest: Dest? = when (parts[0]) {
             "manage" -> Dest.Manage(id)
             "setup" -> Dest.Setup(id)
+            "resume" -> id?.let { t -> parts.getOrNull(2)?.let { p -> Dest.Setup(t, p) } }
             "modules" -> id?.let { Dest.Modules(it) }
             "home" -> if (id != null) Dest.Home(id) else null
             "switchedoff" -> id?.let { Dest.SwitchedOff(it) }
@@ -270,6 +273,14 @@ fun AppRoot(graph: AppGraph, start: Dest, onExit: () -> Unit) {
                 }
             },
         )
+        // R5-W8 O2: a Manage write that paused left its run open; carry on, undo or stop it here.
+        val open by graph.manageDeps.openWrites.current.collectAsStateWithLifecycle()
+        open?.let { w ->
+            OpenWriteSheet(w,
+                onAction = { a -> graph.scope.launch { TvWriter(graph.manageDeps).resolveOpen(w.tvId, a) } },
+                onOpenSetup = { graph.manageDeps.openWrites.dismiss(); go("resume/${w.tvId.value}/${w.planId.value}") },
+                onDismiss = { graph.manageDeps.openWrites.dismiss() })
+        }
         // M1a: any returning write that finds port 5555 closed shows the debugging step here.
         val reach by graph.access.reach.collectAsStateWithLifecycle()
         if (reach !is Reach.Idle) DebugStepSheet(reach) { graph.access.cancelWaiting() }

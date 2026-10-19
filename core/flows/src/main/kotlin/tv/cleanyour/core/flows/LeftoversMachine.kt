@@ -68,7 +68,7 @@ class LeftoversMachine(
         val expected = d.ledger.switchedOffByUs(tvId).toSet()
         when (TvWriter(d).write(tvId, PlanRequest.Leftovers(expected)) { b -> if (b is Busy.Working) send(Show(LeftoversState.Working(b.percent))) }) {
             is WriteResult.Done -> send(Show(LeftoversState.Done(found.names.size)))
-            WriteResult.GateCancelled, WriteResult.NoTv -> send(Show(found))
+            WriteResult.GateCancelled, WriteResult.NoTv, is WriteResult.Paused -> send(Show(found))   // Paused: the open-run card shows (O2)
             else -> send(Show(LeftoversState.Failed))
         }
     }
