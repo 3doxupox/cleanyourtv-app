@@ -1,0 +1,54 @@
+# Pull request gate (ARCHITECTURE 6.8). Linux runners only: private-repo minutes are billed.
+# W1 jobs: wrapper validation, checkModuleGraph, unit tests and Android Lint (`check`), the
+# release build with the APK size gate. Later rows of 6.8 join as their owners land them:
+# dependency verification metadata (W9), Roborazzi verify (W7, W8), custom lint rules (W3, W8),
+# license report and Compose compiler metrics diff (W9).
+name: pr
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true   # third_party/cleanyourtv at the pinned launcher commit (fixtures)
+
+      - uses: gradle/actions/wrapper-validation@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Module graph rules
+        run: ./gradlew checkModuleGraph --console=plain
+
+      - name: Unit tests and lint
+        run: ./gradlew check --continue --console=plain
+
+      - name: Release build and APK size gate (8 MB)
+        run: ./gradlew :app:assembleRelease :app:checkApkSizeRelease --console=plain
+
+      - name: Test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            **/build/reports/tests/
+            **/build/reports/lint-results-*.html
+          retention-days: 7
