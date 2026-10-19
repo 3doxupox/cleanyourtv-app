@@ -189,3 +189,9 @@ Added because the section 5 prose names it: `core.probe.ProbeException(stage, de
 - From the W2 report: RFC-W2-1 (`:adb:session` opts in to `@RawShell` once for five constant lines)
   must be on W3's single-call-site lint allowlist at the W3 merge; RFC-W2-2 and RFC-W2-3 go to the
   Fable R2 gate.
+- Fable R2 of W2: PASS WITH FIXES (merged). RFC-W2-1, RFC-W2-2 and RFC-W2-3 approved. Owner lows:
+  a pump idle-read timeout or SO_TIMEOUT for a header-then-stall peer, `SecretBox.open` length
+  bound `>=`, keep the CI 10-minute fuzz with the seed printed. I1 device checks: reviews/R2-W2.md.
+- Fable R1 of W3: PASS WITH FIXES. Required before I3: R-1 (watchdog vs the 120 s window) and R-2
+  (step R from the journal); R-3 and lows in progress on w3. Rulings: probe SCREENSHOT batching and
+  `installedSha256` accepted as recorded exceptions to D40.
