@@ -61,6 +61,7 @@ jobs:
         env:
           EMU_MEMORY_MB: ${{ matrix.api == 28 && '1024' || '2048' }}
           CYT_E2E_OUT: ${{ github.workspace }}/build/e2e
+          CYT_E2E_REQUIRE_ALL: ${{ vars.CYT_E2E_REQUIRE_ALL }}   # "1" once every stream is wired
         run: EMU_SDK="$ANDROID_HOME" scripts/emulator-session.sh ${{ matrix.api }} ./gradlew :e2e:emulatorTest --console=plain
 
       - name: Pending scenarios (skipped until their streams merge)

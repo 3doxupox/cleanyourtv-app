@@ -65,8 +65,16 @@ abstract class E2eScenario {
     protected val cfg: E2eConfig get() = cfgOrFail
 
     protected fun <T : Any> need(value: T?, what: String): T {
-        assumeTrue("PENDING: $what", value != null)
+        pending("PENDING: $what", value != null)
         return value!!
+    }
+
+    // CYT_E2E_REQUIRE_ALL=1 (set once every stream is wired, I5) turns PENDING into a failure, so a
+    // green run cannot be a run of skips.
+    private fun pending(message: String, ok: Boolean) {
+        if (ok) return
+        if (System.getenv("CYT_E2E_REQUIRE_ALL") == "1") throw AssertionError("$message (CYT_E2E_REQUIRE_ALL=1)")
+        assumeTrue(message, false)
     }
 
     protected fun sessionManager(): SessionManager = need(E2eWiring.sessionManager(deps), "W2 AdbSessionManager (E2eWiring.sessionManager)")
@@ -82,7 +90,7 @@ abstract class E2eScenario {
         try {
             withTimeout(timeoutMs) { block() }
         } catch (e: NotImplementedError) {
-            assumeTrue("PENDING: a frozen stub is not implemented yet (${e.message})", false)
+            pending("PENDING: a frozen stub is not implemented yet (${e.message})", false)
         }
     }
 

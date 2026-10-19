@@ -46,3 +46,10 @@ tasks.register<Test>("emulatorTest") {
     }
     shouldRunAfter(tasks.test)
 }
+// The convention plugin gives every Test task a 5 minute timeout (a hung unit test must not hold
+// the forge lock). A scenario session is longer by design: S05 alone waits up to 10 minutes per
+// scenario. This action is registered after the plugin's, so it wins; the forge session and the
+// nightly job keep their own outer limits (SESSION_TIMEOUT_S, timeout-minutes).
+tasks.withType<Test>().matching { it.name == "emulatorTest" }.configureEach {
+    timeout.set(java.time.Duration.ofMinutes(35))
+}
