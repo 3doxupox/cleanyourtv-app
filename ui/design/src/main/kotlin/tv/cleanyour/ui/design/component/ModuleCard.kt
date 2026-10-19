@@ -111,16 +111,24 @@ fun ModuleHero(
             .border(1.dp, Color.White.copy(alpha = 0.2f), shape),
     ) {
         if (art != null) Box(Modifier.padding(20.dp).align(Alignment.TopStart), content = art)
-        Column(Modifier.align(Alignment.BottomStart).padding(start = 20.dp, bottom = 16.dp, end = 120.dp)) {
-            Text(name, color = Color(0xFFF5F5F7), style = CytTheme.type.titleLarge.copy(fontSize = 28.sp, lineHeight = 32.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Light))
-            Overline(tagline, Modifier.padding(top = 2.dp), color = Color.White.copy(alpha = 0.8f))
-        }
-        if (badge != null) {
-            Text(
-                badge,
-                Modifier.align(Alignment.BottomEnd).padding(14.dp).background(Color.Black.copy(alpha = 0.45f), CytTheme.shapes.small).padding(horizontal = 8.dp, vertical = 3.dp),
-                color = Color(0xFFF5F5F7), style = CytTheme.type.bodySmall.copy(fontSize = 11.sp),
-            )
+        // Name and tagline share the bottom row with the badge, so they never overlap at large
+        // font sizes: the badge keeps its width and the name wraps beside it.
+        Row(
+            Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(start = 20.dp, end = 14.dp, bottom = 14.dp),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Column(Modifier.weight(1f).padding(bottom = 2.dp)) {
+                Text(name, color = Color(0xFFF5F5F7), style = CytTheme.type.titleLarge.copy(fontSize = 28.sp, lineHeight = 32.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Light))
+                Overline(tagline, Modifier.padding(top = 2.dp), color = Color.White.copy(alpha = 0.8f))
+            }
+            if (badge != null) {
+                Text(
+                    badge,
+                    Modifier.background(Color.Black.copy(alpha = 0.45f), CytTheme.shapes.small).padding(horizontal = 8.dp, vertical = 3.dp),
+                    color = Color(0xFFF5F5F7), style = CytTheme.type.bodySmall.copy(fontSize = 11.sp),
+                )
+            }
         }
     }
 }

@@ -72,6 +72,9 @@ fun TvFrame(
     aspect: Float = 300f / 176f,
     screen: @Composable BoxScope.() -> Unit,
 ) {
+    // The stand is the one part of the picture that sits on the phone's background, so it takes
+    // the background's contrast: white on dark, black on light.
+    val standColor = (if (CytTheme.colors.isDark) Color.White else Color.Black).copy(alpha = 0.22f)
     TvArt(contentDescription, modifier) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             val shape = RoundedCornerShape(14.dp)
@@ -89,7 +92,7 @@ fun TvFrame(
             ) {
                 Box(Modifier.fillMaxSize().background(Color.Black, shape), content = screen)
             }
-            if (showStand) Box(Modifier.padding(top = 14.dp).size(84.dp, 4.dp).background(Color.White.copy(alpha = 0.22f), RoundedCornerShape(2.dp)))
+            if (showStand) Box(Modifier.padding(top = 14.dp).size(84.dp, 4.dp).background(standColor, RoundedCornerShape(2.dp)))
         }
     }
 }

@@ -5,7 +5,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -18,7 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.heading
@@ -47,7 +48,7 @@ fun CytBottomSheet(
     val c = CytTheme.colors
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
-        modifier = modifier,
+        modifier = modifier.sheetTopRim(c.rim),
         sheetState = sheetState,
         shape = CytTheme.shapes.sheet,
         containerColor = c.surface2,
@@ -56,7 +57,7 @@ fun CytBottomSheet(
         scrimColor = c.scrim,
         dragHandle = { SheetDragHandle() },
     ) {
-        Column(Modifier.fillMaxWidth().sheetTopRim(c.rim).padding(horizontal = 20.dp).padding(bottom = 16.dp), content = content)
+        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 16.dp), content = content)
     }
 }
 
@@ -75,21 +76,32 @@ fun SheetSurface(modifier: Modifier = Modifier, content: @Composable ColumnScope
 }
 
 // Sheet title (title.large) with an optional live total on the end ("22 of 23 off", with the
-// number in text.primary) and one line of reassurance under it.
+// number in text.primary) and one line of reassurance under it. When the title and the total do
+// not fit side by side (200% font), the total moves under the title instead of breaking a word.
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SheetHeader(title: String, modifier: Modifier = Modifier, trailing: AnnotatedString? = null, subtitle: String? = null) {
     val c = CytTheme.colors
     Column(modifier.fillMaxWidth().padding(top = 12.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(title, Modifier.weight(1f).semantics { heading() }, color = c.textPrimary, style = CytTheme.type.titleLarge)
-            if (trailing != null) Text(trailing, color = c.textSecondary, style = CytTheme.type.bodyMedium.copy(fontFeatureSettings = "tnum"))
+        FlowRow(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            itemVerticalAlignment = Alignment.Bottom,
+        ) {
+            Text(title, Modifier.padding(end = 12.dp).semantics { heading() }, color = c.textPrimary, style = CytTheme.type.titleLarge)
+            if (trailing != null) {
+                Text(trailing, color = c.textSecondary, style = CytTheme.type.bodyMedium.copy(fontFeatureSettings = "tnum"))
+            }
         }
         if (subtitle != null) Text(subtitle, Modifier.padding(top = 4.dp), color = c.textSecondary, style = CytTheme.type.bodyMedium)
     }
 }
 
-// The 1 dp highlight line along the top edge of the sheet (inset box-shadow in the mockup).
-private fun Modifier.sheetTopRim(color: Color): Modifier = this.drawBehind {
+// The 1 dp highlight line along the top edge of the sheet (inset box-shadow in the mockup), drawn
+// over the sheet surface so it shows on the modal sheet as well as on SheetSurface.
+private fun Modifier.sheetTopRim(color: Color): Modifier = this.drawWithContent {
+    drawContent()
     drawLine(color, Offset(28.dp.toPx(), 0.5f), Offset(size.width - 28.dp.toPx(), 0.5f), strokeWidth = 1f)
 }
 
