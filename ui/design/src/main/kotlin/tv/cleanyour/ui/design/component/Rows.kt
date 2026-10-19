@@ -175,7 +175,7 @@ fun DockRow(
     val c = CytTheme.colors
     val style = CytTheme.type.titleMedium.copy(fontWeight = FontWeight.Normal, fontSize = 16.sp)
     Layout(
-        contents = listOf(tile, { Text(name, color = c.textPrimary, style = style) }, { controls?.invoke() }),
+        contents = listOf(tile, { Text(name, color = c.textPrimary, style = style) }, { if (controls != null) controls() }),
         modifier = modifier.fillMaxWidth().heightIn(min = 56.dp)
             .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
             .padding(horizontal = 16.dp, vertical = 8.dp),
