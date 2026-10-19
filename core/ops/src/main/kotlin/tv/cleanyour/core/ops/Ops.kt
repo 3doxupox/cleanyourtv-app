@@ -23,7 +23,16 @@ interface OpRenderer {
     fun planHash(rendered: List<Rendered>): Sha256 }   // what the UI confirms and the executor compares (R0: 5)
 class RenderRefused(val op: Op, val reason: String) : Exception(reason)
 // R0: 1 moved from :core:planner: the executor (same layer as the planner) must call the same check with live facts
-object Protected { fun isProtected(pkg: PackageName, state: PackageState?, profile: Profile?): String? = TODO("W3") }  // reason or null
+object Protected { fun isProtected(pkg: PackageName, state: PackageState?, profile: Profile?): String? {   // reason or null
+    // Body by W3: the data is in Denylist; the order is static names, the wizard rule, live
+    // facts of the package, then the profile's own never_disable list.
+    Denylist.staticReason(pkg.value)?.let { return it }
+    if (pkg.value in Denylist.setupWizards && !Denylist.isWizardAllowed(pkg, profile)) return Denylist.REASON_SETUP_WIZARD
+    if (state?.persistent == true) return Denylist.REASON_PERSISTENT
+    if (state?.tvInput == true) return Denylist.REASON_TV_INPUT
+    if (profile != null && pkg in profile.neverDisable) return Denylist.REASON_PROFILE
+    return null
+} }
 
 enum class ConfigTransportKind { FILE_OVERLAY, PROVIDER }
 interface ConfigTransport {   // R0: 1 moved from :core:engine: the planner emits its steps; implementations stay in :core:engine (W3)

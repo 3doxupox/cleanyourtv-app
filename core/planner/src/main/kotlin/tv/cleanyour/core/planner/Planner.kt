@@ -15,7 +15,7 @@ import tv.cleanyour.core.spec.Theme
 data class Choices(val kept: Set<PackageName>, val extraOff: Set<PackageName>, val dock: List<PackageName>?, val theme: Theme?,
     val installLauncher: Boolean, val takeover: Boolean, val replaceLauncherSigner: Boolean, val keepDebuggingOn: Boolean)
 enum class PlanKind { SETUP, PUT_BACK, SWITCH_OFF, LEFTOVERS, THEME, ADD_MODULE, REMOVE_MODULE, USE_STOCK_HOME,
-    UNDO_EVERYTHING, BEFORE_FACTORY_RESET, DEBUG_OFF, WRITE_RESTORE_POINT }   // R0: 11 (was kind: String)
+    UNDO_EVERYTHING, BEFORE_FACTORY_RESET, DEBUG_OFF, WRITE_RESTORE_POINT, REBOOT }   // R0: 11 (was kind: String); REBOOT: RFC-W8-5
 sealed interface PlanRequest {
     data class Setup(val resolution: ProfileResolution, val choices: Choices, val launcher: LauncherArtifact, val level: Level) : PlanRequest
     data class PutBack(val pkg: PackageName) : PlanRequest
@@ -28,7 +28,8 @@ sealed interface PlanRequest {
     data class UndoEverything(val changes: List<ChangeRecord>, val removeLauncher: Boolean) : PlanRequest
     data object BeforeFactoryReset : PlanRequest
     data object DebugOff : PlanRequest
-    data class WriteRestorePoint(val restorePointJson: BlobRef, val restoreTxt: BlobRef) : PlanRequest }   // R0: 11 D44; pushes only, runs after every other plan
+    data class WriteRestorePoint(val restorePointJson: BlobRef, val restoreTxt: BlobRef) : PlanRequest   // R0: 11 D44; pushes only, runs after every other plan
+    data object Reboot : PlanRequest }   // RFC-W8-5: the D24 restart test, journaled like every write, not gated (D17)
 // R0: 9 the engine runs a section from this data alone: the live check compares homeFocus with expectedHome and rolls back
 // when the focused package is in rollbackIfFocus; rollback is section 3.4 step R, rendered at run time
 data class GuardedSection(val name: String, val from: Int, val to: Int, val token: RunToken, val confirmWindowMs: Long,
