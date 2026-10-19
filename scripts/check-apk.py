@@ -94,7 +94,7 @@ def parse_tree(text):
         if m and len(stack) > 1:
             name, raw = m.group(1), m.group(2).strip()
             val = raw
-            q = re.match(r'^"(.*)"', raw)
+            q = re.match(r'^"([^"]*)"', raw)
             if q:
                 val = q.group(1)
             elif re.match(r"^\(type 0x12\)0x0$", raw):
