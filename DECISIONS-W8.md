@@ -110,3 +110,43 @@ Stream W8, 2026-10-19. Built against section 5 as fixed by R0 and the W1 fakes. 
   state change: outcomes, counts and type names only, never an address, serial, id or package.
 - D-W8-22 "I've set up a TV before" pushes Manage over Welcome, so Back returns to Welcome; every
   other route to Manage still replaces the stack (`applyRoute`, unit tested).
+
+## Emulator run fixes, round 3 (emufix2)
+
+- D-W8-23 S3 agrees with the plan. On the emulator TV (unknown model, Simple) S3 said nothing was
+  found while the plan had 9 steps with 1 switch-off: the streamed launcher install, then the eight
+  steps of the home screen switch, whose `Disable` is the TV's own home screen
+  (`com.google.android.tvlauncher`). Only "Show commands" named it. The planner now lists every
+  `Disable` of the switch (the stock home screen, the wizard on the quirk) in the group "Needed for
+  the new home screen" (UX 2 preview sheet copy), as rows that are off and protected: the list shows
+  them Off with nothing to flip, and a row for the same package elsewhere (a profile's `home`
+  group, a debloat group naming it) moves there instead of reading "We keep these". A package that
+  is already off is no row at all, so a re-run on a tidied TV counts nothing it does not do.
+  `PlanSummary.switchOffCount` and `switchOffPackages` (core:planner, not frozen) are what S3 and
+  the list count; `WhatWeFoundMatchesThePlanTest` holds the count, the Off rows, every group's
+  numbers and "Show commands" against the plan for the reference Mi TV (before and after its hand
+  debloat), an unknown model, an unknown Xiaomi with the brand sure set, and the emulator capture
+  (`fixtures/conformance/emu-atv28-2026-10-20`, read-only, redacted). Not changed: the D44 restore
+  point push to /sdcard/cleanyourtv after the run and the D7 debugging switch-off on Finish stay
+  outside the Setup plan; S3's safety line and S5's checklist are where the person is told.
+- D-W8-24 App names without labels. The probe reads no labels and no read-only line on Android 9
+  prints them, so no probe line was added. `AppNames.of` (core:spec): the facts table, then the
+  TV's label, then a name read from the package (`com.lego.android.tvleanback` reads "Lego"). The
+  planner rows, the dock sheet (wizard and Manage) and every Manage name use it.
+- D-W8-25 An empty dock shows no "In the dock" heading (both dock sheets); Manage's sheet also drops
+  "Other apps on the TV" when there is none.
+- D-W8-26 Welcome is mockup 01 again: "Start" and "I've set up a TV before" only. The address
+  button D-W8-19 added is gone; address entry stays on S1b ("Enter the TV's address"), in the "No TV
+  found yet" card, behind "No" on the identity line, and, new, as a quiet "Not this TV? Enter the
+  TV's address" on the door (steps, connecting, Allow) of a TV that Start reached through discovery
+  (not for a typed address). The live discovery line is pinned with Start (14 dp above it, like
+  S3's safety line, R4-W8 H1), and when the phone leaves less than 680 dp between its bars the hero
+  narrows to 248 dp and the gaps tighten, so the title, the body and "Found ..." or "No TV yet" all
+  show before the first tap on the 360 x 720 dp emulator. At full height the gaps and the 300 dp hero
+  are the mockup's (28, 32, 40). Goldens re-recorded: Welcome and the doors; new: the unknown
+  model's home screen switch on S3 and in the list, the empty dock sheets.
+- D-W8-27 0.1 is always dark (main-loop decision): `CytTheme(darkTheme = true)`, light bar icons on
+  transparent bars (`SystemBarStyle.dark`), and the activity theme is black from the first frame:
+  window, status and navigation bars, no light bar icons, no force dark (API 29+), a black splash
+  (API 31+). The light tokens stay in `:ui:design`, unused by the app. `ManifestTest` checks the
+  theme in light mode. D-W7-1's "follow the system" is withdrawn for 0.1.
