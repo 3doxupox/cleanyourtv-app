@@ -91,6 +91,7 @@ owning stream supplies bodies):
   `LauncherConfigCodec.decode`, `encode`, `effective`, `builtInDefaults`: `TODO` bodies naming the
   owner (W3, W4).
 - `core.store.SnapshotCodec`: bodies delegating to the internal `SnapshotJson` (D-W1-5).
+- `core.model.PackageName`: `init` also admits the literal `android` (RFC-W1-2, ruled 2026-10-19).
 
 Added because the section 5 prose names it: `core.probe.ProbeException(stage, detail)` (R0: 7).
 
@@ -140,6 +141,12 @@ Added because the section 5 prose names it: `core.probe.ProbeException(stage, de
 - RFC-W1-2: allow the single literal `android` in `PackageName` in addition to `PACKAGE_RE`, so the
   probe reports the framework package faithfully. It is on the hard-coded protected list, so no
   op can ever target it; W3 adds a test that proves the planner and the renderer refuse it.
+  Applied on main (x0, T2): `PackageName.init` admits `android` by name, `Samples.miTvPackages()`
+  keeps all 107 packages. Follow-ups: W4 (M1 step 4, done in the same change since W4 is on main)
+  the probe no longer skips `android` (D-W4-22) and `AdbProberTest` expects 107 packages; W3 (M4
+  step 2) unboxes the literal in `PlannerTest.kt:327`, `FrameworkPackageTest` and
+  `WatchdogAndProtectedTest.kt:124`, keeps the test that the planner and the renderer refuse it,
+  and rebases onto the fixtures change (107 packages, `android` among them).
 - RFC-W1-3 accepted: compileSdk 37, targetSdk 36, minSdk 28. D10 reads "target 36, compile 37".
 - RFC-W1-4 accepted: ARCHITECTURE 1.2 gains `:adb:wire -> :core:model` and serialization-json in
   `:core:model`.

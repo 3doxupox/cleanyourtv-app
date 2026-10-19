@@ -39,6 +39,17 @@ class ModelTest {
         assertTrue(SettingKey.SCREENSAVER_COMPONENTS.valueShape.matches("com.google.android.backdrop/.Backdrop"))
     }
 
+    // RFC-W1-2: the framework package is admitted by name; nothing else without a dot is.
+    @Test fun theFrameworkPackageIsTheOneDotlessName() {
+        assertEquals("android", PackageName("android").value)
+        assertFailsWith<IllegalArgumentException> { PackageName("android.") }
+        assertFailsWith<IllegalArgumentException> { PackageName("androidx") }
+        assertFailsWith<IllegalArgumentException> { PackageName("Android") }
+        assertFailsWith<IllegalArgumentException> { PackageName(" android") }
+        assertEquals("android.x", PackageName("android.x").value)
+        assertEquals("androidx.core", PackageName("androidx.core").value)
+    }
+
     @Test fun snapshotCodecIsCanonicalAndRoundTrips() {
         val a = PackageName("com.a.app") to pkg(EnabledState.ENABLED)
         val b = PackageName("com.b.app") to pkg(EnabledState.DISABLED_USER)

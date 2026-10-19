@@ -108,9 +108,9 @@ R0; no frozen signature changed (RFC-W4-1 in `RFCS.md` is the one proposal).
   `signer` stays null (Android 9's dumpsys prints only a 32-bit signature hash; W5's inspector
   owns digests); `label` null (friendly names come from the facts table); `installedByUs` false
   (the phone's records know that, not the TV).
-- D-W4-22 The framework package `android` is skipped until RFC-W1-2's ruling (admit the literal)
-  lands in `PackageName`; the prober builds names with a guarded constructor, so it then appears
-  with no code change here.
+- D-W4-22 The framework package `android` is reported like any other package since RFC-W1-2's
+  ruling admitted the literal in `PackageName` (107 packages on the reference TV). The prober still
+  builds names with a guarded constructor, so a name the grammar refuses is skipped.
 - D-W4-23 `installRefusal` is the one probe call that writes: mkdir, push the no-op APK, `pm
   install -r`, `pm uninstall` on success, `rm` always. The bundled no-op APK (W5) must have the
   package name `tv.cleanyour.noop`. `INSUFFICIENT_STORAGE` raises `Device.NotEnoughSpace`; any
