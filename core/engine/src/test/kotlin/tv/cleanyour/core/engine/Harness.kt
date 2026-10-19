@@ -73,7 +73,7 @@ class Harness(val scope: TestScope, val tv: ScriptedTv = ScriptedTv(Samples.snap
 
     fun pass(): GatePass = gate.mint(tv.tvId)
 
-    fun plan(request: PlanRequest): Plan {
+    fun plan(request: PlanRequest, planner: DefaultPlanner = this.planner): Plan {
         val snap = tv.snapshot(SnapshotReason.BASELINE)
         return when (val r = planner.plan(request, snap, facts, emptyList())) {
             is PlanResult.Ok -> r.plan
@@ -81,8 +81,9 @@ class Harness(val scope: TestScope, val tv: ScriptedTv = ScriptedTv(Samples.snap
         }
     }
 
-    fun setupPlan(takeover: Boolean = true, installLauncher: Boolean = true, profile: Profile = profile()): Plan = plan(
+    fun setupPlan(takeover: Boolean = true, installLauncher: Boolean = true, profile: Profile = profile(), planner: DefaultPlanner = this.planner): Plan = plan(
         PlanRequest.Setup(ProfileResolution.Exact(profile), Choices(emptySet(), emptySet(), null, null, installLauncher, takeover, false, false), artifact, Level.SIMPLE),
+        planner,
     )
 
     // A plan from explicit ops, rendered by the real renderer, like Samples.plan; its id comes from

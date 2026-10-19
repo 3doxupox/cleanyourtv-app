@@ -6,6 +6,9 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import tv.cleanyour.core.model.EnabledState
 import tv.cleanyour.core.model.Op
+import tv.cleanyour.core.model.Quirk
+import tv.cleanyour.core.ops.Watchdog
+import tv.cleanyour.testing.fixtures.FakeProfileSource
 import tv.cleanyour.testing.fixtures.MemoryJournal
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -165,5 +168,115 @@ class ResumeTest {
         e2.continueRun(h.tv.tvId, h.pass())
         assertEquals(RunStatus.COMPLETED, (drive(e2, h) as RunState.Finished).status)
         assertEquals(1, h.tv.execs("pm disable-user --user 0 ${h.debloat[1].value}"), "not sent again")
+    }
+
+    // Pauses a takeover inside its guarded section: the TV vanishes right after set-home-activity,
+    // so our launcher is HOME, the stock launcher is off and the watchdog sleeps.
+    private suspend fun TestScope.pauseInsideTheSection(h: Harness, plan: tv.cleanyour.core.planner.Plan) {
+        val e1 = h.engine()
+        h.tv.dropOnLine = { it.contains("resolve-activity") }
+        e1.start(plan, h.tv, plan.hash, h.pass())
+        drive(e1, h)
+        assertEquals(PauseReason.CONNECTION_LOST, (e1.runState(h.tv.tvId).value as RunState.Paused).reason)
+        assertEquals(h.launcher, h.tv.home)
+        assertEquals(EnabledState.DISABLED_USER, h.tv.state(h.stock.pkg))
+        assertTrue(plan.sections.single().token.value in h.tv.watchdogs)
+        h.tv.dropOnLine = null
+    }
+
+    private fun planPath(h: Harness, plan: tv.cleanyour.core.planner.Plan) = "tvs/${h.tv.tvId.value}/plans/${plan.id.value}.json"
+
+    // R1 R-2: a plan file that is missing or tampered while the journal shows an open section: step
+    // R is built from the journal (the token, the section's Disable ops, the SetHome prior) and runs
+    // before the run is given up, so the TV's own home screen is back even without the watchdog.
+    @Test fun anUntrustedPlanFileWithAnOpenSectionStillGetsStepRFromTheJournal() = runTest(timeout = TEST_TIMEOUT) {
+        for (case in listOf("missing", "tampered", "wizard")) {
+            val h = Harness(this)
+            val profile = if (case == "wizard") h.profile(setOf(Quirk.HOME_TAKEOVER_SETUPWRAITH), h.wizard) else h.profile()
+            h.profiles = FakeProfileSource(listOf(profile))
+            val plan = h.setupPlan(profile = profile)
+            pauseInsideTheSection(h, plan)
+            if (case == "wizard") assertEquals(EnabledState.DISABLED_USER, h.tv.state(h.wizard))
+            when (case) {
+                "missing" -> h.documents.delete(planPath(h, plan))
+                else -> h.documents.write(planPath(h, plan), h.documents.bytes(planPath(h, plan))!!.decodeToString().replace("\"privilege\":\"PROFILE_STEP\"", "\"privilege\":\"READ\"").encodeToByteArray())
+            }
+            // While the TV is away nothing can be put back: the journal stays open for the next resume.
+            h.tv.disconnect()
+            val e2 = h.engine()
+            e2.resume(h.tv.tvId, h.tv)
+            assertEquals(listOf(plan.id), h.journal.openRuns(h.tv.tvId), case)
+            assertEquals(h.launcher, h.tv.home, case)
+            h.tv.reconnect()
+            val e3 = h.engine()
+            e3.resume(h.tv.tvId, h.tv)
+            val fin = e3.runState(h.tv.tvId).value
+            assertIs<RunState.Finished>(fin, case)
+            assertEquals(RunStatus.ABANDONED, fin.status, case)
+            assertEquals(HomeOutcome.CONNECTION_LOST, fin.home, case)
+            assertEquals(h.stock, h.tv.home, case)
+            assertEquals(EnabledState.ENABLED, h.tv.state(h.stock.pkg), case)
+            if (case == "wizard") assertEquals(EnabledState.ENABLED, h.tv.state(h.wizard), case)
+            assertTrue(h.tv.watchdogs.isEmpty(), case)
+            assertTrue(h.tv.files.containsKey("/data/local/tmp/cleanyourtv/${Watchdog.TOKEN_FILE_PREFIX}${plan.sections.single().token.value}"), case)
+            assertEquals(listOf("section:ARMED", "section:ROLLED_BACK"), h.types(plan).filter { it.startsWith("section") }, case)
+            assertEquals("end:ABANDONED", h.types(plan).last(), case)
+            assertTrue(h.journal.openRuns(h.tv.tvId).isEmpty(), case)
+            for (p in h.debloat) assertEquals(EnabledState.DISABLED_USER, h.tv.state(p), "$case: the debloat is kept")
+        }
+    }
+
+    // R1 R-2 with a failing step R: the run pauses with the error and the section open; continue
+    // runs step R again and only then gives the run up.
+    @Test fun aFailingJournalStepRPausesAndContinueRetriesIt() = runTest(timeout = TEST_TIMEOUT) {
+        val h = Harness(this)
+        val plan = h.setupPlan()
+        pauseInsideTheSection(h, plan)
+        h.documents.delete(planPath(h, plan))
+        h.tv.reconnect()
+        h.tv.refuse = { it == h.stock.pkg }
+        val e2 = h.engine()
+        e2.resume(h.tv.tvId, h.tv)
+        val paused = e2.runState(h.tv.tvId).value
+        assertIs<RunState.Paused>(paused)
+        assertEquals(PauseReason.STEP_FAILED, paused.reason)
+        assertEquals(listOf("section:ARMED"), h.types(plan).filter { it.startsWith("section") })
+        h.tv.refuse = { false }
+        e2.continueRun(h.tv.tvId, null)   // step R needs no pass
+        h.settle(e2)
+        assertEquals(RunStatus.ABANDONED, (e2.runState(h.tv.tvId).value as RunState.Finished).status)
+        assertEquals(h.stock, h.tv.home)
+        assertTrue(h.tv.watchdogs.isEmpty())
+    }
+
+    // R1 R-6: an undo cut off by a crash carries on undoing after resume; "Continue" never turns it
+    // back into a forward run that re-applies what the user chose to undo.
+    @Test fun aCutOffUndoCarriesOnUndoingAfterResume() = runTest(timeout = TEST_TIMEOUT) {
+        val h = Harness(this)
+        val crashing = MemoryJournal()
+        val e1 = h.engine(journal = crashing)
+        val plan = h.setupPlan(takeover = false, installLauncher = false)
+        h.tv.dropOnLine = { it.contains(h.debloat[3].value) && it.contains("disable-user") }
+        e1.start(plan, h.tv, plan.hash, h.pass())
+        drive(e1, h)
+        assertEquals(3, (e1.runState(h.tv.tvId).value as RunState.Paused).at)
+        h.tv.dropOnLine = null; h.tv.reconnect()
+        crashing.crashAfter = 4   // rollback, begin2, done2, begin1; the crash lands on done1
+        e1.undoRun(h.tv.tvId, h.pass())
+        h.settle(e1)
+        assertIs<RunState.Paused>(e1.runState(h.tv.tvId).value)
+        for (p in listOf(h.debloat[1], h.debloat[2])) assertTrue(!h.tv.isOff(p), "${p.value}: undone before the crash")
+        assertEquals(EnabledState.DISABLED_USER, h.tv.state(h.debloat[0]), "not undone yet")
+        crashing.crashAfter = null
+        val e2 = DefaultEngine(h.renderer, h.prober, crashing, h.snapshots, h.plans, h.clock, backgroundScope, h.profiles)
+        e2.resume(h.tv.tvId, h.tv)
+        assertIs<RunState.Paused>(e2.runState(h.tv.tvId).value)
+        e2.continueRun(h.tv.tvId, h.pass())
+        val fin = h.settle(e2)
+        assertIs<RunState.Finished>(fin)
+        assertEquals(RunStatus.ROLLED_BACK, fin.status)
+        for (p in h.debloat) assertTrue(!h.tv.isOff(p), p.value)
+        for (p in h.debloat.drop(3)) assertEquals(0, h.tv.execs("pm disable-user --user 0 ${p.value}") - (if (p == h.debloat[3]) 1 else 0), "${p.value}: not run forward")
+        assertTrue(crashing.openRuns(h.tv.tvId).isEmpty())
     }
 }

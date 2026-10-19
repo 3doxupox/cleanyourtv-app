@@ -75,7 +75,8 @@ class SectionTest {
         assertEquals("end:COMPLETED", types.last())
         val armed = h.records(plan).filterIsInstance<JournalRecord.Section>().first()
         assertEquals(section.token, armed.token)
-        assertTrue(armed.deadlineWallMs >= Samples.NOW_MS + 15_000 + 120_000, "the TV watchdog fires 120 s after arming")
+        assertTrue(armed.deadlineWallMs >= Samples.NOW_MS + 15_000 + 120_000, "the TV watchdog fires 150 s after arming")
+        assertTrue(armed.deadlineWallMs >= s.deadlineMs + DefaultEngine.WATCHDOG_MARGIN_MS, "the phone's window ends first (R1 R-1)")
     }
 
     @Test fun noPutItBackRunsStepR() = runTest(timeout = TEST_TIMEOUT) {
@@ -326,5 +327,47 @@ class SectionTest {
         assertEquals(StartResult.Refused(StartRefusal.RUN_OPEN), engine.start(plan, h.tv, plan.hash, h.pass()))
         val again = h.setupPlan()
         assertTrue(again.id != plan.id)
+    }
+
+    // R1 R-1: without a thumbnail the phone waits the full 120 s of D23, and the watchdog (150 s from
+    // arming) still sleeps at least 10 s longer, so a late "Yes" is never written after the TV has
+    // already put its own home screen back.
+    @Test fun withoutAThumbnailThePhoneDeadlineIsEarlierThanTheWatchdogs() = runTest(timeout = TEST_TIMEOUT) {
+        val h = Harness(this)
+        h.prober.screenshotOkCount = 5
+        val engine = h.engine()
+        val plan = h.setupPlan()
+        val s = openCheckScreen(h, engine, plan)
+        assertEquals(h.clock.nowMs() - 20_000 + 15_000 + 120_000, s.deadlineMs, "the user-facing 120 s is kept")
+        val arm = plan.steps[plan.sections.single().from].op as Op.ArmHomeWatchdog
+        assertEquals(150, arm.seconds)
+        val armed = h.records(plan).filterIsInstance<JournalRecord.Section>().single()
+        assertTrue(s.deadlineMs <= armed.deadlineWallMs - DefaultEngine.WATCHDOG_MARGIN_MS, "phone ${s.deadlineMs}, watchdog ${armed.deadlineWallMs}")
+        // A "Yes" one second before the phone's deadline: the watchdog is still asleep, so it is defused.
+        advanceTimeBy(s.deadlineMs - h.clock.nowMs() - 1_000); runCurrent()
+        assertIs<RunState.AwaitingConfirm>(engine.runState(h.tv.tvId).value)
+        assertTrue(h.clock.nowMs() < armed.deadlineWallMs - DefaultEngine.WATCHDOG_MARGIN_MS)
+        engine.confirmHome(h.tv.tvId)
+        h.settle(engine)
+        assertEquals(RunStatus.COMPLETED, (engine.runState(h.tv.tvId).value as RunState.Finished).status)
+        assertEquals(h.launcher, h.tv.home)
+    }
+
+    // R1 R-1, the engine's guard: a watchdog armed for less than the window plus the section's steps
+    // (here the old 120 s) caps the phone's deadline at the watchdog's minus 10 s.
+    @Test fun aShortWatchdogCapsThePhoneDeadline() = runTest(timeout = TEST_TIMEOUT) {
+        val h = Harness(this)
+        h.prober.screenshotOkCount = 5
+        val engine = h.engine()
+        val short = tv.cleanyour.core.planner.DefaultPlanner(h.clock, h.idGen, h.renderer, h.transport, "0.1.0", watchdogSeconds = 120)
+        val plan = h.setupPlan(planner = short)
+        val s = openCheckScreen(h, engine, plan)
+        val armed = h.records(plan).filterIsInstance<JournalRecord.Section>().single()
+        assertEquals(armed.deadlineWallMs - DefaultEngine.WATCHDOG_MARGIN_MS, s.deadlineMs)
+        assertTrue(s.deadlineMs < h.clock.nowMs() - 20_000 + 15_000 + 120_000, "shorter than the 120 s it would otherwise be")
+        advanceTimeBy(s.deadlineMs - h.clock.nowMs() + 1_000); runCurrent(); h.settle(engine)
+        assertEquals(HomeOutcome.TIMED_OUT, (engine.runState(h.tv.tvId).value as RunState.Finished).home)
+        assertTrue(h.clock.nowMs() < armed.deadlineWallMs, "the phone's step R ran before the watchdog would fire")
+        h.assertStockHomeIsBack(plan.sections.single().token.value)
     }
 }

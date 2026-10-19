@@ -280,4 +280,86 @@ class EngineTest {
         assertEquals(0, h2.tv.execs("pm install -r"), "no -r on a fresh install")
         assertEquals(1, h2.tv.execs("pm install --user 0 /data/local/tmp/cleanyourtv/"))
     }
+
+    // R1 R-5: an install is done only when the installed APK hashes to the pushed or streamed one.
+    @Test fun anInstallIsCheckedAgainstTheInstalledApksHash() = runTest(timeout = TEST_TIMEOUT) {
+        val h = Harness(this)
+        val engine = h.engine()
+        val plan = h.setupPlan(takeover = false)
+        engine.start(plan, h.tv, plan.hash, h.pass())
+        h.settle(engine)
+        assertEquals(RunStatus.COMPLETED, (engine.runState(h.tv.tvId).value as RunState.Finished).status)
+        assertTrue("installedSha256 ${h.launcher.pkg.value}" in h.prober.calls)
+        // The TV installed something else under the same package and versionCode.
+        val h2 = Harness(this)
+        h2.prober.installedShaOverride = Sha256("e".repeat(64))
+        val e2 = h2.engine()
+        val p2 = h2.setupPlan(takeover = false)
+        e2.start(p2, h2.tv, p2.hash, h2.pass())
+        h2.settle(e2)
+        val fin = e2.runState(h2.tv.tvId).value as RunState.Finished
+        assertEquals(RunStatus.COMPLETED_WITH_SKIPS, fin.status)
+        assertTrue(fin.skipped.any { it.op is Op.InstallStream })
+        val install = p2.steps.first { it.op is Op.InstallStream }.index
+        val failed = h2.records(p2).filterIsInstance<JournalRecord.Failed>().single { it.i == install }
+        assertTrue(failed.error.contains("installed apk sha256"), failed.error)
+    }
+
+    // R1 R-7: debug_off closes the socket, so its step is journaled done but not verified.
+    @Test fun aSessionEndStepThatLosesTheSocketIsNotVerified() = runTest(timeout = TEST_TIMEOUT) {
+        val h = Harness(this)
+        val engine = h.engine()
+        val off = h.plan(PlanRequest.DebugOff)
+        h.tv.dropOnLine = { it.contains("adb_enabled") }
+        engine.start(off, h.tv, off.hash, null)
+        h.settle(engine)
+        assertEquals(RunStatus.COMPLETED, (engine.runState(h.tv.tvId).value as RunState.Finished).status)
+        val done = h.records(off).filterIsInstance<JournalRecord.Done>().single { it.i == off.steps.last().index }
+        assertTrue(!done.verified, "nothing was read back")
+        // When the socket stays up the step is verified like any other.
+        h.tv.dropOnLine = null; h.tv.reconnect()
+        val again = h.plan(PlanRequest.DebugOff)
+        engine.start(again, h.tv, again.hash, null)
+        h.settle(engine)
+        assertTrue(h.records(again).filterIsInstance<JournalRecord.Done>().all { it.verified })
+    }
+
+    // R1 R-13: the executor refuses to switch off the TV's current HOME or any HOME claimant outside
+    // the open guarded section, even when the plan was made before HOME changed.
+    @Test fun theLiveCheckRefusesToSwitchOffAHomeScreenOutsideTheSection() = runTest(timeout = TEST_TIMEOUT) {
+        for (case in listOf("resolved", "claimant")) {
+            val h = Harness(this)
+            val engine = h.engine()
+            val target = if (case == "resolved") h.stock.pkg else h.debloat[0]
+            if (case == "claimant") h.tv.claimants += tv.cleanyour.core.model.Component(target, ".Home")
+            val plan = h.opsPlan(Op.Disable(target))
+            engine.start(plan, h.tv, plan.hash, h.pass())
+            h.settle(engine)
+            val paused = engine.runState(h.tv.tvId).value as RunState.Paused
+            assertEquals(PauseReason.STEP_FAILED, paused.reason, case)
+            assertEquals(AdbError.Policy.ProtectedPackage(target), paused.error, case)
+            assertEquals(0, h.tv.execs("pm disable-user"), "$case: the line was never sent")
+            val failed = h.records(plan).filterIsInstance<JournalRecord.Failed>().single()
+            assertTrue(failed.error.contains("home screen"), failed.error)
+            assertTrue(!h.tv.isOff(target), case)
+        }
+    }
+
+    // RFC-W8-5: the restart test is a plan of its own, journaled, and needs no credential pass.
+    @Test fun aRebootPlanIsJournaledAndNotGated() = runTest(timeout = TEST_TIMEOUT) {
+        val h = Harness(this)
+        val engine = h.engine()
+        val reboot = h.plan(PlanRequest.Reboot)
+        assertEquals(tv.cleanyour.core.planner.PlanKind.REBOOT, reboot.kind)
+        assertEquals(listOf<Op>(Op.Reboot), reboot.steps.map { it.op })
+        assertEquals(StartResult.Started, engine.start(reboot, h.tv, reboot.hash, null))
+        h.settle(engine)
+        assertEquals(RunStatus.COMPLETED, (engine.runState(h.tv.tvId).value as RunState.Finished).status)
+        assertEquals(listOf("plan", "begin0", "done0", "end:COMPLETED"), h.types(reboot))
+        assertEquals(1, h.tv.execs("reboot"))
+        // The exemption is for a plan of Reboot steps only: a write plan relabelled REBOOT is still gated.
+        val setup = h.setupPlan(takeover = false, installLauncher = false)
+        val relabelled = setup.copy(kind = tv.cleanyour.core.planner.PlanKind.REBOOT)
+        assertEquals(StartResult.Refused(StartRefusal.GATE_REQUIRED), engine.start(relabelled, h.tv, relabelled.hash, null))
+    }
 }

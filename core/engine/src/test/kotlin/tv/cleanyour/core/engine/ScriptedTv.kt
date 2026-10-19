@@ -221,6 +221,7 @@ class ScriptedProber(private val tv: ScriptedTv) : Prober {
     val calls = mutableListOf<String>()
     var screenshotFails = false
     var screenshotOkCount = Int.MAX_VALUE   // after this many successes, screenshots fail
+    var installedShaOverride: Sha256? = null  // what the D40 hash of an installed APK reads, when set
     private var screenshots = 0
     override suspend fun facts(session: TvSession): DeviceFacts = tv.facts
     override suspend fun snapshot(session: TvSession, reason: SnapshotReason, onStage: (ProbeStage) -> Unit): Snapshot {
@@ -231,7 +232,7 @@ class ScriptedProber(private val tv: ScriptedTv) : Prober {
     override suspend fun homeFocus(session: TvSession): Component? { calls += "homeFocus"; tv.exec(ShellLine0.focus, ExecSpec.Default); return tv.focus }
     override suspend fun screenshot(session: TvSession): ByteArray? { calls += "screenshot"; screenshots++; return if (screenshotFails || screenshots > screenshotOkCount) null else tv.screenshot }
     override suspend fun fileSha256(session: TvSession, path: RemotePath): Sha256? = tv.files[path.absolute]?.let { sha256Of(it) }
-    override suspend fun installedSha256(session: TvSession, pkg: PackageName): Sha256? { calls += "installedSha256 ${pkg.value}"; return tv.installed[pkg] ?: tv.packages[pkg]?.let { Sha256("9".repeat(64)) } }
+    override suspend fun installedSha256(session: TvSession, pkg: PackageName): Sha256? { calls += "installedSha256 ${pkg.value}"; installedShaOverride?.let { return it }; return tv.installed[pkg] ?: tv.packages[pkg]?.let { Sha256("9".repeat(64)) } }
     override suspend fun freeDataMb(session: TvSession): Int = 900
     override suspend fun installRefusal(session: TvSession, noopApk: BlobRef): Boolean = false
     override suspend fun watchdogAlive(session: TvSession, token: RunToken): Boolean = token.value in tv.watchdogs
