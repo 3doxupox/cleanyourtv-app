@@ -107,6 +107,8 @@ class ModelTv(snapshot: Snapshot) {
     val claimants = snapshot.home.claimants.map { it.component }.toMutableList()
     val facts = snapshot.facts
     val tvId = snapshot.tvId
+    private val ime = snapshot.ime
+    private val screensaver = snapshot.screensaver
     val changes = mutableListOf<ChangeRecord>()
     private var at = 0L
 
@@ -144,7 +146,7 @@ class ModelTv(snapshot: Snapshot) {
     fun snapshot(reason: SnapshotReason = SnapshotReason.PRE_PLAN): Snapshot = Samples.snapshot(
         tvId = tvId, facts = facts, packages = packages.toMap(),
         home = HomeResolution(home, claimants.map { HomeClaimant(it, if (it == home) 2 else 1) }), reason = reason,
-    ).withSettings(settings.toMap())
+    ).copy(ime = ime, screensaver = screensaver).withSettings(settings.toMap())
 
     fun state(): Triple<Map<PackageName, EnabledState>, Component?, Map<SettingKey, String?>> =
         Triple(packages.mapValues { it.value.enabled }, home, settings.toMap())

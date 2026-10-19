@@ -26,6 +26,7 @@ import tv.cleanyour.core.ops.FailurePolicy
 import tv.cleanyour.core.ops.OpRenderer
 import tv.cleanyour.core.ops.RenderRefused
 import tv.cleanyour.core.ops.Rendered
+import tv.cleanyour.core.ops.UndoOrder
 import tv.cleanyour.core.spec.FactsTable
 import tv.cleanyour.core.spec.ProfileResolution
 import tv.cleanyour.core.store.Clock
@@ -51,6 +52,7 @@ class DefaultPlanner(
 ) : Planner {
 
     override fun plan(request: PlanRequest, snapshot: Snapshot, facts: FactsTable, journals: List<ChangeRecord>): PlanResult {
+        val id = idGen.planId()   // first, so a plan's id does not depend on how many run tokens it drew
         val d = Draft(snapshot, facts, journals)
         val kind = when (request) {
             is PlanRequest.Setup -> { d.setup(request); PlanKind.SETUP }
@@ -69,7 +71,7 @@ class DefaultPlanner(
         if (d.reasons.isNotEmpty()) return PlanResult.Refused(d.reasons.toList())
         val steps = d.steps.toList()
         val plan = Plan(
-            id = idGen.planId(), tvId = snapshot.tvId, kind = kind, baseSnapshot = snapshot.contentHash,
+            id = id, tvId = snapshot.tvId, kind = kind, baseSnapshot = snapshot.contentHash,
             steps = steps, sections = d.sections.toList(), summary = d.summary(),
             hash = renderer.planHash(steps.map { it.rendered }), createdAtMs = clock.nowMs(), appVersion = appVersion,
         )
@@ -172,11 +174,22 @@ class DefaultPlanner(
             keepNames = choices.kept.filter { installed(it) }.map { name(it) }.sorted()
             dockNames = choices.dock.orEmpty().map { name(it) }
 
-            val launcherSteps = if (choices.installLauncher) launcherInstall(req.launcher, choices.replaceLauncherSigner, stockLaunchers) else false
-            if (disabled > 0 && (launcherSteps || choices.takeover)) {
+            // The settle sits between the debloat and the launcher steps, so the TV has caught up with
+            // the switched-off apps before anything is installed or HOME changes.
+            val launcherNeeded = choices.installLauncher && !pinInstalled(req.launcher)
+            val needsHome = choices.takeover && snapshot.home.resolved != launcher
+            if (disabled > 0 && (launcherNeeded || needsHome)) {
                 step(Op.Settle(settleSeconds), null, GROUP_LAUNCHER, "Giving the TV $settleSeconds seconds to settle", FailurePolicy.CONTINUE)
             }
+            val refusedBefore = reasons.size
+            val launcherSteps = if (launcherNeeded) launcherInstall(req.launcher, choices.replaceLauncherSigner, stockLaunchers) else false
+            if (reasons.size > refusedBefore) return   // the launcher reason says it all; no second reason about the switch
             if (choices.takeover) takeover(req.launcher, profile, stockLaunchers, launcherSteps)
+        }
+
+        fun pinInstalled(artifact: LauncherArtifact): Boolean {
+            val current = state(artifact.pkg) ?: return false
+            return current.versionCode == artifact.versionCode && current.signer == artifact.signer
         }
 
         // D39 ladder: streaming install when the TV advertises `cmd`, else push to tmp and pm install.
@@ -222,12 +235,16 @@ class DefaultPlanner(
             val installedAndVerified = current != null && current.signer == artifact.signer
             if (!launcherInstalledByPlan && !installedAndVerified) { refuse("the new home screen is not installed and the plan does not install it"); return }
             if (stockLaunchers.isEmpty()) { refuse("no known home screen for this TV model, so the switch is not possible"); return }
-            // Matched by package (W4 verifies the package, not the class): the component used for
-            // SetHome in step R is the claimant the TV itself reported.
+            // Matched by component first, then by package: only the package of each allowlisted stock
+            // launcher is verified on a real TV for every profile, the class is not. Either way the
+            // component used for SetHome in step R is the claimant the TV itself reported.
             val claimants = snapshot.home.claimants.map { it.component }
-            fun isStock(c: Component) = stockLaunchers.any { it.pkg == c.pkg }
-            val stock = claimants.firstOrNull { it == snapshot.home.resolved && isStock(it) }
-                ?: claimants.firstOrNull { isStock(it) }
+            val resolved = snapshot.home.resolved
+            fun stockPkg(c: Component) = stockLaunchers.any { it.pkg == c.pkg }
+            val stock = claimants.firstOrNull { it == resolved && it in stockLaunchers }
+                ?: claimants.firstOrNull { it in stockLaunchers }
+                ?: claimants.firstOrNull { it == resolved && stockPkg(it) }
+                ?: claimants.firstOrNull { stockPkg(it) }
             if (stock == null) { refuse("the TV's home screen is not one of the known ones for this model (issue #85)"); return }
             val wizard = profile?.setupWraith?.takeIf { Denylist.isWizardAllowed(it, profile) && installed(it) && Denylist.reason(it, snapshot, profile) == null }
             // D25: the stock launcher is disabled unless the profile keeps it enabled (quirk or never_disable).
@@ -351,65 +368,54 @@ class DefaultPlanner(
         }
 
         // Computed from the change records (every change this app made), never from "enable
-        // everything disabled": the earliest record per target holds the original state.
+        // everything disabled". UndoOrder (shared with the laptop restore scripts) picks the
+        // earliest record of each item, which holds the state before this app touched it, and
+        // orders them: package states, settings, the home screen, our apps, our files.
         fun undoEverything(changes: List<ChangeRecord>, removeLauncher: Boolean) {
-            val ordered = changes.sortedWith(compareBy({ it.atMs }, { it.step }))
-            val firstByPackage = linkedMapOf<PackageName, ChangeRecord>()
-            val firstBySetting = linkedMapOf<SettingKey, ChangeRecord>()
-            var originalHome: Component? = null
-            val pushed = linkedMapOf<RemotePath, ChangeRecord>()
-            val installedByUs = linkedSetOf<PackageName>()
-            for (c in ordered) {
-                when (val op = c.op) {
-                    is Op.Disable -> firstByPackage.putIfAbsent(op.pkg, c)
-                    is Op.Enable -> firstByPackage.putIfAbsent(op.pkg, c)
-                    is Op.DefaultState -> firstByPackage.putIfAbsent(op.pkg, c)
-                    is Op.SettingsPut -> firstBySetting.putIfAbsent(op.key, c)
-                    is Op.SetHome -> if (originalHome == null) originalHome = c.prior?.home
-                    is Op.PushAsset -> pushed.putIfAbsent(op.dest, c)
-                    is Op.Install -> if (c.prior?.present == false) installedByUs += op.pkg
-                    is Op.InstallStream -> if (c.prior?.present == false) installedByUs += op.pkg
-                    else -> {}
+            val order = UndoOrder.undoOrder(changes)
+            val originalHome: Component? = order.firstOrNull { it.op is Op.SetHome }?.prior?.home
+            val ourApps = order.filter { UndoOrder.target(it.op) is UndoOrder.Target.App && it.prior?.present == false }
+                .mapNotNull { packageOf(it.op) }.toSet()
+            var clearedLook = false
+            for (c in order) {
+                when (val t = UndoOrder.target(c.op)) {
+                    is UndoOrder.Target.PackageEnabled -> {
+                        val current = state(t.pkg) ?: continue
+                        val prior = c.prior ?: continue
+                        val original = prior.packageState ?: continue
+                        if (current.enabled == original) continue
+                        val inverse = renderer.inverse(c.op, prior) ?: continue
+                        step(inverse, Prior(packageState = current.enabled), GROUP_UNDO, undoNarration(inverse, t.pkg), FailurePolicy.CONTINUE)
+                    }
+                    is UndoOrder.Target.Setting -> {
+                        val original = c.prior?.settingValue
+                        val current = snapshot.settings[t.key]
+                        if (t.key !in snapshot.settings || current == original) continue
+                        if (t.key == SettingKey.ADB_ENABLED || t.key == SettingKey.ADB_WIFI_ENABLED) continue   // never switched back on by the app
+                        step(Op.SettingsPut(t.key, original), Prior(settingValue = current), GROUP_UNDO, "Putting back the TV's ${t.key.key.replace('_', ' ')} setting", FailurePolicy.CONTINUE)
+                    }
+                    UndoOrder.Target.Home -> if (originalHome != null && originalHome != launcher) useStockHome(originalHome, null)
+                    is UndoOrder.Target.App -> {
+                        val pkg = t.pkg
+                        if (pkg !in ourApps || !installed(pkg)) continue
+                        if (pkg == launcher.pkg && !removeLauncher) continue
+                        if (pkg == launcher.pkg && snapshot.home.resolved == launcher && (originalHome == null || originalHome == launcher)) {
+                            refuse("the new home screen is still in charge; the TV's own home screen must come back first"); continue
+                        }
+                        step(Op.Uninstall(pkg), Prior(present = true), GROUP_UNDO, "Removing ${name(pkg)} from the TV", FailurePolicy.CONTINUE)
+                    }
+                    is UndoOrder.Target.File -> {
+                        // Only files in the launcher's folder that did not exist before us; a file that
+                        // existed cannot be rebuilt in 0.1, and nothing is left to tidy when the launcher goes.
+                        val launcherStays = installed(launcher.pkg) && !(removeLauncher && launcher.pkg in ourApps)
+                        if (!launcherStays || t.path.dir != RemoteDir.OVERLAY || c.op !is Op.PushAsset || c.prior?.present != false) continue
+                        step(Op.RemoveFile(t.path), null, GROUP_UNDO, "Clearing the look", FailurePolicy.CONTINUE)
+                        clearedLook = true
+                    }
+                    null -> {}
                 }
             }
-            // 1. Packages, most recent first.
-            for (c in firstByPackage.values.reversed()) {
-                val pkg = packageOf(c.op) ?: continue
-                val current = state(pkg) ?: continue
-                val original = c.prior?.packageState ?: continue
-                if (current.enabled == original) continue
-                val inverse = renderer.inverse(c.op, c.prior ?: Prior()) ?: continue
-                step(inverse, Prior(packageState = current.enabled), GROUP_UNDO, undoNarration(inverse, pkg), FailurePolicy.CONTINUE)
-            }
-            // 2. Settings.
-            for (c in firstBySetting.values.reversed()) {
-                val op = c.op as Op.SettingsPut
-                val original = c.prior?.settingValue
-                val current = snapshot.settings[op.key]
-                if (op.key !in snapshot.settings || current == original) continue
-                step(Op.SettingsPut(op.key, original), Prior(settingValue = current), GROUP_UNDO, "Putting back the TV's ${op.key.key.replace('_', ' ')} setting", FailurePolicy.CONTINUE)
-            }
-            // 3. The TV's own home screen.
-            val stock = originalHome
-            if (stock != null && stock != launcher) useStockHome(stock, null)
-            // 4. Apps we installed (modules; the launcher only on request).
-            for (pkg in installedByUs.reversed()) {
-                if (pkg == launcher.pkg && !removeLauncher) continue
-                if (!installed(pkg)) continue
-                if (pkg == launcher.pkg && snapshot.home.resolved == launcher && stock == null) { refuse("the new home screen is still in charge; the TV's own home screen must come back first"); continue }
-                step(Op.Uninstall(pkg), Prior(present = true), GROUP_UNDO, "Removing ${name(pkg)} from the TV", FailurePolicy.CONTINUE)
-            }
-            // 5. The look: files we put in the launcher's folder, unless the launcher goes too.
-            val launcherStays = installed(launcher.pkg) && !(removeLauncher && launcher.pkg in installedByUs)
-            if (launcherStays) {
-                var removed = false
-                for (c in pushed.values) {
-                    if (c.prior?.present != false) continue   // a file that existed before us cannot be rebuilt in 0.1
-                    step(Op.RemoveFile((c.op as Op.PushAsset).dest), null, GROUP_UNDO, "Clearing the look", FailurePolicy.CONTINUE)
-                    removed = true
-                }
-                if (removed) step(Op.RestartHome(launcher), null, GROUP_UNDO, "Restarting the home screen", FailurePolicy.CONTINUE)
-            }
+            if (clearedLook) step(Op.RestartHome(launcher), null, GROUP_UNDO, "Restarting the home screen", FailurePolicy.CONTINUE)
         }
 
         fun beforeFactoryReset() {

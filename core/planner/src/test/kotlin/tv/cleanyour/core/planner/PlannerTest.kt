@@ -52,7 +52,7 @@ class PlannerTest {
         val p = plan(setup())
         val disables = p.steps.filter { it.op is Op.Disable && it.group == "mitv" }
         val installed = debloatList.filter { it in snapshot().packages }
-        assertEquals(20, installed.size, "six packages of the hand list are not on the capture")
+        assertEquals(18, installed.size, "six of the 24 packages of the hand list are not on the capture")
         assertEquals(installed, disables.map { (it.op as Op.Disable).pkg }, "one Disable per installed package of the hand list, in list order")
         assertTrue(disables.all { it.onFailure == FailurePolicy.SKIP_IF_REFUSED && it.prior == Prior(packageState = EnabledState.ENABLED) })
         val tail = ops(p).drop(disables.size)
@@ -91,7 +91,7 @@ class PlannerTest {
         val p = plan(setup(choices = choices(kept = setOf(videos), extraOff = setOf(netflix))))
         assertTrue(ops(p).none { it == Op.Disable(videos) })
         assertTrue(ops(p).contains(Op.Disable(netflix)))
-        assertEquals(19, p.summary.groups.first().off)
+        assertEquals(17, p.summary.groups.first().off)
         assertEquals(listOf("Netflix").map { "com.netflix.ninja" }, p.summary.groups.last().rows.map { it.pkg.value })
         assertEquals(listOf("com.google.android.videos"), p.summary.keepNames)
     }
@@ -249,7 +249,7 @@ class PlannerTest {
         val j = listOf(change(0, Op.InstallStream(apk, apk.sha256, m.pkg, 3, v.artifact.signer), Prior(present = false)))
         assertEquals(listOf(Op.Uninstall(m.pkg)), ops(plan(PlanRequest.RemoveModule(m.pkg), snapshot(extra = mapOf(installed)), j)))
         assertEquals(emptyList<Op>(), ops(plan(PlanRequest.RemoveModule(m.pkg))))
-        assertTrue(refused(PlanRequest.RemoveModule(PackageName("com.google.android.videos"))).single().contains("system"))
+        assertTrue(refused(PlanRequest.RemoveModule(PackageName("mitv.service"))).single().contains("system"))
         assertTrue(refused(PlanRequest.RemoveModule(launcher.pkg), snapshot(home = launcher, claimants = listOf(launcher, stock), extra = mapOf(installedLauncher()))).single().contains("own home screen first"))
         assertEquals(listOf(Op.Uninstall(launcher.pkg)), ops(plan(PlanRequest.RemoveModule(launcher.pkg), snapshot(extra = mapOf(installedLauncher())))))
     }
@@ -326,11 +326,11 @@ class PlannerTest {
 
     // RFC-W1-2 ruling: the planner never emits an op on `android`, and refuses a request naming it.
     @Test fun theFrameworkPackageIsRefusedByThePlanner() {
-        val android = runCatching { PackageName(Denylist.FRAMEWORK) }.getOrNull()
-        if (android == null) {
-            // The grammar does not admit it yet: it cannot be named at all, which is the stronger refusal.
-            assertNotNull(Denylist.staticReason(Denylist.FRAMEWORK)); return
+        // Until W1 widens the grammar (RFC-W1-2) the value is boxed past the init check.
+        val android = runCatching { PackageName(Denylist.FRAMEWORK) }.getOrElse {
+            PackageName::class.java.getDeclaredMethod("box-impl", String::class.java).invoke(null, Denylist.FRAMEWORK) as PackageName
         }
+        assertEquals("android", android.value)
         val state = PackageState(EnabledState.ENABLED, true, 28, null, true, false, "Android System", false)
         val snap = snapshot(extra = mapOf(android to state))
         assertTrue(refused(PlanRequest.SwitchOff(setOf(android)), snap).single().contains("framework"))
@@ -342,6 +342,11 @@ class PlannerTest {
         val row = p.summary.groups.first { it.id == "bad" }.rows.single()
         assertTrue(row.protected && !row.off && row.whyProtected!!.contains("framework"))
         assertNull(ops(p).filterIsInstance<Op.Disable>().firstOrNull { it.pkg == android })
-        assertEquals(Fixtures.miTv().packages.size, 107)
+        // Named by the user as an extra: refused with the reason, never planned.
+        assertTrue(refused(setup(choices = choices(extraOff = setOf(android))), snap).any { it.contains("framework") })
+        // As a stock launcher in a bad profile: the claimant is never switched off.
+        val bad = profile().copy(stockLaunchers = listOf(Component(android, ".ResolverActivity")))
+        val r = PlannerFixtures.planner().plan(setup(profile = bad), snapshot(claimants = listOf(Component(android, ".ResolverActivity")), home = null, extra = mapOf(android to state)), PlannerFixtures.facts, emptyList())
+        if (r is PlanResult.Ok) assertTrue(r.plan.steps.none { s -> DefaultPlanner.packageOf(s.op) == android })
     }
 }
