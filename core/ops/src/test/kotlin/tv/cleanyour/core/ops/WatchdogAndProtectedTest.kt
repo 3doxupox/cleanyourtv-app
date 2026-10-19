@@ -60,14 +60,26 @@ class WatchdogTest {
         Watchdog.render(WatchdogVariant.NOHUP_SETSID, stock, 30, token)
         Watchdog.render(WatchdogVariant.NOHUP_SETSID, stock, 300, token)
         val r = ShellRenderer(WatchdogVariant.SUBSHELL).render(Op.ArmHomeWatchdog(stock, 120, token))
-        assertEquals(Watchdog.render(WatchdogVariant.SUBSHELL, stock, 120, token), r.lines.single().text)
+        assertEquals(Watchdog.render(WatchdogVariant.SUBSHELL, stock, 120, token), r.lines.last().text)
         assertEquals(Privilege.TAKEOVER, r.privilege)
     }
 
     @Test fun disarmIsTheTokenFileThenPkill() {
         val r = ShellRenderer()
         assertEquals("'touch' '/data/local/tmp/cleanyourtv/home-ok-0123456789abcdef'", r.render(Op.ConfirmHome(token)).lines.single().text)
-        assertEquals("'pkill' '-f' 'cleanyourtv-rollback-0123456789abcdef'", r.render(Op.KillWatchdog(token)).lines.single().text)
+        assertEquals("'pkill' '-f' '[c]leanyourtv-rollback-0123456789abcdef'", r.render(Op.KillWatchdog(token)).lines.single().text)
+        assertEquals("'pgrep' '-f' '[c]leanyourtv-rollback-0123456789abcdef'", r.render(Op.Read(tv.cleanyour.core.model.ProbeKind.WATCHDOG_ALIVE, tv.cleanyour.core.model.ReadArg.Token(token))).lines.single().text)
+        // The bracket pattern matches the watchdog's own command line and nothing that carries the pattern itself.
+        val pattern = Regex(Watchdog.processPattern(token))
+        assertTrue(pattern.containsMatchIn(Watchdog.render(WatchdogVariant.NOHUP_SETSID, stock, 120, token)))
+        assertTrue(!pattern.containsMatchIn("sh -c 'pkill' '-f' '" + Watchdog.processPattern(token) + "'"), "the adbd sh -c wrapper and pkill itself")
+        assertTrue(!pattern.containsMatchIn("pgrep -f " + Watchdog.processPattern(token)))
+        assertTrue(!pattern.containsMatchIn(Watchdog.render(WatchdogVariant.NOHUP_SETSID, stock, 120, RunToken("fedcba9876543210"))), "another run's watchdog")
+        // Arming removes a stale token file from an earlier run before the template line.
+        val arm = r.render(Op.ArmHomeWatchdog(stock, 120, token)).lines.map { it.text }
+        assertEquals(2, arm.size)
+        assertEquals("'rm' '-f' '/data/local/tmp/cleanyourtv/home-ok-0123456789abcdef'", arm[0])
+        assertTrue(Watchdog.matches(WatchdogVariant.NOHUP_SETSID, arm[1], stock, 120, token))
         assertEquals(VerifyResult.Ok, r.check(Op.ConfirmHome(token), ShellRenderer.EMPTY_FILE_SHA256 + "  /data/local/tmp/cleanyourtv/home-ok-0123456789abcdef\n", null))
         assertTrue(r.check(Op.ConfirmHome(token), "sha256sum: /data/local/tmp/cleanyourtv/home-ok-0123456789abcdef: No such file or directory\n", null) is VerifyResult.Mismatch)
         assertEquals(VerifyResult.Ok, r.check(Op.KillWatchdog(token), "", null))

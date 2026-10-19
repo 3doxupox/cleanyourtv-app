@@ -126,8 +126,9 @@ class ScriptedTv(initial: Snapshot = Samples.miTvSnapshot()) : TvSession {
                 ok(if (h == null) "No activity found\n" else "priority=2 preferredOrder=0 match=0x108000 specificIndex=-1 isDefault=true\n${h.flat}\n")
             }
             line.startsWith("nohup setsid sh -c ") || line.startsWith("( sh -c ") -> { watchdogs += Regex("cleanyourtv-rollback-([0-9a-f]{16})").find(line)!!.groupValues[1]; ok() }
-            line.startsWith("pgrep -f cleanyourtv-rollback-") -> { val t = line.removePrefix("pgrep -f cleanyourtv-rollback-"); if (t in watchdogs) ok("4321\n") else ExecResult(1, "", "", false, 1) }
-            line.startsWith("pkill -f cleanyourtv-rollback-") -> { val t = line.removePrefix("pkill -f cleanyourtv-rollback-"); if (watchdogs.remove(t)) ok() else ExecResult(1, "", "", false, 1) }
+            // pgrep and pkill match the pattern as a regex against the watchdog command lines the TV holds.
+            line.startsWith("pgrep -f ") -> { val re = Regex(line.removePrefix("pgrep -f ")); val hits = watchdogs.filter { re.containsMatchIn(watchdogLine(it)) }; if (hits.isNotEmpty()) ok("4321\n") else ExecResult(1, "", "", false, 1) }
+            line.startsWith("pkill -f ") -> { val re = Regex(line.removePrefix("pkill -f ")); val hits = watchdogs.filter { re.containsMatchIn(watchdogLine(it)) }; if (hits.isNotEmpty()) { watchdogs -= hits.toSet(); ok() } else ExecResult(1, "", "", false, 1) }
             line.startsWith("touch ") -> { files[tokens[1]] = ByteArray(0); ok() }
             line.startsWith("sha256sum ") -> files[tokens[1]]?.let { ok("${sha256Of(it).hex}  ${tokens[1]}\n") } ?: fail("sha256sum: ${tokens[1]}: No such file or directory")
             line.startsWith("rm -f ") -> { files.remove(tokens[2]); ok() }
@@ -141,6 +142,9 @@ class ScriptedTv(initial: Snapshot = Samples.miTvSnapshot()) : TvSession {
             else -> ExecResult(127, "", "/system/bin/sh: ${tokens[0]}: not found", false, 1)
         }
     }
+
+    // The command line a running watchdog shows in `ps`: `sh -c <body> cleanyourtv-rollback-<token>`.
+    private fun watchdogLine(token: String) = "sh -c sleep 120; ... cleanyourtv-rollback-$token"
 
     private fun install(path: String): ExecResult {
         val bytes = files[path] ?: return fail("Failure [INSTALL_FAILED_INVALID_URI]")

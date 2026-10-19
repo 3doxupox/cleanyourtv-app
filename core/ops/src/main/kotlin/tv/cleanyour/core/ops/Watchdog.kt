@@ -84,4 +84,13 @@ object Watchdog {
 
     fun processName(token: RunToken): String = PROCESS_NAME_PREFIX + token.value
     fun tokenFileName(token: RunToken): String = TOKEN_FILE_PREFIX + token.value
+
+    // The pattern pgrep and pkill match against full command lines (-f). The first letter sits in a
+    // bracket expression, so the pattern matches the watchdog's command line (which carries the
+    // plain name) but never the pgrep or pkill process itself, nor the `sh -c` wrapper adbd runs
+    // the line under: both carry the bracketed text, which the regex does not match. Without the
+    // bracket, pkill kills its own parent shell and pgrep always finds a pid, so "armed" could
+    // never fail and "killed" could never pass (R1).
+    fun processPattern(token: RunToken): String =
+        "[" + PROCESS_NAME_PREFIX.first() + "]" + PROCESS_NAME_PREFIX.drop(1) + token.value
 }

@@ -102,8 +102,12 @@ class RendererPropertyTest {
             val op = anyOp()
             val r = renderer.render(op)
             if (op is Op.ArmHomeWatchdog) {
-                assertTrue(ShellTokens.LINE_RE.matches(r.lines.single().text))
-                assertTrue(Watchdog.matches(WatchdogVariant.NOHUP_SETSID, r.lines.single().text, op.stock, op.seconds, op.token))
+                // Two lines: the stale token file removal (an ordinary quoted line), then the template.
+                assertEquals(2, r.lines.size)
+                ShellTokens.assertLine(r.lines[0].text)
+                assertEquals(listOf("rm", "-f", "/data/local/tmp/cleanyourtv/home-ok-" + op.token.value), ShellTokens.tokenize(r.lines[0].text))
+                assertTrue(ShellTokens.LINE_RE.matches(r.lines[1].text))
+                assertTrue(Watchdog.matches(WatchdogVariant.NOHUP_SETSID, r.lines[1].text, op.stock, op.seconds, op.token))
                 return@repeat
             }
             for (line in r.lines) {
@@ -182,6 +186,9 @@ class RendererPropertyTest {
             Op.Disable(PackageName("com.android.wifi.resources")),
             Op.Uninstall(PackageName("com.google.android.gms")),
             Op.DefaultState(PackageName("com.android.settings")),
+            // Installing over a protected package is refused too (a signed index entry naming one).
+            Op.Install(RemotePath(RemoteDir.TMP, listOf("x.apk")), Sha256("a".repeat(64)), PackageName("com.android.vending"), 1, Sha256("b".repeat(64)), setOf(InstallFlag.REPLACE)),
+            Op.InstallStream(BlobRef(Sha256("a".repeat(64)), 10, "p"), Sha256("a".repeat(64)), PackageName("com.google.android.gms"), 1, Sha256("b".repeat(64))),
         )
         for (op in refused) {
             val e = assertFailsWith<RenderRefused>(op.toString()) { renderer.render(op) }

@@ -3,7 +3,7 @@ op: Read kind=WATCHDOG_ALIVE token=0123456789abcdef
 privilege: READ
 timeout_ms: 30000
 stdout_cap: 65536
-line: 'pgrep' '-f' 'cleanyourtv-rollback-0123456789abcdef'
+line: 'pgrep' '-f' '[c]leanyourtv-rollback-0123456789abcdef'
 transfer: none
 verify: none
 prior: none

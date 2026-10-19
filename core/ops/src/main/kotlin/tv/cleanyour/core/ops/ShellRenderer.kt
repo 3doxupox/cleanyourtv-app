@@ -49,7 +49,7 @@ class ShellRenderer(private val watchdogVariant: WatchdogVariant = WatchdogVaria
         is Op.DefaultState -> Rendered(op, lines(line(PM, "default-state", USER, "0", writePkg(op.pkg))), null, Privilege.PROFILE_STEP,
             Op.Read(ProbeKind.PACKAGE_DUMP, ReadArg.Pkg(op.pkg)), T_PM, CAP_DEFAULT)
         is Op.Install -> {
-            pkg(op.pkg)   // the framework package is never installed over
+            writePkg(op.pkg)   // the framework package and the static denylist are never installed over
             require(op.apk.dir == RemoteDir.TMP) { "install source must be under ${RemoteDir.TMP.path}" }
             require(op.apk.segments.last().endsWith(".apk")) { "install source must be an .apk file" }
             require(op.versionCode >= 0) { "versionCode must not be negative" }
@@ -61,7 +61,7 @@ class ShellRenderer(private val watchdogVariant: WatchdogVariant = WatchdogVaria
                 Op.Read(ProbeKind.PACKAGE_DUMP, ReadArg.Pkg(pkgName(op.pkg))), T_INSTALL, CAP_DEFAULT)
         }
         is Op.InstallStream -> {
-            pkg(op.pkg)
+            writePkg(op.pkg)
             require(op.blob.sha256 == op.sha256) { "blob sha256 differs from the op's sha256" }
             require(op.blob.size in 1..MAX_APK_BYTES) { "apk size must be 1 to $MAX_APK_BYTES bytes" }
             require(op.versionCode >= 0) { "versionCode must not be negative" }
@@ -87,14 +87,17 @@ class ShellRenderer(private val watchdogVariant: WatchdogVariant = WatchdogVaria
             Privilege.TAKEOVER, Op.Read(ProbeKind.HOME), T_DEFAULT, CAP_DEFAULT)
         is Op.VerifyHome -> { comp(op.expected); Rendered(op, lines(line(*HOME_ARGV)), null, Privilege.READ, null, T_DEFAULT, CAP_DEFAULT) }
         is Op.ArmHomeWatchdog -> {
+            // A token file left by an earlier run of the same plan would defuse this watchdog from
+            // the start, so it is removed first (R1); then the template, the one multi-command line.
             val text = Watchdog.render(watchdogVariant, op.stock, op.seconds, op.token)
-            Rendered(op, listOf(ShellLine(text)), null, Privilege.TAKEOVER, Op.Read(ProbeKind.WATCHDOG_ALIVE, ReadArg.Token(op.token)), T_DEFAULT, CAP_DEFAULT)
+            Rendered(op, listOf(line("rm", "-f", tokenFile(op.token).absolute), ShellLine(text)), null, Privilege.TAKEOVER,
+                Op.Read(ProbeKind.WATCHDOG_ALIVE, ReadArg.Token(op.token)), T_DEFAULT, CAP_DEFAULT)
         }
         is Op.ConfirmHome -> {
             val file = tokenFile(op.token)
             Rendered(op, lines(line("touch", file.absolute)), null, Privilege.TAKEOVER, Op.Read(ProbeKind.SHA256_OF_FILE, ReadArg.Path(file)), T_DEFAULT, CAP_DEFAULT)
         }
-        is Op.KillWatchdog -> Rendered(op, lines(line("pkill", "-f", processName(op.token))), null, Privilege.TAKEOVER,
+        is Op.KillWatchdog -> Rendered(op, lines(line("pkill", "-f", processPattern(op.token))), null, Privilege.TAKEOVER,
             Op.Read(ProbeKind.WATCHDOG_ALIVE, ReadArg.Token(op.token)), T_DEFAULT, CAP_DEFAULT)
         Op.PressHome -> Rendered(op, lines(line("input", "keyevent", "3")), null, Privilege.PROFILE_STEP, null, T_DEFAULT, CAP_DEFAULT)
         is Op.Mkdir -> Rendered(op, lines(line("mkdir", "-p", op.dir.path)), null, Privilege.COMMUNITY, null, T_DEFAULT, CAP_DEFAULT)
@@ -150,7 +153,7 @@ class ShellRenderer(private val watchdogVariant: WatchdogVariant = WatchdogVaria
             ProbeKind.PACKAGE_DUMP -> r(listOf(DUMPSYS, "package", pkgArg().value), CAP_DUMP, T_DUMPSYS)
             ProbeKind.PERSISTENT -> { none(); r(listOf(DUMPSYS, "package", "packages"), CAP_BIG, T_DUMPSYS) }
             ProbeKind.DF_DATA -> { none(); r(listOf("df", "/data")) }
-            ProbeKind.WATCHDOG_ALIVE -> r(listOf("pgrep", "-f", processName(tokenArg())))
+            ProbeKind.WATCHDOG_ALIVE -> r(listOf("pgrep", "-f", processPattern(tokenArg())))
             ProbeKind.BOOT_ID -> { none(); r(listOf("cat", "/proc/sys/kernel/random/boot_id")) }
             ProbeKind.BOOT_COMPLETED -> { none(); r(listOf("getprop", "sys.boot_completed")) }
             ProbeKind.LAUNCHER_DIR -> { none(); r(listOf("ls", "-l", RemoteDir.OVERLAY.path)) }
@@ -207,8 +210,8 @@ class ShellRenderer(private val watchdogVariant: WatchdogVariant = WatchdogVaria
             }
             is Op.SetHome -> homeIs(op.component, lines)
             is Op.VerifyHome -> homeIs(op.expected, lines)
-            is Op.ArmHomeWatchdog -> if (lines.any { PID_RE.matches(it) }) VerifyResult.Ok else mismatch("a pid from pgrep -f ${processName(op.token)}")
-            is Op.KillWatchdog -> if (lines.none { PID_RE.matches(it) }) VerifyResult.Ok else mismatch("no pid from pgrep -f ${processName(op.token)}")
+            is Op.ArmHomeWatchdog -> if (lines.any { PID_RE.matches(it) }) VerifyResult.Ok else mismatch("a pid from pgrep -f ${processPattern(op.token)}")
+            is Op.KillWatchdog -> if (lines.none { PID_RE.matches(it) }) VerifyResult.Ok else mismatch("no pid from pgrep -f ${processPattern(op.token)}")
             is Op.ConfirmHome -> if (lines.any { it.startsWith(EMPTY_FILE_SHA256) }) VerifyResult.Ok else mismatch("$EMPTY_FILE_SHA256 (empty token file)")
             is Op.PushAsset -> if (lines.any { it.substringBefore(' ') == op.sha256.hex }) VerifyResult.Ok else mismatch(op.sha256.hex)
             is Op.RemoveFile -> if (lines.none { SHA256_RE.matches(it.substringBefore(' ')) }) VerifyResult.Ok else mismatch("no hash (file removed)")
@@ -253,8 +256,8 @@ class ShellRenderer(private val watchdogVariant: WatchdogVariant = WatchdogVaria
         require(p.value != Denylist.FRAMEWORK) { "the framework package is never a target" }
         return p.value
     }
-    // Disable, DefaultState and Uninstall: the static denylist is refused here as well as in the
-    // planner and the executor.
+    // Disable, DefaultState, Uninstall and the installs: the static denylist is refused here as well
+    // as in the planner and the executor.
     private fun writePkg(p: PackageName): String {
         val v = pkg(p)
         val reason = Denylist.staticReason(v)
@@ -268,7 +271,7 @@ class ShellRenderer(private val watchdogVariant: WatchdogVariant = WatchdogVaria
     }
     private fun sha(s: Sha256) { require(SHA256_RE.matches(s.hex)) { "sha256 fails SHA256_RE" } }
     private fun token(t: RunToken): RunToken { require(RUN_TOKEN_RE.matches(t.value)) { "run token fails RUN_TOKEN_RE" }; return t }
-    private fun processName(t: RunToken): String = Watchdog.processName(token(t))
+    private fun processPattern(t: RunToken): String = Watchdog.processPattern(token(t))
     private fun tokenFile(t: RunToken): RemotePath = RemotePath(RemoteDir.TMP, listOf(Watchdog.tokenFileName(token(t))))
 
     private fun line(vararg argv: String): ShellLine = ShellLine(ShellTokens.line(argv.toList()))

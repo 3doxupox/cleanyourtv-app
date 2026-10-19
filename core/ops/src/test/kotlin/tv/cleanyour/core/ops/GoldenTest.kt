@@ -39,7 +39,7 @@ class GoldenTest {
         for (c in GoldenCases.all) {
             val r = ShellRenderer(c.variant).render(c.op)
             for (line in r.lines) {
-                if (c.op is Op.ArmHomeWatchdog) continue   // the one multi-command template, checked by WatchdogTest
+                if (c.op is Op.ArmHomeWatchdog && line === r.lines.last()) continue   // the one multi-command template, checked by WatchdogTest
                 ShellTokens.assertLine(line.text)
                 assertTrue(ShellTokens.tokenize(line.text).isNotEmpty(), c.name)
             }
