@@ -6,6 +6,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -67,6 +69,7 @@ import tv.cleanyour.ui.design.theme.Glow
 // The eight approved mockups (mockups/index.html) rebuilt from the components, 360 x 780 dp, with a
 // 32 dp band where the status bar sits. They prove the components compose into the designed
 // screens; the real screens are W8's.
+@OptIn(ExperimentalLayoutApi::class)
 object Screens {
     @Composable
     private fun StatusBand() = Spacer(Modifier.height(32.dp))
@@ -186,7 +189,9 @@ object Screens {
                     "NES games on the TV. Adds a Retro card that opens a library of free, legally shared games. Works with the remote.",
                     Modifier.padding(top = 4.dp), color = CytTheme.colors.textSecondary, style = CytTheme.type.bodyMedium,
                 )
-                Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) { InfoChip("Community"); InfoChip("Open source"); InfoChip("4 MB") }
+                FlowRow(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    InfoChip("Community"); InfoChip("Open source"); InfoChip("4 MB")
+                }
                 Overline("What it can do on the TV", Modifier.padding(start = 4.dp, top = 18.dp, bottom = 8.dp))
                 Column(Modifier.padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     CheckLine("Uses the internet to fetch game files", emphasised = true)

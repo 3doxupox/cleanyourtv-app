@@ -27,7 +27,7 @@ Packages: `tv.cleanyour.ui.design.theme` (tokens, glass, glow, motion), `...ui.d
 | `Modifier.glass(shape, style: GlassStyle)` | The glass recipe: three draws, no offscreen layer. `CytTheme.glass` or `CytTheme.highlight` |
 | `Modifier.ambientGlow(color, core, coreAlpha, midAlpha, alpha: () -> Float)` | Raw radial glow |
 | `Glow` = `Brand, Tv, Done, None, Module(accent)` and `Modifier.animatedAmbientGlow(glow)` | The screen glow with the launcher's dip on change |
-| `R.raw.outfit_ofl` | The OFL text for the Licences screen (M8) |
+| `R.raw.cyt_outfit_ofl` | The OFL text for the Licences screen (M8) |
 
 ## Icons (`icon`)
 
@@ -51,7 +51,7 @@ Home, Undo, Restart, Key, Download, Phone, Delete, Share, Edit, Lock, External, 
 | `StepCounter` | `current: Int, total: Int, modifier, extra: String? = null` ("2 of 5", "4 of 5 · Look at the TV", D33) |
 | `Gap(height)`, `ListDivider(modifier)` | Spacing helpers |
 | `ActionColumn(modifier, content)` | Bottom actions, 8 dp apart |
-| `LtrText(text, modifier, style, color, maxLines)`, `ltr(s): String` | Package names, digests: always left to right |
+| `LtrText(text, modifier, style, color, maxLines, overflow = Clip)`, `ltr(s): String` | Package names, digests: always left to right (`TextOverflow.MiddleEllipsis` with `maxLines = 1` keeps both ends of a long package) |
 
 ### Actions
 
@@ -71,7 +71,7 @@ Home, Undo, Restart, Key, Download, Phone, Delete, Share, Edit, Lock, External, 
 | :- | :- |
 | `TvStatusChip` | `tvName, status: TvStatus, modifier, stateWord: String = status.word(), onClick: (() -> Unit)? = null`. `TvStatus` = `CONNECTED, WAITING, WORKING, DEBUGGING_OFF, OFFLINE` |
 | `DiscoveryChip` | `text, found: Boolean, modifier, secondary: String? = null` (Welcome live line, polite live region) |
-| `GlassChip` | `text, modifier, mark: ChipMark = NONE, icon: ImageVector? = null, secondary: String? = null, separator = false, onClick = null, liveRegion = false, pulse = false` |
+| `GlassChip` | `text, modifier, mark: ChipMark = NONE, icon: ImageVector? = null, secondary: String? = null, separator = false, onClick = null, liveRegion = false, pulse = false, singleLine = false` (`singleLine`, as the status chip uses it: the text shortens with an ellipsis at large font sizes and the secondary word is never cut) |
 | `Banner` | `text: String or AnnotatedString, tone: BannerTone, modifier, icon = default for tone, actionLabel: String? = null, onAction`. `BannerTone` = `SUCCESS, WARNING, DANGER, NEUTRAL, INFO` |
 | `StopCard` | `title, body, modifier, icon = CytIcons.Stopped, primaryLabel?, onPrimary, secondaryLabel?, onSecondary, tertiaryLabel?, onTertiary, detailsLabel?, onDetails, busyText: String? = null` |
 | `UndoSnackbarState` (`rememberUndoSnackbarState()`) | `show(message, actionLabel: String? = null, onAction)`, `dismiss()`, `current: UndoMessage?`. 5 s, 10 s with TalkBack |
@@ -97,7 +97,7 @@ Home, Undo, Restart, Key, Download, Phone, Delete, Share, Edit, Lock, External, 
 | `TextActionRow` | `text, actionLabel, onAction, modifier` (D4 "Home screen: ...  Change") |
 | `SafetyLine` | `text, modifier, icon = CytIcons.Shield` |
 | `CheckLine` | `text, modifier, state: CheckState = DONE (NONE, PENDING), emphasised = false` |
-| `InfoChip` | `text, modifier, icon: ImageVector? = null` ("Community", level "Simple") |
+| `InfoChip` | `text, modifier, icon: ImageVector? = null` ("Community", level "Simple"). Put several in a `FlowRow`, never a `Row`: they wrap at 200% font |
 | `IconTile` | `icon, modifier, tint, fill` |
 | `AppTile` | `name, modifier, icon: ImageBitmap? = null, size = 40.dp` (TV icon or letter tile) |
 | `CytTextField` | `value, onValueChange, label, modifier, error: String? = null, supporting: String? = null, keyboardType, singleLine = true` |
@@ -164,10 +164,12 @@ Home, Undo, Restart, Key, Download, Phone, Delete, Share, Edit, Lock, External, 
 
 ## Rules the components already follow
 
-48 dp touch targets; every state has a word (pills, chip, narration); headings marked; titles
-wrap; RTL mirrors layout, chevrons, the step axis and the ring; package names, digests and
-commands stay LTR; no animation under reduced motion beyond fades; the countdown never changes
-colour; nothing red except `DestructiveButton` and danger banners.
+48 dp touch targets; every state has a word (pills, chip, narration, the switch row's on or off);
+headings marked; titles wrap; RTL mirrors layout, chevrons, the step axis and the ring; package
+names, digests and commands stay LTR; no animation under reduced motion beyond fades; the
+countdown never changes colour; nothing red except `DestructiveButton` and danger banners. At
+200% font the top bar grows with its chip, the sheet header puts its total under the title, the
+hero badge shares a row with the name, and the countdown ring grows with the digits.
 
 ## Decisions taken in W7
 
