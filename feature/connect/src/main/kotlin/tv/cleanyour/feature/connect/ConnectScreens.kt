@@ -212,7 +212,9 @@ fun PickerScreen(state: SetupState.Picker, extras: SetupExtras, actions: SetupAc
 // S2a to S2d: one screen, four states; the phone advances on its own (UX 2 screen 2).
 @Composable
 fun DoorScreen(state: SetupState.OpenDoor, extras: SetupExtras, actions: SetupActions, modifier: Modifier = Modifier) {
-    val name = extras.tvName ?: displayName(state.tv).ifEmpty { null }
+    // A typed address has no name until the TV answers: the chip then reads the model the TV gave
+    // (the identity line's), not the address (round 3).
+    val name = extras.tvName ?: state.tv.friendlyName ?: state.tv.model ?: extras.identity?.model ?: state.tv.host.ifEmpty { null }
     var showNotSeen by rememberSaveable { mutableStateOf(false) }
     var brandsOpen by rememberSaveable { mutableStateOf(state.family == Families.UNKNOWN) }
     // S2c has no primary, only the way out; S2d asks the identity question with Yes and No.
