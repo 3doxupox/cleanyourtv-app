@@ -50,9 +50,13 @@ class PlainRestoreNote : RestoreNote {
                 appendLine()
                 appendLine("Switched off:")
                 names.take(MAX_NAMES).forEach { appendLine("- $it") }
-                if (names.size > MAX_NAMES) appendLine("- and ${names.size - MAX_NAMES} more, listed on the TV under Files > cleanyourtv")
-                appendLine()
-                appendLine("The same list is on the TV under Files > cleanyourtv.")
+                if (names.size > MAX_NAMES) {
+                    // this line already points at the list on the TV; the note stays under 60 lines
+                    appendLine("- and ${names.size - MAX_NAMES} more, listed on the TV under Files > cleanyourtv")
+                } else {
+                    appendLine()
+                    appendLine("The same list is on the TV under Files > cleanyourtv.")
+                }
             }
             appendLine()
             append("The Clean Your TV app on the phone can also put everything back: Restore point > Undo everything.")

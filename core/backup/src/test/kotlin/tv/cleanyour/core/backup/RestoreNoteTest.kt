@@ -61,6 +61,18 @@ class RestoreNoteTest {
         assertFalse(text.contains("old home screen"), "no home line when HOME was not changed")
     }
 
+    @Test fun theLongestNoteStaysUnderSixtyLines() {
+        // every optional part at once: more than 40 names, HOME replaced and a module installed
+        val blob = BlobRef(sha256Of("retro"), 1, "mem:retro")
+        val changes = (1..52).map { ChangeRecord(PlanId("p"), it, Op.Disable(PackageName("com.example.app$it")), Prior(packageState = EnabledState.ENABLED), it.toLong()) } +
+            ChangeRecord(PlanId("p"), 53, Op.SetHome(Samples.launcherComponent), Prior(home = Samples.stockLauncher), 100) +
+            ChangeRecord(PlanId("m"), 0, Op.InstallStream(blob, blob.sha256, PackageName("com.gathin.retro"), 1, Samples.zeroHash), Prior(present = false), 200)
+        val text = note.text(tv, changes, facts, "Android TV Home", "19 October 2026")
+        val lines = text.lines()
+        assertTrue(lines.size < 60, "${lines.size} lines:\n$text")
+        assertTrue(text.contains("old home screen") && text.contains("Keep hidden") && text.contains("and 12 more"), text)
+    }
+
     @Test fun aModuleAddsTheCardLine() {
         val blob = BlobRef(sha256Of("retro"), 1, "mem:retro")
         val changes = Scenario.changes() + ChangeRecord(PlanId("m"), 0, Op.InstallStream(blob, blob.sha256, PackageName("com.gathin.retro"), 1, Samples.zeroHash), Prior(present = false), Long.MAX_VALUE)
