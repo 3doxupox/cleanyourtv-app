@@ -144,7 +144,9 @@ class FakeShell(private val tv: FakeTv, private val faults: Faults) {
     private suspend fun runOne(argv0: List<String>, line: String): ExecOutcome {
         for (h in tv.handlers) h(argv0, line)?.let { return it }
         var argv = argv0
-        while (argv.isNotEmpty() && argv[0] in listOf("nohup", "setsid", "exec")) argv = argv.drop(1)
+        // "( cmd & )", the watchdog's subshell variant: the parentheses only group.
+        while (argv.isNotEmpty() && argv[0] in listOf("nohup", "setsid", "exec", "(")) argv = argv.drop(1)
+        if (argv.lastOrNull() == ")") argv = argv.dropLast(1)
         if (argv.isEmpty()) return ExecOutcome("")
         return when (argv[0]) {
             "getprop" -> getprop(argv)

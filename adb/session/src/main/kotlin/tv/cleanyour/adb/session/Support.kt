@@ -9,6 +9,8 @@ import tv.cleanyour.adb.wire.ShellV2
 import tv.cleanyour.adb.wire.protocolError
 import tv.cleanyour.core.model.AdbError
 import tv.cleanyour.core.model.AdbException
+import tv.cleanyour.core.model.CLASS_RE
+import tv.cleanyour.core.model.PACKAGE_RE
 import tv.cleanyour.core.model.RawShell
 import tv.cleanyour.core.model.RemotePath
 import tv.cleanyour.core.model.ShellLine
@@ -118,8 +120,35 @@ internal object Backoff {
 }
 
 // SECURITY 3.5 and ARCHITECTURE 3.8: one pm per shell call, never chained. The renderer never
-// produces such a line; this is the session's own backstop for every caller of exec.
+// produces such a line; this is the session's own backstop for every caller of exec. The one
+// sanctioned exception is the HOME watchdog (D14, SECURITY 3.6): W3's two template shapes, admitted
+// only when WATCHDOG_RE matches the whole line (INTEGRATION-PLAN T4). The pattern is written here
+// from the template text, not imported, so :adb:session keeps depending on :core:model only.
 object PmGuard {
+    private val PKG = PACKAGE_RE.pattern.removePrefix("^").removeSuffix("$").replace("(\\.", "(?:\\.")
+    private val CLS = CLASS_RE.pattern.removePrefix("^").removeSuffix("$")
+    private const val DIR = "/data/local/tmp/cleanyourtv"
+
+    // sleep N; token file check; pm enable; set-home-activity of a component in that same package;
+    // start HOME. The seconds, the token (equal in all three places) and the package are the only
+    // variable parts; every other byte is fixed.
+    private fun body(v: String): String =
+        """sleep [0-9]{2,3}; \[ -f $DIR/home-ok-(?<t$v>[0-9a-f]{16}) \] && exit 0; """ +
+            """pm enable --user 0 (?<p$v>$PKG); cmd package set-home-activity --user 0 \k<p$v>/$CLS; """ +
+            """am start -W -a android\.intent\.action\.MAIN -c android\.intent\.category\.HOME"""
+
+    private fun tail(v: String): String =
+        """ cleanyourtv-rollback-\k<t$v> >$DIR/watchdog-\k<t$v>\.log 2>&1 &"""
+
+    // Variant A (nohup setsid) and variant B (backgrounded subshell), W3 Watchdog.TEMPLATE_*.
+    val WATCHDOG_RE: Regex = Regex(
+        "^(?:" +
+            "nohup setsid sh -c '${body("a")}'${tail("a")}" +
+            "|" +
+            "\\( sh -c '${body("b")}'${tail("b")} \\)" +
+            ")$",
+    )
+
     private val PM_WRITE = Regex("(?:^|[\\s;&|(])(?:pm|cmd\\s+package)\\s+(?:disable-user|disable|enable|default-state|install\\S*|uninstall|clear|grant|revoke|set-home-activity|hide|unhide|suspend|unsuspend)(?:\\s|$)")
     private val CHAIN = Regex("[;|&\\n\\r`]|\\$\\(")
 
@@ -128,6 +157,7 @@ object PmGuard {
         val plain = text.replace("'", "")
         if (!PM_WRITE.containsMatchIn(plain)) return null
         if (!CHAIN.containsMatchIn(text)) return null
+        if (WATCHDOG_RE.matches(text)) return null
         return "a pm write may not share a line with another command"
     }
 }
