@@ -12,6 +12,7 @@ import tv.cleanyour.core.model.Endpoint
 import tv.cleanyour.core.model.Tv
 import tv.cleanyour.core.model.TvId
 import tv.cleanyour.core.session.OpenResult
+import tv.cleanyour.core.session.SessionHold
 import tv.cleanyour.core.session.SessionManager
 import tv.cleanyour.core.session.TvSession
 import tv.cleanyour.core.store.Clock
@@ -52,6 +53,24 @@ class TvAccess(
     private val cancelGen = MutableStateFlow(0L)
 
     fun cancelWaiting() { cancelGen.value = cancelGen.value + 1 }
+
+    // T7 item 1: AdbTvSession closes its socket 60 s after the last hold, and the engine refuses
+    // NOT_CONNECTED on an idle session. The wizard keeps one hold per TV from the connect until Done
+    // or a stop card, so a slow read of "What we found" keeps the session (and its keepalive ping).
+    private val held = HashMap<TvId, Pair<TvSession, SessionHold>>()
+
+    fun keep(session: TvSession) {
+        val old = synchronized(held) {
+            val now = held[session.tvId]
+            if (now?.first === session) return
+            held.put(session.tvId, session to session.hold())
+        }
+        old?.second?.close()
+    }
+
+    fun release(tvId: TvId) { synchronized(held) { held.remove(tvId) }?.second?.close() }
+
+    fun holding(tvId: TvId): Boolean = synchronized(held) { tvId in held }
 
     fun live(tvId: TvId): TvSession? = sessions.existing(tvId)?.takeIf { it.state.value is ConnectionState.Connected }
 

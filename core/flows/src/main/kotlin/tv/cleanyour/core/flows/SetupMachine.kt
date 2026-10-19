@@ -2,6 +2,7 @@ package tv.cleanyour.core.flows
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -165,6 +166,7 @@ class SetupMachine(
     private var askedNotifications = false
     private var lastFinished: RunState.Finished? = null
     private var abandonJob: Job? = null   // R1 R-11: an abandon waiting for the TV to come back
+    private var heldTv: TvId? = null      // T7 item 1: the TV whose session this wizard holds (TvAccess.keep)
 
     private var discoveryJob: Job? = null
     private var pollJob: Job? = null
@@ -199,6 +201,8 @@ class SetupMachine(
     }
 
     init {
+        // The hold ends with the wizard too (its scope is the screen's).
+        scope.launch { try { awaitCancellation() } finally { heldTv?.let { deps.access.release(it) } } }
         mutableExtras.update { it.copy(themes = deps.themes.bundled().map { t -> ThemeOption(t.id, t.name, t.description) }) }
         when (start) {
             SetupStart.Fresh -> afterTransition(state.value)
@@ -362,6 +366,21 @@ class SetupMachine(
         }
         if (before::class != after::class || event is Ev.PortOpen || event is Ev.Door || event == SetupIntent.Start) afterTransition(after)
         if (after is SetupState.OpenDoor && before is SetupState.OpenDoor && before.phase != after.phase) afterTransition(after)
+        holdSession(after)
+    }
+
+    // T7 item 1: one hold on the session from the connect until Done or a stop card, so it never
+    // drops to Idle (60 s after the last hold) while the person reads S3 or watches the run.
+    private fun holdSession(s: SetupState) {
+        val live = session
+        val wants = live != null && when (s) {
+            is SetupState.OpenDoor -> s.phase == DoorPhase.CONNECTED || s.phase == DoorPhase.IDENTITY
+            is SetupState.Probing, is SetupState.Found, is SetupState.Working, is SetupState.Check -> true
+            else -> false
+        }
+        val held = heldTv
+        if (held != null && (!wants || held != live?.tvId)) { deps.access.release(held); heldTv = null }
+        if (wants && live != null) { deps.access.keep(live); heldTv = live.tvId }
     }
 
     // Starts and stops the background jobs that belong to each state (F1: discovery only on

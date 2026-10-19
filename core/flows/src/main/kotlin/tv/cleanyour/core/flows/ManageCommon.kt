@@ -131,13 +131,17 @@ class AppPrefs(private val store: DocumentStore) {
     }
 }
 
-// Deletes every document under a folder, depth first (DocumentStore.list returns child names).
+// Deletes every document under a folder, depth first (DocumentStore.list returns child names),
+// then the folder itself, so nothing is left under it, not even an empty folder (T7 item 6). A
+// stray temporary file of a write cut off by a crash keeps its folder; that is harmless, so it is
+// not a failure.
 suspend fun DocumentStore.deleteTree(dir: String) {
     for (child in list(dir)) {
         val path = "$dir/$child"
         val grand = list(path)
         if (grand.isEmpty()) delete(path) else deleteTree(path)
     }
+    try { delete(dir) } catch (e: java.io.IOException) { }
 }
 
 sealed interface WriteResult {
