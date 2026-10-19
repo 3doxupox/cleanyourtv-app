@@ -4,6 +4,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import tv.cleanyour.core.model.ArtifactRef
 import tv.cleanyour.core.model.Sha256
@@ -13,6 +15,7 @@ import tv.cleanyour.core.trust.DownloadHosts
 import java.io.IOException
 import java.io.InputStream
 import java.security.MessageDigest
+import java.util.concurrent.ConcurrentHashMap
 
 // Downloads a module APK the signed index describes (ARCHITECTURE D12, SECURITY 2.4 S1):
 //
@@ -40,13 +43,21 @@ class ResumableArtifactFetcher(
     private val io: CoroutineDispatcher = Dispatchers.IO,
 ) : ArtifactFetcher {
 
+    // One fetch per sha256 at a time. Two fetches of the same artifact would share one partial file:
+    // the second could append through its open stream to a file the first had already verified and
+    // renamed into a blob, so a blob would no longer have the digest its name says. The second call
+    // waits and then finds the finished blob.
     override suspend fun fetch(ref: ArtifactRef, onProgress: (Long, Long) -> Unit): FetchResult = withContext(io) {
+        inFlight.computeIfAbsent(ref.sha256.hex) { Mutex() }.withLock { fetchLocked(ref, onProgress) }
+    }
+
+    private suspend fun fetchLocked(ref: ArtifactRef, onProgress: (Long, Long) -> Unit): FetchResult {
         blobs.get(ref.sha256)?.takeIf { it.size == ref.size }?.let { cached ->
             onProgress(ref.size, ref.size)
-            return@withContext checkSigner(ref, FetchResult.Ok(cached))
+            return checkSigner(ref, FetchResult.Ok(cached))
         }
-        if (!urlAllowed(ref.url)) return@withContext FetchResult.Failed(FetchFailure.HOST_NOT_ALLOWED, null)
-        if (ref.size > maxBytes || ref.size <= 0) return@withContext FetchResult.Failed(FetchFailure.TOO_LARGE, null)
+        if (!urlAllowed(ref.url)) return FetchResult.Failed(FetchFailure.HOST_NOT_ALLOWED, null)
+        if (ref.size > maxBytes || ref.size <= 0) return FetchResult.Failed(FetchFailure.TOO_LARGE, null)
 
         var last: FetchResult.Failed = FetchResult.Failed(FetchFailure.OFFLINE, null)
         repeat(maxAttempts) {
@@ -54,15 +65,20 @@ class ResumableArtifactFetcher(
                 is Step.Done -> {
                     val blob = try { partials.commitPartial(ref.sha256, ref.size) } catch (e: IOException) {
                         partials.dropPartial(ref.sha256)
-                        return@withContext FetchResult.Failed(FetchFailure.HASH_MISMATCH, null)
+                        return FetchResult.Failed(FetchFailure.HASH_MISMATCH, null)
                     }
-                    return@withContext checkSigner(ref, FetchResult.Ok(blob))
+                    return checkSigner(ref, FetchResult.Ok(blob))
                 }
-                is Step.Final -> return@withContext step.result
+                is Step.Final -> return step.result
                 is Step.Retry -> last = step.result
             }
         }
-        last
+        return last
+    }
+
+    private companion object {
+        // Shared by every instance, so two fetchers over the same store cannot race either.
+        val inFlight = ConcurrentHashMap<String, Mutex>()
     }
 
     private sealed interface Step {

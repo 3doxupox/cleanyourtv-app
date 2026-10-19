@@ -1,5 +1,7 @@
 package tv.cleanyour.core.registry
 
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -16,6 +18,7 @@ import tv.cleanyour.testing.fixtures.FakeApkInspector
 import tv.cleanyour.testing.fixtures.FakeHttp
 import tv.cleanyour.testing.fixtures.sha256Of
 import java.io.File
+import java.io.FilterInputStream
 import java.io.IOException
 
 // FakeHttp cases from the W5 definition of done: Range, If-Range, 200 instead of 206, hash
@@ -153,6 +156,24 @@ class ArtifactFetcherTest {
         val r = fetcher(attempts = 2).fetch(ref) { _, _ -> }
         assertEquals(FetchFailure.SIZE_MISMATCH, failure(r))   // the shorter file is not the one the index names
         assertEquals(listOf(10_000L, null), http.requests.takeLast(2).map { it.rangeFrom })
+        assertEquals(0L, blobs.partialLength(ref.sha256))
+    }
+
+    @Test fun concurrentFetchesOfOneArtifactAreSingleFlight() = runBlocking {
+        route()
+        val slow = object : HttpFetcher {
+            override suspend fun get(url: String, etag: String?, rangeFrom: Long?): HttpResponse {
+                val r = http.get(url, etag, rangeFrom)
+                val body = r.body ?: return r
+                return r.copy(body = object : FilterInputStream(body) {
+                    override fun read(b: ByteArray, off: Int, len: Int): Int { Thread.sleep(20); return super.read(b, off, minOf(len, 30_000)) }
+                })
+            }
+        }
+        val results = (1..3).map { async { fetcher(slow).fetch(ref) { _, _ -> } } }.awaitAll()
+        assertTrue(results.toString(), results.all { it is FetchResult.Ok })
+        assertEquals(1, http.requests.size)        // the others waited and found the finished blob
+        assertArrayEquals(bytes, File(blobs.get(ref.sha256)!!.path).readBytes())
         assertEquals(0L, blobs.partialLength(ref.sha256))
     }
 
