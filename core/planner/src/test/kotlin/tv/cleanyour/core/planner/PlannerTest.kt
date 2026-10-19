@@ -210,6 +210,20 @@ class PlannerTest {
         val left = plan(PlanRequest.Leftovers(setOf(a, b)), snapshot(disabled = setOf(a.value)))
         assertEquals(listOf(Op.Disable(b)), ops(left))
         assertEquals(PlanKind.LEFTOVERS, left.kind)
+        // R1: a leftover that is HOME again after a TV update (the stock launcher re-enabled and
+        // resolving HOME) is refused; only the home screen switch may switch a home screen off.
+        assertTrue(refused(PlanRequest.Leftovers(setOf(stock.pkg, b))).single().contains("home screen"))
+        // The current HOME is protected even when the claimant list does not carry it (R5-W4 O5).
+        val patchwall = Component(PackageName("com.mitv.tvhome.atv"), ".MainActivity")
+        val pw = snapshot(home = patchwall, claimants = emptyList(), extra = mapOf(patchwall.pkg to PackageState(EnabledState.ENABLED, true, 1, null, false, false, "PatchWall", false)))
+        assertTrue(refused(PlanRequest.SwitchOff(setOf(patchwall.pkg)), pw).single().contains("home screen"))
+        assertTrue(refused(PlanRequest.Leftovers(setOf(patchwall.pkg)), pw).single().contains("home screen"))
+        val extra = tv.cleanyour.core.model.PackageGroup("ads", "Adverts", tv.cleanyour.core.model.GroupDefault.DISABLE, listOf(tv.cleanyour.core.model.PackageEntry(patchwall.pkg, null)))
+        val setupPlan = plan(setup(profile = profile(extraGroups = listOf(extra)), choices = choices(takeover = false, installLauncher = false)), pw)
+        assertTrue(setupPlan.steps.none { DefaultPlanner.packageOf(it.op) == patchwall.pkg })
+        // The Mi TV debloat list names PatchWall itself, so the row lands in whichever group lists it first.
+        val row = setupPlan.summary.groups.flatMap { it.rows }.single { it.pkg == patchwall.pkg }
+        assertTrue(row.protected && !row.off && row.whyProtected!!.contains("home screen"))
     }
 
     @Test fun applyThemeUsesTheTransportAndNeedsTheLauncher() {

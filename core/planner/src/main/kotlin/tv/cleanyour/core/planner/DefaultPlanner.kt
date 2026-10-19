@@ -115,10 +115,16 @@ class DefaultPlanner(
         // are only ever switched off inside the home screen switch (section 3.4).
         fun protectedReason(pkg: PackageName, profile: Profile?, stockLaunchers: List<Component>): String? {
             Denylist.reason(pkg, state(pkg), profile, snapshot)?.let { return it }
-            if (stockLaunchers.any { it.pkg == pkg } || snapshot.home.claimants.any { it.component.pkg == pkg }) return REASON_HOME_SCREEN
+            if (stockLaunchers.any { it.pkg == pkg } || isHomeScreen(pkg)) return REASON_HOME_SCREEN
             if (pkg.value in Denylist.setupWizards || profile?.setupWraith == pkg) return REASON_WIZARD_SECTION_ONLY
             return null
         }
+
+        // The TV's current HOME, whatever it is (R5-W4 O5: PatchWall on an unknown Xiaomi), and every
+        // other HOME claimant: switched off only inside the home screen switch, never by a plain
+        // Setup, SwitchOff or Leftovers (PLAN 6.5: the current HOME resolver is protected).
+        fun isHomeScreen(pkg: PackageName): Boolean =
+            snapshot.home.resolved?.pkg == pkg || snapshot.home.claimants.any { it.component.pkg == pkg }
 
         fun disable(pkg: PackageName, group: String?, policy: FailurePolicy = FailurePolicy.SKIP_IF_REFUSED, narration: String = "Switching off ${name(pkg)}") =
             step(Op.Disable(pkg), Prior(packageState = state(pkg)?.enabled), group, narration, policy)
@@ -294,8 +300,7 @@ class DefaultPlanner(
             val rows = mutableListOf<RowSummary>()
             for (pkg in pkgs.sortedBy { it.value }) {
                 if (!installed(pkg)) { refuse("${pkg.value} is not on this TV"); continue }
-                val why = Denylist.reason(pkg, snapshot, null)
-                    ?: if (snapshot.home.claimants.any { it.component.pkg == pkg }) REASON_HOME_SCREEN else null
+                val why = Denylist.reason(pkg, snapshot, null) ?: if (isHomeScreen(pkg)) REASON_HOME_SCREEN else null
                 if (why != null) { refuse("${name(pkg)} cannot be switched off: $why"); continue }
                 rows += RowSummary(pkg, name(pkg), description(pkg), off = true, protected = false, whyProtected = null)
                 if (!isOff(pkg)) disable(pkg, GROUP_SWITCH_OFF)
@@ -306,7 +311,9 @@ class DefaultPlanner(
         fun leftovers(expectedDisabled: Set<PackageName>) {
             for (pkg in expectedDisabled.sortedBy { it.value }) {
                 if (!installed(pkg) || isOff(pkg)) continue
-                val why = Denylist.reason(pkg, snapshot, null)
+                // After a TV update the stock launcher may be enabled and HOME again (R1): a leftover
+                // that is now a home screen is never switched off outside the home screen switch.
+                val why = Denylist.reason(pkg, snapshot, null) ?: if (isHomeScreen(pkg)) REASON_HOME_SCREEN else null
                 if (why != null) { refuse("${name(pkg)} cannot be switched off: $why"); continue }
                 disable(pkg, GROUP_LEFTOVERS)
             }
