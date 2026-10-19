@@ -1,5 +1,6 @@
 package tv.cleanyour.ui.design.component
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -21,6 +22,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import tv.cleanyour.ui.design.R
@@ -52,7 +58,9 @@ fun CytTopBar(
 // One screen: black bg (or light bg), the context glow drawn on the window background and under
 // the status bar, the top bar, a scrolling content column inside the gutter, and the bottom actions
 // pinned 16 dp above the gesture inset. Content never jumps while an action runs: the bottom slot
-// keeps its place.
+// keeps its place. While the content can scroll further, its last 28 dp fade into the background
+// (R4-W8): a card or a line cut by the pinned actions reads as "more below", not as a mistake.
+// Anything that must stay above the primary button (the S3 safety line) goes in the bottom bar.
 @Composable
 fun ScreenScaffold(
     glow: Glow,
@@ -68,9 +76,10 @@ fun ScreenScaffold(
         val gutter = CytSpacing.gutterFor(maxWidth)
         Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
             topBar()
+            val scroll = rememberScrollState()
             Column(
                 Modifier.weight(1f).fillMaxWidth()
-                    .then(if (scrollable) Modifier.verticalScroll(rememberScrollState()) else Modifier)
+                    .then(if (scrollable) Modifier.scrollEdgeFade(scroll, c.bg).verticalScroll(scroll) else Modifier)
                     .padding(horizontal = gutter),
                 content = content,
             )
@@ -81,6 +90,19 @@ fun ScreenScaffold(
             }
         }
         overlay()
+    }
+}
+
+// The bottom fade of a scrolling column: 28 dp from transparent to the background, drawn only
+// while there is more below. Goes before verticalScroll in the chain so it draws in the viewport.
+// One brush per size (drawWithCache), one rect per frame, no offscreen layer (DESIGN-SYSTEM 5).
+private fun Modifier.scrollEdgeFade(scroll: ScrollState, bg: Color): Modifier = drawWithCache {
+    val fade = 28.dp.toPx()
+    val top = size.height - fade
+    val brush = Brush.verticalGradient(listOf(bg.copy(alpha = 0f), bg), startY = top, endY = size.height)
+    onDrawWithContent {
+        drawContent()
+        if (scroll.canScrollForward) drawRect(brush, topLeft = Offset(0f, top), size = Size(size.width, fade))
     }
 }
 
