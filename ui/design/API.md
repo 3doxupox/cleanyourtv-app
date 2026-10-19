@@ -1,0 +1,170 @@
+# `:ui:design` public API
+
+The design system of DESIGN-SYSTEM.md as Compose code. Screens (W8) use these components and
+tokens only; they never hard-code colours, sizes or fonts. Screen copy is passed in as strings;
+the few words that belong to a component (Off, Kept, Undo, the status words of D42, "Live from
+the TV", the countdown announcements, the mirrored TV dialogs) come from this module's resources
+and can be overridden where a parameter exists.
+
+Packages: `tv.cleanyour.ui.design.theme` (tokens, glass, glow, motion), `...ui.design.icon`
+(`CytIcons`), `...ui.design.component` (everything else).
+
+## Theme and tokens (`theme`)
+
+| Symbol | Shape |
+| :- | :- |
+| `CytTheme(darkTheme: Boolean = true, reducedMotion: Boolean? = null, content)` | Root theme. Dark is the brand default; pass `isSystemInDarkTheme()` if wanted. `reducedMotion = null` reads `ANIMATOR_DURATION_SCALE`. Maps into `MaterialTheme` so stock M3 looks right |
+| `CytTheme.colors / type / shapes / glass / highlight / reducedMotion` | Token accessors inside composition |
+| `CytColors` (`DarkCytColors`, `LightCytColors`) | `bg, surface1..3, rim, outline, outlineStrong, textPrimary/Secondary/Tertiary, primary, onPrimary, primaryPressed, accent, glowBrand, glowTv, success*, warning*, danger*, scrim`, glass and highlight colours, `isDark` |
+| `CytType` (`DefaultCytType`) | `display, headline, titleLarge, titleMedium, bodyLarge, bodyMedium, bodySmall, labelLarge, labelMedium, overline, numeral, mono` (Outfit, `Outfit` FontFamily) |
+| `CytShapes` | `pill, small (12), row (16), medium (20), large (28), sheet (28 top)` |
+| `CytSpacing` | `s4..s56, gutter (20), gutterNarrow (16), titleTop, titleGap, primaryAboveInset, touchTarget, buttonHeight, chipHeight, topBarHeight, ...`, `gutterFor(width)` |
+| `CytMotion` | Springs (`highlight`, `press`), easings (`emphasizedDecelerate/Accelerate`) and every duration of DESIGN-SYSTEM 6 |
+| `LocalReducedMotion`, `Context.isReducedMotion()` | Reduced motion flag |
+| `stepTransition(forward, reduced, layoutDirection, density)` | `AnimatedContent` transitionSpec for wizard steps (shared axis X, RTL aware, fade only when reduced) |
+| `titleTransition(reduced, density, layoutDirection)` | Same screen, new title |
+| `Modifier.pressScale(interactionSource)` | Press to 0.97 |
+| `Modifier.glass(shape, style: GlassStyle)` | The glass recipe: three draws, no offscreen layer. `CytTheme.glass` or `CytTheme.highlight` |
+| `Modifier.ambientGlow(color, core, coreAlpha, midAlpha, alpha: () -> Float)` | Raw radial glow |
+| `Glow` = `Brand, Tv, Done, None, Module(accent)` and `Modifier.animatedAmbientGlow(glow)` | The screen glow with the launcher's dip on change |
+| `R.raw.outfit_ofl` | The OFL text for the Licences screen (M8) |
+
+## Icons (`icon`)
+
+`CytIcons.Back, Close, Help, Check, ChevronForward, ChevronDown, ChevronUp, Info, Warning, Stopped,
+Shield, Wifi, WifiOff, Tv, Minus, Plus, Refresh, Copy, Settings, ArrowUp, ArrowDown, Search, Cards,
+Home, Undo, Restart, Key, Download, Phone, Delete, Share, Edit, Lock, External, Reorder, Circle, Dash`
+(`CytIcons.all`). Back, ChevronForward and Undo mirror in RTL.
+
+## Components (`component`)
+
+### Text and layout
+
+| Composable | Parameters |
+| :- | :- |
+| `ScreenScaffold` | `glow: Glow, modifier, topBar: @Composable () -> Unit = {}, bottomBar: (@Composable ColumnScope.() -> Unit)? = null, overlay: @Composable () -> Unit = {}, scrollable = true, content: @Composable ColumnScope.() -> Unit`. Insets, gutter, glow, pinned bottom actions |
+| `CytTopBar` | `modifier, onBack: (() -> Unit)? = null, center: (@Composable () -> Unit)? = null, trailing: (@Composable () -> Unit)? = null` |
+| `ScreenTitle` | `text, modifier, size: TitleSize = HEADLINE (or DISPLAY), color`. Heading semantics |
+| `Lead` | `text: String or AnnotatedString, modifier`. The one supporting sentence |
+| `rememberEmphasis(text, vararg emphasised): AnnotatedString` | Parts in text.primary ("Tick Always allow, then choose OK") |
+| `Overline` | `text, modifier, color`. Upper-cased in the locale |
+| `StepCounter` | `current: Int, total: Int, modifier, extra: String? = null` ("2 of 5", "4 of 5 · Look at the TV", D33) |
+| `Gap(height)`, `ListDivider(modifier)` | Spacing helpers |
+| `ActionColumn(modifier, content)` | Bottom actions, 8 dp apart |
+| `LtrText(text, modifier, style, color, maxLines)`, `ltr(s): String` | Package names, digests: always left to right |
+
+### Actions
+
+| Composable | Parameters |
+| :- | :- |
+| `PrimaryButton` | `text, onClick, modifier, enabled = true, loading = false` (pass the verb as text while loading) |
+| `SecondaryButton` | `text, onClick, modifier, enabled = true` (glass pill) |
+| `TertiaryButton` | `text, onClick, modifier, enabled = true, quiet = false` (accent text; quiet = text.secondary, "Stop and undo") |
+| `DestructiveButton` | `text, onClick, modifier, enabled = true` (outlined danger, "Put everything back" only) |
+| `SmallGlassButton` | `text, onClick, modifier, enabled = true` ("Restart" inside a card) |
+| `MorphingPrimaryButton` | `text, onClick, progress: Float?, modifier, enabled = true` ("Make it clean" morphs into the 4 dp bar when progress is set) |
+| `CytIconButton` | `icon, contentDescription: String, onClick, modifier, tint` |
+
+### Status and feedback
+
+| Composable | Parameters |
+| :- | :- |
+| `TvStatusChip` | `tvName, status: TvStatus, modifier, stateWord: String = status.word(), onClick: (() -> Unit)? = null`. `TvStatus` = `CONNECTED, WAITING, WORKING, DEBUGGING_OFF, OFFLINE` |
+| `DiscoveryChip` | `text, found: Boolean, modifier, secondary: String? = null` (Welcome live line, polite live region) |
+| `GlassChip` | `text, modifier, mark: ChipMark = NONE, icon: ImageVector? = null, secondary: String? = null, separator = false, onClick = null, liveRegion = false, pulse = false` |
+| `Banner` | `text: String or AnnotatedString, tone: BannerTone, modifier, icon = default for tone, actionLabel: String? = null, onAction`. `BannerTone` = `SUCCESS, WARNING, DANGER, NEUTRAL, INFO` |
+| `StopCard` | `title, body, modifier, icon = CytIcons.Stopped, primaryLabel?, onPrimary, secondaryLabel?, onSecondary, tertiaryLabel?, onTertiary, detailsLabel?, onDetails, busyText: String? = null` |
+| `UndoSnackbarState` (`rememberUndoSnackbarState()`) | `show(message, actionLabel: String? = null, onAction)`, `dismiss()`, `current: UndoMessage?`. 5 s, 10 s with TalkBack |
+| `UndoSnackbarHost` | `state, modifier` |
+| `UndoSnackbar` | `message, onAction, modifier, actionLabel = "Undo"` |
+| `Spinner` | `modifier, size = 16.dp, color, strokeWidth` |
+| `ProgressBar` | `progress: Float, modifier` |
+| `ProgressNarration` | `title, percent: Int, lines: List<NarrationLine>, modifier, footnote: String? = null, stopLabel: String? = null, onStop, maxVisible = 6`. `NarrationLine(key, text, state: NarrationState)`, `NarrationState` = `DOING, DONE, UPCOMING, SKIPPED` |
+| `NarrationRow` | `line, modifier, animate = true` |
+| `rememberCytHaptics(enabled = true): CytHaptics` | `light()`, `double()`, `firm()` |
+
+### Cards, rows, lists
+
+| Composable | Parameters |
+| :- | :- |
+| `StepCard` | `title, body, modifier, overline: String? = null, state: StepState = CURRENT, illustration: (@Composable () -> Unit)? = null, trailing: (@Composable () -> Unit)? = null`. `StepState` = `UPCOMING, CURRENT, DONE, STOPPED` |
+| `PagerDots` | `count, selected, modifier, description: String? = null` |
+| `ListGroup` | `modifier, tone: GroupTone = LOW (or RAISED), content: ColumnScope` |
+| `ListRow` | `title, modifier, subtitle?, subtitleColor, value: String?, leading?, trailing?, onClick?, chevron = onClick != null && trailing == null, titleColor, emphasised = false` |
+| `LinkRow` | `text, onClick, modifier, chevron = true, minHeight = 48.dp` |
+| `SwitchRow` | `title, checked, onCheckedChange, modifier, subtitle?, warning = false, enabled = true` |
+| `CytSwitch` | `checked, onCheckedChange?, modifier, enabled = true` |
+| `TextActionRow` | `text, actionLabel, onAction, modifier` (D4 "Home screen: ...  Change") |
+| `SafetyLine` | `text, modifier, icon = CytIcons.Shield` |
+| `CheckLine` | `text, modifier, state: CheckState = DONE (NONE, PENDING), emphasised = false` |
+| `InfoChip` | `text, modifier, icon: ImageVector? = null` ("Community", level "Simple") |
+| `IconTile` | `icon, modifier, tint, fill` |
+| `AppTile` | `name, modifier, icon: ImageBitmap? = null, size = 40.dp` (TV icon or letter tile) |
+| `CytTextField` | `value, onValueChange, label, modifier, error: String? = null, supporting: String? = null, keyboardType, singleLine = true` |
+| `TvCard` | `name, statusLine, thumbnail: ImageBitmap?, thumbnailDescription, modifier, level: String? = null, onClick?` (Manage) |
+
+### Plan preview (D2, DESIGN-SYSTEM 8.4)
+
+| Composable or type | Parameters |
+| :- | :- |
+| `SummaryGroup(key, name, count)`, `DiffItem(key, name, description, packageName?, off)`, `DiffGroup(key, title, items)` (`offCount`) | State classes, `@Immutable` |
+| `NumeralHeadline` | `count: Int, headline: String, modifier, animate = true` ("23" + "things to switch off", counts up, static when reduced) |
+| `PlanSummaryCard` | `groups: List<SummaryGroup>, seeListLabel, onSeeList, modifier` |
+| `OffKeptPill` | `off: Boolean, modifier` |
+| `DiffRow` | `item, onToggle: ((DiffItem) -> Unit)?, modifier, showPackageName = false` (null onToggle = protected, no pill) |
+| `DiffGroupHeader` | `title, offCount, total, modifier` |
+| `DiffGroupSection` | `group, onToggle, modifier, showPackageNames = false, visibleCount = all, onShowMore?` |
+| `CollapsedGroupsCard` | `groups, onExpand: (DiffGroup) -> Unit, modifier` |
+| `ProtectedGroupSection` | `title, items, onWhy, modifier, showPackageNames = false` |
+| `Modifier.listAppear(index)` | The 8-row stagger fade |
+
+### Sheets
+
+| Composable | Parameters |
+| :- | :- |
+| `CytBottomSheet` | `onDismissRequest, modifier, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), content: ColumnScope` |
+| `SheetSurface` | `modifier, content` (the same look inline, for previews and tests) |
+| `SheetHeader` | `title, modifier, trailing: AnnotatedString? = null, subtitle: String? = null` ("Customise", "22 of 23 off") |
+| `SheetDragHandle` | `modifier` |
+
+### Single choice
+
+| Composable or type | Parameters |
+| :- | :- |
+| `ChoiceOption(key, title, subtitle?, icon = CytIcons.Tv)` | |
+| `ChoiceList` | `options, selectedKey: String?, onSelect: (ChoiceOption) -> Unit, modifier` (S1b, glass highlight springs) |
+| `ThemeOption(id, name, description, swatch: List<Color>)` | swatch = background, glow, tile colours |
+| `ThemePicker` | `options, selectedId: String?, onSelect: (ThemeOption) -> Unit, modifier` |
+| `HighlightColumn` | `count, selectedIndex, modifier, gap = 10.dp, row: @Composable (index, selected) -> Unit` (build other single-choice lists) |
+
+### The TV on the phone
+
+| Composable | Parameters |
+| :- | :- |
+| `TvThumbnail` | `image: ImageBitmap?, contentDescription, modifier, label: String? = "Live from the TV", placeholder` (150 ms crossfade, D32) |
+| `CountdownRing` | `remainingMs: Long, totalMs: Long, modifier, stopped = false, updateIntervalMs = 1000` (announces at 60, 30, 10 s) |
+| `CountdownConfirm` | `overline, title, thumbnail, thumbnailDescription, sentence, instruction, liveCheck, liveCheckPassed, remainingMs, totalMs, timeoutSentence, yesLabel, noLabel, onYes, onNo, modifier, stopped = false, noThumbnailSentence: String? = null` (S4b body; Yes and No are the first focus stops after the heading) |
+| `formatCountdown(remainingMs): String` | "1:24" |
+| `TvFrame` | `modifier, contentDescription? = null, showStand = true, aspect, screen: BoxScope` |
+| `AdbAllowMirror` | `fingerprint: String, modifier, highlightBytes = 2, contentDescription? = null` (S2c, FLAG_SECURE screen per D35 is W8's job) |
+| `CardPromptMirror` | `appName, packageName, keyHex, modifier, contentDescription? = null` (M3c) |
+| `CodeMatchCard` | `label, caption: String?, code, modifier` ("The code on the TV ends in 7F:2A", "6966 ed15 1f52") |
+| `WelcomeIllustration` | `modifier, play = true, contentDescription? = null` (plays once, 3 s, D5) |
+| `TvMenuArt` | `highlight: Int, modifier, rows = 5, toggleOn: Boolean? = null, taps = 0` (text-free step card art) |
+| `GlassCheckMark` | `modifier, size = 56.dp` (Done, D31; use `Glow.Done` on the screen) |
+| `RestartGlyph` | `breathing: Boolean, modifier` |
+
+### Modules
+
+| Composable | Parameters |
+| :- | :- |
+| `ModuleCard` | `name, summary, chips: List<String>, accent: Color, onClick, modifier, icon: ImageBitmap? = null` (M3a) |
+| `ModuleHero` | `name, tagline, accent: Color, modifier, badge: String? = null, contentDescription? = null, art: (@Composable BoxScope.() -> Unit)? = null` (M3b) |
+| `MonospaceBlock` | `lines: List<String>, modifier, copyLabel: String? = null, onCopy: (() -> Unit)? = null` (Show commands, S2x, M8) |
+
+## Rules the components already follow
+
+48 dp touch targets; every state has a word (pills, chip, narration); headings marked; titles
+wrap; RTL mirrors layout, chevrons, the step axis and the ring; package names, digests and
+commands stay LTR; no animation under reduced motion beyond fades; the countdown never changes
+colour; nothing red except `DestructiveButton` and danger banners.

@@ -1,0 +1,87 @@
+package tv.cleanyour.ui.design.component
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import tv.cleanyour.ui.design.R
+import tv.cleanyour.ui.design.icon.CytIcons
+import tv.cleanyour.ui.design.theme.CytSpacing
+import tv.cleanyour.ui.design.theme.CytTheme
+import tv.cleanyour.ui.design.theme.Glow
+import tv.cleanyour.ui.design.theme.animatedAmbientGlow
+
+// The top bar: 56 dp, a 48 dp back button at the start (or an empty slot), the centre (the TV
+// status chip or the step counter) and an optional trailing 48 dp action.
+@Composable
+fun CytTopBar(
+    modifier: Modifier = Modifier,
+    onBack: (() -> Unit)? = null,
+    center: (@Composable () -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null,
+) {
+    Row(modifier.fillMaxWidth().height(CytSpacing.topBarHeight).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+            if (onBack != null) CytIconButton(CytIcons.Back, stringResource(R.string.cyt_back), onBack)
+        }
+        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { center?.invoke() }
+        Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) { trailing?.invoke() }
+    }
+}
+
+// One screen: black bg (or light bg), the context glow drawn on the window background and under
+// the status bar, the top bar, a scrolling content column inside the gutter, and the bottom actions
+// pinned 16 dp above the gesture inset. Content never jumps while an action runs: the bottom slot
+// keeps its place.
+@Composable
+fun ScreenScaffold(
+    glow: Glow,
+    modifier: Modifier = Modifier,
+    topBar: @Composable () -> Unit = {},
+    bottomBar: (@Composable ColumnScope.() -> Unit)? = null,
+    overlay: @Composable () -> Unit = {},
+    scrollable: Boolean = true,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val c = CytTheme.colors
+    BoxWithConstraints(modifier.fillMaxSize().background(c.bg).animatedAmbientGlow(glow)) {
+        val gutter = CytSpacing.gutterFor(maxWidth)
+        Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
+            topBar()
+            Column(
+                Modifier.weight(1f).fillMaxWidth()
+                    .then(if (scrollable) Modifier.verticalScroll(rememberScrollState()) else Modifier)
+                    .padding(horizontal = gutter),
+                content = content,
+            )
+            if (bottomBar != null) {
+                Column(Modifier.fillMaxWidth().padding(start = gutter, end = gutter, top = 12.dp, bottom = CytSpacing.primaryAboveInset)) {
+                    bottomBar()
+                }
+            }
+        }
+        overlay()
+    }
+}
+
+// A vertical gap in the 4 dp scale.
+@Composable
+fun Gap(height: androidx.compose.ui.unit.Dp) = Spacer(Modifier.height(height))
