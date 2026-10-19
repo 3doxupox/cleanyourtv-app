@@ -33,7 +33,10 @@ import tv.cleanyour.core.planner.PlannerFixtures.setup
 import tv.cleanyour.core.planner.PlannerFixtures.snapshot
 import tv.cleanyour.core.planner.PlannerFixtures.stock
 import tv.cleanyour.core.planner.PlannerFixtures.wizard
+import tv.cleanyour.core.model.Snapshot
+import tv.cleanyour.core.spec.ProfileResolution
 import tv.cleanyour.testing.fixtures.FakeConfigTransport
+import tv.cleanyour.testing.fixtures.FakeProfileSource
 import tv.cleanyour.testing.fixtures.Fixtures
 import tv.cleanyour.testing.fixtures.Samples
 import kotlin.test.Test
@@ -61,7 +64,7 @@ class PlannerTest {
             tail.map { it::class.simpleName },
         )
         val arm = p.find<Op.ArmHomeWatchdog>()
-        assertEquals(stock, arm.stock); assertEquals(120, arm.seconds)
+        assertEquals(stock, arm.stock); assertEquals(150, arm.seconds)   // D-W3-1: the 120 s window plus 30 s
         val section = p.sections.single()
         assertEquals(DefaultPlanner.SECTION_HOME, section.name)
         assertEquals(p.steps.indexOfFirst { it.op is Op.ArmHomeWatchdog }, section.from)
@@ -362,5 +365,50 @@ class PlannerTest {
         val bad = profile().copy(stockLaunchers = listOf(Component(android, ".ResolverActivity")))
         val r = PlannerFixtures.planner().plan(setup(profile = bad), snapshot(claimants = listOf(Component(android, ".ResolverActivity")), home = null, extra = mapOf(android to state)), PlannerFixtures.facts, emptyList())
         if (r is PlanResult.Ok) assertTrue(r.plan.steps.none { s -> DefaultPlanner.packageOf(s.op) == android })
+    }
+
+    // R1 R-3: the Manage requests see this TV's profile, so never_disable and the wizard quirk hold
+    // at plan time, not only in the executor's live check.
+    @Test fun manageRequestsApplyTheProfile() {
+        val a = PackageName("com.google.android.videos")
+        val quirky = profile(quirks = setOf(Quirk.HOME_TAKEOVER_SETUPWRAITH), setupWraith = wizard, neverDisable = setOf(a))
+        val source = FakeProfileSource(listOf(quirky)).also { it.resolver = { _, all -> ProfileResolution.Exact(all.single()) } }
+        val withProfile = PlannerFixtures.planner(profiles = source)
+        fun refusedBy(req: PlanRequest, snap: Snapshot = snapshot()): List<String> = (withProfile.plan(req, snap, PlannerFixtures.facts, emptyList()) as PlanResult.Refused).reasons
+        assertTrue(refusedBy(PlanRequest.SwitchOff(setOf(a))).single().contains(Denylist.REASON_PROFILE))
+        assertTrue(refusedBy(PlanRequest.Leftovers(setOf(a))).single().contains(Denylist.REASON_PROFILE))
+        // Without a source the planner cannot know (the executor's live check still refuses it).
+        assertEquals(listOf<Op>(Op.Disable(a)), ops(plan(PlanRequest.SwitchOff(setOf(a)))))
+        // The wizard with the quirk: only the home screen switch switches it off.
+        assertTrue(refusedBy(PlanRequest.SwitchOff(setOf(wizard))).single().contains(DefaultPlanner.REASON_WIZARD_SECTION_ONLY))
+        assertTrue(refusedBy(PlanRequest.Leftovers(setOf(wizard))).single().contains(DefaultPlanner.REASON_WIZARD_SECTION_ONLY))
+        // And it comes back on only under the TV's own home screen (issue #49).
+        val ours = snapshot(disabled = setOf(wizard.value, stock.pkg.value), home = launcher, claimants = listOf(launcher), extra = mapOf(installedLauncher()))
+        assertTrue(refusedBy(PlanRequest.PutBack(wizard), ours).single().contains(DefaultPlanner.REASON_WIZARD_WHILE_OURS))
+        assertEquals(listOf<Op>(Op.Enable(wizard)), ops(plan(PlanRequest.PutBack(wizard), snapshot(disabled = setOf(wizard.value)), planner = withProfile)))
+        // The R0: 15 constructor still compiles and plans without a profile.
+        assertEquals(listOf<Op>(Op.Enable(wizard)), ops(plan(PlanRequest.PutBack(wizard), ours)))
+    }
+
+    // R1 R-10: a stock launcher whose state before this app was DEFAULT ends DEFAULT, not ENABLED.
+    @Test fun undoEverythingLeavesAnOriginallyDefaultStockLauncherDefault() {
+        val changes = listOf(
+            change(0, Op.Disable(stock.pkg), Prior(packageState = EnabledState.DEFAULT)),
+            change(1, Op.SetHome(launcher), Prior(home = stock)),
+        )
+        val now = snapshot(disabled = setOf(stock.pkg.value), home = launcher, claimants = listOf(launcher, stock), extra = mapOf(installedLauncher()))
+        val p = plan(PlanRequest.UndoEverything(changes, removeLauncher = false), now)
+        assertEquals(listOf(Op.DefaultState(stock.pkg), Op.SetHome(stock), Op.VerifyHome(stock), Op.PressHome), ops(p))
+    }
+
+    // RFC-W8-5 and R1 R-1.
+    @Test fun rebootIsItsOwnPlanAndTheWatchdogOutlastsThePhonesWindow() {
+        val r = plan(PlanRequest.Reboot)
+        assertEquals(listOf<Op>(Op.Reboot), ops(r))
+        assertEquals(PlanKind.REBOOT, r.kind)
+        assertEquals("Restarting the TV", r.steps.single().narration)
+        val arm = plan(setup()).find<Op.ArmHomeWatchdog>()
+        assertEquals(DefaultPlanner.WATCHDOG_SECONDS, arm.seconds)
+        assertTrue(arm.seconds * 1000L >= 120_000L + 30_000L, "the 120 s window of D23 plus 30 s for the section's steps")
     }
 }

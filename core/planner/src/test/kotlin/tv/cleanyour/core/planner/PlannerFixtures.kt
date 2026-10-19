@@ -77,8 +77,9 @@ object PlannerFixtures {
     fun setup(profile: Profile? = profile(), choices: Choices = choices(), artifact: LauncherArtifact = artifact()) =
         PlanRequest.Setup(profile?.let { ProfileResolution.Exact(it) } ?: ProfileResolution.None(listOf(stock)), choices, artifact, tv.cleanyour.core.model.Level.SIMPLE)
 
-    fun planner(transport: FakeConfigTransport = FakeConfigTransport(), idGen: FakeIdGen = FakeIdGen()) =
-        DefaultPlanner(clock, idGen, ShellRenderer(), transport, "0.1.0")
+    fun planner(transport: FakeConfigTransport = FakeConfigTransport(), idGen: FakeIdGen = FakeIdGen(), profiles: tv.cleanyour.core.spec.ProfileSource? = null) =
+        if (profiles == null) DefaultPlanner(clock, idGen, ShellRenderer(), transport, "0.1.0")   // the R0: 15 constructor
+        else DefaultPlanner(clock, idGen, ShellRenderer(), transport, "0.1.0", profiles = profiles)
 
     fun plan(request: PlanRequest, snapshot: Snapshot = snapshot(), journals: List<ChangeRecord> = emptyList(), planner: DefaultPlanner = planner()): Plan =
         when (val r = planner.plan(request, snapshot, facts, journals)) {

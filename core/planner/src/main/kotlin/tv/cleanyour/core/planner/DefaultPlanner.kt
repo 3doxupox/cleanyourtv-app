@@ -20,6 +20,7 @@ import tv.cleanyour.core.model.SettingKey
 import tv.cleanyour.core.model.Sha256
 import tv.cleanyour.core.model.Snapshot
 import tv.cleanyour.core.model.Tier
+import kotlinx.coroutines.runBlocking
 import tv.cleanyour.core.ops.ConfigTransport
 import tv.cleanyour.core.ops.Denylist
 import tv.cleanyour.core.ops.FailurePolicy
@@ -29,6 +30,7 @@ import tv.cleanyour.core.ops.Rendered
 import tv.cleanyour.core.ops.UndoOrder
 import tv.cleanyour.core.spec.FactsTable
 import tv.cleanyour.core.spec.ProfileResolution
+import tv.cleanyour.core.spec.ProfileSource
 import tv.cleanyour.core.store.Clock
 import tv.cleanyour.core.store.IdGen
 
@@ -39,6 +41,15 @@ import tv.cleanyour.core.store.IdGen
 // Idempotence: a request whose effect the snapshot already shows yields a plan with no steps.
 // Refusals carry plain reasons for the UI. The HOME takeover (section 3.4) is one GuardedSection
 // with its rollback (step R) rendered into the plan so the engine can run it from the data alone.
+//
+// `profiles` (R1 R-3) resolves this TV's profile for the Manage requests (SwitchOff, Leftovers,
+// PutBack), so the profile's never_disable list and the wizard quirk hold at plan time and the plan
+// screen never offers what the executor's live check would then refuse. Setup takes its resolution
+// from the request. The parameter is last and defaulted, so the R0: 15 constructor still compiles.
+//
+// `watchdogSeconds` (R1 R-1, DECISIONS-W3 D-W3-1): 150, the phone's longest confirm window (120 s
+// without a thumbnail, D23) plus 30 s for the section's steps between arming and the check screen,
+// so the TV-side layer never fires while the phone still waits for an answer.
 class DefaultPlanner(
     private val clock: Clock,
     private val idGen: IdGen,
@@ -47,8 +58,9 @@ class DefaultPlanner(
     private val appVersion: String,
     private val launcher: Component = Component(PackageName("com.gathin.tvhome"), ".MainActivity"),
     private val confirmWindowMs: Long = 90_000L,
-    private val watchdogSeconds: Int = 120,
+    private val watchdogSeconds: Int = WATCHDOG_SECONDS,
     private val settleSeconds: Int = 15,
+    private val profiles: ProfileSource? = null,
 ) : Planner {
 
     override fun plan(request: PlanRequest, snapshot: Snapshot, facts: FactsTable, journals: List<ChangeRecord>): PlanResult {
@@ -67,6 +79,7 @@ class DefaultPlanner(
             PlanRequest.BeforeFactoryReset -> { d.beforeFactoryReset(); PlanKind.BEFORE_FACTORY_RESET }
             PlanRequest.DebugOff -> { d.debugOff(); PlanKind.DEBUG_OFF }
             is PlanRequest.WriteRestorePoint -> { d.writeRestorePoint(request.restorePointJson, request.restoreTxt); PlanKind.WRITE_RESTORE_POINT }
+            PlanRequest.Reboot -> { d.reboot(); PlanKind.REBOOT }
         }
         if (d.reasons.isNotEmpty()) return PlanResult.Refused(d.reasons.toList())
         val steps = d.steps.toList()
@@ -90,6 +103,17 @@ class DefaultPlanner(
 
         fun summary() = PlanSummary(groups.toList(), keepNames, dockNames, homeScreenPossible, replacesLauncher)
 
+        // This TV's resolution for the Manage requests (R1 R-3). The bundled source answers without
+        // suspending, so the blocking call returns at once; the planner stays a plain function.
+        val resolution: ProfileResolution? by lazy { profiles?.let { src -> runBlocking { src.resolve(snapshot.facts) } } }
+        val managedProfile: Profile? get() = (resolution as? ProfileResolution.Exact)?.profile
+        val managedStockLaunchers: List<Component> get() = when (val r = resolution) {
+            is ProfileResolution.Exact -> r.profile.stockLaunchers
+            is ProfileResolution.BrandSureSet -> r.stockLaunchers
+            is ProfileResolution.None -> r.stockLaunchers
+            null -> emptyList()
+        }
+
         fun name(pkg: PackageName): String = facts.lookup(pkg)?.friendlyName ?: snapshot.packages[pkg]?.label ?: pkg.value
         fun description(pkg: PackageName): String = facts.lookup(pkg)?.description ?: ""
         fun state(pkg: PackageName): PackageState? = snapshot.packages[pkg]
@@ -110,6 +134,7 @@ class DefaultPlanner(
 
         fun refuse(reason: String) { reasons += reason }
         fun planned(op: Op): Boolean = steps.any { it.op == op }
+        fun putBackPlanned(pkg: PackageName): Boolean = planned(Op.Enable(pkg)) || planned(Op.DefaultState(pkg))
 
         // Denylist plus the two planner-only rules: the TV's own home screens and the setup wizard
         // are only ever switched off inside the home screen switch (section 3.4).
@@ -291,6 +316,12 @@ class DefaultPlanner(
         fun putBack(pkg: PackageName) {
             if (!installed(pkg)) { refuse("${pkg.value} is not on this TV"); return }
             if (!isOff(pkg)) return   // already on
+            // The wizard quirk (R1 R-3): on a TV whose wizard takes the Home button back (issue #49),
+            // the wizard comes back on only with the TV's own home screen, never under the new one.
+            val profile = managedProfile
+            if (profile != null && Denylist.isWizardAllowed(pkg, profile) && snapshot.home.resolved == launcher) {
+                refuse("${name(pkg)} cannot be switched back on while the new home screen is in charge: $REASON_WIZARD_WHILE_OURS"); return
+            }
             val change = journals.filter { it.op is Op.Disable && (it.op as Op.Disable).pkg == pkg }.maxByOrNull { it.atMs }
             val op = change?.let { renderer.inverse(it.op, it.prior ?: Prior()) } ?: Op.Enable(pkg)
             step(op, Prior(packageState = state(pkg)?.enabled), GROUP_PUT_BACK, "Switching ${name(pkg)} back on", FailurePolicy.STOP_AND_ROLLBACK)
@@ -300,7 +331,7 @@ class DefaultPlanner(
             val rows = mutableListOf<RowSummary>()
             for (pkg in pkgs.sortedBy { it.value }) {
                 if (!installed(pkg)) { refuse("${pkg.value} is not on this TV"); continue }
-                val why = Denylist.reason(pkg, snapshot, null) ?: if (isHomeScreen(pkg)) REASON_HOME_SCREEN else null
+                val why = protectedReason(pkg, managedProfile, managedStockLaunchers)   // R1 R-3: never_disable and the wizard quirk
                 if (why != null) { refuse("${name(pkg)} cannot be switched off: $why"); continue }
                 rows += RowSummary(pkg, name(pkg), description(pkg), off = true, protected = false, whyProtected = null)
                 if (!isOff(pkg)) disable(pkg, GROUP_SWITCH_OFF)
@@ -313,7 +344,7 @@ class DefaultPlanner(
                 if (!installed(pkg) || isOff(pkg)) continue
                 // After a TV update the stock launcher may be enabled and HOME again (R1): a leftover
                 // that is now a home screen is never switched off outside the home screen switch.
-                val why = Denylist.reason(pkg, snapshot, null) ?: if (isHomeScreen(pkg)) REASON_HOME_SCREEN else null
+                val why = protectedReason(pkg, managedProfile, managedStockLaunchers)   // R1 R-3: never_disable and the wizard quirk
                 if (why != null) { refuse("${name(pkg)} cannot be switched off: $why"); continue }
                 disable(pkg, GROUP_LEFTOVERS)
             }
@@ -364,9 +395,11 @@ class DefaultPlanner(
             val known = snapshot.home.claimants.any { it.component == stock } ||
                 journals.any { it.op is Op.SetHome && it.prior?.home == stock }
             if (!known) { refuse("${stock.flat} is not a home screen this TV had"); return }
-            if (isOff(stock.pkg) && !planned(Op.Enable(stock.pkg))) enable(stock.pkg, GROUP_HOME, "Switching the TV's own home screen back on")
+            // A package the undo already puts back (Enable, or DefaultState for an original DEFAULT)
+            // is not enabled a second time: that would leave it ENABLED instead of DEFAULT (R1 R-10).
+            if (isOff(stock.pkg) && !putBackPlanned(stock.pkg)) enable(stock.pkg, GROUP_HOME, "Switching the TV's own home screen back on")
             val wizard = wizardFromJournal ?: journals.firstOrNull { it.op is Op.Disable && (it.op as Op.Disable).pkg.value in Denylist.setupWizards }?.let { (it.op as Op.Disable).pkg }
-            if (wizard != null && installed(wizard) && isOff(wizard) && !planned(Op.Enable(wizard))) enable(wizard, GROUP_HOME, "Switching the setup wizard back on")
+            if (wizard != null && installed(wizard) && isOff(wizard) && !putBackPlanned(wizard)) enable(wizard, GROUP_HOME, "Switching the setup wizard back on")
             if (snapshot.home.resolved != stock) {
                 step(Op.SetHome(stock), Prior(home = snapshot.home.resolved), GROUP_HOME, "Making the TV's own home screen the default", FailurePolicy.STOP_AND_ROLLBACK)
                 step(Op.VerifyHome(stock), null, GROUP_HOME, "Checking the home screen", FailurePolicy.STOP_AND_ROLLBACK)
@@ -449,6 +482,11 @@ class DefaultPlanner(
             step(Op.PushAsset(txt, RemotePath(RemoteDir.RESTORE, listOf("restore.txt")), txt.sha256), Prior(present = null), GROUP_RESTORE, "Saving the restore list on the TV", FailurePolicy.CONTINUE)
         }
 
+        // RFC-W8-5: the D24 restart test as a plan, so the reboot is journaled like any other write.
+        fun reboot() {
+            step(Op.Reboot, null, GROUP_REBOOT, "Restarting the TV", FailurePolicy.CONTINUE)
+        }
+
         private fun undoNarration(op: Op, pkg: PackageName) = when (op) {
             is Op.Enable, is Op.DefaultState -> "Switching ${name(pkg)} back on"
             else -> "Switching ${name(pkg)} back off"
@@ -469,6 +507,9 @@ class DefaultPlanner(
         const val GROUP_UNDO = "undo"
         const val GROUP_SESSION_END = "session_end"
         const val GROUP_RESTORE = "restore"
+        const val GROUP_REBOOT = "reboot"
+        const val WATCHDOG_SECONDS = 150
+        const val REASON_WIZARD_WHILE_OURS = "on this TV the first-run setup wizard takes the Home button back; use the TV's own home screen first"
         const val REASON_HOME_SCREEN = "it is the TV's own home screen; only the home screen switch changes it"
         const val REASON_WIZARD_SECTION_ONLY = "the first-run setup wizard is only switched off as part of the home screen switch"
         const val NARRATION_WIZARD = "Switch off the first-run setup wizard so the new home screen can take over"
