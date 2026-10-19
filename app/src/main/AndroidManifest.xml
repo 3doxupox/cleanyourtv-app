@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- W1 skeleton. W8 owns the manifest: activity, permissions (D16), network security config,
+     data extraction rules. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application
+        android:allowBackup="false"
+        android:label="Clean Your TV" />
+</manifest>
