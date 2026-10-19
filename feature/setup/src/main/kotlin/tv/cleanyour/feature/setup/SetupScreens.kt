@@ -341,7 +341,15 @@ private fun Narration(run: RunState.Running) {
 fun CheckScreen(state: SetupState.Check, extras: SetupExtras, actions: SetupActions, modifier: Modifier = Modifier, nowMs: () -> Long = System::currentTimeMillis) {
     val run = state.run
     var now by remember { mutableLongStateOf(nowMs()) }
-    LaunchedEffect(run.deadlineMs) { while (true) { now = nowMs(); delay(1_000) } }
+    // Ticks once a second until the deadline; a clock that stands still (tests) stops the loop.
+    LaunchedEffect(run.deadlineMs) {
+        while (now < run.deadlineMs) {
+            delay(1_000)
+            val t = nowMs()
+            if (t == now) break
+            now = t
+        }
+    }
     val remaining = (run.deadlineMs - now).coerceAtLeast(0)
     val total = run.section.confirmWindowMs.coerceAtLeast(1)
     val view = LocalView.current
