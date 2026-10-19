@@ -48,6 +48,8 @@ class FileJournalTest {
         assertEquals(records(), j.read(planId))
         val file = File(root, "tvs/${tvId.value}/journal/${planId.value}.jsonl")
         assertTrue(file.isFile)
+        // R1 R-9: a new journal's directory is forced once; on Linux a directory channel can be forced.
+        if (System.getProperty("os.name").lowercase().contains("linux")) assertTrue(FileJournal.syncDir(file.parentFile))
         val lines = file.readLines()
         assertEquals(records().size, lines.size)
         for (l in lines) assertTrue(Regex(".* [0-9a-f]{8}$").matches(l), l)

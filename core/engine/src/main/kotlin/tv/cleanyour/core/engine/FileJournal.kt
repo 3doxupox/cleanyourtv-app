@@ -48,12 +48,21 @@ class FileJournal(
             } else {
                 locate(record.planId) ?: throw IllegalStateException("no journal for plan ${record.planId.value}; PlanStart must come first")
             }
+            val createdDirs = generateSequence(f.parentFile) { it.parentFile }.takeWhile { !it.exists() }.toList()
             f.parentFile.mkdirs()
+            val fresh = !f.exists()
             val bytes = (JournalJson.line(record) + "\n").toByteArray(StandardCharsets.UTF_8)
             FileChannel.open(f.toPath(), StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.APPEND).use { ch ->
                 val buf = ByteBuffer.wrap(bytes)
                 while (buf.hasRemaining()) ch.write(buf)
                 ch.force(false)
+            }
+            // The file's own force does not make its directory entry durable: a power loss right
+            // after the first record could lose the whole file. So a new file's directory, and the
+            // parent of every directory just made, is forced once (R1 R-9).
+            if (fresh) {
+                syncDir(f.parentFile)
+                for (d in createdDirs) d.parentFile?.let { syncDir(it) }
             }
         }
     }
@@ -75,6 +84,17 @@ class FileJournal(
     }
 
     companion object {
+        // Forces a directory's entries to disk. Linux (Android) allows a read-only channel on a
+        // directory; a platform that does not is left to its own commit (returns false).
+        fun syncDir(dir: File): Boolean = try {
+            FileChannel.open(dir.toPath(), StandardOpenOption.READ).use { it.force(true) }
+            true
+        } catch (e: java.io.IOException) {
+            false
+        } catch (e: UnsupportedOperationException) {
+            false
+        }
+
         // Records up to the first torn line; a torn last line is dropped, and nothing after a torn
         // line is trusted (ARCHITECTURE 2.4).
         fun parse(bytes: ByteArray): List<JournalRecord> {
