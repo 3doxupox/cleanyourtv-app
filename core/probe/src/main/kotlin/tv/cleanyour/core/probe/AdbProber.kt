@@ -29,10 +29,10 @@ import tv.cleanyour.core.store.Clock
 import tv.cleanyour.core.store.SnapshotCodec
 
 // The Prober over a TvSession: reads only, batched per stage (D40), seven shell calls and one
-// pull for a full snapshot. Every method fails with AdbException like the session it wraps; a
+// pull for a full snapshot, plus one call for the launchable apps (LaunchableApps). Every method fails with AdbException like the session it wraps; a
 // parser failure is ProbeException. installRefusal is the one exception to "reads only": it
 // installs and uninstalls the bundled no-op APK, which is the only way to learn the answer.
-class AdbProber(private val clock: Clock) : Prober {
+class AdbProber(private val clock: Clock) : Prober, LaunchableApps {
 
     private suspend fun run(
         session: TvSession, line: ShellLine, stage: ProbeStage, cap: Int, timeoutMs: Long = 30_000, retry: RetryClass = RetryClass.IDEMPOTENT_READ,
@@ -162,6 +162,12 @@ class AdbProber(private val clock: Clock) : Prober {
             mapOf("" to lines(r.stdout).toList(), "resolved" to lines(alone.stdout).toList())
         }
         return HomeResolution(HomeParser.parseResolved(s.getValue("resolved").asSequence()), HomeParser.parse(s.getValue("").asSequence()))
+    }
+
+    override suspend fun launchable(session: TvSession): Set<PackageName> {
+        val r = run(session, ProbeScripts.LAUNCHABLE, ProbeStage.LAUNCHER, 256 * 1024)
+        val s = sections(ProbeStage.LAUNCHER, r.stdout, listOf("launcher"))
+        return LaunchableParser.parse(s.getValue("").asSequence()) + LaunchableParser.parse(s.getValue("launcher").asSequence())
     }
 
     override suspend fun homeFocus(session: TvSession): Component? {

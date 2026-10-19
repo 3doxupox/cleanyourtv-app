@@ -11,6 +11,7 @@ import android.net.nsd.NsdServiceInfo
 import android.os.Build
 import java.net.Inet4Address
 import java.net.InetSocketAddress
+import java.net.NetworkInterface
 import java.net.Socket
 import kotlin.coroutines.resume
 import kotlinx.coroutines.Dispatchers
@@ -34,7 +35,8 @@ import tv.cleanyour.core.discovery.ServiceRef
 // Discovery over NsdManager (F1): the Android TV remote, Cast and adb services, resolves one at a
 // time (NsdManager refuses concurrent resolves on older releases), and a direct TCP probe of port
 // 5555 on every host found. NsdManager runs in the system process and needs no runtime permission
-// (D16); no multicast lock is taken here. No sweep: only hosts that announced themselves.
+// (D16); no multicast lock is taken here. No sweep: only hosts that announced themselves. The
+// phone's own addresses are never a TV (its own adbd may announce itself, as on an emulator).
 class NsdDiscovery(
     context: Context,
     private val now: () -> Long = System::currentTimeMillis,
@@ -62,7 +64,7 @@ class NsdDiscovery(
                     continue
                 }
                 val resolved = withTimeoutOrNull(5_000) { resolve(info) } ?: continue
-                val host = ipv4Of(resolved) ?: continue
+                val host = ipv4Of(resolved, OwnAddresses.current() + net.ownAddresses()) ?: continue
                 hostOf["${info.serviceType}/${info.serviceName}"] = host
                 val attrs = runCatching { resolved.attributes }.getOrNull().orEmpty()
                 fun attr(k: String) = attrs[k]?.decodeToString()?.takeIf { it.isNotBlank() }
@@ -118,10 +120,11 @@ class NsdDiscovery(
         cont.invokeOnCancellation { if (Build.VERSION.SDK_INT >= 34) runCatching { nsd.stopServiceResolution(listener) } }
     }
 
+    // The first IPv4 address of the service that is not the phone itself.
     @Suppress("DEPRECATION")
-    private fun ipv4Of(info: NsdServiceInfo): String? {
+    private fun ipv4Of(info: NsdServiceInfo, own: Set<String>): String? {
         val addresses = if (Build.VERSION.SDK_INT >= 34) info.hostAddresses else listOfNotNull(info.host)
-        return addresses.filterIsInstance<Inet4Address>().firstOrNull()?.hostAddress
+        return addresses.filterIsInstance<Inet4Address>().mapNotNull { it.hostAddress }.firstOrNull { !OwnAddresses.isOwn(it, own) }
     }
 
     // A literal IPv4 address only: never a name lookup, so a probe cannot leave the LAN by DNS.
@@ -144,6 +147,19 @@ class NsdDiscovery(
     }
 }
 
+// Finding 1 of the emulator run: every IPv4 address of the phone's own interfaces (Wi-Fi, the
+// emulator's 10.0.2.x links, loopback, any VPN or hotspot link), read fresh on each resolve.
+object OwnAddresses {
+    fun current(): Set<String> = runCatching {
+        NetworkInterface.getNetworkInterfaces()?.toList().orEmpty()
+            .flatMap { runCatching { it.inetAddresses.toList() }.getOrDefault(emptyList()) }
+            .filterIsInstance<Inet4Address>().mapNotNull { it.hostAddress }.toSet()
+    }.getOrDefault(emptySet())
+
+    // Loopback and the unspecified address are always the phone, listed or not.
+    fun isOwn(host: String, own: Set<String>): Boolean = host in own || host.startsWith("127.") || host == "0.0.0.0"
+}
+
 // Network state for D19: Wi-Fi (or Ethernet) or not, and the link's IPv4 subnet ("192.168.1.0/24"),
 // read from ConnectivityManager with ACCESS_NETWORK_STATE only (declared by :app). Never the SSID.
 @SuppressLint("MissingPermission")
@@ -164,6 +180,9 @@ class NetworkState(context: Context) {
             })
         }
     }
+
+    // The default network's own IPv4 addresses, as ConnectivityManager reports them.
+    fun ownAddresses(): Set<String> = link?.linkAddresses.orEmpty().map { it.address }.filterIsInstance<Inet4Address>().mapNotNull { it.hostAddress }.toSet()
 
     private fun publish() {
         val c = caps

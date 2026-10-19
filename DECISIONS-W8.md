@@ -88,3 +88,25 @@ Stream W8, 2026-10-19. Built against section 5 as fixed by R0 and the W1 fakes. 
   action the engine does not take within 5 s shows the reconnect line). A SETUP run opens the
   wizard's resume card instead. The S4e card for a Manage kind says "We were in the middle of a
   change on {tv}", and such a run ends in Manage, never on Done.
+
+## Emulator run fixes (emufix)
+
+- D-W8-18 Bug 2: a door whose address changes (the placeholder door to a typed address, a found TV
+  adopted, a second address typed while waiting) is a new door: its port poll and connect stop
+  and the new address's start. Before, only a change of state class or door phase restarted them,
+  so an address typed on "No TV found yet" was never probed.
+- D-W8-19 Finding 1: discovery drops every IPv4 address of the phone's own interfaces (and
+  loopback). Welcome always offers "Enter the TV's address" (the S1b and UX 4.1 copy) under Start.
+  "No" on the identity line keeps that host out of the run's list and opens the address sheet; a
+  typed address is always tried, even one answered No before.
+- D-W8-20 Finding 3: the dock sheet offers only apps with a LEANBACK_LAUNCHER or LAUNCHER activity
+  (`LaunchableApps`, one read-only probe call, not in the frozen `Prober` or `Snapshot`), never a
+  HOME claimant, stock or our launcher, the setup wizard, a switched-off package or a provider.
+  When the TV cannot say (and in Manage, which has only the stored snapshot), user-installed and
+  known streaming apps stand in. An empty dock reads "Your new home screen" (UX 2 dock card title)
+  on S3 and "Dock" in Customise.
+- D-W8-21 Diagnostics: `SetupDeps.log` (`FlowLog`, CytLog.i in the app) gets one line at connect,
+  connected or failed, probe start and end, plan ready or refused, identity rejected, and each run
+  state change: outcomes, counts and type names only, never an address, serial, id or package.
+- D-W8-22 "I've set up a TV before" pushes Manage over Welcome, so Back returns to Welcome; every
+  other route to Manage still replaces the stack (`applyRoute`, unit tested).

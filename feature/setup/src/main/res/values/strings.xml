@@ -64,6 +64,8 @@
     <string name="found_home_row">Home screen: {dock}</string>
     <string name="found_home_row_cd">Home screen dock: {dock}</string>
     <string name="found_home_change">Change</string>
+    <!-- An empty dock: the row names the new home screen (UX 2 dock card title) instead of a blank list -->
+    <string name="found_home_row_empty">Your new home screen</string>
     <string name="found_safety">A restore point is saved first, so everything can be put back.</string>
     <string name="found_make_clean">Make it clean</string>
     <string name="found_customise">Customise</string>
@@ -95,6 +97,7 @@
     <string name="customise_protected_why_title">Why we keep this</string>
     <string name="customise_group_home">Home screen</string>
     <string name="customise_dock_row">Dock: {names}</string>
+    <string name="customise_dock_row_empty">Dock</string>
     <string name="customise_look_row">Look: {theme}</string>
     <string name="customise_group_afterwards">Afterwards</string>
     <string name="customise_keep_debugging">Keep debugging on</string>

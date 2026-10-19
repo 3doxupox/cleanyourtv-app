@@ -44,6 +44,12 @@ object ProbeScripts {
     val HOME = ShellLine("cmd package query-activities --brief $HOME_ARGS; ${mark("resolved")}; cmd package resolve-activity --brief $HOME_ARGS")
     val HOME_RESOLVED = ShellLine("cmd package resolve-activity --brief $HOME_ARGS")
 
+    // The dock sheet's candidates: every activity a TV launcher (LEANBACK_LAUNCHER) or a phone
+    // launcher (LAUNCHER) would show. Read-only, one call, outside the snapshot (no frozen field).
+    const val LEANBACK_ARGS = "-a android.intent.action.MAIN -c android.intent.category.LEANBACK_LAUNCHER"
+    const val LAUNCHER_ARGS = "-a android.intent.action.MAIN -c android.intent.category.LAUNCHER"
+    val LAUNCHABLE = ShellLine("cmd package query-activities --brief $LEANBACK_ARGS; ${mark("launcher")}; cmd package query-activities --brief $LAUNCHER_ARGS")
+
     // Stage INPUTS: TIF inputs with their HDMI ports, then CEC device names.
     val INPUTS = ShellLine("dumpsys tv_input; ${mark("hdmi")}; dumpsys hdmi_control")
 
@@ -54,7 +60,9 @@ object ProbeScripts {
     val BOOT_ID = ShellLine("cat /proc/sys/kernel/random/boot_id")
     val FREE_DATA = ShellLine("df -k /data")
     val SCREENSHOT = ShellLine("mkdir -p ${RemoteDir.TMP.path} && screencap -p ${RemoteDir.TMP.path}/$SCREEN_FILE")
-    val SCREENSHOT_CLEANUP = ShellLine("rm -f ${RemoteDir.TMP.path}/$SCREEN_FILE")
+    // The directory goes too when nothing else is in it (rmdir refuses a non-empty one), so an
+    // identity check leaves no trace on the TV.
+    val SCREENSHOT_CLEANUP = ShellLine("rm -f ${RemoteDir.TMP.path}/$SCREEN_FILE; rmdir ${RemoteDir.TMP.path} 2>/dev/null; true")
     val MKDIR_TMP = ShellLine("mkdir -p ${RemoteDir.TMP.path}")
     val NOOP_INSTALL = ShellLine("pm install -r ${RemoteDir.TMP.path}/$NOOP_FILE")
     val NOOP_UNINSTALL = ShellLine("pm uninstall ${NOOP_PACKAGE.value}")
@@ -79,7 +87,7 @@ object ProbeScripts {
     // Every constant line, for the golden test and for anyone auditing what a probe can send.
     val all: Map<String, ShellLine> = linkedMapOf(
         "FACTS" to FACTS, "PACKAGES" to PACKAGES, "DISABLED" to DISABLED, "PACKAGE_FLAGS" to PACKAGE_FLAGS, "HOME" to HOME,
-        "HOME_RESOLVED" to HOME_RESOLVED, "INPUTS" to INPUTS, "SETTINGS" to SETTINGS, "HOME_FOCUS" to HOME_FOCUS, "BOOT_ID" to BOOT_ID,
+        "HOME_RESOLVED" to HOME_RESOLVED, "LAUNCHABLE" to LAUNCHABLE, "INPUTS" to INPUTS, "SETTINGS" to SETTINGS, "HOME_FOCUS" to HOME_FOCUS, "BOOT_ID" to BOOT_ID,
         "FREE_DATA" to FREE_DATA, "SCREENSHOT" to SCREENSHOT, "SCREENSHOT_CLEANUP" to SCREENSHOT_CLEANUP, "MKDIR_TMP" to MKDIR_TMP,
         "NOOP_INSTALL" to NOOP_INSTALL, "NOOP_UNINSTALL" to NOOP_UNINSTALL, "NOOP_CLEANUP" to NOOP_CLEANUP, "PS_ARGS" to PS_ARGS,
     )

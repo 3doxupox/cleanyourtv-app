@@ -127,6 +127,29 @@ class AdbProberTest {
         assertTrue(prober.watchdogAlive(s, t2))   // pgrep unrecorded: 127, so ps
     }
 
+    // Finding 3: the dock sheet offers only apps a launcher would show; one read-only call.
+    @Test fun launchableAppsComeFromBothLauncherCategoriesInOneCall() = runBlocking<Unit> {
+        val s = ProbeFixtures.miTvSession()
+        s.recording.on(ProbeScripts.LAUNCHABLE.text, """
+            2 activities found:
+              Activity #0:
+                priority=0 preferredOrder=0 match=0x108000 specificIndex=-1 isDefault=false
+                com.netflix.ninja/.MainActivity
+              Activity #1:
+                priority=0 preferredOrder=0 match=0x108000 specificIndex=-1 isDefault=false
+                com.google.android.youtube.tv/com.google.android.apps.youtube.tv.activity.ShellActivity
+            @@cyt@@ launcher
+            1 activities found:
+              Activity #0:
+                priority=0 preferredOrder=0 match=0x108000 specificIndex=-1 isDefault=false
+                org.videolan.vlc/.StartActivity
+        """.trimIndent() + "\n")
+        assertEquals(setOf(p("com.netflix.ninja"), p("com.google.android.youtube.tv"), p("org.videolan.vlc")), prober.launchable(s))
+        assertEquals(listOf(ProbeScripts.LAUNCHABLE.text), s.execLines)
+        s.recording.on(ProbeScripts.LAUNCHABLE.text, "No activities found\n")
+        assertFailsWith<ProbeException> { prober.launchable(s) }   // the script stopped early: the caller falls back
+    }
+
     @Test fun screenshotIsPulledCheckedAndCleanedUp() = runBlocking<Unit> {
         val s = ProbeFixtures.miTvSession()
         s.recording.on(ProbeScripts.SCREENSHOT.text, "")
@@ -135,6 +158,9 @@ class AdbProberTest {
         s.files[ProbeScripts.screenPath.absolute] = png
         assertContentEquals(png, prober.screenshot(s))
         assertTrue(ProbeScripts.SCREENSHOT_CLEANUP.text in s.execLines)
+        // Finding 4: the cleanup removes the directory too (I1 runbook step 10: no trace left).
+        assertTrue(ProbeScripts.SCREENSHOT_CLEANUP.text.endsWith("rmdir ${RemoteDir.TMP.path} 2>/dev/null; true"))
+        assertTrue(ProbeScripts.SCREENSHOT_CLEANUP.text.indexOf("rm -f") < ProbeScripts.SCREENSHOT_CLEANUP.text.indexOf("rmdir"))
         s.files[ProbeScripts.screenPath.absolute] = "not a png".encodeToByteArray()
         assertNull(prober.screenshot(s))
     }

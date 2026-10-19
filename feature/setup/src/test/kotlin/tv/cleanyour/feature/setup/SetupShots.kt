@@ -209,6 +209,8 @@ object SetupShots {
         // S3 What we found, with the unknown model, zero, no screen lock and TV-refuses-home variants
         Shot("found_simple") { Setup(found()) },
         Shot("found_zero") { Setup(found(zeroPlan)) },
+        // Emulator run: a TV with no app to suggest for the dock; the row names the new home screen.
+        Shot("found_zero_empty_dock") { Setup(found(zeroPlan.copy(summary = zeroPlan.summary.copy(dock = emptyList())))) },
         Shot("found_unknown_model") { Setup(found(unknownPlan), connected.copy(unknownModel = true)) },
         Shot("found_no_screen_lock") { Setup(found(), connected.copy(noScreenLock = true)) },
         Shot("found_tv_refuses_home") { Setup(found(noHomePlan), connected.copy(tvName = "TCL C635", homePossible = false)) },

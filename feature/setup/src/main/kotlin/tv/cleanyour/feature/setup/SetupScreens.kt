@@ -193,7 +193,9 @@ fun FoundScreen(state: SetupState.Found, extras: SetupExtras, actions: SetupActi
         )
         if (extras.homePossible && summary.homeScreenPossible) {
             val dock = summary.dock.ifEmpty { extras.dock.map { it.name } }.joinToString(", ")
-            TextActionRow(msg(R.string.found_home_row, "dock" to dock), stringResource(R.string.found_home_change), { actions.intent(SetupIntent.Open(Sheet.DOCK)) }, Modifier.padding(top = 8.dp))
+            // An empty dock never shows "Home screen:" with nothing after it.
+            val row = if (dock.isEmpty()) stringResource(R.string.found_home_row_empty) else msg(R.string.found_home_row, "dock" to dock)
+            TextActionRow(row, stringResource(R.string.found_home_change), { actions.intent(SetupIntent.Open(Sheet.DOCK)) }, Modifier.padding(top = 8.dp))
         } else {
             Banner(msg(R.string.stop_tv_refuses_home_body, "brand" to (extras.tvName ?: "")), BannerTone.INFO, Modifier.padding(top = 16.dp))
         }
@@ -269,7 +271,9 @@ internal fun ColumnScope.CustomiseContent(
     }
     Overline(stringResource(R.string.customise_group_home), Modifier.padding(start = 4.dp, top = 16.dp, bottom = 8.dp))
     ListGroup {
-        ListRow(msg(R.string.customise_dock_row, "names" to extras.dock.joinToString(", ") { it.name }), onClick = { actions.intent(SetupIntent.Open(Sheet.DOCK)) })
+        val dockRow = if (extras.dock.isEmpty()) stringResource(R.string.customise_dock_row_empty)
+            else msg(R.string.customise_dock_row, "names" to extras.dock.joinToString(", ") { it.name })
+        ListRow(dockRow, onClick = { actions.intent(SetupIntent.Open(Sheet.DOCK)) })
         ListDivider()
         val theme = extras.themes.firstOrNull { it.id == extras.draft?.themeId }?.name ?: stringResource(R.string.theme_default)
         ListRow(msg(R.string.customise_look_row, "theme" to theme), onClick = { actions.intent(SetupIntent.Open(Sheet.THEME)) })

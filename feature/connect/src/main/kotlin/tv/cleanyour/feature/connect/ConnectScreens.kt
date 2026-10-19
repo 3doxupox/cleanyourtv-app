@@ -121,6 +121,9 @@ fun WelcomeScreen(state: SetupState.Welcome, extras: SetupExtras, actions: Setup
         bottomBar = {
             ActionColumn {
                 PrimaryButton(stringResource(R.string.welcome_start), { actions.intent(SetupIntent.Start) })
+                // Always offered (emulator run, finding 1): Start goes straight to a single found
+                // device, which may not be the TV.
+                TertiaryButton(stringResource(R.string.welcome_address), { actions.intent(SetupIntent.Open(Sheet.ADDRESS)) })
                 TertiaryButton(stringResource(R.string.welcome_returning), onReturning)
             }
         },
