@@ -150,7 +150,8 @@ class ManageMachinesTest {
         val m = LeftoversMachine(h.manageDeps(), backgroundScope, tv.id)
         settle()
         val found = assertIs<LeftoversState.Found>(m.state.value)
-        assertEquals(listOf(adPkg.value), found.names)
+        // No facts and no label: the name is read from the package, never the raw package (round 3).
+        assertEquals(listOf("Miui Analytics"), found.names)
         assertEquals(PlanRequest.Leftovers(setOf(adPkg)), h.planner.requests.filterIsInstance<PlanRequest.Leftovers>().first())
         m.dispatch(LeftoversIntent.SwitchOff); settle()
         assertEquals(LeftoversState.Done(1), m.state.value)

@@ -22,6 +22,7 @@ import tv.cleanyour.core.registry.ArtifactFetcher
 import tv.cleanyour.core.registry.Registry
 import tv.cleanyour.core.session.SessionManager
 import tv.cleanyour.core.session.TvSession
+import tv.cleanyour.core.spec.AppNames
 import tv.cleanyour.core.spec.FactsTable
 import tv.cleanyour.core.spec.ProfileSource
 import tv.cleanyour.core.spec.ThemeSource
@@ -94,7 +95,7 @@ class ManageDeps(
 
     suspend fun profileOf(tv: Tv): Profile? = tv.profileId?.let { id -> attempt { profiles.all() }.getOrNull()?.firstOrNull { it.id == id } }
 
-    fun nameOf(pkg: PackageName, label: String? = null): String = facts.lookup(pkg)?.friendlyName ?: label ?: pkg.value
+    fun nameOf(pkg: PackageName, label: String? = null): String = AppNames.of(pkg, facts, label)
 }
 
 // The dock and theme this phone last pushed to a TV. Tv has no field for them once the wizard
