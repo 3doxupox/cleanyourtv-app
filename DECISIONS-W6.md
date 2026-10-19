@@ -82,14 +82,15 @@ constant words and single-quoted tokens, tokenises lines like the TV's sh and lo
 checks: the baseline comes back exactly with `--remove-apps`, and plus our launcher without it;
 another TV, or no sha256 tool, stops with exit 3 and no write; `-s` reaches every adb call;
 `--host` connects first; `--dry-run` calls nothing; a failing step is reported while the rest
-run; a hostile nickname and model stay inert under `sh -n` and a real run. `TvRestoreFilesTest`
+run; a hostile nickname and model stay inert under `sh -n` and a real run; after the R5-W6 M1
+flow (setup, the TV's own home screen, the new one removed) the script ends at the baseline with
+exit 0 and sends no line naming the removed launcher. All of it with W3's `ShellRenderer`. `TvRestoreFilesTest`
 runs the pinned upstream `tools/restore.sh` itself (bash) on our `restore.txt`.
 
 ## Open for other streams
 
-- W3: the tests use `ReferenceRenderer` (test sources), a stand-in that follows SECURITY 3.2 and
-  3.4. When `:core:ops` has the real renderer, `RestoreShellTest` should also run with it (swap
-  the renderer in `bundle()`); the stub accepts either quoting style.
+- W3 (done in T6, R5-W6 M2): every test runs with W3's real `ShellRenderer`; the stand-in
+  `ReferenceRenderer` is deleted. The stub adb takes the real quoting (`'pm' 'enable' ...`).
 - W2: `restore.sh` relies on the D37 formula exactly (no separator, values as `getprop` prints
   them without the line break). If the session trims or normalises differently, tell W6.
 - W8: wire `DocumentSnapshotStore` over `FileStore`, `ZipRestoreBundleWriter` with the app's

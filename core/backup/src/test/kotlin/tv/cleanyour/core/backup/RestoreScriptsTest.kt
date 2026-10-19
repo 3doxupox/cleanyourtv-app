@@ -1,5 +1,6 @@
 package tv.cleanyour.core.backup
 
+import tv.cleanyour.core.ops.ShellRenderer
 import tv.cleanyour.testing.fixtures.Samples
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -8,7 +9,7 @@ import kotlin.test.assertTrue
 // Structure checks for the files no interpreter runs here (restore.ps1, commands.txt): the same
 // steps as restore.sh, each TV line quoted so that it reads back as exactly the renderer's line.
 class RestoreScriptsTest {
-    private val steps = RestoreCommands(ReferenceRenderer()).steps(Scenario.changes())
+    private val steps = RestoreCommands(ShellRenderer()).steps(Scenario.changes())
     private val header = ScriptHeader(Samples.miTvId(), "Mi TV 4A", "MiTV-AXSO0", "2026-10-19", "0.1.0")
 
     // PowerShell single-quoted literals: 'text' with '' for an apostrophe.
@@ -34,7 +35,7 @@ class RestoreScriptsTest {
         val txt = RestoreScripts.commandsTxt(header, steps)
         val runnable = txt.lines().filter { it.isNotBlank() && !it.trim().startsWith("#") }
         assertEquals(steps.filter { it.kind == RestoreStepKind.PUT_BACK }.flatMap { it.lines }, runnable)
-        assertTrue(txt.lines().contains("# remove-app: pm uninstall --user 0 'com.gathin.tvhome'"))
+        assertTrue(txt.lines().contains("# remove-app: 'pm' 'uninstall' '--user' '0' 'com.gathin.tvhome'"))
     }
 
     @Test fun hostileTextNeverLeavesItsLiteral() {
@@ -51,6 +52,7 @@ class RestoreScriptsTest {
 
     @Test fun shWordQuoting() {
         assertEquals("\"pm enable --user 0 'a.b'\"", TextSafety.shWord("pm enable --user 0 'a.b'"))
+        assertEquals("\"'pm' 'enable' '--user' '0' 'a.b'\"", TextSafety.shWord("'pm' 'enable' '--user' '0' 'a.b'"))
         assertEquals("'x \$y'", TextSafety.shWord("x \$y"))
         assertEquals("'it'\\''s'", TextSafety.shq("it's"))
         assertEquals("'it''s'", TextSafety.psq("it's"))

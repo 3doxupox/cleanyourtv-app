@@ -6,6 +6,7 @@ import tv.cleanyour.core.model.Snapshot
 import tv.cleanyour.core.model.Tv
 import tv.cleanyour.core.model.TvId
 import tv.cleanyour.core.store.SnapshotCodec
+import tv.cleanyour.core.ops.ShellRenderer
 import tv.cleanyour.testing.fixtures.FakeClock
 import tv.cleanyour.testing.fixtures.Fixtures
 import tv.cleanyour.testing.fixtures.Samples
@@ -32,7 +33,7 @@ class RestoreBundleTest {
 
     private fun zip(tv: Tv = this.tv, base: Snapshot = baseline, ch: List<ChangeRecord> = changes, ov: ByteArray? = overlay, wp: ByteArray? = wallpaper): ByteArray {
         val out = ByteArrayOutputStream()
-        runBlocking { ZipRestoreBundleWriter(ReferenceRenderer(), clock, "0.1.0").write(tv, base, ch, ov, wp, out) }
+        runBlocking { ZipRestoreBundleWriter(ShellRenderer(), clock, "0.1.0").write(tv, base, ch, ov, wp, out) }
         return out.toByteArray()
     }
 
@@ -68,7 +69,7 @@ class RestoreBundleTest {
     @Test fun theUndoFromTheReadBackZipEqualsTheUndoFromThePhone() {
         // what an import (0.2) would plan from equals what the phone has now: TvState replays both to the baseline
         val read = RestoreBundleReader.read(ByteArrayInputStream(zip()))
-        val r = ReferenceRenderer()
+        val r = ShellRenderer()
         assertEquals(RestoreCommands(r).steps(changes).map { it.lines }, RestoreCommands(r).steps(read.changes).map { it.lines })
         val after = TvState.of(baseline).apply(read.changes)
         val undo = RestoreCommands(r).steps(read.changes).filter { it.kind != RestoreStepKind.NOT_FROM_LAPTOP }
