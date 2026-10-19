@@ -1,0 +1,1039 @@
+package tv.cleanyour.core.flows
+
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
+import tv.cleanyour.core.backup.RestoreNote
+import tv.cleanyour.core.discovery.Discovery
+import tv.cleanyour.core.discovery.DiscoveryEvent
+import tv.cleanyour.core.discovery.DiscoverySource
+import tv.cleanyour.core.discovery.FoundTv
+import tv.cleanyour.core.engine.Engine
+import tv.cleanyour.core.engine.HomeOutcome
+import tv.cleanyour.core.engine.PauseReason
+import tv.cleanyour.core.engine.RunState
+import tv.cleanyour.core.engine.RunStatus
+import tv.cleanyour.core.engine.StartRefusal
+import tv.cleanyour.core.engine.StartResult
+import tv.cleanyour.core.model.AdbError
+import tv.cleanyour.core.model.AdbException
+import tv.cleanyour.core.model.ConnectionState
+import tv.cleanyour.core.model.DebugState
+import tv.cleanyour.core.model.DeviceFacts
+import tv.cleanyour.core.model.Endpoint
+import tv.cleanyour.core.model.LauncherState
+import tv.cleanyour.core.model.Level
+import tv.cleanyour.core.model.Op
+import tv.cleanyour.core.model.PackageName
+import tv.cleanyour.core.model.PlanId
+import tv.cleanyour.core.model.Platform
+import tv.cleanyour.core.model.Profile
+import tv.cleanyour.core.model.Quirk
+import tv.cleanyour.core.model.Snapshot
+import tv.cleanyour.core.model.SnapshotReason
+import tv.cleanyour.core.model.TrustRecord
+import tv.cleanyour.core.model.Tv
+import tv.cleanyour.core.model.TvId
+import tv.cleanyour.core.model.WizardDraft
+import tv.cleanyour.core.planner.Choices
+import tv.cleanyour.core.planner.Plan
+import tv.cleanyour.core.planner.PlanRequest
+import tv.cleanyour.core.planner.PlanResult
+import tv.cleanyour.core.probe.ProbeStage
+import tv.cleanyour.core.probe.Prober
+import tv.cleanyour.core.session.BootOutcome
+import tv.cleanyour.core.session.OpenResult
+import tv.cleanyour.core.session.SessionManager
+import tv.cleanyour.core.session.TvSession
+import tv.cleanyour.core.spec.FactsTable
+import tv.cleanyour.core.spec.ProfileResolution
+import tv.cleanyour.core.spec.ProfileSource
+import tv.cleanyour.core.spec.ThemeSource
+import tv.cleanyour.core.store.Clock
+import tv.cleanyour.core.store.GatePass
+import tv.cleanyour.core.ops.Transfer
+import tv.cleanyour.core.store.SnapshotStore
+import tv.cleanyour.core.store.TvRepository
+import tv.cleanyour.core.trust.LauncherPin
+
+// How the wizard starts (ARCHITECTURE 2.2 start destination): fresh from Welcome, continuing a
+// WizardDraft at the TV's remembered address, or at the resume prompt for a run with no End.
+sealed interface SetupStart {
+    data object Fresh : SetupStart
+    data class Continue(val tvId: TvId) : SetupStart
+    data class Resume(val tvId: TvId, val planId: PlanId) : SetupStart
+}
+
+// A button on a stop card. The frozen SetupIntent has no intent for some of the section 4 buttons
+// ("Stop here", "Leave it as is", "Keep Projectivy", "Share diagnostics"), so the screens send the
+// button position and the machine maps it per case (RFC-W8-1).
+enum class StopAction { PRIMARY, SECONDARY, TERTIARY }
+
+data class IdentityCheck(val model: String, val serialLast4: String, val screenshot: ByteArray?)
+data class ThemeOption(val id: String, val name: String, val description: String)
+enum class Reconnect { TRYING, BACK, GAVE_UP }
+enum class Finishing { SWITCHING, DONE }
+
+// Presentation details the frozen SetupState has no field for (RFC-W8-2). Never a source of truth:
+// everything here is derived from the state, the plan, the draft or a live call.
+data class SetupExtras(
+    val tvName: String? = null,
+    val chip: ChipState? = null,
+    val sheet: Sheet? = null,                    // S1c on Welcome, Picker and OpenDoor
+    val addressError: Boolean = false,
+    val card: StopCard? = null,                  // inline stops (TV not found, wrong network, identity, no shell v2)
+    val allowRetries: Int = 0,
+    val allowDenied: Boolean = false,
+    val identity: IdentityCheck? = null,         // S2d first-time identity line (D38)
+    val noScreenLock: Boolean = false,           // D17 grey line on S3
+    val starting: Boolean = false,               // "Make it clean" pressed: prompt or start in flight
+    val rollingBack: Boolean = false,
+    val highlightStop: Boolean = false,          // system back on 4a and 4b only highlights the way out
+    val reconnect: Reconnect? = null,            // S4d spinner, then "Back. Carry on?"
+    val draft: WizardDraft? = null,
+    val themes: List<ThemeOption> = emptyList(),
+    val commands: List<String> = emptyList(),    // "Show commands" (D21): one line per op
+    val unknownModel: Boolean = false,           // UX 2 "We found 9 things we're sure about"
+    val homePossible: Boolean = true,            // UX 4.6 TV refuses other home screens
+    val staleNotice: Boolean = false,            // the TV changed under the plan; a new plan is shown
+    val finishing: Finishing? = null,            // D7 "Switching debugging off... done."
+    val restartSlow: Boolean = false,            // UX 4.8 at 3 minutes
+    val restartReenabled: Int = 0,               // "2 things came back on after the restart; switched off again."
+    val doneLines: List<String> = emptyList(),   // refused ops named on Done (UX 4.14)
+    val restorePointPushed: Boolean = false,     // D44
+    val dock: List<AppChoice> = emptyList(),     // D4 row and the dock sheet (S3b)
+    val apps: List<AppChoice> = emptyList(),     // installed apps for the dock sheet
+)
+
+class SetupDeps(
+    val discovery: Discovery,
+    val sessions: SessionManager,
+    val prober: Prober,
+    val profiles: ProfileSource,
+    val facts: FactsTable,
+    val runner: PlanRunner,
+    val engine: Engine,
+    val gate: GateKeeper,
+    val tvs: TvRepository,
+    val snapshots: SnapshotStore,
+    val ledger: RunLedger,
+    val launcherPin: LauncherPin,
+    val themes: ThemeSource,
+    val restorePoint: RestorePointWriter,
+    val restoreNote: RestoreNote,
+    val sessionEnd: SessionEnd,
+    val access: TvAccess,
+    val clock: Clock,
+    val copy: FlowCopy,
+    val dock: DockPicker = DockPicker.Ranking,
+    val screenLock: ScreenLock = ScreenLock { true },
+    val diagnostics: Diagnostics = Diagnostics { "" },
+    val locale: () -> String = { "en" },
+    val pollMs: Long = 2_000,
+)
+
+// The first-run wizard, screens S1 to S5 (PRODUCT-SPEC 4, UX 2 and 4). One machine per wizard run,
+// hosted by the app's ViewModel. Reducers are pure; side effects run in handle and feed back
+// through send. The run itself lives in the engine's scope: this machine only observes it.
+class SetupMachine(
+    private val deps: SetupDeps,
+    scope: CoroutineScope,
+    private val start: SetupStart = SetupStart.Fresh,
+) : Machine<SetupState, SetupIntent, SetupEffect>(initialState(start), scope), SetupActions {
+
+    private val mutableExtras = MutableStateFlow(SetupExtras())
+    val extras: StateFlow<SetupExtras> = mutableExtras.asStateFlow()
+
+    // Live context of this wizard run. Only handlers touch it.
+    private var session: TvSession? = null
+    private var tv: Tv? = null
+    private var deviceFacts: DeviceFacts? = null
+    private var resolution: ProfileResolution? = null
+    private var snapshot: Snapshot? = null
+    private var allowShown = false
+    private var doorTv: FoundTv? = null
+    private var knownTv: Tv? = null
+    private var connectFailed = false   // a failed connect waits one poll before probing again
+    private var blocked = false         // wrong TV, no shell v2 or a refusal: no retry until the person asks
+    private var currentPlanId: PlanId? = null
+    private var setupPlan: Plan? = null
+    private var undoRequested = false
+    private var askedNotifications = false
+    private var lastFinished: RunState.Finished? = null
+
+    private var discoveryJob: Job? = null
+    private var pollJob: Job? = null
+    private var tickJob: Job? = null
+    private var connectJob: Job? = null
+    private var runJob: Job? = null
+    private var lookingJob: Job? = null
+    private var notFoundJob: Job? = null
+    private var reconnectJob: Job? = null
+    private var restartJob: Job? = null
+
+    private sealed interface Ev {
+        data class Disc(val event: DiscoveryEvent) : Ev
+        data object LookingOver : Ev
+        data object NotFoundYet : Ev
+        data class Tick(val ms: Long) : Ev
+        data object PortOpen : Ev
+        data class Allow(val fingerprint: String) : Ev
+        data class Opened(val identityNeeded: Boolean) : Ev
+        data class OpenFailed(val error: AdbError) : Ev
+        data object GoProbe : Ev
+        data class Stage(val tvId: TvId, val stage: ProbeStage) : Ev
+        data class PlanReady(val tvId: TvId, val plan: Plan, val level: Level) : Ev
+        data class Run(val tvId: TvId, val state: RunState) : Ev
+        data class Stop(val tvId: TvId, val card: StopCard) : Ev
+        data class ShowDone(val tvId: TvId, val summary: DoneSummary) : Ev
+        data class RestartUpdate(val state: RestartState?) : Ev
+        data class Door(val tv: FoundTv) : Ev
+        data object ToWelcome : Ev
+        data object Back : Ev
+        data class Stop2(val action: StopAction) : Ev
+        data object RejectIdentity : Ev
+    }
+
+    init {
+        mutableExtras.update { it.copy(themes = deps.themes.bundled().map { t -> ThemeOption(t.id, t.name, t.description) }) }
+        when (start) {
+            SetupStart.Fresh -> afterTransition(state.value)
+            is SetupStart.Continue -> scope.launch { continueDraft(start.tvId) }
+            is SetupStart.Resume -> scope.launch { resumeRun(start.tvId, start.planId) }
+        }
+    }
+
+    // ---- public additions to the frozen intents (RFC-W8-1) ----
+
+    // System back. Returns false when the wizard should be left (the app pops the entry).
+    override fun intent(intent: SetupIntent) = dispatch(intent)
+
+    override fun back(): Boolean {
+        val s = state.value
+        return when {
+            mutableExtras.value.sheet != null -> { mutableExtras.update { it.copy(sheet = null, addressError = false) }; true }
+            s is SetupState.Found && s.sheet != null -> { send(SetupIntent.Open(null)); true }
+            s is SetupState.Working || s is SetupState.Check -> { mutableExtras.update { it.copy(highlightStop = true) }; true }
+            s is SetupState.Picker || s is SetupState.OpenDoor || s is SetupState.PairingNeeded -> { send(Ev.Back); true }
+            else -> false
+        }
+    }
+
+    override fun stopAction(action: StopAction) = send(Ev.Stop2(action))
+    override fun rejectIdentity() = send(Ev.RejectIdentity)
+    override fun dismissCard() = mutableExtras.update { it.copy(card = null) }
+
+    // ---- reducer ----
+
+    override fun reduce(state: SetupState, event: Any): SetupState = when (event) {
+        is Ev.Disc -> reduceDiscovery(state, event.event)
+        Ev.LookingOver -> if (state is SetupState.Welcome) state.copy(looking = false) else state
+        SetupIntent.Start -> when (state) {
+            is SetupState.Welcome -> when (state.found.size) {
+                0 -> door(placeholderTv())
+                1 -> door(state.found[0])
+                else -> SetupState.Picker(state.found)
+            }
+            else -> state
+        }
+        is SetupIntent.PickTv -> when (state) {
+            is SetupState.Picker -> state.found.firstOrNull { it.host == event.host }?.let { door(it) } ?: state
+            is SetupState.Welcome -> state.found.firstOrNull { it.host == event.host }?.let { door(it) } ?: state
+            else -> state
+        }
+        is SetupIntent.EnterAddress -> if (isHomeAddress(event.ip) && (state is SetupState.Welcome || state is SetupState.Picker || state is SetupState.OpenDoor || state is SetupState.PairingNeeded))
+            door(manualTv(event.ip.trim())) else state
+        is SetupIntent.ChangeFamily -> if (state is SetupState.OpenDoor) {
+            val f = if (event.family in Families.all) event.family else Families.ofBrand(event.family)
+            state.copy(family = f, banner = bannerFor(f, state.tv))
+        } else state
+        is Ev.Door -> door(event.tv)
+        Ev.PortOpen -> if (state is SetupState.OpenDoor && state.phase == DoorPhase.STEPS) state.copy(phase = DoorPhase.CONNECTING, step = 2, waitedMs = 0) else state
+        is Ev.Allow -> if (state is SetupState.OpenDoor) state.copy(phase = DoorPhase.ALLOW, step = 2, fingerprint = event.fingerprint, waitedMs = 0) else state
+        is Ev.Tick -> if (state is SetupState.OpenDoor) state.copy(waitedMs = state.waitedMs + event.ms) else state
+        is Ev.Opened -> if (state is SetupState.OpenDoor) state.copy(phase = if (event.identityNeeded) DoorPhase.IDENTITY else DoorPhase.CONNECTED, waitedMs = 0) else state
+        SetupIntent.ConfirmIdentity -> if (state is SetupState.OpenDoor && state.phase == DoorPhase.IDENTITY) state.copy(phase = DoorPhase.CONNECTED) else state
+        is Ev.OpenFailed -> if (state is SetupState.OpenDoor) when (event.error) {
+            AdbError.Auth.Denied, AdbError.Auth.PendingTooLong -> state.copy(phase = DoorPhase.ALLOW, waitedMs = 0)
+            else -> state.copy(phase = DoorPhase.STEPS, waitedMs = 0)
+        } else state
+        is Ev.Stage -> if (state is SetupState.Probing && state.tvId == event.tvId) state.copy(stage = event.stage)
+            else SetupState.Probing(event.tvId, event.stage, null)
+        is Ev.PlanReady -> SetupState.Found(event.tvId, event.plan, event.level, (state as? SetupState.Found)?.sheet)
+        is SetupIntent.Open -> if (state is SetupState.Found) state.copy(sheet = event.sheet) else state
+        is Ev.Run -> reduceRun(state, event)
+        is Ev.Stop -> SetupState.Stopped(event.tvId, event.card)
+        is Ev.ShowDone -> SetupState.Done(event.tvId, event.summary, null)
+        is Ev.RestartUpdate -> if (state is SetupState.Done) state.copy(restartState = event.state) else state
+        Ev.ToWelcome -> SetupState.Welcome(emptyList(), onWifi = deps.discovery.network().value.onWifi, looking = true)
+        Ev.Back -> SetupState.Welcome(emptyList(), onWifi = deps.discovery.network().value.onWifi, looking = true)
+        Ev.RejectIdentity -> SetupState.Welcome(emptyList(), onWifi = deps.discovery.network().value.onWifi, looking = true)
+        else -> state
+    }
+
+    private fun reduceDiscovery(state: SetupState, e: DiscoveryEvent): SetupState {
+        fun merge(list: List<FoundTv>): List<FoundTv> = when (e) {
+            is DiscoveryEvent.Found -> list.filterNot { it.host == e.tv.host } + e.tv
+            is DiscoveryEvent.Updated -> list.map { if (it.host == e.tv.host) e.tv else it }.let { if (it.none { t -> t.host == e.tv.host }) it + e.tv else it }
+            is DiscoveryEvent.Lost -> list.filterNot { it.host == e.host }
+            is DiscoveryEvent.NetworkState -> list
+        }
+        return when (state) {
+            is SetupState.Welcome -> state.copy(found = merge(state.found), onWifi = (e as? DiscoveryEvent.NetworkState)?.onWifi ?: state.onWifi)
+            is SetupState.Picker -> state.copy(found = merge(state.found))
+            else -> state
+        }
+    }
+
+    private fun reduceRun(state: SetupState, ev: Ev.Run): SetupState = when (val r = ev.state) {
+        is RunState.Running -> SetupState.Working(ev.tvId, r, r.thumbnail ?: (state as? SetupState.Working)?.thumbnail)
+        is RunState.AwaitingConfirm -> SetupState.Check(ev.tvId, r, r.thumbnail ?: (state as? SetupState.Check)?.thumbnail, r.plan.summary.dock)
+        else -> state
+    }
+
+    private fun door(tv: FoundTv): SetupState {
+        val pairingOnly = (tv.pairingService != null || tv.connectService != null) && tv.port5555Open != true
+        if (pairingOnly) return SetupState.PairingNeeded(tv)
+        val family = Families.of(tv)
+        val open = tv.port5555Open == true
+        return SetupState.OpenDoor(tv, family, step = if (open) 2 else 0, phase = if (open) DoorPhase.CONNECTING else DoorPhase.STEPS,
+            fingerprint = null, banner = bannerFor(family, tv), waitedMs = 0)
+    }
+
+    private fun bannerFor(family: String, tv: FoundTv): String? = when {
+        family == Families.FIRE -> deps.copy.text(CopyKey.BANNER_FIRE)
+        family == Families.TCL -> deps.copy.text(CopyKey.BANNER_TCL)
+        listOfNotNull(tv.model, tv.friendlyName).any { "mibox" in it.lowercase() || "mi box" in it.lowercase() } -> deps.copy.text(CopyKey.BANNER_MIBOX)
+        else -> null
+    }
+
+    // ---- side effects ----
+
+    override fun handle(event: Any, before: SetupState, after: SetupState) {
+        // A new door (another TV, a typed address, a fresh start) clears the retry brakes.
+        if (event is Ev.Door || event == SetupIntent.Start || event is SetupIntent.PickTv || event is SetupIntent.EnterAddress || event == Ev.Back || event == Ev.ToWelcome) {
+            blocked = false; connectFailed = false
+        }
+        when (event) {
+            is SetupIntent.EnterAddress -> mutableExtras.update {
+                if (isHomeAddress(event.ip)) it.copy(sheet = null, addressError = false, card = null) else it.copy(addressError = true)
+            }
+            is SetupIntent.Open -> if (after !is SetupState.Found) mutableExtras.update { it.copy(sheet = event.sheet, addressError = false) }
+                else if (event.sheet == Sheet.CUSTOMISE && after.level == Level.SIMPLE) setLevel(Level.CUSTOM)
+            SetupIntent.AskTvAgain -> askAgain()
+            is Ev.Opened -> { connectFailed = false; if (!event.identityNeeded) connected() }
+            SetupIntent.ConfirmIdentity -> if (before is SetupState.OpenDoor && before.phase == DoorPhase.IDENTITY) connected()
+            Ev.RejectIdentity -> scope.launch { session?.let { s -> attempt { s.close() } }; session = null; tv = null }
+            Ev.GoProbe -> scope.launch { probe() }
+            is Ev.OpenFailed -> onOpenFailed(event.error)
+            is SetupIntent.Keep -> editDraft { d ->
+                if (event.keep) d.copy(kept = d.kept + event.pkg, extraOff = d.extraOff - event.pkg)
+                else if (event.pkg in d.kept) d.copy(kept = d.kept - event.pkg) else d.copy(extraOff = d.extraOff + event.pkg)
+            }
+            is SetupIntent.SetDock -> editDraft { it.copy(dock = event.dock.take(8)) }
+            is SetupIntent.SetTheme -> editDraft { it.copy(themeId = event.id) }
+            is SetupIntent.KeepDebuggingOn -> editDraft { it.copy(keepDebuggingOn = event.on) }
+            SetupIntent.MakeItClean -> if (after is SetupState.Found && !mutableExtras.value.starting) scope.launch { makeItClean(after.plan, null) }
+            is SetupIntent.CredentialPassed -> { deps.gate.remember(event.pass); (state.value as? SetupState.Found)?.let { f -> if (mutableExtras.value.starting) scope.launch { makeItClean(f.plan, event.pass) } } }
+            SetupIntent.CredentialFailed -> mutableExtras.update { it.copy(starting = false) }
+            SetupIntent.StopAndUndo -> scope.launch { stopAndUndo() }
+            SetupIntent.YesISeeIt -> scope.launch { tvIdOf(after)?.let { deps.engine.confirmHome(it) } }
+            SetupIntent.NoPutItBack -> scope.launch { tvIdOf(after)?.let { deps.engine.rejectHome(it) } }
+            SetupIntent.TryWithWizardOff -> scope.launch { tryWizardOff() }
+            SetupIntent.LeaveOldHome -> scope.launch { leaveOldHome() }
+            SetupIntent.CarryOn -> scope.launch { carryOn() }
+            SetupIntent.UndoWhatWeDid -> scope.launch { undoWhatWeDid() }
+            SetupIntent.Restart -> if (after is SetupState.Done && restartJob?.isActive != true) restartJob = scope.launch { restart(after) }
+            SetupIntent.SaveRestoreNote -> scope.launch { restoreNote() }
+            SetupIntent.AddCard -> tvIdOf(after)?.let { effect(SetupEffect.Navigate("modules/${it.value}")) }
+            SetupIntent.Finish -> if (after is SetupState.Done && mutableExtras.value.finishing == null) scope.launch { finish(after.tvId) }
+            is Ev.Run -> onRun(before, event)
+            is Ev.Stop2 -> onStopAction(after, event.action)
+            else -> {}
+        }
+        if (before::class != after::class || event is Ev.PortOpen || event is Ev.Door || event == SetupIntent.Start) afterTransition(after)
+        if (after is SetupState.OpenDoor && before is SetupState.OpenDoor && before.phase != after.phase) afterTransition(after)
+    }
+
+    // Starts and stops the background jobs that belong to each state (F1: discovery only on
+    // Welcome, the picker and a door with no TV yet; the port probe only while waiting for it).
+    private fun afterTransition(s: SetupState) {
+        val looking = s is SetupState.Welcome || s is SetupState.Picker || (s is SetupState.OpenDoor && s.tv.host.isEmpty())
+        if (looking && discoveryJob?.isActive != true) {
+            discoveryJob = scope.launch { deps.discovery.discover().collect { e -> onDiscovery(e) } }
+        } else if (!looking) { discoveryJob?.cancel(); discoveryJob = null }
+
+        if (s is SetupState.Welcome && lookingJob?.isActive != true) lookingJob = scope.launch { delay(8_000); send(Ev.LookingOver) }
+        if (s is SetupState.OpenDoor && s.tv.host.isEmpty() && notFoundJob?.isActive != true) notFoundJob = scope.launch {
+            delay(20_000)
+            if ((state.value as? SetupState.OpenDoor)?.tv?.host?.isEmpty() == true) mutableExtras.update { it.copy(card = card(StopCase.TV_NOT_FOUND, null)) }
+        }
+
+        val waitingForPort = s is SetupState.OpenDoor && s.tv.host.isNotEmpty() && s.phase == DoorPhase.STEPS && !blocked
+        if (waitingForPort && pollJob?.isActive != true) {
+            val host = (s as SetupState.OpenDoor).tv.host
+            pollJob = scope.launch {
+                if (connectFailed) delay(deps.pollMs)
+                while (true) {
+                    if (attempt { deps.discovery.probe5555(host) }.getOrDefault(false)) { send(Ev.PortOpen); break }
+                    delay(deps.pollMs)
+                }
+            }
+        } else if (!waitingForPort) { pollJob?.cancel(); pollJob = null }
+
+        if (s is SetupState.OpenDoor && tickJob?.isActive != true) {
+            tickJob = scope.launch { while (true) { delay(1_000); send(Ev.Tick(1_000)) } }
+        } else if (s !is SetupState.OpenDoor) { tickJob?.cancel(); tickJob = null }
+
+        if (s is SetupState.OpenDoor && s.phase == DoorPhase.CONNECTING && connectJob?.isActive != true) {
+            connectJob = scope.launch { connect(s.tv) }
+        }
+        mutableExtras.update { it.copy(tvName = nameOf(s) ?: it.tvName, chip = chipOf(s)) }
+    }
+
+    private fun onDiscovery(e: DiscoveryEvent) {
+        val s = state.value
+        if (s is SetupState.OpenDoor && s.tv.host.isEmpty() && (e is DiscoveryEvent.Found || e is DiscoveryEvent.Updated)) {
+            val tv = (e as? DiscoveryEvent.Found)?.tv ?: (e as DiscoveryEvent.Updated).tv
+            mutableExtras.update { it.copy(card = null) }
+            send(Ev.Door(tv))
+            return
+        }
+        if (e is DiscoveryEvent.NetworkState && !e.onWifi && (s is SetupState.Welcome || s is SetupState.Picker)) {
+            mutableExtras.update { it.copy(card = card(StopCase.WRONG_NETWORK, null, body = CopyKey.STOP_WIFI_OFF_BODY)) }
+        } else if (e is DiscoveryEvent.NetworkState && e.onWifi && mutableExtras.value.card?.case == StopCase.WRONG_NETWORK) {
+            mutableExtras.update { it.copy(card = null) }
+        }
+        send(Ev.Disc(e))
+    }
+
+    private suspend fun connect(found: FoundTv) {
+        val known = deps.tvs.tvs.value.firstOrNull { t -> t.endpoints.any { it.host == found.host } }
+        allowShown = false
+        doorTv = found
+        knownTv = known
+        val result = attempt {
+            deps.sessions.open(Endpoint.PlainTcp(found.host), known?.id) { fp -> allowShown = true; send(Ev.Allow(fp)) }
+        }.getOrElse { OpenResult.Failed(AdbError.Transport.Unreachable) }
+        when (result) {
+            is OpenResult.Ok -> {
+                session = result.session
+                val identity = result.session.identity
+                // D38: a TV that raised no Allow dialog and is new to this phone gets the "Is this your
+                // TV?" line with a screenshot before anything else happens.
+                val needsIdentity = !allowShown && known == null
+                if (needsIdentity) {
+                    val shot = attempt { deps.prober.screenshot(result.session) }.getOrNull()
+                    mutableExtras.update { it.copy(identity = IdentityCheck(identity.model, identity.serialLast4, shot)) }
+                }
+                send(Ev.Opened(needsIdentity))
+            }
+            is OpenResult.Failed -> send(Ev.OpenFailed(result.error))
+        }
+    }
+
+    private fun onOpenFailed(error: AdbError) {
+        connectFailed = true
+        if (error is AdbError.Policy.WrongTv || error == AdbError.Transport.NoShellV2) { blocked = true; pollJob?.cancel(); pollJob = null }
+        when (error) {
+            is AdbError.Policy.WrongTv -> mutableExtras.update { it.copy(card = card(StopCase.IDENTITY_CHANGED, null, args = mapOf("name" to (knownTv?.nickname ?: "")))) }
+            AdbError.Transport.NoShellV2 -> mutableExtras.update { it.copy(card = card(StopCase.TV_NOT_SUPPORTED, null)) }
+            AdbError.Auth.Denied -> mutableExtras.update { it.copy(allowDenied = true) }
+            else -> {}
+        }
+    }
+
+    private fun askAgain() {
+        val s = state.value as? SetupState.OpenDoor ?: return
+        blocked = false
+        mutableExtras.update { it.copy(allowRetries = it.allowRetries + 1, allowDenied = false) }
+        connectJob?.cancel()
+        connectJob = scope.launch {
+            session?.let { attempt { it.close() } }
+            session = null
+            connect(s.tv)
+        }
+    }
+
+    private fun connected() {
+        effect(SetupEffect.HapticDouble)
+        scope.launch { delay(600); send(Ev.GoProbe) }
+    }
+
+    // ---- probe and plan (S2d to S3) ----
+
+    private suspend fun probe() {
+        val s = session ?: return
+        val tvId = s.tvId
+        send(Ev.Stage(tvId, ProbeStage.FACTS))
+        val ok = attempt {
+            val facts = deps.prober.facts(s)
+            deviceFacts = facts
+            val res = deps.profiles.resolve(facts)
+            resolution = res
+            val baseline = deps.snapshots.baseline(tvId)
+            val snap = deps.prober.snapshot(s, if (baseline == null) SnapshotReason.BASELINE else SnapshotReason.MANUAL) { st -> send(Ev.Stage(tvId, st)) }
+            deps.snapshots.save(snap)
+            snapshot = snap
+            val record = upsertTv(s, facts, res)
+            tv = record
+            replan(record)
+        }
+        ok.exceptionOrNull()?.let { e ->
+            val case = if (e is AdbException) StopCase.CONNECTION_LOST else StopCase.PROBE_FAILED
+            send(Ev.Stop(tvId, card(case, null, args = mapOf("done" to 0, "total" to 0))))
+        }
+    }
+
+    private suspend fun upsertTv(s: TvSession, facts: DeviceFacts, res: ProfileResolution): Tv {
+        val now = deps.clock.nowMs()
+        val existing = deps.tvs.tvs.value.firstOrNull { it.id == s.tvId }
+        val host = (s.state.value as? ConnectionState.Connected)?.endpoint ?: existing?.endpoints?.firstOrNull()
+        val name = existing?.nickname ?: doorTv?.friendlyName ?: doorTv?.model ?: facts.model
+        val profile = (res as? ProfileResolution.Exact)?.profile
+        val draft = existing?.wizard ?: WizardDraft(step = 3, level = existing?.level ?: Level.SIMPLE, kept = emptySet(), extraOff = emptySet(),
+            dock = null, themeId = null, keepDebuggingOn = false, planId = null, updatedAtMs = now)
+        val tv = Tv(
+            id = s.tvId, nickname = name, room = existing?.room, facts = facts,
+            endpoints = listOfNotNull(host).ifEmpty { existing?.endpoints.orEmpty() },
+            lastSubnet = deps.discovery.network().value.subnet ?: existing?.lastSubnet,
+            trust = existing?.trust ?: TrustRecord(adbKeyId = "", tlsCertSha256 = null, firstConnectedAt = now, pairedAt = null),
+            profileId = profile?.id, level = draft.level, launcher = existing?.launcher, wizard = draft.copy(step = 3, updatedAtMs = now),
+            lastSeenAt = now, debugging = DebugState.ON,
+        )
+        deps.tvs.upsert(tv)
+        mutableExtras.update { it.copy(draft = tv.wizard, tvName = tv.nickname) }
+        return tv
+    }
+
+    private fun profile(): Profile? = (resolution as? ProfileResolution.Exact)?.profile
+
+    private fun homePossible(): Boolean {
+        val f = deviceFacts ?: return true
+        val p = profile()
+        return !f.installRefusal && p?.platform != Platform.FIRE_OS && p?.platform != Platform.TCL_CN
+    }
+
+    // Plans the Setup from the current snapshot and draft; pure and quick (the planner is pure).
+    private suspend fun replan(record: Tv, fresh: Boolean = false) {
+        val s = session ?: return
+        val res = resolution ?: return
+        if (fresh) snapshot = deps.runner.freshSnapshot(s)
+        val snap = snapshot ?: return
+        val draft = record.wizard ?: return
+        val launcher = deps.launcherPin.bundled()
+        val installed = snap.packages[launcher.pkg]
+        val dock = draft.dock ?: deps.dock.pick(profile(), snap.packages.keys, snap.hdmi.isNotEmpty(), profile()?.liveTv, deps.locale())
+        val possible = homePossible()
+        val choices = Choices(
+            kept = draft.kept, extraOff = draft.extraOff, dock = dock,
+            theme = draft.themeId?.let { id -> deps.themes.bundled().firstOrNull { it.id == id } },
+            installLauncher = possible, takeover = possible,
+            replaceLauncherSigner = installed?.signer?.let { it != launcher.signer } ?: false,
+            keepDebuggingOn = draft.keepDebuggingOn,
+        )
+        when (val r = deps.runner.plan(record, PlanRequest.Setup(res, choices, launcher, draft.level), snap)) {
+            is PlanResult.Ok -> {
+                setupPlan = r.plan
+                val label = { p: PackageName -> deps.facts.lookup(p)?.friendlyName ?: snap.packages[p]?.label ?: p.value }
+                val apps = snap.packages.filter { (k, st) -> !st.system || deps.facts.lookup(k) != null }.keys
+                    .map { AppChoice(it, label(it)) }.sortedBy { it.name.lowercase() }
+                mutableExtras.update {
+                    it.copy(commands = commandsOf(r.plan), unknownModel = res !is ProfileResolution.Exact, homePossible = possible,
+                        noScreenLock = !deps.screenLock.available(), draft = draft, dock = dock.map { p -> AppChoice(p, label(p)) }, apps = apps)
+                }
+                send(Ev.PlanReady(record.id, r.plan, draft.level))
+            }
+            is PlanResult.Refused -> send(Ev.Stop(record.id, card(StopCase.PROBE_FAILED, null)))
+        }
+    }
+
+    private fun editDraft(change: (WizardDraft) -> WizardDraft) {
+        val record = tv ?: return
+        val draft = record.wizard ?: return
+        val next = change(draft).copy(updatedAtMs = deps.clock.nowMs())
+        val updated = record.copy(wizard = next, level = next.level)
+        tv = updated
+        if (next.keepDebuggingOn != draft.keepDebuggingOn) deps.sessionEnd.keepDebuggingOn(record.id, next.keepDebuggingOn)
+        scope.launch {
+            deps.tvs.upsert(updated)
+            replan(updated)
+        }
+    }
+
+    private fun setLevel(level: Level) = editDraft { it.copy(level = level) }
+
+    // ---- the run (S3 to S4) ----
+
+    private suspend fun makeItClean(plan: Plan, given: GatePass?) {
+        val record = tv ?: return
+        val s = session ?: return
+        mutableExtras.update { it.copy(starting = true) }
+        var pass = given ?: deps.gate.cached(record.id)
+        if (pass == null && GateKeeper.needsPass(plan)) {
+            effect(SetupEffect.RequestCredential)
+            pass = deps.gate.pass(record.id, record.nickname)
+            if (pass == null) { mutableExtras.update { it.copy(starting = false) }; return }
+        }
+        mutableExtras.update { it.copy(noScreenLock = deps.gate.noScreenLock(record.id) || it.noScreenLock) }
+        if (!askedNotifications) { askedNotifications = true; effect(SetupEffect.RequestNotificationPermission) }
+        startPlan(record, s, plan, pass)
+    }
+
+    private suspend fun startPlan(record: Tv, s: TvSession, plan: Plan, pass: GatePass?) {
+        currentPlanId = plan.id
+        watchRun(record.id)
+        val result = attempt { deps.engine.start(plan, s, plan.hash, pass) }.getOrElse { StartResult.Refused(StartRefusal.NOT_CONNECTED) }
+        mutableExtras.update { it.copy(starting = false) }
+        when (result) {
+            StartResult.Started -> {
+                deps.ledger.record(plan)
+                deps.sessionEnd.touched(record.id)
+                val t = record.copy(wizard = record.wizard?.copy(step = 4, planId = plan.id, updatedAtMs = deps.clock.nowMs()))
+                tv = t
+                deps.tvs.upsert(t)
+            }
+            is StartResult.Refused -> when (result.reason) {
+                StartRefusal.HASH_MISMATCH -> replan(record, fresh = true)
+                StartRefusal.GATE_REQUIRED, StartRefusal.GATE_EXPIRED -> deps.gate.forget(record.id)
+                StartRefusal.RUN_OPEN -> { deps.engine.runState(record.id).value.planOrNull()?.let { currentPlanId = it.id } }
+                StartRefusal.NOT_CONNECTED -> send(Ev.Stop(record.id, card(StopCase.CONNECTION_LOST, plan.id, args = counts(plan, 0))))
+                StartRefusal.WRONG_TV -> send(Ev.Stop(record.id, card(StopCase.IDENTITY_CHANGED, plan.id, args = mapOf("name" to record.nickname))))
+            }
+        }
+    }
+
+    private fun watchRun(tvId: TvId) {
+        if (runJob?.isActive == true) return
+        runJob = scope.launch {
+            deps.engine.runState(tvId).collect { r ->
+                val id = r.planOrNull()?.id
+                if (id != null && id == currentPlanId) send(Ev.Run(tvId, r))
+            }
+        }
+    }
+
+    private fun onRun(before: SetupState, ev: Ev.Run) {
+        when (val r = ev.state) {
+            is RunState.Running -> mutableExtras.update { it.copy(rollingBack = false, chip = ChipState.WORKING) }
+            is RunState.AwaitingConfirm -> if (before !is SetupState.Check) {
+                effect(SetupEffect.HapticFirm)
+                effect(SetupEffect.Notify(deps.copy.text(CopyKey.NOTIFY_LOOK)))
+                mutableExtras.update { it.copy(highlightStop = false) }
+            }
+            is RunState.RollingBack -> mutableExtras.update { it.copy(rollingBack = true) }
+            is RunState.Paused -> scope.launch { onPaused(ev.tvId, r) }
+            is RunState.Finished -> scope.launch { onFinished(ev.tvId, r) }
+            else -> {}
+        }
+    }
+
+    private suspend fun onPaused(tvId: TvId, p: RunState.Paused) {
+        if (undoRequested && p.reason == PauseReason.USER_STOP) {
+            undoRequested = false
+            val record = tv ?: return
+            val pass = deps.gate.pass(record.id, record.nickname)
+            if (pass != null || !GateKeeper.needsPass(p.plan)) { deps.engine.undoRun(tvId, pass); return }
+        }
+        val c = counts(p.plan, deps.ledger.progress(p.plan.id).doneDisables)
+        when (p.reason) {
+            PauseReason.CONNECTION_LOST -> {
+                send(Ev.Stop(tvId, card(StopCase.CONNECTION_LOST, p.plan.id, args = c)))
+                watchReconnect(tvId)
+            }
+            PauseReason.STEP_FAILED -> {
+                val failed = p.plan.steps.getOrNull(p.at)?.op
+                val case = if (failed is Op.Install || failed is Op.InstallStream || p.error is AdbError.Device) StopCase.INSTALL_FAILED else StopCase.STEP_FAILED
+                send(Ev.Stop(tvId, card(case, p.plan.id, args = c)))
+            }
+            PauseReason.STALE -> {
+                mutableExtras.update { it.copy(staleNotice = true) }
+                tv?.let { replan(it, fresh = true) }
+            }
+            PauseReason.IN_DOUBT, PauseReason.USER_STOP -> send(Ev.Stop(tvId, resumeCard(tvId, p.plan.id, c, home = false)))
+        }
+    }
+
+    private fun watchReconnect(tvId: TvId) {
+        reconnectJob?.cancel()
+        mutableExtras.update { it.copy(reconnect = Reconnect.TRYING) }
+        reconnectJob = scope.launch {
+            val back = withTimeoutOrNull(60_000) {
+                var live = deps.sessions.existing(tvId)
+                while (live == null) { delay(deps.pollMs); live = deps.sessions.existing(tvId) }
+                live.state.first { it is ConnectionState.Connected }
+                session = live
+                true
+            } ?: false
+            mutableExtras.update { it.copy(reconnect = if (back) Reconnect.BACK else Reconnect.GAVE_UP) }
+        }
+    }
+
+    private suspend fun onFinished(tvId: TvId, f: RunState.Finished) {
+        lastFinished = f
+        mutableExtras.update { it.copy(rollingBack = false, highlightStop = false) }
+        when {
+            f.status == RunStatus.ROLLED_BACK -> send(Ev.Stop(tvId, card(StopCase.UNDONE, f.plan.id)))
+            f.status == RunStatus.ABANDONED -> effect(SetupEffect.Navigate("manage/${tvId.value}"))
+            f.home != null && f.home != HomeOutcome.CONFIRMED -> send(Ev.Stop(tvId, homeCard(f)))
+            else -> showDone(tvId, f, homeOn = f.plan.sections.isNotEmpty() && f.home == HomeOutcome.CONFIRMED)
+        }
+    }
+
+    private suspend fun showDone(tvId: TvId, f: RunState.Finished?, homeOn: Boolean) {
+        val record = tv ?: deps.tvs.tvs.value.firstOrNull { it.id == tvId } ?: return
+        val plan = f?.plan ?: setupPlan
+        val progress = plan?.let { deps.ledger.progress(it.id) }
+        val skipped = f?.skipped.orEmpty()
+        val off = when {
+            progress != null && progress.doneSteps > 0 -> progress.doneDisables
+            plan != null -> plan.steps.count { it.op is Op.Disable } - skipped.count { it.op is Op.Disable }
+            else -> 0
+        }
+        val skippedNames = skipped.mapNotNull { (it.op as? Op.Disable)?.pkg }.map { nameOfPkg(it) }
+        val p = profile()
+        val recommended = p == null || Quirk.HOME_TAKEOVER_SETUPWRAITH in p.quirks || p.tested?.rebootTested != true
+        val restorePointAt = deps.snapshots.latest(tvId)?.takenAtMs ?: deps.clock.nowMs()
+        val launcher = deps.launcherPin.bundled()
+        val done = record.copy(
+            wizard = null,
+            launcher = if (homeOn) LauncherState(launcher.versionCode, launcher.signer, record.launcher?.overlayDigest, record.launcher?.ourOverlayDigest) else record.launcher,
+            lastSeenAt = deps.clock.nowMs(),
+        )
+        tv = done
+        deps.tvs.upsert(done)
+        mutableExtras.update { it.copy(doneLines = skippedNames) }
+        send(Ev.ShowDone(tvId, DoneSummary(off, homeOn, restorePointAt, skippedNames, recommended)))
+        session?.let { s -> mutableExtras.update { it.copy(restorePointPushed = deps.restorePoint.write(done, s, p)) } }
+    }
+
+    private suspend fun stopAndUndo() {
+        val id = tvIdOf(state.value) ?: return
+        undoRequested = true
+        mutableExtras.update { it.copy(highlightStop = false) }
+        deps.engine.stop(id)
+    }
+
+    private suspend fun carryOn() {
+        val record = tv ?: return
+        val id = record.id
+        val plan = deps.engine.runState(id).value.planOrNull()
+        val pass = if (plan == null || GateKeeper.needsPass(plan)) deps.gate.pass(id, record.nickname) ?: return else null
+        currentPlanId = plan?.id ?: currentPlanId
+        watchRun(id)
+        reconnectJob?.cancel()
+        mutableExtras.update { it.copy(reconnect = null) }
+        deps.engine.continueRun(id, pass)
+    }
+
+    private suspend fun undoWhatWeDid() {
+        val record = tv ?: return
+        val plan = deps.engine.runState(record.id).value.planOrNull()
+        val pass = if (plan == null || GateKeeper.needsPass(plan)) deps.gate.pass(record.id, record.nickname) ?: return else null
+        currentPlanId = plan?.id ?: currentPlanId
+        watchRun(record.id)
+        reconnectJob?.cancel()
+        mutableExtras.update { it.copy(reconnect = null) }
+        deps.engine.undoRun(record.id, pass)
+    }
+
+    // "Try with the wizard off": the setupwraith package goes into the plan and step 5 runs again
+    // with the same check (UX 4.7). Profiles that carry the quirk never get here.
+    private suspend fun tryWizardOff() {
+        val record = tv ?: return
+        val wraith = profile()?.setupWraith ?: snapshot?.home?.claimants?.map { it.component.pkg }
+            ?.firstOrNull { "setupwraith" in it.value.lowercase() }
+        val t = if (wraith != null) record.copy(wizard = record.wizard?.let { w -> w.copy(extraOff = w.extraOff + wraith) }) else record
+        tv = t
+        deps.tvs.upsert(t)
+        retakeover(t)
+    }
+
+    // Plans again from a fresh snapshot (the debloat part is already done) and starts at once.
+    private suspend fun retakeover(record: Tv) {
+        val s = session ?: return
+        replan(record.copy(wizard = record.wizard ?: draftFor(record)), fresh = true)
+        val plan = setupPlan ?: return
+        val pass = if (GateKeeper.needsPass(plan)) deps.gate.pass(record.id, record.nickname) ?: return else null
+        startPlan(record, s, plan, pass)
+    }
+
+    private fun draftFor(record: Tv) = WizardDraft(3, record.level, emptySet(), emptySet(), null, null, false, null, deps.clock.nowMs())
+
+    private suspend fun leaveOldHome() {
+        val id = tvIdOf(state.value) ?: return
+        showDone(id, lastFinished, homeOn = false)
+    }
+
+    private fun onStopAction(s: SetupState, action: StopAction) {
+        val case = (s as? SetupState.Stopped)?.card?.case ?: mutableExtras.value.card?.case ?: return
+        when (case) {
+            StopCase.HOME_SETUPWRAITH -> send(if (action == StopAction.PRIMARY) SetupIntent.TryWithWizardOff else SetupIntent.LeaveOldHome)
+            StopCase.HOME_OTHER_LAUNCHER -> if (action == StopAction.PRIMARY) scope.launch { tv?.let { retakeover(it) } } else send(SetupIntent.LeaveOldHome)
+            StopCase.HOME_UNKNOWN -> if (action == StopAction.PRIMARY) shareDiagnostics() else send(SetupIntent.LeaveOldHome)
+            StopCase.HOME_USER_SAID_NO -> if (action == StopAction.PRIMARY) scope.launch { tv?.let { retakeover(it) } } else shareDiagnostics()
+            StopCase.HOME_TIMED_OUT -> if (action == StopAction.PRIMARY) scope.launch { tv?.let { retakeover(it) } } else send(SetupIntent.LeaveOldHome)
+            StopCase.CONNECTION_LOST, StopCase.STEP_FAILED -> when (action) {
+                StopAction.PRIMARY -> send(SetupIntent.CarryOn)
+                StopAction.SECONDARY -> scope.launch { abandonToDone() }
+                StopAction.TERTIARY -> send(SetupIntent.UndoWhatWeDid)
+            }
+            StopCase.RESUME_AFTER_DEATH -> when (action) {
+                StopAction.PRIMARY -> send(SetupIntent.CarryOn)
+                StopAction.SECONDARY -> send(SetupIntent.UndoWhatWeDid)
+                StopAction.TERTIARY -> scope.launch { tvIdOf(s)?.let { deps.engine.abandon(it) } }
+            }
+            StopCase.INSTALL_FAILED -> scope.launch { abandonToDone() }
+            StopCase.UNDONE -> tvIdOf(s)?.let { effect(SetupEffect.Navigate("manage/${it.value}")) }
+            StopCase.PROBE_FAILED -> if (action == StopAction.PRIMARY) scope.launch { probe() } else send(Ev.ToWelcome)
+            StopCase.NOT_BACK_AFTER_RESTART -> if (action == StopAction.PRIMARY) (state.value as? SetupState.Done)?.let { d -> restartJob = scope.launch { awaitBack(d.tvId, deps.clock.nowMs()) } } else shareDiagnostics()
+            StopCase.TV_NOT_FOUND -> if (action == StopAction.PRIMARY) { mutableExtras.update { it.copy(card = null) }; discoveryJob?.cancel(); discoveryJob = null; afterTransition(state.value) }
+                else mutableExtras.update { it.copy(card = null, sheet = Sheet.ADDRESS) }
+            StopCase.WRONG_NETWORK, StopCase.IDENTITY_CHANGED, StopCase.TV_NOT_SUPPORTED -> { mutableExtras.update { it.copy(card = null) }; send(Ev.ToWelcome) }
+            StopCase.TV_REFUSES_HOME, StopCase.PAIRING_NEEDED -> send(Ev.ToWelcome)
+        }
+    }
+
+    // "Stop here" and the install failure: keep what was done, abandon the rest, show Done truthfully.
+    private suspend fun abandonToDone() {
+        val id = tvIdOf(state.value) ?: return
+        val plan = deps.engine.runState(id).value.planOrNull()
+        attempt { deps.engine.abandon(id) }
+        showDone(id, plan?.let { RunState.Finished(it, RunStatus.ABANDONED, emptyList(), null) }, homeOn = false)
+    }
+
+    private fun shareDiagnostics() {
+        scope.launch { effect(SetupEffect.Share(deps.diagnostics.redactedText())) }
+    }
+
+    // ---- Done (S5) ----
+
+    // D24 restart test, UX 4.8: reboot, wait, 3 minute note, 5 minute card; debugging stays on.
+    private suspend fun restart(d: SetupState.Done) {
+        val s = session ?: return
+        val since = deps.clock.nowMs()
+        send(Ev.RestartUpdate(RestartState.Restarting(since)))
+        mutableExtras.update { it.copy(restartSlow = false, restartReenabled = 0) }
+        if (attempt { s.reboot() }.isFailure) { send(Ev.RestartUpdate(null)); return }
+        awaitBack(d.tvId, since)
+    }
+
+    private suspend fun awaitBack(tvId: TvId, since: Long) {
+        val s = session ?: return
+        send(Ev.RestartUpdate(RestartState.Restarting(since)))
+        val start = deps.clock.monotonicMs()
+        var outcome = attempt { s.awaitBoot(3 * 60_000) }.getOrElse { BootOutcome.Timeout }
+        if (outcome is BootOutcome.Timeout) {
+            mutableExtras.update { it.copy(restartSlow = true) }
+            outcome = attempt { s.awaitBoot(2 * 60_000) }.getOrElse { BootOutcome.Timeout }
+        }
+        val after = maxOf(deps.clock.monotonicMs() - start, 0)
+        if (outcome is BootOutcome.Timeout) {
+            send(Ev.RestartUpdate(RestartState.NotBack(after)))
+            mutableExtras.update { it.copy(card = card(StopCase.NOT_BACK_AFTER_RESTART, null)) }
+            return
+        }
+        mutableExtras.update { it.copy(card = null) }
+        // After the restart: things that came back on are switched off again (UX 4.8).
+        val record = tv
+        val came = if (record != null) attempt { switchOffLeftovers(record, s) }.getOrDefault(0) else 0
+        mutableExtras.update { it.copy(restartReenabled = came) }
+        send(Ev.RestartUpdate(RestartState.Back(after)))
+    }
+
+    private suspend fun switchOffLeftovers(record: Tv, s: TvSession): Int {
+        val expected = deps.ledger.switchedOffByUs(record.id).toSet()
+        if (expected.isEmpty()) return 0
+        val snap = deps.runner.freshSnapshot(s)
+        val plan = (deps.runner.plan(record, PlanRequest.Leftovers(expected), snap) as? PlanResult.Ok)?.plan ?: return 0
+        val n = plan.steps.count { it.op is Op.Disable }
+        if (n == 0) return 0
+        deps.runner.run(record, plan, s)
+        return n
+    }
+
+    private suspend fun restoreNote() {
+        val record = tv ?: return
+        val changes = deps.ledger.changes(record.id)
+        val stock = profile()?.stockLaunchers?.firstOrNull()?.pkg
+        val stockName = stock?.let { nameOfPkg(it) } ?: stock?.value ?: ""
+        val text = deps.restoreNote.text(record, changes, deps.facts, stockName, deps.copy.date(deps.clock.nowMs()))
+        effect(SetupEffect.Share(text))
+    }
+
+    // D7: Finish switches debugging off unless "Keep debugging on" was chosen, then opens Manage.
+    private suspend fun finish(tvId: TvId) {
+        val keep = tv?.wizard?.keepDebuggingOn == true || mutableExtras.value.draft?.keepDebuggingOn == true || deps.sessionEnd.keepsDebuggingOn(tvId)
+        if (!keep) {
+            mutableExtras.update { it.copy(finishing = Finishing.SWITCHING) }
+            deps.sessionEnd.switchOff(tvId)
+            mutableExtras.update { it.copy(finishing = Finishing.DONE, chip = ChipState.DEBUGGING_OFF) }
+            delay(600)
+        }
+        effect(SetupEffect.Navigate("manage/${tvId.value}"))
+    }
+
+    // ---- start modes ----
+
+    private suspend fun continueDraft(tvId: TvId) {
+        val record = deps.tvs.tvs.value.firstOrNull { it.id == tvId } ?: run { send(Ev.ToWelcome); return }
+        tv = record
+        mutableExtras.update { it.copy(tvName = record.nickname, draft = record.wizard) }
+        send(Ev.Door(foundOf(record, open = true)))
+    }
+
+    private suspend fun resumeRun(tvId: TvId, planId: PlanId) {
+        val record = deps.tvs.tvs.value.firstOrNull { it.id == tvId } ?: run { send(Ev.ToWelcome); return }
+        tv = record
+        currentPlanId = planId
+        mutableExtras.update { it.copy(tvName = record.nickname, chip = ChipState.WAITING) }
+        val entry = deps.ledger.entry(tvId, planId)
+        val progress = deps.ledger.progress(planId)
+        val args = mapOf("tv" to record.nickname, "done" to progress.doneDisables, "total" to (entry?.disables ?: progress.doneDisables))
+        send(Ev.Stop(tvId, resumeCard(tvId, planId, args, home = progress.openSection)))
+        when (val r = deps.access.session(tvId)) {
+            is AccessResult.Ok -> {
+                session = r.session
+                watchRun(tvId)
+                mutableExtras.update { it.copy(chip = ChipState.CONNECTED) }
+                attempt { deps.engine.resume(tvId, r.session) }
+            }
+            else -> mutableExtras.update { it.copy(chip = ChipState.OFFLINE) }
+        }
+    }
+
+    // ---- copy and small helpers ----
+
+    private fun resumeCard(tvId: TvId, planId: PlanId?, args: Map<String, Any>, home: Boolean): StopCard {
+        val a = args + ("tv" to (tv?.nickname ?: deps.tvs.tvs.value.firstOrNull { it.id == tvId }?.nickname ?: ""))
+        return card(StopCase.RESUME_AFTER_DEATH, planId, args = a, body = if (home) CopyKey.STOP_RESUME_HOME_BODY else null)
+    }
+
+    private fun homeCard(f: RunState.Finished): StopCard {
+        val other = otherLauncherName()
+        val case = when (f.home) {
+            HomeOutcome.USER_SAID_NO -> StopCase.HOME_USER_SAID_NO
+            HomeOutcome.TIMED_OUT -> StopCase.HOME_TIMED_OUT
+            HomeOutcome.CONNECTION_LOST -> StopCase.RESUME_AFTER_DEATH
+            else -> when {
+                wraithClaims() -> StopCase.HOME_SETUPWRAITH
+                other != null -> StopCase.HOME_OTHER_LAUNCHER
+                else -> StopCase.HOME_UNKNOWN
+            }
+        }
+        if (case == StopCase.RESUME_AFTER_DEATH) return card(case, f.plan.id, args = mapOf("tv" to (tv?.nickname ?: "")), body = CopyKey.STOP_RESUME_HOME_BODY)
+        return card(case, f.plan.id, args = mapOf("launcher" to (other ?: "")))
+    }
+
+    private fun wraithClaims(): Boolean {
+        val claimants = snapshot?.home?.claimants?.map { it.component.pkg }.orEmpty()
+        val wraith = profile()?.setupWraith
+        return (wraith != null && wraith in claimants) || claimants.any { "setupwraith" in it.value.lowercase() }
+    }
+
+    private fun otherLauncherName(): String? {
+        val stock = profile()?.stockLaunchers?.map { it.pkg }.orEmpty().toSet()
+        val wraith = profile()?.setupWraith
+        val other = snapshot?.home?.claimants?.map { it.component.pkg }
+            ?.firstOrNull { it != Launcher.pkg && it !in stock && it != wraith && "setupwraith" !in it.value.lowercase() && "settings" !in it.value.lowercase() }
+            ?: return null
+        return nameOfPkg(other)
+    }
+
+    private fun nameOfPkg(pkg: PackageName): String =
+        deps.facts.lookup(pkg)?.friendlyName ?: snapshot?.packages?.get(pkg)?.label ?: pkg.value
+
+    private fun counts(plan: Plan, done: Int): Map<String, Any> = mapOf("done" to done, "total" to plan.steps.count { it.op is Op.Disable })
+
+    private fun card(case: StopCase, planId: PlanId?, args: Map<String, Any> = emptyMap(), body: CopyKey? = null): StopCard {
+        val k = stopKeys(case)
+        val c = deps.copy
+        return StopCard(case, c.text(k.title, args), c.text(body ?: k.body, args), c.text(k.primary, args),
+            k.secondary?.let { c.text(it, args) }, planId, k.tertiary?.let { c.text(it, args) })
+    }
+
+    private fun tvIdOf(s: SetupState): TvId? = when (s) {
+        is SetupState.Probing -> s.tvId
+        is SetupState.Found -> s.tvId
+        is SetupState.Working -> s.tvId
+        is SetupState.Check -> s.tvId
+        is SetupState.Stopped -> s.tvId
+        is SetupState.Done -> s.tvId
+        else -> null
+    } ?: tv?.id
+
+    private fun nameOf(s: SetupState): String? = when (s) {
+        is SetupState.OpenDoor -> s.tv.friendlyName ?: s.tv.model ?: tv?.nickname
+        is SetupState.PairingNeeded -> s.tv.friendlyName ?: s.tv.model
+        is SetupState.Welcome, is SetupState.Picker -> null
+        else -> tv?.nickname
+    }
+
+    private fun chipOf(s: SetupState): ChipState? = when (s) {
+        is SetupState.Welcome, is SetupState.Picker -> null
+        is SetupState.OpenDoor -> if (s.phase == DoorPhase.CONNECTED || s.phase == DoorPhase.IDENTITY) ChipState.CONNECTED else ChipState.WAITING
+        is SetupState.PairingNeeded -> ChipState.WAITING
+        is SetupState.Working -> ChipState.WORKING
+        is SetupState.Stopped -> if (s.card.case == StopCase.CONNECTION_LOST) ChipState.OFFLINE else mutableExtras.value.chip
+        else -> if (mutableExtras.value.finishing == Finishing.DONE) ChipState.DEBUGGING_OFF else ChipState.CONNECTED
+    }
+
+    companion object {
+        fun initialState(start: SetupStart): SetupState = when (start) {
+            SetupStart.Fresh -> SetupState.Welcome(emptyList(), onWifi = true, looking = true)
+            is SetupStart.Continue -> SetupState.Probing(start.tvId, ProbeStage.FACTS, null)
+            is SetupStart.Resume -> SetupState.Probing(start.tvId, ProbeStage.FACTS, null)
+        }
+
+        fun placeholderTv() = FoundTv("", null, null, emptySet(), null, null, null, 0)
+
+        fun manualTv(ip: String) = FoundTv(ip, null, null, setOf(DiscoverySource.MANUAL), null, null, null, 0)
+
+        fun foundOf(tv: Tv, open: Boolean? = null) = FoundTv(
+            host = tv.endpoints.firstOrNull { it is Endpoint.PlainTcp }?.host ?: tv.endpoints.firstOrNull()?.host ?: "",
+            friendlyName = tv.nickname, model = tv.facts.model, sources = setOf(DiscoverySource.MANUAL),
+            port5555Open = open, pairingService = null, connectService = null, lastSeenMs = tv.lastSeenAt,
+        )
+
+        // One line per op for "Show commands" (D21); a transfer shows as the sync line planHash uses.
+        fun commandsOf(plan: Plan): List<String> = plan.steps.flatMap { step ->
+            val lines = step.rendered.lines.map { it.text }
+            val t = step.rendered.transfer
+            lines + listOfNotNull(when (t) {
+                is Transfer.Push -> "sync:${t.dest.absolute} ${t.src.sha256.hex}"
+                is Transfer.Pull -> "sync:${t.src.absolute} ${t.maxBytes}"
+                is Transfer.StreamInstall -> "sync:${t.src.path} ${t.size}"
+                null -> null
+            })
+        }
+    }
+}
+
+internal data class StopKeys(val title: CopyKey, val body: CopyKey, val primary: CopyKey, val secondary: CopyKey?, val tertiary: CopyKey? = null)
+
+internal fun stopKeys(case: StopCase): StopKeys = when (case) {
+    StopCase.HOME_SETUPWRAITH -> StopKeys(CopyKey.STOP_HOME_SETUPWRAITH_TITLE, CopyKey.STOP_HOME_SETUPWRAITH_BODY, CopyKey.STOP_HOME_SETUPWRAITH_PRIMARY, CopyKey.STOP_HOME_SETUPWRAITH_SECONDARY)
+    StopCase.HOME_OTHER_LAUNCHER -> StopKeys(CopyKey.STOP_HOME_OTHER_LAUNCHER_TITLE, CopyKey.STOP_HOME_OTHER_LAUNCHER_BODY, CopyKey.STOP_HOME_OTHER_LAUNCHER_PRIMARY, CopyKey.STOP_HOME_OTHER_LAUNCHER_SECONDARY)
+    StopCase.HOME_UNKNOWN -> StopKeys(CopyKey.STOP_HOME_UNKNOWN_TITLE, CopyKey.STOP_HOME_UNKNOWN_BODY, CopyKey.STOP_HOME_UNKNOWN_PRIMARY, CopyKey.STOP_HOME_UNKNOWN_SECONDARY)
+    StopCase.HOME_USER_SAID_NO -> StopKeys(CopyKey.STOP_HOME_USER_SAID_NO_TITLE, CopyKey.STOP_HOME_USER_SAID_NO_BODY, CopyKey.STOP_HOME_USER_SAID_NO_PRIMARY, CopyKey.STOP_HOME_USER_SAID_NO_SECONDARY)
+    StopCase.HOME_TIMED_OUT -> StopKeys(CopyKey.STOP_HOME_TIMED_OUT_TITLE, CopyKey.STOP_HOME_TIMED_OUT_BODY, CopyKey.STOP_HOME_TIMED_OUT_PRIMARY, CopyKey.STOP_HOME_TIMED_OUT_SECONDARY)
+    StopCase.CONNECTION_LOST -> StopKeys(CopyKey.STOP_CONNECTION_LOST_TITLE, CopyKey.STOP_CONNECTION_LOST_BODY, CopyKey.STOP_CONNECTION_LOST_PRIMARY, CopyKey.STOP_CONNECTION_LOST_SECONDARY, CopyKey.STOP_CONNECTION_LOST_TERTIARY)
+    StopCase.STEP_FAILED -> StopKeys(CopyKey.STOP_STEP_FAILED_TITLE, CopyKey.STOP_STEP_FAILED_BODY, CopyKey.STOP_CONNECTION_LOST_PRIMARY, CopyKey.STOP_CONNECTION_LOST_SECONDARY, CopyKey.STOP_CONNECTION_LOST_TERTIARY)
+    StopCase.RESUME_AFTER_DEATH -> StopKeys(CopyKey.STOP_RESUME_TITLE, CopyKey.STOP_RESUME_BODY, CopyKey.STOP_RESUME_PRIMARY, CopyKey.STOP_RESUME_SECONDARY, CopyKey.STOP_RESUME_TERTIARY)
+    StopCase.INSTALL_FAILED -> StopKeys(CopyKey.STOP_INSTALL_FAILED_TITLE, CopyKey.STOP_INSTALL_FAILED_BODY, CopyKey.STOP_INSTALL_FAILED_PRIMARY, null)
+    StopCase.UNDONE -> StopKeys(CopyKey.STOP_UNDONE_TITLE, CopyKey.STOP_UNDONE_BODY, CopyKey.STOP_UNDONE_PRIMARY, null)
+    StopCase.PROBE_FAILED -> StopKeys(CopyKey.STOP_PROBE_FAILED_TITLE, CopyKey.STOP_PROBE_FAILED_BODY, CopyKey.STOP_PROBE_FAILED_PRIMARY, CopyKey.STOP_PROBE_FAILED_SECONDARY)
+    StopCase.NOT_BACK_AFTER_RESTART -> StopKeys(CopyKey.STOP_NOT_BACK_TITLE, CopyKey.STOP_NOT_BACK_BODY, CopyKey.STOP_NOT_BACK_PRIMARY, CopyKey.STOP_NOT_BACK_SECONDARY)
+    StopCase.TV_NOT_FOUND -> StopKeys(CopyKey.STOP_TV_NOT_FOUND_TITLE, CopyKey.STOP_TV_NOT_FOUND_BODY, CopyKey.STOP_TV_NOT_FOUND_PRIMARY, CopyKey.STOP_TV_NOT_FOUND_SECONDARY)
+    StopCase.WRONG_NETWORK -> StopKeys(CopyKey.STOP_WRONG_NETWORK_TITLE, CopyKey.STOP_WRONG_NETWORK_BODY, CopyKey.STOP_WRONG_NETWORK_PRIMARY, CopyKey.STOP_WRONG_NETWORK_SECONDARY)
+    StopCase.IDENTITY_CHANGED -> StopKeys(CopyKey.STOP_IDENTITY_CHANGED_TITLE, CopyKey.STOP_IDENTITY_CHANGED_BODY, CopyKey.STOP_IDENTITY_CHANGED_PRIMARY, null)
+    StopCase.TV_NOT_SUPPORTED -> StopKeys(CopyKey.STOP_TV_NOT_SUPPORTED_TITLE, CopyKey.STOP_TV_NOT_SUPPORTED_BODY, CopyKey.STOP_TV_NOT_SUPPORTED_PRIMARY, null)
+    StopCase.TV_REFUSES_HOME, StopCase.PAIRING_NEEDED -> StopKeys(CopyKey.STOP_HOME_UNKNOWN_TITLE, CopyKey.STOP_HOME_UNKNOWN_BODY, CopyKey.STOP_HOME_UNKNOWN_SECONDARY, null)
+}
