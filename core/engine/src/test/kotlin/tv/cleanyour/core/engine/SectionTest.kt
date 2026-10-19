@@ -264,4 +264,67 @@ class SectionTest {
         assertEquals(HomeOutcome.CONNECTION_LOST, fin.home)
         h.assertStockHomeIsBack(plan.sections.single().token.value)
     }
+
+    // R1: step R that cannot put the TV's own home screen back is surfaced, never recorded as done.
+    @Test fun aFailingStepRPausesWithTheErrorAndIsRetried() = runTest(timeout = TEST_TIMEOUT) {
+        val h = Harness(this)
+        val engine = h.engine()
+        val plan = h.setupPlan()
+        val section = plan.sections.single()
+        openCheckScreen(h, engine, plan)
+        h.tv.refuse = { it == h.stock.pkg }   // pm enable of the stock launcher now fails
+        engine.rejectHome(h.tv.tvId)
+        h.settle(engine)
+        val paused = engine.runState(h.tv.tvId).value
+        assertIs<RunState.Paused>(paused)
+        assertEquals(PauseReason.STEP_FAILED, paused.reason)
+        assertIs<tv.cleanyour.core.model.AdbError.NonZeroExit>(paused.error)
+        assertEquals(EnabledState.DISABLED_USER, h.tv.state(h.stock.pkg))
+        assertEquals(listOf("section:ARMED"), h.types(plan).filter { it.startsWith("section") }, "not ROLLED_BACK")
+        // The TV lets the enable through this time: continue runs step R again and the run ends.
+        h.tv.refuse = { false }
+        engine.continueRun(h.tv.tvId, h.pass())
+        h.settle(engine)
+        val fin = engine.runState(h.tv.tvId).value as RunState.Finished
+        assertEquals(RunStatus.COMPLETED_WITH_SKIPS, fin.status)
+        h.assertStockHomeIsBack(section.token.value)
+        assertEquals(listOf("section:ARMED", "section:ROLLED_BACK"), h.types(plan).filter { it.startsWith("section") })
+    }
+
+    // R1: giving up a paused run with an open section puts the TV's own home screen back first, and
+    // needs the TV for that.
+    @Test fun abandonWithAnOpenSectionRunsStepRFirst() = runTest(timeout = TEST_TIMEOUT) {
+        val h = Harness(this)
+        val engine = h.engine()
+        val plan = h.setupPlan()
+        openCheckScreen(h, engine, plan)
+        h.tv.dropOnLine = { it.contains("'dumpsys' 'activity'") }
+        advanceTimeBy(2_500); runCurrent(); h.settle(engine)
+        assertEquals(PauseReason.CONNECTION_LOST, (engine.runState(h.tv.tvId).value as RunState.Paused).reason)
+        engine.abandon(h.tv.tvId)   // disconnected: nothing can be put back yet, so the run stays paused
+        h.settle(engine)
+        assertIs<RunState.Paused>(engine.runState(h.tv.tvId).value)
+        assertEquals(h.launcher, h.tv.home)
+        h.tv.dropOnLine = null; h.tv.reconnect()
+        engine.abandon(h.tv.tvId)
+        h.settle(engine)
+        val fin = engine.runState(h.tv.tvId).value as RunState.Finished
+        assertEquals(RunStatus.ABANDONED, fin.status)
+        h.assertStockHomeIsBack(plan.sections.single().token.value)
+        assertEquals("end:ABANDONED", h.types(plan).last())
+    }
+
+    // R1: a plan runs once; a second start of the same plan (same run token) is refused.
+    @Test fun aPlanRunsOnce() = runTest(timeout = TEST_TIMEOUT) {
+        val h = Harness(this)
+        val engine = h.engine()
+        val plan = h.setupPlan()
+        openCheckScreen(h, engine, plan)
+        engine.confirmHome(h.tv.tvId)
+        h.settle(engine)
+        assertIs<RunState.Finished>(engine.runState(h.tv.tvId).value)
+        assertEquals(StartResult.Refused(StartRefusal.RUN_OPEN), engine.start(plan, h.tv, plan.hash, h.pass()))
+        val again = h.setupPlan()
+        assertTrue(again.id != plan.id)
+    }
 }

@@ -119,6 +119,9 @@ class DefaultEngine(
         val current = flow(plan.tvId).value
         if (current !is RunState.Idle && current !is RunState.Finished) return StartResult.Refused(StartRefusal.RUN_OPEN)
         if (journal.openRuns(plan.tvId).isNotEmpty()) return StartResult.Refused(StartRefusal.RUN_OPEN)
+        // A plan runs once (R1): a second run would reuse its run token (and so its watchdog name and
+        // token file) and append to a closed journal. "Try again" is a new plan from the planner.
+        if (journal.read(plan.id).isNotEmpty()) return StartResult.Refused(StartRefusal.RUN_OPEN)
         if (session.state.value !is ConnectionState.Connected) return StartResult.Refused(StartRefusal.NOT_CONNECTED)
         if (plan.tvId != session.tvId) return StartResult.Refused(StartRefusal.WRONG_TV)
         if (confirmed != plan.hash || !rendersTheSame(plan)) return StartResult.Refused(StartRefusal.HASH_MISMATCH)
@@ -151,8 +154,12 @@ class DefaultEngine(
         } catch (e: RenderRefused) {
             return false
         }
+        // Everything the executor acts on is compared, not only the lines: the privilege decides the
+        // gate (D17), the verify read decides "done", the timeout and cap bound the exec (R1).
         val same = again.zip(plan.steps).all { (a, s) ->
-            a.lines.map { it.text } == s.rendered.lines.map { it.text } && a.transfer == s.rendered.transfer
+            a.lines.map { it.text } == s.rendered.lines.map { it.text } && a.transfer == s.rendered.transfer &&
+                a.privilege == s.rendered.privilege && a.verify == s.rendered.verify &&
+                a.timeoutMs == s.rendered.timeoutMs && a.stdoutCap == s.rendered.stdoutCap
         }
         return same && renderer.planHash(again) == plan.hash
     }
@@ -311,19 +318,27 @@ class DefaultEngine(
         }
     }
 
-    // Step R: journaled like any op, idempotent, best effort; a lost connection leaves the section
-    // open so resume runs it again.
+    // Step R: journaled like any op, idempotent; a lost connection leaves the section open so resume
+    // runs it again. Only step R's own vocabulary runs (the plan file is not hashed for its
+    // sections), and a failure to put the TV's own home screen back is never recorded as ROLLED_BACK:
+    // the run pauses with the error, the section stays open, and continue, undo or resume try again
+    // (SECURITY 3.5: undo failures are shown, never hidden) (R1).
     private suspend fun rollbackSection(run: Run, section: GuardedSection, outcome: HomeOutcome): Boolean {
         flow(run.plan.tvId).value = RunState.RollingBack(run.plan, section.from)
         journal.append(JournalRecord.Rollback(run.plan.id, section.from))
+        var failed: AdbError? = null
         for (op in section.rollback) {
+            if (!StepR.allows(op, section)) continue
             val undone = run.plan.steps.firstOrNull { it.index in section.from..section.to && undoes(op, it.op) }?.index ?: -1
             val rendered = try { renderer.render(op) } catch (e: RenderRefused) { continue }
             when (val r = perform(run, undone, op, rendered, null)) {
                 is Outcome.Lost -> { pause(run, PauseReason.CONNECTION_LOST, r.error); return false }
-                else -> {}
+                is Outcome.Refused -> if (StepR.mustSucceed(op) && failed == null) failed = AdbError.NonZeroExit(r.exit, r.stderr.take(4096))
+                is Outcome.Failed -> if (StepR.mustSucceed(op) && failed == null) failed = r.error
+                Outcome.Ok -> {}
             }
         }
+        if (failed != null) { pause(run, PauseReason.STEP_FAILED, failed); return false }
         journal.append(JournalRecord.Section(run.plan.id, section.name, section.token, SectionState.ROLLED_BACK, clock.nowMs()))
         run.openSections -= section.name
         run.closedSections += section.name
@@ -548,7 +563,16 @@ class DefaultEngine(
     override suspend fun abandon(tvId: TvId) {
         val run = runs[tvId] ?: return
         if (flow(tvId).value !is RunState.Paused) return
-        end(run, RunStatus.ABANDONED, run.home)
+        val open = run.plan.sections.firstOrNull { it.name in run.openSections }
+        if (open == null) { end(run, RunStatus.ABANDONED, run.home); return }
+        // An open section means the TV's own home screen may be off: step R runs before the run is
+        // given up. Without the TV there is nothing to run, so the run stays paused until it is back
+        // and resume or abandon runs step R then (R1).
+        if (run.session.state.value !is ConnectionState.Connected) return
+        run.hold = run.session.hold()
+        run.job = scope.launch {
+            if (rollbackSection(run, open, HomeOutcome.CONNECTION_LOST)) end(run, RunStatus.ABANDONED, run.home)
+        }
     }
 
     // Safety only (R0: 6): find the open run, run step R for an open section, re-verify the
@@ -620,6 +644,20 @@ class DefaultEngine(
     companion object {
         val GATED = setOf(Privilege.PROFILE_STEP, Privilege.COMMUNITY, Privilege.TAKEOVER)
     }
+}
+
+// Step R's vocabulary (PRODUCT-SPEC 3.4): defuse both layers for this section's token, then the
+// TV's own home screen back. Anything else in a plan file's rollback list is ignored.
+internal object StepR {
+    fun allows(op: Op, section: GuardedSection): Boolean = when (op) {
+        is Op.ConfirmHome -> op.token == section.token
+        is Op.KillWatchdog -> op.token == section.token
+        is Op.Enable, is Op.SetHome, is Op.VerifyHome, Op.PressHome -> true
+        else -> false
+    }
+
+    // The ops whose failure means the TV's own home screen is not back.
+    fun mustSucceed(op: Op): Boolean = op is Op.Enable || op is Op.SetHome || op is Op.VerifyHome
 }
 
 // What a journal says about a run, for resume.

@@ -121,6 +121,27 @@ class ResumeTest {
         assertEquals(0, h.tv.execs("dumpsys package com.android.systemui") + h.tv.execs("pm disable-user --user 0 com.android.systemui"))
     }
 
+    // R1: the plan file's privilege, verify read, timeout and cap are compared on resume too, so a
+    // file edited to make a write step look like a read (no gate) is refused.
+    @Test fun aPlanFileWithATamperedPrivilegeIsNeverResumed() = runTest(timeout = TEST_TIMEOUT) {
+        val h = Harness(this)
+        val e1 = h.engine()
+        val plan = h.setupPlan(takeover = false, installLauncher = false)
+        h.tv.dropOnLine = { it.contains(h.debloat[1].value) && it.contains("disable-user") }
+        e1.start(plan, h.tv, plan.hash, h.pass())
+        drive(e1, h)
+        assertIs<RunState.Paused>(e1.runState(h.tv.tvId).value)
+        val path = "tvs/${h.tv.tvId.value}/plans/${plan.id.value}.json"
+        val text = h.documents.bytes(path)!!.decodeToString()
+        assertTrue(text.contains("\"privilege\":\"PROFILE_STEP\""))
+        h.documents.write(path, text.replace("\"privilege\":\"PROFILE_STEP\"", "\"privilege\":\"READ\"").encodeToByteArray())
+        h.tv.dropOnLine = null; h.tv.reconnect()
+        val e2 = h.engine()
+        e2.resume(h.tv.tvId, h.tv)
+        assertEquals(RunState.Idle, e2.runState(h.tv.tvId).value)
+        assertEquals("end:ABANDONED", h.types(plan).last())
+    }
+
     @Test fun resumeVerifiesTheInDoubtStepAndMarksItResumed() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
         val crashing = MemoryJournal()

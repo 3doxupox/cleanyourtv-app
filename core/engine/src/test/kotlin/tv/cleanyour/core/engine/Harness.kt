@@ -85,8 +85,9 @@ class Harness(val scope: TestScope, val tv: ScriptedTv = ScriptedTv(Samples.snap
         PlanRequest.Setup(ProfileResolution.Exact(profile), Choices(emptySet(), emptySet(), null, null, installLauncher, takeover, false, false), artifact, Level.SIMPLE),
     )
 
-    // A plan from explicit ops, rendered by the real renderer, like Samples.plan.
-    fun opsPlan(vararg ops: Op): Plan = Samples.plan(ops.toList(), tvId = tv.tvId, renderer = renderer, base = tv.snapshot(SnapshotReason.BASELINE).contentHash)
+    // A plan from explicit ops, rendered by the real renderer, like Samples.plan; its id comes from
+    // the harness's IdGen like every planner plan, because a plan runs once (R1).
+    fun opsPlan(vararg ops: Op): Plan = Samples.plan(ops.toList(), tvId = tv.tvId, renderer = renderer, id = idGen.planId(), base = tv.snapshot(SnapshotReason.BASELINE).contentHash)
 
     suspend fun records(plan: Plan): List<JournalRecord> = journal.read(plan.id)
     suspend fun types(plan: Plan): List<String> = records(plan).map { r ->
