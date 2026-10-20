@@ -290,7 +290,7 @@ class SetupMachine(
             is DiscoveryEvent.Updated -> list.map { if (it.host == e.tv.host) e.tv else it }.let { if (it.none { t -> t.host == e.tv.host }) it + e.tv else it }
             is DiscoveryEvent.Lost -> list.filterNot { it.host == e.host }
             is DiscoveryEvent.NetworkState -> list
-        }
+        }.filter(TvCandidates::isCandidate)
         return when (state) {
             is SetupState.Welcome -> state.copy(found = merge(state.found), onWifi = (e as? DiscoveryEvent.NetworkState)?.onWifi ?: state.onWifi)
             is SetupState.Picker -> state.copy(found = merge(state.found))
