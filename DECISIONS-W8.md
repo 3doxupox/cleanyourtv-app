@@ -171,3 +171,17 @@ Stream W8, 2026-10-19. Built against section 5 as fixed by R0 and the W1 fakes. 
   a light tick on pick up and drop, nothing moves under reduced motion; the up, down and take out
   buttons stay; TalkBack actions Move up, Move down, Move to the dock or row n, Take out) replaces
   the two copies in :feature:setup and :feature:launcher; its words are `cyt_dock_*` in :ui:design.
+- D-W8-30 Device test fixes (owner: "not easy to understand to hold", "remove arrows", "remove
+  created row 2 or 3", "stop & undo should have confirmation"). The dock sheet drops the up and down
+  arrows: each app has a small take out button and a six dot grip (48 dp) that lifts the app at
+  once on touch and move, so a swipe elsewhere still scrolls the sheet (a long press on the row
+  still lifts it too); the sheet scrolls by itself near its edges while an app is lifted. TalkBack
+  keeps Move up, Move down, Move to the dock or row n and Take out. Row 2 and Row 3 have "Remove
+  row" (never the dock): the row's apps go back to the other apps, a lower row moves up, and the
+  sheet's undo snackbar puts it back. Stop and Undo ask first (`Confirmations` in core:flows says
+  which buttons: the Working screen's Stop and undo, a stop card's Stop here and Undo what we did,
+  Manage's open run card's two): a sheet with a question, one calm sentence, the verb as a guarded
+  primary and Cancel or Keep going unguarded; the intent is sent only on yes. "Undo everything"
+  already had its own preview and confirmation (UX 4.13) and is unchanged; the check screen's "No,
+  put it back" answers a countdown and stays one tap; Manage's per app "Put back" keeps its undo
+  snackbar.

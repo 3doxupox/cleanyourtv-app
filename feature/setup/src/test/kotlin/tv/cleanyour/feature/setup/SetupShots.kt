@@ -318,6 +318,14 @@ object SetupShots {
         Shot("stopped_details_sheet") { SheetFrame({ Stopped(homePutBack(), connected.copy(commands = commands)) }, maxHeight = 420.dp) { DetailsContent(commands) } },
 
         // S4d Stopped: connection lost mid-plan (UX 4.14), and R-11's reconnect line
+        // Stop and undo ask first: the question over the Working screen and over the stop card.
+        Shot("confirm_stop_and_undo") {
+            SheetFrame({ Setup(running(narration, 58, remember { fakeShot() }), working) }, maxHeight = 360.dp) {
+                ConfirmQuestionFor(tv.cleanyour.core.flows.Confirm.STOP_AND_UNDO, {}, {})
+            }
+        },
+        Shot("confirm_stop_here") { SheetFrame({ Stopped(connectionLost(), connected) }, maxHeight = 360.dp) { ConfirmQuestionFor(tv.cleanyour.core.flows.Confirm.STOP_HERE, {}, {}) } },
+        Shot("confirm_undo") { SheetFrame({ Stopped(connectionLost(), connected) }, maxHeight = 360.dp) { ConfirmQuestionFor(tv.cleanyour.core.flows.Confirm.UNDO, {}, {}) } },
         Shot("stopped_connection_lost_reconnecting") { Stopped(connectionLost(), offline.copy(reconnect = Reconnect.TRYING)) },
         Shot("stopped_connection_lost_back") { Stopped(connectionLost(), connected.copy(reconnect = Reconnect.BACK)) },
         Shot("stopped_connection_lost_gave_up") { Stopped(connectionLost(), offline.copy(reconnect = Reconnect.GAVE_UP)) },
