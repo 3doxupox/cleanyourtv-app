@@ -86,7 +86,8 @@ fun HomeScreen(state: HomeScreenState, onIntent: (HomeScreenIntent) -> Unit, onB
         }
         // Launcher 2.4: Launcher settings on the TV can override what the phone sent; the phone
         // cannot read them, so the rows above show what config.json says.
-        Body(stringResource(R.string.home_tv_changes_note), Modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp))
+        // Only for a launcher that has those settings (2.4 and later; RF-LAUNCHER-240 F16).
+        if (state.tvSideSettings) Body(stringResource(R.string.home_tv_changes_note), Modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp))
         state.updateTo?.let { version ->
             ListGroup(Modifier.padding(top = 12.dp)) {
                 ListRow(stringResource(R.string.home_row_update), subtitle = msg(R.string.home_row_update_note, "version" to version),

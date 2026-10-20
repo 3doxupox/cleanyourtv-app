@@ -52,7 +52,7 @@ import tv.cleanyour.core.planner.PlanRequest
 import tv.cleanyour.core.planner.PlanResult
 import tv.cleanyour.core.probe.LaunchableApps
 import tv.cleanyour.core.probe.SavedWifiOwners
-import tv.cleanyour.core.probe.WifiOwnersParser
+import tv.cleanyour.core.probe.SavedWifi
 import tv.cleanyour.core.planner.WizardWifi
 import tv.cleanyour.core.probe.ProbeStage
 import tv.cleanyour.core.probe.Prober
@@ -678,22 +678,24 @@ class SetupMachine(
     }
 
     // D3 (launcher v2.4.0's guard): the setup wizard deletes a Wi-Fi network it saved when it is
-    // switched off, so the takeover may switch it off only when the TV says someone else saved its
-    // networks. Asked only when a setup wizard is on the TV, once per snapshot; no answer is UNKNOWN.
+    // switched off, so the takeover may switch it off only when it owns none: others saved the TV's
+    // networks, or nothing is saved (a cable). When the TV cannot tell, it stays on (RF-LAUNCHER-240
+    // F6, F14). Asked only when a setup wizard is on the TV, once per snapshot; no answer is UNKNOWN.
     // Only the verdict is logged, never an owner or a network.
     private suspend fun wizardWifi(s: TvSession, snap: Snapshot): WizardWifi {
         if (wifiOf === snap) return wizardWifi
         val wizard = profile()?.setupWraith?.takeIf { it in snap.packages }
             ?: snap.packages.keys.firstOrNull { "setupwraith" in it.value.lowercase() }
+        var verdict: SavedWifi.Verdict? = null
         val answer = if (wizard == null) WizardWifi.UNKNOWN else {
-            val owners = deps.savedWifi?.let { q -> attempt { q.savedWifiOwners(s) }.getOrNull() }.orEmpty()
-            when {
-                owners.isEmpty() -> WizardWifi.UNKNOWN
-                WifiOwnersParser.wizardMayOwnWifi(owners, wizard.value) -> WizardWifi.OWNER
-                else -> WizardWifi.NOT_OWNER
+            verdict = deps.savedWifi?.let { q -> attempt { q.savedWifi(s) }.getOrNull() }?.verdict(wizard.value) ?: SavedWifi.Verdict.CANNOT_TELL
+            when (verdict) {
+                SavedWifi.Verdict.WIZARD_OWNS -> WizardWifi.OWNER
+                SavedWifi.Verdict.OTHERS_OWN, SavedWifi.Verdict.NOTHING_SAVED -> WizardWifi.NOT_OWNER
+                SavedWifi.Verdict.CANNOT_TELL -> WizardWifi.UNKNOWN
             }
         }
-        if (wizard != null) deps.log.line("setup: setup wizard and saved Wi-Fi: ${answer.name.lowercase()}")
+        if (verdict != null) deps.log.line("setup: setup wizard and saved Wi-Fi: ${verdict.name.lowercase()}")
         wifiOf = snap
         wizardWifi = answer
         return answer
@@ -1192,7 +1194,12 @@ class SetupMachine(
         // D3: the wizard holds Home, but it may have saved the TV's Wi-Fi, so switching it off is not
         // offered; the card says why and what to do instead.
         wifiCard = case == StopCase.HOME_SETUPWRAITH && wizardWifi != WizardWifi.NOT_OWNER
-        if (wifiCard) return card(case, f.plan.id, body = CopyKey.STOP_HOME_SETUPWRAITH_WIFI_BODY, primary = CopyKey.STOP_HOME_SETUPWRAITH_WIFI_PRIMARY)
+        if (wifiCard) {
+            // The owner's sentence only when the TV said the wizard saved the Wi-Fi; never a claim the
+            // app could not check (RF-LAUNCHER-240 F6).
+            val body = if (wizardWifi == WizardWifi.OWNER) CopyKey.STOP_HOME_SETUPWRAITH_WIFI_BODY else CopyKey.STOP_HOME_SETUPWRAITH_WIFI_UNKNOWN_BODY
+            return card(case, f.plan.id, body = body, primary = CopyKey.STOP_HOME_SETUPWRAITH_WIFI_PRIMARY)
+        }
         return card(case, f.plan.id, args = mapOf("launcher" to (other ?: "")))
     }
 

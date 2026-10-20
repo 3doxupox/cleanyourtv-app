@@ -577,10 +577,7 @@ class ManageMachinesTest {
         assertEquals("Lounge TV", h.tvs.tvs.value.single().nickname)
         assertEquals("Lounge", h.tvs.tvs.value.single().room)
     }
-}
 
-private fun kotlinx.coroutines.CoroutineScope.launchAccess(h: Harness, tv: Tv, done: (AccessResult) -> Unit) =
-    launch { done(h.access.session(tv.id)) 
     // D4 (RFC-LAUNCHER-1): "Update the home screen" is offered while the TV has an older build of
     // ours, previews the plan from a fresh look at the TV, runs it, and pushes no look again: the
     // dock and look stay on the TV through an in-place update.
@@ -601,6 +598,7 @@ private fun kotlinx.coroutines.CoroutineScope.launchAccess(h: Harness, tv: Tv, d
         val m = HomeScreenMachine(deps, backgroundScope, tv.id)
         settle()
         assertEquals("2.4", m.state.value.updateTo)
+        assertFalse(m.state.value.tvSideSettings, "launcher 2.0 has no Launcher settings on the TV (RF-LAUNCHER-240 F16)")
         m.dispatch(HomeScreenIntent.PreviewUpdate); settle()
         assertEquals(updatePlan, m.state.value.updatePreview)
         assertTrue(h.prober.calls.any { it == "snapshot ${SnapshotReason.MANUAL}" }, "the preview reads the TV afresh")
@@ -620,7 +618,9 @@ private fun kotlinx.coroutines.CoroutineScope.launchAccess(h: Harness, tv: Tv, d
         // Not offered: the pin itself, another key, or a key nobody knows.
         for (snap in listOf(snapWith(5, Samples.zeroHash, Samples.NOW_MS + 10), snapWith(2, Sha256("e".repeat(64)), Samples.NOW_MS + 11))) {
             h.snapshots.save(snap)
-            assertNull(HomeScreenMachine(deps, backgroundScope, tv.id).also { settle() }.state.value.updateTo)
+            val state = HomeScreenMachine(deps, backgroundScope, tv.id).also { settle() }.state.value
+            assertNull(state.updateTo)
+            assertEquals(snap.packages.getValue(pin.pkg).versionCode >= 5, state.tvSideSettings)
         }
         h.tvs.upsert(tv.copy(launcher = null))
         h.snapshots.save(snapWith(2, null, Samples.NOW_MS + 20))
@@ -630,3 +630,6 @@ private fun kotlinx.coroutines.CoroutineScope.launchAccess(h: Harness, tv: Tv, d
         assertEquals("2.4", HomeScreenMachine(deps, backgroundScope, tv.id).also { settle() }.state.value.updateTo)
     }
 }
+
+private fun kotlinx.coroutines.CoroutineScope.launchAccess(h: Harness, tv: Tv, done: (AccessResult) -> Unit) =
+    launch { done(h.access.session(tv.id)) }

@@ -50,6 +50,7 @@ private fun home(
 ) = HomeScreenState(
     tvName = "Mi TV 4A", dock = dock, apps = apps, themeId = themeId, themes = themes, drift = drift,
     stock = if (stock) Samples.stockLauncher else null, busy = busy, homeScreenOurs = ours, updateTo = updateTo,
+    tvSideSettings = updateTo == null,   // a TV still on launcher 2.0 (an update offered) has no Launcher settings
 )
 
 // D4 "Update the home screen": the plan's narration lines are the preview's list.

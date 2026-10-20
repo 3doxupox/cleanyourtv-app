@@ -48,6 +48,7 @@ enum class CopyKey(val res: String) {
     STOP_HOME_SETUPWRAITH_TITLE("stop_home_setupwraith_title"), STOP_HOME_SETUPWRAITH_BODY("stop_home_setupwraith_body"),
     STOP_HOME_SETUPWRAITH_PRIMARY("stop_home_setupwraith_primary"), STOP_HOME_SETUPWRAITH_SECONDARY("stop_home_setupwraith_secondary"),
     STOP_HOME_SETUPWRAITH_WIFI_BODY("stop_home_setupwraith_wifi_body"), STOP_HOME_SETUPWRAITH_WIFI_PRIMARY("stop_home_setupwraith_wifi_primary"),   // D3
+    STOP_HOME_SETUPWRAITH_WIFI_UNKNOWN_BODY("stop_home_setupwraith_wifi_unknown_body"),   // RF-LAUNCHER-240 F6
     STOP_HOME_OTHER_LAUNCHER_TITLE("stop_home_other_launcher_title"), STOP_HOME_OTHER_LAUNCHER_BODY("stop_home_other_launcher_body"),   // {launcher}
     STOP_HOME_OTHER_LAUNCHER_PRIMARY("stop_home_other_launcher_primary"), STOP_HOME_OTHER_LAUNCHER_SECONDARY("stop_home_other_launcher_secondary"),   // {launcher}
     STOP_HOME_UNKNOWN_TITLE("stop_home_unknown_title"), STOP_HOME_UNKNOWN_BODY("stop_home_unknown_body"),

@@ -165,6 +165,10 @@ fun FoundScreen(state: SetupState.Found, extras: SetupExtras, actions: SetupActi
         bottomBar = {
             // UX 7.3 rule 8: the safety sentence sits above the button that needs it, so it is
             // pinned with the button rather than scrolled under it (R4-W8).
+            // D36 (RF-LAUNCHER-240 F1): replacing a home screen app signed with another key erases what
+            // it kept, so S3 says so right above the button; the credential prompt after it is the
+            // confirmation. Pinned with the button, so it cannot be scrolled past unseen.
+            if (summary.replacesLauncher) Banner(stringResource(R.string.found_replaces_launcher), BannerTone.INFO, Modifier.padding(bottom = 12.dp))
             SafetyLine(stringResource(R.string.found_safety), Modifier.padding(start = 4.dp, end = 4.dp, bottom = 14.dp))
             ActionColumn {
                 PrimaryButton(stringResource(R.string.found_make_clean), { actions.intent(SetupIntent.MakeItClean) }, loading = extras.starting)

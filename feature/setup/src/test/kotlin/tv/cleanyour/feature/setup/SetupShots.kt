@@ -254,6 +254,8 @@ object SetupShots {
         Shot("found_no_screen_lock") { Setup(found(), connected.copy(noScreenLock = true)) },
         Shot("found_tv_refuses_home") { Setup(found(noHomePlan), connected.copy(tvName = "TCL C635", homePossible = false)) },
         Shot("found_starting") { Setup(found(), connected.copy(starting = true)) },
+        // D36 (RF-LAUNCHER-240 F1): the plan replaces a home screen app signed with another key.
+        Shot("found_replaces_launcher") { Setup(found(fullPlan.copy(summary = fullPlan.summary.copy(replacesLauncher = true)))) },
 
         // S3a Customise: Simple with the other groups collapsed; Custom with every group open, the
         // package names and the undo snackbar; the "Why?" sheet
@@ -323,6 +325,11 @@ object SetupShots {
         // D3: the wizard may have saved the TV's Wi-Fi, so it stays on and the card says why.
         Shot("stopped_home_setupwraith_wifi") {
             Stopped(home(StopCase.HOME_SETUPWRAITH, R.string.stop_home_setupwraith_title, R.string.stop_home_setupwraith_wifi_body,
+                R.string.stop_home_setupwraith_wifi_primary, R.string.stop_home_setupwraith_secondary), connected.copy(commands = commands))
+        },
+        // RF-LAUNCHER-240 F6: the TV could not say who saved its Wi-Fi.
+        Shot("stopped_home_setupwraith_wifi_unknown") {
+            Stopped(home(StopCase.HOME_SETUPWRAITH, R.string.stop_home_setupwraith_title, R.string.stop_home_setupwraith_wifi_unknown_body,
                 R.string.stop_home_setupwraith_wifi_primary, R.string.stop_home_setupwraith_secondary), connected.copy(commands = commands))
         },
         Shot("stopped_home_rolling_back") {

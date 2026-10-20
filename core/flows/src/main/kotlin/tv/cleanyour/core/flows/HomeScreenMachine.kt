@@ -30,6 +30,7 @@ data class HomeScreenState(
     val columns: Int = DockLayers.DEFAULT_COLUMNS,     // apps per dock row for the look on the TV
     val updateTo: String? = null,                       // D4: the bundled launcher's version, when the TV has an older build of ours
     val updatePreview: Plan? = null,
+    val tvSideSettings: Boolean = false,                // the TV's launcher has Launcher settings of its own (2.4, versionCode 5, and later)
 )
 
 sealed interface HomeScreenIntent {
@@ -99,7 +100,8 @@ class HomeScreenMachine(
         val shown = { p: PackageName -> snap == null || packages[p]?.enabled.let { it != null && it != EnabledState.DISABLED && it != EnabledState.DISABLED_USER } }
         val dock = DockLayers.decode(choice?.dock.orEmpty(), shown, columns).map { AppChoice(it, d.nameOf(it, packages[it]?.label)) }
         send(Loaded(HomeScreenState(tv.nickname, dock, apps, choice?.themeId, state.value.themes, stock = profile?.stockLaunchers?.firstOrNull(),
-            homeScreenOurs = tv.launcher != null, columns = columns, updateTo = updateTo(tv, packages))))
+            homeScreenOurs = tv.launcher != null, columns = columns, updateTo = updateTo(tv, packages),
+            tvSideSettings = (packages[Launcher.pkg]?.versionCode ?: 0) >= FIRST_WITH_TV_SETTINGS)))
     }
 
     // D4: the bundled launcher is newer than ours on the TV (same signer, lower versionCode). The
@@ -153,6 +155,11 @@ class HomeScreenMachine(
         val session = d.access.live(tvId) ?: return
         val now = attempt { d.configTransport.readDigest(session) }.getOrNull()
         send(Drift(now != null && now != ours))
+    }
+
+    companion object {
+        // Launcher 2.4 (versionCode 5) added Launcher settings on the TV (RF-LAUNCHER-240 F16).
+        const val FIRST_WITH_TV_SETTINGS = 5L
     }
 
     private fun theme(id: String?) = id?.let { d.themes.bundled().firstOrNull { t -> t.id == it } }
