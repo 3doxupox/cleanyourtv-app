@@ -46,7 +46,8 @@ enum class DebugState { ON, OFF, UNKNOWN }   // R0: 16; what the Manage chip sho
 data class LauncherState(val versionCode: Long, val signer: Sha256, val overlayDigest: Sha256?, val ourOverlayDigest: Sha256?)
 // R0: 2 was referenced and never declared; persisted on every committed choice (ARCHITECTURE 2.2); W8 may add fields, never remove
 data class WizardDraft(val step: Int, val level: Level, val kept: Set<PackageName>, val extraOff: Set<PackageName>,
-    val dock: List<PackageName>?, val themeId: String?, val keepDebuggingOn: Boolean, val planId: PlanId?, val updatedAtMs: Long)
+    val dock: List<PackageName>?, val themeId: String?, val keepDebuggingOn: Boolean, val planId: PlanId?, val updatedAtMs: Long,
+    val curtain: Boolean = true)   // RFC-CURTAIN-1: "Show the progress on the TV" (Custom only; Simple always shows it)
 
 sealed interface ConnectionState {
     data object Idle : ConnectionState

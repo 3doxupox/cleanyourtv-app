@@ -302,6 +302,16 @@ internal fun ColumnScope.CustomiseContent(
         val theme = extras.themes.firstOrNull { it.id == extras.draft?.themeId }?.name ?: stringResource(R.string.theme_default)
         ListRow(msg(R.string.customise_look_row, "theme" to theme), onClick = { actions.intent(SetupIntent.Open(Sheet.THEME)) })
     }
+    if (custom) {
+        // RFC-CURTAIN-1: Custom only, on by default; Simple always shows the progress on the TV.
+        Overline(stringResource(R.string.customise_group_tv), Modifier.padding(start = 4.dp, top = 16.dp, bottom = 8.dp))
+        ListGroup {
+            SwitchRow(
+                stringResource(R.string.customise_show_on_tv), extras.draft?.curtain ?: true,
+                { actions.intent(SetupIntent.ShowOnTv(it)) }, subtitle = stringResource(R.string.customise_show_on_tv_note),
+            )
+        }
+    }
     Overline(stringResource(R.string.customise_group_afterwards), Modifier.padding(start = 4.dp, top = 16.dp, bottom = 8.dp))
     ListGroup {
         SwitchRow(

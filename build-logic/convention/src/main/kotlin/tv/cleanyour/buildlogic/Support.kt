@@ -19,6 +19,8 @@ object Toolchain {
     const val COMPILE_SDK = 37
     const val TARGET_SDK = 36
     const val MIN_SDK = 28
+    // RFC-CURTAIN-1: the TV curtain runs on every TV the phone app supports (Android 8 and later).
+    const val TV_MIN_SDK = 26
     val JAVA = JavaVersion.VERSION_21
 }
 

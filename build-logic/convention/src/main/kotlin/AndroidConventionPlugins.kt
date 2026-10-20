@@ -141,6 +141,74 @@ class AndroidAppConventionPlugin : Plugin<Project> {
     }
 }
 
+// RFC-CURTAIN-1: a small Java app that runs on the TV (the curtain). No Kotlin, no AndroidX, no R8:
+// nothing to shrink, and the release build stays byte for byte reproducible. The module sets its
+// own namespace and applicationId. The release APK is unsigned here; scripts/build-curtain-on-forge.sh
+// signs it with the launcher key. The size gate is TV_APP_LIMIT_BYTES.
+class TvAppConventionPlugin : Plugin<Project> {
+    override fun apply(target: Project) = with(target) {
+        pluginManager.apply("com.android.application")
+        extensions.configure<ApplicationExtension> {
+            compileSdk = Toolchain.COMPILE_SDK
+            defaultConfig {
+                minSdk = Toolchain.TV_MIN_SDK
+                targetSdk = Toolchain.TARGET_SDK
+            }
+            buildTypes {
+                getByName("release") {
+                    isMinifyEnabled = false
+                    vcsInfo { include = false }
+                }
+            }
+            compileOptions {
+                sourceCompatibility = Toolchain.JAVA
+                targetCompatibility = Toolchain.JAVA
+            }
+            buildFeatures { buildConfig = false }
+            dependenciesInfo {
+                includeInApk = false
+                includeInBundle = false
+            }
+            lint {
+                abortOnError = true
+                warningsAsErrors = false
+                checkReleaseBuilds = false
+            }
+        }
+        // AGP's built-in Kotlin adds the Kotlin standard library to every module (as an api
+        // dependency, during evaluation); this app has no Kotlin source and must not carry it (rule 7
+        // of ModuleRules, and the 200 KB budget). The declaration is taken out again once the module
+        // is evaluated, and the group is excluded from every main configuration as a second net.
+        // Only the app's own classpaths: lint and the other tools keep theirs.
+        fun appClasspath(n: String) = !n.contains("test", ignoreCase = true) && (n.endsWith("RuntimeClasspath") || n.endsWith("CompileClasspath"))
+        configurations.configureEach {
+            if (appClasspath(name)) exclude(mapOf("group" to "org.jetbrains.kotlin"))
+        }
+        afterEvaluate {
+            configurations.filter { tv.cleanyour.buildlogic.ModuleRules.isDeclarable(it.name) && !it.name.contains("test", ignoreCase = true) }
+                .forEach { c -> c.dependencies.removeIf { it.group == "org.jetbrains.kotlin" } }
+        }
+        dependencies {
+            add("testImplementation", libs.findLibrary("junit4").get())
+        }
+        configureTests()
+
+        extensions.configure<ApplicationAndroidComponentsExtension> {
+            onVariants { variant ->
+                val name = variant.name.replaceFirstChar { it.uppercase() }
+                tasks.register<ApkSizeCheckTask>("checkApkSize$name") {
+                    group = "verification"
+                    description = "Fails when the $name APK is larger than the TV app size gate."
+                    apkFolder.set(variant.artifacts.get(SingleArtifact.APK))
+                    builtArtifactsLoader.set(variant.artifacts.getBuiltArtifactsLoader())
+                    limitBytes.set(ApkSizeCheckTask.TV_APP_LIMIT_BYTES)
+                    variantName.set(variant.name)
+                }
+            }
+        }
+    }
+}
+
 private fun Project.addCompose() {
     dependencies {
         val bom = libs.findLibrary("androidx-compose-bom").get()

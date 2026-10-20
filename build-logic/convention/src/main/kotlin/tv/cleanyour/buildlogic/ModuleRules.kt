@@ -52,6 +52,8 @@ object ModuleRules {
         ":feature:backup" to 8,
         ":app" to 9,
         ":benchmark" to 10,
+        // RFC-CURTAIN-1: a separate TV app, bundled as a signed asset, never a Gradle dependency (rule 7).
+        ":tv:curtain" to 10,
     )
 
     // Rule 5: these may only be reached through test configurations.
@@ -102,6 +104,7 @@ object ModuleRules {
         ":feature:backup" to androidCommon,
         ":app" to androidCommon,
         ":benchmark" to androidCommon,
+        ":tv:curtain" to emptySet(),
     )
 
     // Test configurations: test libraries only (section 7.2 of ARCHITECTURE).
@@ -140,6 +143,11 @@ object ModuleRules {
 
     private fun isJvmCoreOrAdb(path: String) = path.startsWith(":core:") || path.startsWith(":adb:")
 
+    // Rule 7 (RFC-CURTAIN-1): a :tv: module is an app of its own that runs on the TV. The phone app
+    // takes its signed APK as an asset, so no main edge reaches it, it has no main edge to any other
+    // module and no third-party dependency in a main configuration, Kotlin's own included.
+    fun isTvApp(path: String) = path.startsWith(":tv:")
+
     fun violations(graph: ModuleGraph): List<String> {
         val out = mutableListOf<String>()
         val known = graph.modules.associateBy { it.path }
@@ -160,6 +168,15 @@ object ModuleRules {
                 continue
             }
             val test = isTestConfiguration(e.configuration)
+            // Rule 7
+            if (!test && isTvApp(e.to)) {
+                out += "${e.from} -> ${e.to} (${e.configuration}): a TV app is bundled as an asset, never a dependency (rule 7)"
+                continue
+            }
+            if (!test && isTvApp(e.from)) {
+                out += "${e.from} -> ${e.to} (${e.configuration}): a TV app depends on no other module (rule 7)"
+                continue
+            }
             if (test) continue // test scope may use fixtures and fakes from anywhere
             // Rule 5
             if (e.to in testOnlyModules && e.from !in testOnlyModules) {
@@ -181,6 +198,10 @@ object ModuleRules {
 
         // Rule 6
         for (x in graph.externals) {
+            if (isTvApp(x.module) && !isTestConfiguration(x.configuration)) {
+                out += "${x.module}: ${x.coordinate} (${x.configuration}): a TV app has no third-party dependency (rule 7)"
+                continue
+            }
             if (x.coordinate.startsWith("org.jetbrains.kotlin:")) continue
             val allowed = if (isTestConfiguration(x.configuration)) allowedTestExternal + (allowedExternal[x.module] ?: emptySet())
             else allowedExternal[x.module] ?: emptySet()

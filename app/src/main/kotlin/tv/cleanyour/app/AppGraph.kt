@@ -71,6 +71,7 @@ import tv.cleanyour.core.spec.BundledFactsTable
 import tv.cleanyour.core.spec.BundledProfileSource
 import tv.cleanyour.core.spec.BundledThemeSource
 import tv.cleanyour.core.store.Clock
+import tv.cleanyour.core.trust.BundledCurtainPin
 import tv.cleanyour.core.trust.BundledLauncherPin
 import tv.cleanyour.core.trust.TrustRoots
 
@@ -112,7 +113,8 @@ class AppGraph(context: Context, val appVersion: String = "0.1.0") {
     val configTransport: ConfigTransport = FileOverlayTransport(prober)
     // D23: the engine itself widens the confirm window to 120 s when there is no recent thumbnail,
     // so the planner keeps its 90 s default.
-    val planner = DefaultPlanner(clock, idGen, renderer, configTransport, appVersion, profiles = profiles)
+    val planner = DefaultPlanner(clock, idGen, renderer, configTransport, appVersion, profiles = profiles,
+        curtainSigner = tv.cleanyour.core.model.Sha256(tv.cleanyour.core.trust.PinnedCurtain.SIGNER_SHA256))   // RFC-CURTAIN-1
     val snapshots = DocumentSnapshotStore(documents)       // W6
     val journal = FileJournal(dataDir)                     // tvs/<tvId>/journal/<planId>.jsonl
     val plans = DocumentPlanStore(documents)
@@ -128,6 +130,7 @@ class AppGraph(context: Context, val appVersion: String = "0.1.0") {
     val themes = MaterializedThemeSource(BundledThemeSource(), blobs, onError = { m, t -> CytLog.w(m, t) })
     val inspector = PackageManagerApkInspector(app)
     val launcherPin = BundledLauncherPin(blobs)
+    val curtainPin = BundledCurtainPin(blobs)   // RFC-CURTAIN-1
     val http = UrlConnectionFetcher()
     val seedIndex: IndexBundle? = runCatching { BundledAssets.seedIndex(app) }.onFailure { CytLog.w("seed index missing", it) }.getOrNull()
     val registry = IndexRegistry(http, documents, clock, seedIndex, sources = null, TrustRoots.indexVerifier())
@@ -138,7 +141,7 @@ class AppGraph(context: Context, val appVersion: String = "0.1.0") {
         sessions = sessions, keyInfo = keyInfo, prober = prober, profiles = profiles, facts = facts, themes = themes,
         planner = planner, engine = engine, journal = journal, configTransport = configTransport, snapshots = snapshots,
         restoreFiles = restoreFiles, restoreNote = restoreNote, bundleWriter = bundleWriter, blobs = blobs,
-        launcherPin = launcherPin, registry = registry, fetcher = fetcher, inspector = inspector, http = http,
+        launcherPin = launcherPin, registry = registry, fetcher = fetcher, inspector = inspector, http = http, curtainPin = curtainPin,
     )
 
     val gate = GateKeeper(credentialGate, clock, copy)
@@ -173,6 +176,7 @@ class AppGraph(context: Context, val appVersion: String = "0.1.0") {
         diagnostics = diagnostics, locale = { app.resources.configuration.locales[0].toLanguageTag() },
         log = FlowLog { CytLog.i(it) },   // redacted lines for "Share diagnostics": outcomes and counts only
         homePrefs = homePrefs,
+        curtainPin = curtainPin,   // RFC-CURTAIN-1
     )
 
     val manageDeps = ManageDeps(

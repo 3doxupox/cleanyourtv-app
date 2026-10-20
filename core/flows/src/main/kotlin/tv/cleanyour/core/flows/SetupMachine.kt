@@ -69,6 +69,7 @@ import tv.cleanyour.core.store.GatePass
 import tv.cleanyour.core.ops.Transfer
 import tv.cleanyour.core.store.SnapshotStore
 import tv.cleanyour.core.store.TvRepository
+import tv.cleanyour.core.trust.CurtainPin
 import tv.cleanyour.core.trust.LauncherPin
 
 // How the wizard starts (ARCHITECTURE 2.2 start destination): fresh from Welcome, continuing a
@@ -150,6 +151,8 @@ class SetupDeps(
     // RFC-CARDS-1: where Manage keeps this TV's dock, theme and cards choice. Setup reads the cards
     // choice an earlier session kept (module_cards stays off otherwise) and keeps what it pushed.
     val homePrefs: HomePrefs? = null,
+    // RFC-CURTAIN-1: the bundled TV curtain; null plans without it.
+    val curtainPin: CurtainPin? = null,
 )
 
 // The first-run wizard, screens S1 to S5 (PRODUCT-SPEC 4, UX 2 and 4). One machine per wizard run,
@@ -368,6 +371,7 @@ class SetupMachine(
             is SetupIntent.SetDock -> editDraft { it.copy(dock = DockLayers.trim(event.dock, dockColumns(it.themeId))) }
             is SetupIntent.SetTheme -> editDraft { it.copy(themeId = event.id) }
             is SetupIntent.KeepDebuggingOn -> editDraft { it.copy(keepDebuggingOn = event.on) }
+            is SetupIntent.ShowOnTv -> editDraft { it.copy(curtain = event.on) }
             SetupIntent.MakeItClean -> if (after is SetupState.Found && !mutableExtras.value.starting) {
                 mutableExtras.update { it.copy(starting = true) }
                 scope.launch {
@@ -634,7 +638,12 @@ class SetupMachine(
         val look = if (!possible) null else attempt { Look.encode(deps.encoder, deps.blobs, theme, dock, cards) }
             .onFailure { deps.log.line("setup: the look could not be encoded, planned without it") }.getOrNull()
         setupHome = look?.let { it.digest to HomeChoice(it.doc.dockApps.orEmpty(), draft.themeId, cards) }
-        when (val r = deps.runner.plan(record, PlanRequest.Setup(res, choices, launcher, draft.level, look?.config, look?.wallpaper), snap)) {
+        // RFC-CURTAIN-1: the TV shows the progress unless Custom switched it off (Simple never shows
+        // the switch). An asset that does not match its pin is never offered; the plan goes without it.
+        val showOnTv = draft.level == Level.SIMPLE || draft.curtain
+        val curtain = if (!showOnTv) null else deps.curtainPin?.let { pin -> attempt { pin.bundled() }
+            .onFailure { deps.log.line("setup: the TV curtain does not match its pin, planned without it") }.getOrNull() }
+        when (val r = deps.runner.plan(record, PlanRequest.Setup(res, choices.copy(curtain = showOnTv), launcher, draft.level, look?.config, look?.wallpaper, curtain), snap)) {
             is PlanResult.Ok -> {
                 setupPlan = r.plan
                 val label = { p: PackageName -> AppNames.of(p, deps.facts, snap.packages[p]?.label) }

@@ -19,6 +19,10 @@ enum class ProbeKind { PROPS, PACKAGES, DISABLED, HOME, HOME_FOCUS, TIF_INPUTS, 
 sealed interface ReadArg { data class Pkg(val pkg: PackageName) : ReadArg; data class Path(val path: RemotePath) : ReadArg
     data class Token(val token: RunToken) : ReadArg; data class Ns(val ns: SettingsNs) : ReadArg }
 enum class InstallFlag { REPLACE }      // renders -r; no other flag exists
+// RFC-CURTAIN-1: the stages of the TV curtain and the fixed group vocabulary its words come from.
+// No free text reaches the TV; the curtain app carries its own strings for every value here.
+enum class CurtainStage { SCAN, RESTORE_SAVED, OFF, GROUP_DONE, INSTALL, INSTALLED, FINALE }
+enum class CurtainGroup { NONE, ADVERTS, TRACKING, NOBODY_ASKED, BRAND_EXTRAS, SHOP_DEMO, OTHER }
 data class Prior(val packageState: EnabledState? = null, val settingValue: String? = null, val home: Component? = null,
     val overlay: ByteArray? = null, val present: Boolean? = null)
 
@@ -44,6 +48,10 @@ sealed interface Op {
     data class Read(val kind: ProbeKind, val arg: ReadArg? = null) : Op   // R0: 3
     data class Settle(val seconds: Int) : Op                        // phone-side sleep, renders no line; 1 to 60
     data object Reboot : Op
-    data object DebugOff : Op }
+    data object DebugOff : Op
+    // RFC-CURTAIN-1: one am broadcast to the curtain's receiver. count and total are the switch-offs
+    // over the whole plan, groupCount and groupTotal those of `group`; every number is 0 to 999.
+    data class CurtainCue(val receiver: Component, val token: RunToken, val stage: CurtainStage, val count: Int, val total: Int,
+        val group: CurtainGroup = CurtainGroup.NONE, val groupCount: Int = 0, val groupTotal: Int = 0) : Op }
 
 data class ChangeRecord(val planId: PlanId, val step: Int, val op: Op, val prior: Prior?, val atMs: Long)   // R0: 1 derived from journals, for undo and restore files

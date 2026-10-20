@@ -237,7 +237,12 @@ class DefaultEngine(
                 if (!openSection(run, section)) { finishWithSkips(run, HomeOutcome.VERIFY_FAILED, i); return }
             }
             val section = plan.sections.firstOrNull { it.name in run.openSections && i in it.from..it.to }
-            if (i == 0 || plan.steps[i - 1].group != step.group) thumbnail(run, force = true) else thumbnail(run, force = false)
+            // A new group forces a fresh thumbnail. Silent steps (RFC-CURTAIN-1: the curtain's start
+            // and cues, woven between the switch-offs) never force one and do not end a group: the
+            // group of a voiced step is compared with the last voiced step's (RF-CURTAIN-1 F1).
+            val voiced = step.narration.isNotBlank()
+            val lastVoiced = plan.steps.subList(0, i).lastOrNull { it.narration.isNotBlank() }
+            if (i == 0 || (voiced && lastVoiced?.group != step.group)) thumbnail(run, force = true) else thumbnail(run, force = false)
             run.states[i] = NarrationState.DOING
             publishRunning(run, i)
 
@@ -544,11 +549,15 @@ class DefaultEngine(
         flow(run.plan.tvId).value = RunState.Paused(run.plan, run.at, reason, error)
     }
 
+    // RFC-CURTAIN-1: a step with a blank narration (the TV curtain's start and cues) is silent: not
+    // listed on the Working screen and not counted in the percent. The journal, resume and Show
+    // commands still see every step.
     private fun publishRunning(run: Run, step: Int) {
+        val voiced = run.plan.steps.filter { it.narration.isNotBlank() }
         val lines = listOf(NarrationLine("Restore point saved", run.restorePoint)) +
-            run.plan.steps.mapIndexed { i, s -> NarrationLine(s.narration, run.states[i]) }
-        val total = run.plan.steps.size
-        val percent = if (total == 0) 100 else (run.done.size * 100) / total
+            voiced.map { s -> NarrationLine(s.narration, run.states[s.index]) }
+        val total = voiced.size
+        val percent = if (total == 0) 100 else (voiced.count { it.index in run.done } * 100) / total
         flow(run.plan.tvId).value = RunState.Running(run.plan, step, lines, percent, run.thumbnail)
     }
 

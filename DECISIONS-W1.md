@@ -103,6 +103,17 @@ owning stream supplies bodies):
   after the existing parameters and defaulted so every caller compiles, marked `// RFC-CARDS-1`
   (applied on cardsoptin 2026-10-20, Fable approved in RF-CARDS-1; RFCS.md carries the RFC). PRODUCT-SPEC
   5.8 shows the two fields (RF-CARDS-1 F5).
+- `core.model.Op` gains `CurtainCue(receiver, token, stage, count, total, group, groupCount,
+  groupTotal)` and the enums `CurtainStage` and `CurtainGroup`, marked `// RFC-CURTAIN-1` (applied on
+  curtain 2026-10-20; RFCS.md carries the RFC and the owner's amendment for the group words).
+- `core.trust` gains `interface CurtainPin { fun bundled(): LauncherArtifact }` next to `LauncherPin`,
+  marked `// RFC-CURTAIN-1`.
+- `core.planner.PlanRequest.Setup` gains `curtain: LauncherArtifact? = null` after `wallpaper`, and
+  `core.planner.Choices` gains `curtain: Boolean = true` after `keepDebuggingOn`, both defaulted so
+  every caller compiles and marked `// RFC-CURTAIN-1`; PRODUCT-SPEC 5.8 shows both (RF-CURTAIN-1 F5).
+- `core.flows.SetupIntent` gains `ShowOnTv(on: Boolean)` (the Customise switch "Show the progress on
+  the TV") and `core.model.WizardDraft` (growable) gains `curtain: Boolean = true`, both marked
+  `// RFC-CURTAIN-1`.
 
 Added because the section 5 prose names it: `core.probe.ProbeException(stage, detail)` (R0: 7).
 

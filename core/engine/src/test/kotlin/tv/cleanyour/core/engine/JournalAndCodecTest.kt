@@ -160,6 +160,9 @@ class PlanJsonTest {
             Op.Read(tv.cleanyour.core.model.ProbeKind.SHA256_OF_FILE, tv.cleanyour.core.model.ReadArg.Path(path)), Op.Read(tv.cleanyour.core.model.ProbeKind.PACKAGE_DUMP, tv.cleanyour.core.model.ReadArg.Pkg(launcher.pkg)),
             Op.Read(tv.cleanyour.core.model.ProbeKind.WATCHDOG_ALIVE, tv.cleanyour.core.model.ReadArg.Token(token)),
             Op.Settle(15), Op.Reboot, Op.DebugOff,
+            Op.CurtainCue(tv.cleanyour.core.model.Component(PackageName("tv.cleanyour.curtain"), ".CueReceiver"), token, tv.cleanyour.core.model.CurtainStage.OFF, 3, 12,
+                tv.cleanyour.core.model.CurtainGroup.BRAND_EXTRAS, 1, 2),
+            Op.CurtainCue(tv.cleanyour.core.model.Component(PackageName("tv.cleanyour.curtain"), ".CueReceiver"), token, tv.cleanyour.core.model.CurtainStage.FINALE, 0, 0),
         )
         for (op in ops) assertEquals(op, OpJson.decode(OpJson.encode(op)), op.toString())
         assertEquals(Prior(), OpJson.decodePrior(OpJson.encodePrior(Prior())))

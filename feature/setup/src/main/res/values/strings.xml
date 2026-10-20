@@ -101,6 +101,10 @@
     <string name="customise_dock_row_rows">Dock: {names}, plus {count, plural, one {# app} other {# apps}} in the {rows, plural, one {row} other {rows}} below</string>
     <string name="customise_dock_row_empty">Dock</string>
     <string name="customise_look_row">Look: {theme}</string>
+    <!-- RFC-CURTAIN-1: Custom only; the TV shows the progress while the phone works -->
+    <string name="customise_group_tv">On the TV</string>
+    <string name="customise_show_on_tv">Show the progress on the TV</string>
+    <string name="customise_show_on_tv_note">The TV shows each step, then the new home screen</string>
     <string name="customise_group_afterwards">Afterwards</string>
     <string name="customise_keep_debugging">Keep debugging on</string>
     <string name="customise_keep_debugging_warning">Others on your Wi-Fi could ask to connect</string>

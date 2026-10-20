@@ -124,6 +124,29 @@ class ShellRenderer(private val watchdogVariant: WatchdogVariant = WatchdogVaria
         }
         Op.Reboot -> Rendered(op, lines(line("reboot")), null, Privilege.TAKEOVER, null, T_REBOOT, CAP_DEFAULT)
         Op.DebugOff -> Rendered(op, lines(line(SETTINGS, "put", "global", SettingKey.ADB_ENABLED.key, "0")), null, Privilege.SESSION_END, null, T_DEFAULT, CAP_DEFAULT)
+        is Op.CurtainCue -> cue(op)
+    }
+
+    // RFC-CURTAIN-1: one am broadcast to the curtain's receiver. The action and every extra name are
+    // constants here; the values are the run token, two enum names and four numbers, each checked
+    // against its grammar again, so no free text can reach the TV. Only our curtain package is a
+    // receiver: a cue can never be aimed at another app.
+    private fun cue(op: Op.CurtainCue): Rendered {
+        require(op.receiver.pkg.value == CURTAIN_PACKAGE) { "a cue goes to $CURTAIN_PACKAGE only" }
+        val receiver = comp(op.receiver)
+        val stage = op.stage.name
+        val group = op.group.name
+        require(CUE_WORD_RE.matches(stage) && CUE_WORD_RE.matches(group)) { "cue stage or group fails ${CUE_WORD_RE.pattern}" }
+        val numbers = listOf(op.count, op.total, op.groupCount, op.groupTotal)
+        require(numbers.all { it in 0..CUE_MAX }) { "cue counts must be 0 to $CUE_MAX" }
+        val argv = listOf(AM, "broadcast", "-n", receiver, "-a", CUE_ACTION,
+            ES, "token", token(op.token).value, ES, "stage", stage, ES, "group", group,
+            EI, "count", op.count.toString(), EI, "total", op.total.toString(),
+            EI, "gcount", op.groupCount.toString(), EI, "gtotal", op.groupTotal.toString(),
+            // The receiver runs in the foreground queue, not behind the package broadcasts the
+            // switch-offs just sent, so a cue returns quickly (RF-CURTAIN-1 F6).
+            RECEIVER_FOREGROUND)
+        return Rendered(op, lines(line(*argv.toTypedArray())), null, Privilege.PROFILE_STEP, null, T_DEFAULT, CAP_DEFAULT)
     }
 
     // R0: 3 the kind and the argument must pair; every command is fixed with at most one token.
@@ -185,7 +208,7 @@ class ShellRenderer(private val watchdogVariant: WatchdogVariant = WatchdogVaria
         is Op.PushAsset -> if (prior.present == false) Op.RemoveFile(op.dest) else null
         is Op.Uninstall, is Op.RemoveFile, is Op.RestartHome, is Op.StartActivity, is Op.Mkdir,
         is Op.ConfirmHome, is Op.KillWatchdog, is Op.VerifyHome, is Op.Read, is Op.Settle,
-        Op.PressHome, Op.Reboot, Op.DebugOff -> null
+        Op.PressHome, Op.Reboot, Op.DebugOff, is Op.CurtainCue -> null
     }
 
     override fun check(op: Op, verifyOutput: String, prior: Prior?): VerifyResult {
@@ -218,7 +241,7 @@ class ShellRenderer(private val watchdogVariant: WatchdogVariant = WatchdogVaria
             is Op.PushAsset -> if (lines.any { it.substringBefore(' ') == op.sha256.hex }) VerifyResult.Ok else mismatch(op.sha256.hex)
             is Op.RemoveFile -> if (lines.none { SHA256_RE.matches(it.substringBefore(' ')) }) VerifyResult.Ok else mismatch("no hash (file removed)")
             is Op.Mkdir, is Op.RestartHome, is Op.StartActivity, is Op.Read, is Op.Settle,
-            Op.PressHome, Op.Reboot, Op.DebugOff -> VerifyResult.Ok
+            Op.PressHome, Op.Reboot, Op.DebugOff, is Op.CurtainCue -> VerifyResult.Ok
         }
     }
 
@@ -289,6 +312,14 @@ class ShellRenderer(private val watchdogVariant: WatchdogVariant = WatchdogVaria
         private val HOME_ARGV = arrayOf(CMD, "package", "resolve-activity", "--brief", "-c", "android.intent.category.HOME", "-a", "android.intent.action.MAIN")
         private val SCREEN_PNG = RemotePath(RemoteDir.TMP, listOf("screen.png"))
         private val PID_RE = Regex("^[0-9]{1,10}$")
+        // RFC-CURTAIN-1: the curtain's package, its cue action and the extra flags of am.
+        const val CURTAIN_PACKAGE = "tv.cleanyour.curtain"
+        const val CUE_ACTION = "tv.cleanyour.curtain.CUE"
+        const val CUE_MAX = 999
+        private const val ES = "--es"
+        private const val EI = "--ei"
+        private const val RECEIVER_FOREGROUND = "--receiver-foreground"
+        private val CUE_WORD_RE = Regex("^[A-Z_]{1,16}$")
         const val EMPTY_FILE_SHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 
         // Timeouts (SECURITY 3.5, ARCHITECTURE 3.3) and output caps (SECURITY 3.5, ARCHITECTURE 3.7).

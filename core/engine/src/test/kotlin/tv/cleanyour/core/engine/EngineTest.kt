@@ -1,5 +1,7 @@
 package tv.cleanyour.core.engine
 
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import tv.cleanyour.core.model.AdbError
 import tv.cleanyour.core.model.EnabledState
@@ -76,6 +78,97 @@ class EngineTest {
         val p3 = plan.copy(steps = plan.steps.map { if (it.index == step.index) smuggled else it })
         assertEquals(StartResult.Refused(StartRefusal.HASH_MISMATCH), engine.start(p3, h.tv, p3.hash, h.pass()))
         assertTrue(h.tv.execLog.isEmpty(), "nothing was sent")
+    }
+
+    // RFC-CURTAIN-1: a step with a blank narration (the curtain's start and cues) is silent on the
+    // Working screen: not listed, not counted in the percent. It still runs, and the journal holds
+    // it like any other step.
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    @Test fun silentStepsAreNeitherListedNorCounted() = runTest(timeout = TEST_TIMEOUT) {
+        val h = Harness(this)
+        val engine = h.engine()
+        val base = h.opsPlan(Op.Disable(h.debloat[0]), Op.Settle(5), Op.Disable(h.debloat[1]), Op.Settle(5))
+        val plan = base.copy(steps = base.steps.map { if (it.index == 1) it.copy(narration = " ") else it.copy(narration = "voiced ${it.index}") })
+        assertEquals(base.hash, plan.hash, "narration is not part of the plan hash")
+        assertEquals(StartResult.Started, engine.start(plan, h.tv, plan.hash, h.pass()))
+        runCurrent()   // step 0 done, waiting in the silent settle of step 1
+        val first = engine.runState(h.tv.tvId).value
+        assertIs<RunState.Running>(first)
+        assertEquals(1, first.step)
+        assertEquals(listOf("Restore point saved", "voiced 0", "voiced 2", "voiced 3"), first.narration.map { it.text })
+        assertEquals(33, first.percent)
+        advanceTimeBy(5_500); runCurrent()   // through the silent step and step 2, waiting in step 3
+        val second = engine.runState(h.tv.tvId).value
+        assertIs<RunState.Running>(second)
+        assertEquals(3, second.step)
+        assertEquals(66, second.percent)
+        assertEquals(listOf(NarrationState.DONE, NarrationState.DONE, NarrationState.DOING), second.narration.drop(1).map { it.state })
+        h.settle(engine)
+        assertEquals(RunStatus.COMPLETED, (engine.runState(h.tv.tvId).value as RunState.Finished).status)
+        val expected = listOf("plan") + plan.steps.flatMap { listOf("begin${it.index}", "done${it.index}") } + "end:COMPLETED"
+        assertEquals(expected, h.types(plan))
+        for (p in h.debloat.take(2)) assertEquals(EnabledState.DISABLED_USER, h.tv.state(p), p.value)
+    }
+
+    // RFC-CURTAIN-1: a Setup plan with the TV curtain runs to the end: the staleness check before
+    // step 0 accepts it (the curtain is not on the TV yet), every cue line goes out, the curtain is
+    // installed and removed again, and the switch-offs are as without it.
+    @Test fun aSetupWithTheCurtainRunsAndRemovesIt() = runTest(timeout = TEST_TIMEOUT) {
+        val h = Harness(this)
+        val engine = h.engine()
+        val curtainPkg = PackageName("tv.cleanyour.curtain")
+        val bytes = "fake curtain apk".encodeToByteArray()
+        val sha = h.tv.acceptApk(bytes, curtainPkg, 1, h.signer)
+        val curtain = tv.cleanyour.core.model.LauncherArtifact(curtainPkg, 1, "0.1", sha, h.signer, tv.cleanyour.core.model.BlobRef(sha, bytes.size.toLong(), "bundled:curtain.apk"))
+        val base = h.setupPlan(takeover = false)
+        val req = PlanRequest.Setup(tv.cleanyour.core.spec.ProfileResolution.Exact(h.profile()),
+            tv.cleanyour.core.planner.Choices(emptySet(), emptySet(), null, null, true, false, false, false), h.artifact, tv.cleanyour.core.model.Level.SIMPLE, curtain = curtain)
+        val plan = h.plan(req)
+        val cues = plan.steps.count { it.op is Op.CurtainCue }
+        assertEquals(h.debloat.size + 6, cues, "SCAN, RESTORE_SAVED, one OFF per switch-off, GROUP_DONE, INSTALL, INSTALLED, FINALE")
+        assertEquals(StartResult.Started, engine.start(plan, h.tv, plan.hash, h.pass()))
+        h.settle(engine)
+        val fin = engine.runState(h.tv.tvId).value
+        assertIs<RunState.Finished>(fin)
+        assertEquals(RunStatus.COMPLETED, fin.status, h.types(plan).toString())
+        assertEquals(cues, h.tv.execs("am broadcast -n tv.cleanyour.curtain/.CueReceiver"))
+        assertEquals(1, h.tv.execs("am start -n tv.cleanyour.curtain/.CurtainActivity"))
+        assertTrue(curtainPkg !in h.tv.packages, "the curtain is gone at the end")
+        for (p in h.debloat) assertEquals(EnabledState.DISABLED_USER, h.tv.state(p), p.value)
+        assertEquals(base.steps.size + plan.steps.count { it.group == tv.cleanyour.core.planner.DefaultPlanner.GROUP_CURTAIN }, plan.steps.size)
+        val expected = listOf("plan") + plan.steps.flatMap { listOf("begin${it.index}", "done${it.index}") } + "end:COMPLETED"
+        assertEquals(expected, h.types(plan))
+    }
+
+    // RF-CURTAIN-1 F1: a new group forces a thumbnail, but silent steps (the curtain's cues woven
+    // after every switch-off) never force one and do not end a group, so the cues add no screenshots.
+    @Test fun silentStepsForceNoThumbnail() {
+        val receiver = tv.cleanyour.core.model.Component(PackageName("tv.cleanyour.curtain"), ".CueReceiver")
+        val token = tv.cleanyour.core.model.RunToken("fedcba9876543210")
+        fun cue(k: Int) = Op.CurtainCue(receiver, token, tv.cleanyour.core.model.CurtainStage.OFF, k, 3)
+        fun forced(woven: Boolean): Int {
+            var count = 0
+            runTest(timeout = TEST_TIMEOUT) {
+                val h = Harness(this)
+                val engine = h.engine(thumbnailEveryMs = 3_600_000)   // only forced screenshots
+                val groups = listOf("ads", "ads", "tracking")
+                val ops = h.debloat.take(3).flatMapIndexed { k, p -> listOf<Op>(Op.Disable(p)) + if (woven) listOf(cue(k + 1)) else emptyList() }
+                val base = h.opsPlan(*ops.toTypedArray())
+                var g = 0
+                val plan = base.copy(steps = base.steps.map { s ->
+                    if (s.op is Op.CurtainCue) s.copy(group = "curtain", narration = "", onFailure = FailurePolicy.CONTINUE)
+                    else s.copy(group = groups[g++], narration = "Switching off")
+                })
+                assertEquals(StartResult.Started, engine.start(plan, h.tv, plan.hash, h.pass()))
+                h.settle(engine)
+                assertEquals(RunStatus.COMPLETED, (engine.runState(h.tv.tvId).value as RunState.Finished).status)
+                count = h.prober.calls.count { it == "screenshot" }
+            }
+            return count
+        }
+        val plain = forced(woven = false)
+        assertEquals(2, plain, "the first step and the change from ads to tracking")
+        assertEquals(plain, forced(woven = true))
     }
 
     @Test fun debloatRunJournalsVerifiesAndSavesTheRestorePoint() = runTest(timeout = TEST_TIMEOUT) {

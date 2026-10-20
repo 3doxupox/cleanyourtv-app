@@ -134,6 +134,7 @@ class ScriptedTv(initial: Snapshot = Samples.miTvSnapshot()) : TvSession {
             line.startsWith("rm -f ") -> { files.remove(tokens[2]); ok() }
             line.startsWith("mkdir -p ") -> ok()
             line.startsWith("am start ") || line.startsWith("am force-stop ") -> ok("Starting: Intent\n")
+            line.startsWith("am broadcast ") -> ok("Broadcasting: Intent { act=${tokens[4]} }\nBroadcast completed: result=0\n")
             line == "input keyevent 3" -> ok()
             line.startsWith("settings put ") -> { val key = SettingKey.entries.first { it.key == tokens[3] }; settings[key] = tokens.drop(4).joinToString(" "); ok() }
             line.startsWith("settings delete ") -> { val key = SettingKey.entries.first { it.key == tokens[3] }; settings.remove(key); ok() }

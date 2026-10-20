@@ -12,6 +12,8 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import tv.cleanyour.core.model.BlobRef
 import tv.cleanyour.core.model.Component
+import tv.cleanyour.core.model.CurtainGroup
+import tv.cleanyour.core.model.CurtainStage
 import tv.cleanyour.core.model.EnabledState
 import tv.cleanyour.core.model.InstallFlag
 import tv.cleanyour.core.model.Op
@@ -71,6 +73,10 @@ object OpJson {
             is Op.Settle -> { put("v", "settle"); put("seconds", op.seconds) }
             Op.Reboot -> put("v", "reboot")
             Op.DebugOff -> put("v", "debug_off")
+            is Op.CurtainCue -> {
+                put("v", "curtain_cue"); put("receiver", op.receiver.flat); put("token", op.token.value); put("stage", op.stage.name)
+                put("count", op.count); put("total", op.total); put("group", op.group.name); put("groupCount", op.groupCount); put("groupTotal", op.groupTotal)
+            }
         }
     }
 
@@ -108,6 +114,8 @@ object OpJson {
         "settle" -> Op.Settle(o.int("seconds"))
         "reboot" -> Op.Reboot
         "debug_off" -> Op.DebugOff
+        "curtain_cue" -> Op.CurtainCue(component(o.str("receiver")), RunToken(o.str("token")), CurtainStage.valueOf(o.str("stage")),
+            o.int("count"), o.int("total"), CurtainGroup.valueOf(o.str("group")), o.int("groupCount"), o.int("groupTotal"))
         else -> throw IllegalArgumentException("unknown op verb $v")
     }
 

@@ -45,5 +45,7 @@ abstract class ApkSizeCheckTask : DefaultTask() {
 
     companion object {
         const val DEFAULT_LIMIT_BYTES: Long = 8L * 1024 * 1024
+        // RFC-CURTAIN-1: the TV curtain, budget 200 KB, gate 256 KB.
+        const val TV_APP_LIMIT_BYTES: Long = 256L * 1024
     }
 }

@@ -113,4 +113,47 @@ class PlannerPropertyTest {
         }
         assertTrue(plans > 100 && disables > 200 && sections > 30, "plans=$plans disables=$disables sections=$sections")
     }
+
+    // RFC-CURTAIN-1 over the same random TVs: with the curtain, every curtain step CONTINUEs, none sits
+    // inside a guarded section, the curtain's removal is the last step, and the plan without the
+    // curtain steps is exactly the plan without the curtain; apply, re-plan and undo still hold.
+    @Test fun theCurtainNeverChangesTheSetupItShows() {
+        val curtainSha = tv.cleanyour.core.model.Sha256("e".repeat(64))
+        val curtain = tv.cleanyour.core.model.LauncherArtifact(PackageName("tv.cleanyour.curtain"), 1, "0.1", curtainSha, artifact().signer,
+            tv.cleanyour.core.model.BlobRef(curtainSha, 49_571, "bundled:cleanyourtv-curtain.apk"))
+        var woven = 0
+        repeat(150) {
+            val (snap, groups, never) = randomTv()
+            val prof = profile(neverDisable = never).copy(groups = groups)
+            val pool = snap.packages.keys.toList()
+            val ch = choices(kept = pool.shuffled(rnd).take(rnd.nextInt(0, 5)).toSet(), takeover = rnd.nextInt(3) != 0, installLauncher = rnd.nextInt(4) != 0)
+            fun req(c: tv.cleanyour.core.model.LauncherArtifact?) = PlanRequest.Setup(ProfileResolution.Exact(prof), ch, artifact(), Level.CUSTOM, curtain = c)
+            val with = (planner().plan(req(curtain), snap, facts, emptyList()) as? PlanResult.Ok)?.plan ?: return@repeat
+            val without = (planner().plan(req(null), snap, facts, emptyList()) as PlanResult.Ok).plan
+            if (without.steps.isEmpty()) { assertTrue(with.steps.isEmpty()); return@repeat }
+            woven++
+            val c = with.steps.filter { it.group == DefaultPlanner.GROUP_CURTAIN }
+            assertTrue(c.all { it.onFailure == tv.cleanyour.core.ops.FailurePolicy.CONTINUE })
+            assertTrue(c.none { s -> with.sections.any { s.index in it.from..it.to } })
+            assertEquals(Op.Uninstall(PackageName("tv.cleanyour.curtain")), with.steps.last().op)
+            assertEquals(without.steps.map { listOf(it.op, it.prior, it.group, it.narration, it.onFailure) },
+                with.steps.filter { it.group != DefaultPlanner.GROUP_CURTAIN }.map { listOf(it.op, it.prior, it.group, it.narration, it.onFailure) })
+            for ((a, b) in without.sections.zip(with.sections)) {
+                assertEquals(without.steps[a.from].op, with.steps[b.from].op); assertEquals(without.steps[a.to].op, with.steps[b.to].op)
+                assertEquals(a.rollback, b.rollback); assertEquals(a.token, b.token)
+            }
+            val offs = without.steps.count { it.op is Op.Disable && without.sections.none { s -> it.index in s.from..s.to } && it.group != DefaultPlanner.GROUP_HOME }
+            assertEquals(offs, with.steps.count { (it.op as? Op.CurtainCue)?.stage == tv.cleanyour.core.model.CurtainStage.OFF })
+            val tv = ModelTv(snap)
+            val baseline = tv.state()
+            tv.apply(with)
+            assertTrue(PackageName("tv.cleanyour.curtain") !in tv.packages)
+            val replan = (planner().plan(req(curtain), tv.snapshot(), facts, tv.changes) as PlanResult.Ok).plan
+            assertEquals(emptyList<Op>(), replan.steps.map { it.op })
+            val undo = (planner().plan(PlanRequest.UndoEverything(tv.changes, removeLauncher = true), tv.snapshot(), facts, tv.changes) as PlanResult.Ok).plan
+            tv.apply(undo)
+            assertEquals(baseline, tv.state())
+        }
+        assertTrue(woven > 80, "woven=$woven")
+    }
 }

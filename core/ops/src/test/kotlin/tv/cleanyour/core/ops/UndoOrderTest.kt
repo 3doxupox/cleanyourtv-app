@@ -78,7 +78,7 @@ class UndoOrderTest {
         val x = rec("p", 5, 10, Op.Disable(a), Prior(packageState = EnabledState.ENABLED))
         val y = rec("p", 2, 10, Op.Enable(a), Prior(packageState = EnabledState.DEFAULT))
         assertEquals(listOf(y), UndoOrder.earliest(listOf(x, y)))
-        for (op in listOf(Op.PressHome, Op.Reboot, Op.DebugOff, Op.Settle(1), Op.Mkdir(RemoteDir.TMP), Op.VerifyHome(stock), Op.RestartHome(launcher)))
+        for (op in listOf(Op.PressHome, Op.Reboot, Op.DebugOff, Op.Settle(1), GoldenCases.cue(tv.cleanyour.core.model.CurtainStage.OFF), Op.Mkdir(RemoteDir.TMP), Op.VerifyHome(stock), Op.RestartHome(launcher)))
             assertNull(UndoOrder.target(op), op.toString())
         assertEquals(emptyList(), UndoOrder.undoOrder(emptyList()))
     }

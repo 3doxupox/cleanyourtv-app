@@ -218,6 +218,33 @@ class RestoreCommandsTest {
         assertTrue(phoneUndo(changes, removeLauncher = true).none { "wallpaper.jpg" in it || "config.json" in it })
     }
 
+    // RFC-CURTAIN-1: the curtain is installed after the restore point and removed as the plan's last
+    // step. A finished run leaves no step; an interrupted one (no uninstall record) leaves its removal;
+    // the cues themselves never make a step.
+    @Test fun theCurtainLeavesNoStepWhenFinishedAndItsRemovalWhenInterrupted() {
+        val plan = PlanId("p")
+        val curtain = PackageName("tv.cleanyour.curtain")
+        val receiver = tv.cleanyour.core.model.Component(curtain, ".CueReceiver")
+        val token = tv.cleanyour.core.model.RunToken("0123456789abcdef")
+        val blob = BlobRef(sha256Of("curtain"), 1, "bundled:cleanyourtv-curtain.apk")
+        val run = listOf(
+            ChangeRecord(plan, 0, Op.InstallStream(blob, blob.sha256, curtain, 1, Samples.zeroHash), Prior(present = false), 1),
+            ChangeRecord(plan, 1, Op.StartActivity(tv.cleanyour.core.model.Component(curtain, ".CurtainActivity"), false), null, 2),
+            ChangeRecord(plan, 2, Op.CurtainCue(receiver, token, tv.cleanyour.core.model.CurtainStage.SCAN, 0, 1), null, 3),
+            ChangeRecord(plan, 3, Op.Disable(PackageName("com.miui.tv.analytics")), Prior(packageState = EnabledState.ENABLED), 4),
+            ChangeRecord(plan, 4, Op.CurtainCue(receiver, token, tv.cleanyour.core.model.CurtainStage.OFF, 1, 1, tv.cleanyour.core.model.CurtainGroup.TRACKING, 1, 1), null, 5),
+        )
+        val interrupted = RestoreCommands(renderer).steps(run)
+        assertTrue(interrupted.none { it.change.op is Op.CurtainCue || it.change.op is Op.StartActivity }, interrupted.toString())
+        val removal = interrupted.single { it.inverse == Op.Uninstall(curtain) }
+        assertEquals(RestoreStepKind.REMOVE_APP, removal.kind)
+        assertEquals(listOf("'pm' 'uninstall' '--user' '0' 'tv.cleanyour.curtain'"), removal.lines)
+
+        val finished = RestoreCommands(renderer).steps(run + ChangeRecord(plan, 5, Op.Uninstall(curtain), Prior(present = true), 6))
+        assertTrue(finished.none { it.change.op.let { op -> op is Op.CurtainCue || DefaultPlanner.packageOf(op) == curtain } }, finished.toString())
+        assertEquals(1, finished.size, finished.toString())   // only the switch-off goes back
+    }
+
     @Test fun anUndoThatNeedsAFileFromThePhoneIsNotALaptopLine() {
         // a renderer whose undo of an uninstall is a reinstall from the phone's cache (a transfer)
         val blob = BlobRef(sha256Of("apk"), 3, "mem:apk")

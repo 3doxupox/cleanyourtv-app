@@ -121,6 +121,21 @@ private val homeSwitchCommands = listOf(
     "cmd package set-home-activity com.gathin.tvhome/.MainActivity",
 )
 private val homeSwitchOnlyPlan = plan(summary(listOf(homeSwitchGroup)).copy(dock = emptyList()))
+// RFC-CURTAIN-1: the same plan with the TV curtain, as "Show commands" lists it: the curtain's install,
+// its start, one am broadcast per cue, and its removal last.
+private fun cue(stage: String, count: Int = 0, total: Int = 0) =
+    "am broadcast -n tv.cleanyour.curtain/.CueReceiver -a tv.cleanyour.curtain.CUE --es token 3f9c0a17d2e4b856 --es stage $stage --es group NONE --ei count $count --ei total $total --ei gcount 0 --ei gtotal 0 --receiver-foreground"
+private val curtainCommands = listOf(
+    "sync:bundled:cleanyourtv-curtain.apk 49571",
+    "am start -n tv.cleanyour.curtain/.CurtainActivity",
+    cue("SCAN"), cue("RESTORE_SAVED"), cue("INSTALL"),
+    "sync:bundled:cleanyourtv-launcher.apk 270885",
+    cue("INSTALLED"), cue("FINALE"),
+    CONFIG_SYNC,
+    "pm disable-user --user 0 com.google.android.tvlauncher",
+    "cmd package set-home-activity com.gathin.tvhome/.MainActivity",
+    "pm uninstall --user 0 tv.cleanyour.curtain",
+)
 private val noHomePlan = plan(summary(listOf(
     GroupSummary("ads", "Adverts and sponsored rows", off = 6, total = 6, rows = emptyList()),
     GroupSummary("tracking", "Tracking and analytics", off = 7, total = 7, rows = emptyList()),
@@ -266,6 +281,13 @@ object SetupShots {
         Shot("customise_sheet_home_switch") {
             SheetFrame({ Setup(found(homeSwitchOnlyPlan)) }) {
                 CustomiseContent(found(homeSwitchOnlyPlan), customising.copy(dock = emptyList(), commands = homeSwitchCommands), NoSetupActions, rememberUndoSnackbarState(), {}, {})
+            }
+        },
+        // RFC-CURTAIN-1: Custom shows "Show the progress on the TV" (on by default) and the cue lines.
+        Shot("customise_sheet_curtain") {
+            SheetFrame({ Setup(found(homeSwitchOnlyPlan, level = Level.CUSTOM)) }) {
+                CustomiseContent(found(homeSwitchOnlyPlan, level = Level.CUSTOM), customising.copy(dock = emptyList(), commands = curtainCommands),
+                    NoSetupActions, rememberUndoSnackbarState(), {}, {}, initiallyOpen = emptyList())
             }
         },
         Shot("customise_why_sheet") { SheetFrame({ Setup(found()) }, maxHeight = 360.dp) { WhyContent(found()) } },

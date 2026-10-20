@@ -39,7 +39,7 @@ replaced launcher both pushes record `present = false`, so Undo everything and t
 scripts delete them again; the laptop scripts also delete a wallpaper whose first record is that
 removal when a later look pushed one.
 
-## RFC-CURTAIN-1: the TV curtain (proposed, needs owner and Fable sign-off)
+## RFC-CURTAIN-1: the TV curtain (applied on curtain; APPROVE WITH FOLLOW-UPS, reviews/RF-CURTAIN-1.md)
 
 What: a bundled, pinned TV app (`tv.cleanyour.curtain`, new module `:tv:curtain`, signed with the
 launcher key K1) that the Setup plan installs after the engine's restore point, cues once per
@@ -66,6 +66,52 @@ W9 (forge build script, e2e). Smallest alternative: no new op, cues as `PushAsse
 file polled by the curtain; rejected because a push per stage costs a sync round trip, shows as a
 sync line with a hash in Show commands, and leaves files to clean. Ordering: applied on `main` after
 RFC-DOCK-1 (`setupcfg`) merges; the FINALE cue goes before whichever step starts the launcher first.
+
+Applied (curtain, 2026-10-20, owner answers to CURTAIN-PLAN section 8): (1) the TV says the phone's
+words during cleaning ("Adverts: 2 of 4"), so `Op.CurtainCue` carries three more fields after the
+five of the plan, all defaulted: `group: CurtainGroup = NONE`, `groupCount: Int = 0`,
+`groupTotal: Int = 0`, with `enum class CurtainGroup { NONE, ADVERTS, TRACKING, NOBODY_ASKED,
+BRAND_EXTRAS, SHOP_DEMO, OTHER }` in `:core:model`. The cue line gains three constant extras
+(`group` as a string re-checked against `^[A-Z_]{1,16}$`, `gcount` and `gtotal` as ints 0 to 999);
+`count` and `total` stay the switch-offs over the whole plan, for the percent. The words for each
+group live in the curtain APK; the brand in "{brand} extras" is the TV's own `Build.BRAND`, read on
+the TV. (2) The switch "Show the progress on the TV" is in Custom only, default on. (3) Silent. (4)
+Signed with the launcher key K1. One tightening beyond the plan: the renderer refuses a cue whose
+receiver package is not `tv.cleanyour.curtain`, so a cue can never be aimed at another app.
+
+Two choices the plan left open, for review: (a) `DebugOff` does NOT gain the leftover uninstall of
+section 4 (b). An `Uninstall` is a PROFILE_STEP, so it would make the Finish plan need a credential
+pass; a cancelled prompt would then leave debugging on (D7). A leftover is still finished on the TV
+by the curtain itself (four minutes, Back, or covered), removed by Leftovers, and replaced or reused
+by the next Setup. (b) The probe reports no signer for any package (`PackageState.signer` is null),
+so "the pin is already installed with our signer" is read as: the package is present, its
+versionCode is the pin's, and no other signer is known; a package under our name with a known other
+signer gets no curtain steps and is never uninstalled. The planner takes the pinned signer as
+`curtainSigner` (AppGraph passes `PinnedCurtain.SIGNER_SHA256`). A Setup with no steps shows no
+curtain.
+(c) The Customise switch needs an intent: `SetupIntent` (frozen, 5.12) gains
+`ShowOnTv(on: Boolean)`; `SetupDeps` gains `curtainPin: CurtainPin? = null`. The switch shows in
+Custom only; replan hands the pin's artifact in when the level is Simple or the draft's `curtain` is
+on, and plans without it when the asset does not match its pin.
+
+Review (RF-CURTAIN-1, APPROVE WITH FOLLOW-UPS): F1 applied (a silent step never forces a
+thumbnail; the engine compares a voiced step's group with the last voiced step's, test
+`silentStepsForceNoThumbnail`). F2 applied: "ours" is the journal rule of `removeModule` (installed
+by us, or an install of the curtain in this TV's change records), replacing (b) above; a curtain
+package without such a record gets no Setup steps and no Leftovers step
+(`onlyACurtainWeInstalledIsTouched`). F3 main merged. F5: SECURITY 3.2 has the `curtain_cue` row,
+PRODUCT-SPEC 5.8 and DECISIONS-W1 list `PlanRequest.Setup.curtain` and `Choices.curtain`. F6 in part:
+the cue line ends with `--receiver-foreground` (goldens 53 to 59); the lead reads the cue steps' ms
+from the Mi TV journal. F7 applied: CueBus keeps early cues for any curtain that attaches, only
+those of the newest run's token. F11 applied: the key frames go to build/curtain-frames, and to
+src/test/frames only with -PcurtainFrames. Follow-ups, open:
+- F6 rest: if Mi TV cue steps come near seconds, give cues a short timeout and count a cue's
+  timeout as Failed (CONTINUE), not Lost.
+- F8 (W8): after a rolled-back section the final uninstall is skipped; SetupMachine could run a
+  one-step Leftovers with the run's own pass before Done or Undone.
+- F9 (W4): read the curtain's signer the way the launcher's is read, so the signer test is real.
+- F10 (W9): build-curtain-on-forge.sh builds the working tree but stamps the commit time; refuse a
+  dirty tree or build from `git archive HEAD`.
 
 ## RFC-CARDS-1: module cards stay off until the person asks for a card (applied on cardsoptin; Fable APPROVE WITH FOLLOW-UPS, reviews/RF-CARDS-1.md)
 
@@ -111,3 +157,4 @@ Follow-ups, open:
   TV; the add's RestartHome then starts our launcher over the stock home for a moment (ApplyTheme
   has the same gap). A check in `cardsOnLook` that the latest snapshot's resolved HOME is the
   launcher would close it.
+
