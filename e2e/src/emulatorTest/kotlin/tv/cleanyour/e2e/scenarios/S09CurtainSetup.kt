@@ -169,6 +169,10 @@ class S09CurtainSetup : E2eScenario() {
         if (System.getenv("CYT_E2E_CURTAIN_MOTION") == "1") oracle.shell("settings put global animator_duration_scale 1")
         oracle.uninstall(curtainPkg)
         assertFalse("the curtain is on the TV before the run", oracle.isInstalled(curtainPkg))
+        // The TV's log, streamed to the host as it is written, so it survives the emulator going away.
+        oracle.shell("logcat -c")
+        val logcat = ProcessBuilder(cfg.adb.path, "-s", cfg.serial, "logcat", "-v", "threadtime", "-b", "main,system,crash")
+            .redirectOutput(File(out, "curtain-logcat.txt")).redirectErrorStream(true).start()
         oracle.pressHome()
         delay(3_000)
         val stockShot = screencap("curtain-0-stock-home")
@@ -247,6 +251,7 @@ class S09CurtainSetup : E2eScenario() {
         val crash = oracle.shell("logcat -d -b crash").stdout
         File(out, "curtain-crash-log.txt").writeText(crash)
 
+        logcat.destroy()
         assertTrue("run ended $end", end is RunState.Finished)
         assertEquals(RunStatus.COMPLETED, (end as RunState.Finished).status)
         val records = journal.read(plan.id)
