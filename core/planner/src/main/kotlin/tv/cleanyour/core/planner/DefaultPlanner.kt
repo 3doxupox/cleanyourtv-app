@@ -340,7 +340,9 @@ class DefaultPlanner(
             }
             if (!finaled) finale()
             sections += bodySections.map { it.copy(from = moved[it.from], to = moved[it.to]) }
-            step(Op.Uninstall(curtainPkg), Prior(present = true), GROUP_CURTAIN, "", FailurePolicy.CONTINUE)
+            // The prior is what the run's staleness check compares with the TV before step 0: the
+            // curtain is there then only when it was left by an earlier run (e2e S09 found this).
+            step(Op.Uninstall(curtainPkg), if (current != null) Prior(present = true) else null, GROUP_CURTAIN, "", FailurePolicy.CONTINUE)
         }
 
         // The home screen switch switches off the TV's own home screen (and the wizard on the

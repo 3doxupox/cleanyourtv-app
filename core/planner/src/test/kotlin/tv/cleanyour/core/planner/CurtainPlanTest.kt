@@ -79,7 +79,8 @@ class CurtainPlanTest {
         assertEquals(listOf("InstallStream tv.cleanyour.curtain" to "Showing the progress on the TV", "Settle" to "Giving the TV a moment"), voiced)
         assertEquals(Op.Settle(3), curtainSteps(p).first { it.op is Op.Settle }.op)
         assertEquals(Prior(present = false), p.steps.first().prior)
-        assertEquals(Prior(present = true), p.steps.last().prior)
+        assertEquals(null, p.steps.last().prior, "the curtain is not on the TV when the run starts")
+        assertEquals(Prior(present = true), plan(withCurtain(), snapshot = withPackage(curtainState()), planner = planner()).steps.last().prior)
     }
 
     // RFC-DOCK-1 applies: the look's first step starts the launcher, so FINALE goes before it.

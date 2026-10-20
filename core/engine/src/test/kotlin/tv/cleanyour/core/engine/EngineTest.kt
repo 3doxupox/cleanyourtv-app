@@ -110,6 +110,36 @@ class EngineTest {
         for (p in h.debloat.take(2)) assertEquals(EnabledState.DISABLED_USER, h.tv.state(p), p.value)
     }
 
+    // RFC-CURTAIN-1: a Setup plan with the TV curtain runs to the end: the staleness check before
+    // step 0 accepts it (the curtain is not on the TV yet), every cue line goes out, the curtain is
+    // installed and removed again, and the switch-offs are as without it.
+    @Test fun aSetupWithTheCurtainRunsAndRemovesIt() = runTest(timeout = TEST_TIMEOUT) {
+        val h = Harness(this)
+        val engine = h.engine()
+        val curtainPkg = PackageName("tv.cleanyour.curtain")
+        val bytes = "fake curtain apk".encodeToByteArray()
+        val sha = h.tv.acceptApk(bytes, curtainPkg, 1, h.signer)
+        val curtain = tv.cleanyour.core.model.LauncherArtifact(curtainPkg, 1, "0.1", sha, h.signer, tv.cleanyour.core.model.BlobRef(sha, bytes.size.toLong(), "bundled:curtain.apk"))
+        val base = h.setupPlan(takeover = false)
+        val req = PlanRequest.Setup(tv.cleanyour.core.spec.ProfileResolution.Exact(h.profile()),
+            tv.cleanyour.core.planner.Choices(emptySet(), emptySet(), null, null, true, false, false, false), h.artifact, tv.cleanyour.core.model.Level.SIMPLE, curtain = curtain)
+        val plan = h.plan(req)
+        val cues = plan.steps.count { it.op is Op.CurtainCue }
+        assertEquals(h.debloat.size + 6, cues, "SCAN, RESTORE_SAVED, one OFF per switch-off, GROUP_DONE, INSTALL, INSTALLED, FINALE")
+        assertEquals(StartResult.Started, engine.start(plan, h.tv, plan.hash, h.pass()))
+        h.settle(engine)
+        val fin = engine.runState(h.tv.tvId).value
+        assertIs<RunState.Finished>(fin)
+        assertEquals(RunStatus.COMPLETED, fin.status, h.types(plan).toString())
+        assertEquals(cues, h.tv.execs("am broadcast -n tv.cleanyour.curtain/.CueReceiver"))
+        assertEquals(1, h.tv.execs("am start -n tv.cleanyour.curtain/.CurtainActivity"))
+        assertTrue(curtainPkg !in h.tv.packages, "the curtain is gone at the end")
+        for (p in h.debloat) assertEquals(EnabledState.DISABLED_USER, h.tv.state(p), p.value)
+        assertEquals(base.steps.size + plan.steps.count { it.group == tv.cleanyour.core.planner.DefaultPlanner.GROUP_CURTAIN }, plan.steps.size)
+        val expected = listOf("plan") + plan.steps.flatMap { listOf("begin${it.index}", "done${it.index}") } + "end:COMPLETED"
+        assertEquals(expected, h.types(plan))
+    }
+
     @Test fun debloatRunJournalsVerifiesAndSavesTheRestorePoint() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
         val engine = h.engine()
