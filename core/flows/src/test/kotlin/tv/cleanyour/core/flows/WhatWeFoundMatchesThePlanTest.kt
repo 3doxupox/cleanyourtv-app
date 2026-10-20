@@ -3,9 +3,11 @@ package tv.cleanyour.core.flows
 import kotlinx.coroutines.test.runTest
 import tv.cleanyour.core.model.Component
 import tv.cleanyour.core.model.EnabledState
+import tv.cleanyour.core.model.BlobRef
 import tv.cleanyour.core.model.Level
 import tv.cleanyour.core.model.Op
 import tv.cleanyour.core.model.PackageName
+import tv.cleanyour.core.model.RemoteDir
 import tv.cleanyour.core.model.Snapshot
 import tv.cleanyour.core.model.SnapshotReason
 import tv.cleanyour.core.ops.ShellRenderer
@@ -17,17 +19,24 @@ import tv.cleanyour.core.planner.PlanResult
 import tv.cleanyour.core.planner.disabledPackages
 import tv.cleanyour.core.planner.switchOffCount
 import tv.cleanyour.core.planner.switchOffPackages
+import tv.cleanyour.core.engine.FileOverlayTransport
 import tv.cleanyour.core.probe.AdbProber
 import tv.cleanyour.core.spec.AppNames
 import tv.cleanyour.core.spec.BundledFactsTable
 import tv.cleanyour.core.spec.BundledProfileSource
+import tv.cleanyour.core.spec.DecodeResult
+import tv.cleanyour.core.spec.DockLayers
 import tv.cleanyour.core.spec.DockRanking
+import tv.cleanyour.core.spec.LauncherConfigCodec
+import tv.cleanyour.core.spec.LauncherConfigDoc
 import tv.cleanyour.core.spec.ProfileResolution
 import tv.cleanyour.testing.fixtures.FakeClock
 import tv.cleanyour.testing.fixtures.FakeConfigTransport
 import tv.cleanyour.testing.fixtures.FakeIdGen
+import tv.cleanyour.testing.fixtures.FakeProber
 import tv.cleanyour.testing.fixtures.Fixtures
 import tv.cleanyour.testing.fixtures.Samples
+import tv.cleanyour.testing.fixtures.sha256Of
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -162,5 +171,29 @@ class WhatWeFoundMatchesThePlanTest {
         assertEquals(setOf("com.android.traceur", "com.lego.android.tvleanback"), apps.map { it.value }.toSet())
         assertEquals(setOf("Traceur", "Lego"), apps.map { AppNames.of(it, facts, snapshot.packages[it]?.label) }.toSet())
         assertTrue(snapshot.home.claimants.none { it.component.pkg in apps })
+    }
+
+    // The dock sheet's rows (M2): the plan that sends them, and "Show commands", push exactly the
+    // config.json the sheet stands for: dock_apps the dock then Row 2 in order, rows_below_dock the
+    // one row under the dock, and the launcher reads those bytes back as the same rows.
+    @Test fun dockRowsArePushedAsTheSheetShowsThem() {
+        val planner = DefaultPlanner(FakeClock(), FakeIdGen(), ShellRenderer(), FileOverlayTransport(FakeProber()), "0.1.0")
+        val apps = listOf("com.netflix.ninja", "com.google.android.youtube.tv", "com.amazon.amazonvideo.livingroom", "in.startv.hotstar",
+            "com.spotify.tv.android", "com.plexapp.android").map(::PackageName)
+        val doc = DockLayers.applyTo(LauncherConfigDoc(), apps)
+        val bytes = LauncherConfigCodec.encode(doc)
+        val config = BlobRef(sha256Of(bytes), bytes.size.toLong(), "blobs/config")
+        val ours = tv.cleanyour.core.model.PackageState(EnabledState.ENABLED, false, 1, null, false, false, null, true)
+        val snapshot = Samples.snapshot(packages = Samples.miTvPackages() + (launcher.pkg to ours))
+        val r = planner.plan(PlanRequest.ApplyTheme(doc, config, null), snapshot, facts, emptyList())
+        val plan = assertIs<PlanResult.Ok>(r, r.toString()).plan
+        val push = plan.steps.map { it.op }.filterIsInstance<Op.PushAsset>().single { it.dest.dir == RemoteDir.OVERLAY && it.dest.segments == listOf("config.json") }
+        assertEquals(config, push.src)
+        assertEquals(sha256Of(bytes), push.sha256)
+        val commands = SetupMachine.commandsOf(plan)
+        assertTrue(commands.any { "config.json" in it && config.sha256.hex in it }, "Show commands names the pushed config.json: $commands")
+        val back = assertIs<DecodeResult.Ok>(LauncherConfigCodec.decode(bytes)).doc
+        assertEquals(LauncherConfigDoc(dockApps = apps, rowsBelowDock = 1), back)
+        assertEquals(listOf(apps.take(4), apps.drop(4)), DockLayers.rows(back.dockApps.orEmpty(), DockLayers.columnsOf(back)))
     }
 }

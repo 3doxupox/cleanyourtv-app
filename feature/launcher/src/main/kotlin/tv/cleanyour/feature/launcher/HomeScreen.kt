@@ -5,8 +5,9 @@ package tv.cleanyour.feature.launcher
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -16,8 +17,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import tv.cleanyour.core.flows.AppChoice
 import tv.cleanyour.core.flows.Busy
@@ -31,10 +30,10 @@ import tv.cleanyour.ui.design.component.BannerTone
 import tv.cleanyour.ui.design.component.CheckLine
 import tv.cleanyour.ui.design.component.CheckState
 import tv.cleanyour.ui.design.component.CytBottomSheet
-import tv.cleanyour.ui.design.component.CytIcon
-import tv.cleanyour.ui.design.component.CytIconButton
 import tv.cleanyour.ui.design.component.CytTopBar
-import tv.cleanyour.ui.design.component.DockRow
+import tv.cleanyour.ui.design.component.DockApp
+import tv.cleanyour.ui.design.component.DockEditor
+import tv.cleanyour.ui.design.component.DockEditorState
 import tv.cleanyour.ui.design.component.ListDivider
 import tv.cleanyour.ui.design.component.ListGroup
 import tv.cleanyour.ui.design.component.ListRow
@@ -47,8 +46,6 @@ import tv.cleanyour.ui.design.component.TertiaryButton
 import tv.cleanyour.ui.design.component.ThemeOption
 import tv.cleanyour.ui.design.component.ThemePicker
 import tv.cleanyour.ui.design.component.themeSwatch
-import tv.cleanyour.ui.design.icon.CytIcons
-import tv.cleanyour.ui.design.theme.CytTheme
 import tv.cleanyour.ui.design.theme.Glow
 
 // M2 Home screen: Dock (S3b), Look (theme picker), "Use the TV's own home screen" with its preview,
@@ -70,7 +67,11 @@ fun HomeScreen(state: HomeScreenState, onIntent: (HomeScreenIntent) -> Unit, onB
             if (busy is Busy.Working) ProgressBar(busy.percent / 100f, Modifier.padding(top = 16.dp))
         }
         ListGroup(Modifier.padding(top = 20.dp)) {
-            ListRow(stringResource(R.string.home_row_dock), subtitle = state.dock.joinToString(", ") { it.name }.ifEmpty { null },
+            // The dock's apps by name, and how many more sit in the rows under it.
+            val inDock = state.dock.take(state.columns).joinToString(", ") { it.name }
+            val below = (state.dock.size - state.columns).coerceAtLeast(0)
+            val dockLine = if (below > 0) msg(R.string.home_row_dock_rows, "names" to inDock, "count" to below) else inDock
+            ListRow(stringResource(R.string.home_row_dock), subtitle = dockLine.ifEmpty { null },
                 onClick = if (busy == null) ({ dockOpen = true }) else null)
             ListDivider()
             val theme = state.themes.firstOrNull { it.id == state.themeId }?.name ?: stringResource(R.string.theme_default)
@@ -83,7 +84,7 @@ fun HomeScreen(state: HomeScreenState, onIntent: (HomeScreenIntent) -> Unit, onB
             }
         }
     }
-    if (dockOpen) DockSheet(state.dock, state.apps, onDone = { onIntent(HomeScreenIntent.SetDock(it)); dockOpen = false }, onDismiss = { dockOpen = false })
+    if (dockOpen) DockSheet(state.dock, state.apps, state.columns, onDone = { onIntent(HomeScreenIntent.SetDock(it)); dockOpen = false }, onDismiss = { dockOpen = false })
     if (lookOpen) CytBottomSheet({ lookOpen = false }) {
         LookContent(state) { onIntent(HomeScreenIntent.SetTheme(it)); lookOpen = false }
     }
@@ -123,45 +124,22 @@ internal fun ColumnScope.StockPreviewContent(plan: Plan, onIntent: (HomeScreenIn
     }
 }
 
-// S3b on Manage: up to four, ordered with up and down buttons (UX 7.1 motor rule).
+// S3b on Manage: the dock and the rows under it (DockEditor), held and dragged to order, with up
+// and down buttons for the UX 7.1 motor rule. Done applies the one ordered list to the TV.
 @Composable
-fun DockSheet(current: List<AppChoice>, apps: List<AppChoice>, onDone: (List<PackageName>) -> Unit, onDismiss: () -> Unit) {
-    var dock by remember(current) { mutableStateOf(current) }
-    CytBottomSheet(onDismiss) { DockContent(dock, apps, { dock = it }, { onDone(dock.map { it.pkg }) }) }
+fun DockSheet(current: List<AppChoice>, apps: List<AppChoice>, columns: Int, onDone: (List<PackageName>) -> Unit, onDismiss: () -> Unit) {
+    val state = remember(current, columns) { DockEditorState(current.map { it.toDockApp() }, columns) }
+    CytBottomSheet(onDismiss) {
+        // Three rows and the other apps can be taller than the screen.
+        Column(Modifier.verticalScroll(rememberScrollState())) { DockContent(state, apps, { onDone(state.apps.map { PackageName(it.key) }) }) }
+    }
 }
 
 @Composable
-internal fun ColumnScope.DockContent(dock: List<AppChoice>, apps: List<AppChoice>, onChange: (List<AppChoice>) -> Unit, onDone: () -> Unit) {
-    SheetHeader(stringResource(R.string.dock_title), subtitle = stringResource(R.string.dock_body))
-    // An empty dock has no "In the dock" heading over nothing (round 3); the apps to add follow.
-    if (dock.isNotEmpty()) SectionLabel(stringResource(R.string.dock_section_in))
-    if (dock.isNotEmpty()) ListGroup {
-        dock.forEachIndexed { i, app ->
-            if (i > 0) ListDivider()
-            val inCd = msg(R.string.dock_item_in_cd, "name" to app.name, "position" to i + 1)
-            DockRow(app.name, Modifier.semantics { contentDescription = inCd }, controls = {
-                Row {
-                    if (i > 0) CytIconButton(CytIcons.ArrowUp, msg(R.string.dock_move_up_cd, "name" to app.name),
-                        { onChange(dock.toMutableList().apply { add(i - 1, removeAt(i)) }) })
-                    if (i < dock.size - 1) CytIconButton(CytIcons.ArrowDown, msg(R.string.dock_move_down_cd, "name" to app.name),
-                        { onChange(dock.toMutableList().apply { add(i + 1, removeAt(i)) }) })
-                    CytIconButton(CytIcons.Minus, msg(R.string.dock_remove_cd, "name" to app.name), { onChange(dock - app) })
-                }
-            })
-        }
-    }
-    if (dock.size >= 4) Body(stringResource(R.string.dock_full_note), Modifier.padding(top = 10.dp, start = 4.dp, end = 4.dp))
-    val others = apps.filter { a -> dock.none { it.pkg == a.pkg } }
-    if (others.isNotEmpty()) SectionLabel(stringResource(R.string.dock_section_other))
-    if (others.isNotEmpty()) ListGroup {
-        others.forEachIndexed { i, app ->
-            if (i > 0) ListDivider()
-            val full = dock.size >= 4
-            val cd = if (full) msg(R.string.dock_item_out_cd, "name" to app.name) else msg(R.string.dock_add_cd, "name" to app.name)
-            DockRow(app.name, Modifier.semantics { contentDescription = cd },
-                controls = if (full) null else ({ CytIcon(CytIcons.Plus, null, tint = CytTheme.colors.accent) }),
-                onClick = if (full) null else ({ onChange(dock + app) }))
-        }
-    }
+internal fun ColumnScope.DockContent(state: DockEditorState, apps: List<AppChoice>, onDone: () -> Unit) {
+    SheetHeader(stringResource(R.string.dock_title), subtitle = msg(R.string.dock_body, "count" to state.columns))
+    DockEditor(state, remember(apps) { apps.map { it.toDockApp() } })
     PrimaryButton(stringResource(R.string.action_done), onDone, Modifier.padding(top = 20.dp))
 }
+
+internal fun AppChoice.toDockApp() = DockApp(pkg.value, name)

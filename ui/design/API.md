@@ -93,6 +93,9 @@ Home, Undo, Restart, Key, Download, Phone, Delete, Share, Edit, Lock, External, 
 | `ListGroup` | `modifier, tone: GroupTone = LOW (or RAISED), content: ColumnScope` |
 | `ListRow` | `title, modifier, subtitle?, subtitleColor, value: String?, leading?, trailing?, onClick?, chevron = onClick != null && trailing == null, titleColor, emphasised = false` |
 | `DockRow` | `name, modifier, tile = { AppTile(name) }, onClick?, controls?` (S3b: the controls sit beside the name while its longest word fits, else under it, so names never break mid-word at 200% font) |
+| `DockEditor` | `state: DockEditorState, apps: List<DockApp>, modifier, haptics = true` (S3b: the dock, then Row 2 and Row 3, each a group of up to `columns` apps, then the other apps. Hold an app and drag it within or across rows; it lifts in the glass highlight, the others spring out of the way, a light tick on pick up and drop; nothing lifts or springs under reduced motion. Up, down and take out buttons stay, and TalkBack gets Move up, Move down, Move to the dock or row n and Take out. Its words are this module's `cyt_dock_*` strings) |
+| `DockEditorState(initial: List<DockApp>, columns, maxRows = 3)` | One ordered list cut into rows of `columns`: `apps`, `rowCount`, `filledRows`, `hasRoom`, `canAddRow`, `add`, `remove`, `move`, `moveToRow`, `addRow`, `dragging`. A row below holds apps only once the rows above are full; "Add a row under the dock" opens one when they are |
+| `DockApp(key, name)` | An app the editor places (the key is the package name) |
 | `LinkRow` | `text, onClick, modifier, chevron = true, minHeight = 48.dp` |
 | `SwitchRow` | `title, checked, onCheckedChange, modifier, subtitle?, warning = false, enabled = true` |
 | `CytSwitch` | `checked, onCheckedChange?, modifier, enabled = true` |

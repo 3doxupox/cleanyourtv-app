@@ -14,6 +14,8 @@ import tv.cleanyour.core.flows.AppChoice
 import tv.cleanyour.core.flows.HomeScreenIntent
 import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.testing.fixtures.Samples
+import tv.cleanyour.ui.design.component.DockApp
+import tv.cleanyour.ui.design.component.DockEditorState
 
 // R5-W8 O1 as ruled: applying the dock and switching to the TV's own home screen drop a tap
 // through another app's overlay; Cancel and the dock's up, down and remove buttons never do.
@@ -33,13 +35,13 @@ class GuardedActionsTest {
 
     @Test fun dockDoneIsGuardedAndEditingIsNot() {
         val netflix = AppChoice(PackageName("com.netflix.ninja"), "Netflix")
-        val changes = mutableListOf<List<AppChoice>>()
+        val state = DockEditorState(listOf(netflix.toDockApp()), 4)
         var done = 0
-        compose.showColumn { DockContent(listOf(netflix), listOf(netflix), { changes += it }, { done++ }) }
+        compose.showColumn { DockContent(state, listOf(netflix), { done++ }) }
         compose.tap("Done", OBSCURED)
         assertEquals(0, done)
-        compose.tap(compose.onNodeWithContentDescription("Take Netflix out of the dock"), OBSCURED)
-        assertEquals(listOf(emptyList<AppChoice>()), changes)
+        compose.tap(compose.onNodeWithContentDescription("Take Netflix out"), OBSCURED)
+        assertEquals(emptyList<DockApp>(), state.apps)
         compose.tap("Done", 0)
         assertEquals(1, done)
     }

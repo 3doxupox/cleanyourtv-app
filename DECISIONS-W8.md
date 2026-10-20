@@ -156,3 +156,18 @@ Stream W8, 2026-10-19. Built against section 5 as fixed by R0 and the W1 fakes. 
   not its address. Left as is and reported: the emulator's own tall status bar, Welcome's line
   pinned above Start (D-W8-26) where mockup 01 has it under the body, the D8 copy, and the identity
   line standing in for mockup 03's Allow dialog on a TV without one (D38).
+- D-W8-29 The dock sheet has rows (owner, first device test: "add apps in different layers", "drag
+  to change order"). Model: one ordered list cut into rows of the look's columns (DockLayers in
+  core:spec), the dock first, then Row 2 and Row 3, three rows at most. It is what the launcher
+  does (AppAdapter sorts the grid by dock_apps, GridLayoutManager cuts it, rows_below_dock rows stay
+  in view), so the sheet cannot show a layout the TV would not: a row holds apps only once the rows
+  above it are full, and taking an app out pulls the next one up. "Add a row under the dock" shows
+  only when the rows on screen are full. config.json gets dock_apps as the list and rows_below_dock
+  as the rows under the dock that hold an app (0 to 2); an empty dock still leaves dock_apps out.
+  This sets rows_below_dock over a theme's own value (Six columns has 1), so the TV shows exactly
+  the rows the sheet showed. Manage reads the stored choice back the TV's way: an app that is gone
+  or switched off is skipped and the later ones move up. One shared `DockEditor` in :ui:design
+  (long press and drag across rows, the glass highlight on the lifted app, springs for the others,
+  a light tick on pick up and drop, nothing moves under reduced motion; the up, down and take out
+  buttons stay; TalkBack actions Move up, Move down, Move to the dock or row n, Take out) replaces
+  the two copies in :feature:setup and :feature:launcher; its words are `cyt_dock_*` in :ui:design.
