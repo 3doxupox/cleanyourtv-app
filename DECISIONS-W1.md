@@ -102,6 +102,8 @@ owning stream supplies bodies):
 - `core.model.Op` gains `CurtainCue(receiver, token, stage, count, total, group, groupCount,
   groupTotal)` and the enums `CurtainStage` and `CurtainGroup`, marked `// RFC-CURTAIN-1` (applied on
   curtain 2026-10-20; RFCS.md carries the RFC and the owner's amendment for the group words).
+- `core.trust` gains `interface CurtainPin { fun bundled(): LauncherArtifact }` next to `LauncherPin`,
+  marked `// RFC-CURTAIN-1`.
 
 Added because the section 5 prose names it: `core.probe.ProbeException(stage, detail)` (R0: 7).
 

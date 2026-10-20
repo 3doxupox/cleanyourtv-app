@@ -19,6 +19,7 @@ import tv.cleanyour.core.spec.ThemeSource
 import tv.cleanyour.core.store.BlobStore
 import tv.cleanyour.core.store.SnapshotStore
 import tv.cleanyour.core.trust.ApkInspector
+import tv.cleanyour.core.trust.CurtainPin
 import tv.cleanyour.core.trust.LauncherPin
 
 // The implementations of section 5 that other streams own, as AppGraph wires them (T7, all real):
@@ -33,6 +34,7 @@ import tv.cleanyour.core.trust.LauncherPin
 //   blobs, launcherPin, registry, fetcher, inspector, http  W5 FileBlobStore, BundledLauncherPin,
 //                 IndexRegistry(sources = null), ResumableArtifactFetcher behind InstallableOnlyFetcher,
 //                 PackageManagerApkInspector, UrlConnectionFetcher
+//   curtainPin    W5 BundledCurtainPin (RFC-CURTAIN-1: the TV curtain, pinned like the launcher)
 data class Seams(
     val sessions: SessionManager,
     val keyInfo: KeyInfo,
@@ -54,4 +56,5 @@ data class Seams(
     val fetcher: ArtifactFetcher,
     val inspector: ApkInspector,
     val http: HttpFetcher,
+    val curtainPin: CurtainPin,
 )

@@ -36,6 +36,22 @@ object PinnedLauncher {
     const val SIGNER_SHA256 = "576418154bec6505bfc709ccaa6ae85b6e09d98eb89f4a25147ca1b4b0505132"
 }
 
+// The TV curtain bundled in the phone app (RFC-CURTAIN-1): module :tv:curtain of this repo, built
+// twice and compared, then signed with the launcher release key by scripts/build-curtain-on-forge.sh.
+// One signer to pin: SIGNER_SHA256 is the launcher's. The verifyCurtainPin task (part of :core:trust
+// check and of :android:platform preBuild) fails the build when the asset differs.
+object PinnedCurtain {
+    const val ASSET_NAME = "cleanyourtv-curtain.apk"
+    const val PACKAGE = "tv.cleanyour.curtain"
+    const val ACTIVITY = ".CurtainActivity"
+    const val RECEIVER = ".CueReceiver"
+    const val VERSION_CODE = 1L
+    const val VERSION_NAME = "0.1"
+    const val SIZE = 49_571L
+    const val SHA256 = "d114a60ee0eb7b52b16646bdedfdac15af1a0ef47b15fa88af35c7aaa6772215"
+    const val SIGNER_SHA256 = PinnedLauncher.SIGNER_SHA256
+}
+
 // LauncherPin over the BlobStore's bundled asset. bundled() refuses an asset whose bytes are not the
 // pinned ones, so a swapped asset can never be offered as the launcher.
 class BundledLauncherPin(private val blobs: BlobStore) : LauncherPin {
@@ -50,6 +66,24 @@ class BundledLauncherPin(private val blobs: BlobStore) : LauncherPin {
             versionName = PinnedLauncher.VERSION_NAME,
             sha256 = Sha256(PinnedLauncher.SHA256),
             signer = Sha256(PinnedLauncher.SIGNER_SHA256),
+            blob = blob,
+        )
+    }
+}
+
+// CurtainPin over the BlobStore's bundled asset, refusing an asset whose bytes are not the pinned ones.
+class BundledCurtainPin(private val blobs: BlobStore) : CurtainPin {
+    override fun bundled(): LauncherArtifact {
+        val blob = blobs.bundled(PinnedCurtain.ASSET_NAME)
+        check(blob.sha256.hex == PinnedCurtain.SHA256 && blob.size == PinnedCurtain.SIZE) {
+            "bundled curtain does not match its pin (sha256 ${blob.sha256.hex}, ${blob.size} bytes)"
+        }
+        return LauncherArtifact(
+            pkg = PackageName(PinnedCurtain.PACKAGE),
+            versionCode = PinnedCurtain.VERSION_CODE,
+            versionName = PinnedCurtain.VERSION_NAME,
+            sha256 = Sha256(PinnedCurtain.SHA256),
+            signer = Sha256(PinnedCurtain.SIGNER_SHA256),
             blob = blob,
         )
     }
