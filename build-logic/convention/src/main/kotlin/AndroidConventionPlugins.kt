@@ -10,6 +10,7 @@ import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.withType
 import tv.cleanyour.buildlogic.ApkSizeCheckTask
+import tv.cleanyour.buildlogic.ReleaseSigning
 import tv.cleanyour.buildlogic.Toolchain
 import tv.cleanyour.buildlogic.cytNamespace
 import tv.cleanyour.buildlogic.libs
@@ -82,8 +83,27 @@ class AndroidAppConventionPlugin : Plugin<Project> {
                 versionCode = 1
                 versionName = "0.1.0"
             }
+            // Optional local signing (ReleaseSigning): env or a gitignored keystore.properties only.
+            // Unset, the release APK is unsigned, as CI and scripts/release-on-forge.sh build it.
+            val releaseSigning = ReleaseSigning.resolve(
+                { name -> providers.environmentVariable(name).orNull },
+                rootProject.file(ReleaseSigning.PROPERTIES_FILE),
+                rootProject.projectDir,
+            )
+            val releaseConfig = releaseSigning?.let { k ->
+                signingConfigs.create("release").apply {
+                    storeFile = k.storeFile
+                    storePassword = k.storePassword
+                    keyAlias = k.keyAlias
+                    keyPassword = k.keyPassword
+                    enableV1Signing = false
+                    enableV2Signing = true
+                    enableV3Signing = true
+                }
+            }
             buildTypes {
                 getByName("release") {
+                    if (releaseConfig != null) signingConfig = releaseConfig
                     isMinifyEnabled = true
                     isShrinkResources = true
                     proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

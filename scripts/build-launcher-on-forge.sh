@@ -11,30 +11,29 @@
 # launcher key and the two signed APKs must be byte for byte identical before one is kept. Signing
 # runs in a third throwaway container: the keystore
 # and its password travel over the ssh stdin into the container's /dev/shm and never touch forge's
-# disk. Key custody: /Users/dev/jarvis/secrets/cleanyourtv-launcher/ on jarvis only.
+# disk. Key custody: $CYT_SECRETS/cleanyourtv-launcher/ on the maintainer's machine only.
 # After a rebuild, update PinnedLauncher in core/trust with the printed sha256, size and signer digest;
 # the verifyLauncherPin task fails the build until they agree.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 PIN=69c93b66a75c70a9e386adff327b6a51c12addc5
-FORGE="${FORGE:-builder@build-host}"
-SSH_KEY="${SSH_KEY:-$HOME/.ssh/id_ed25519}"
-SECRETS="${SECRETS:-/Users/dev/jarvis/secrets/cleanyourtv-launcher}"
+. scripts/lib/forge.sh
+SECRETS="${SECRETS:-$CYT_SECRETS/cleanyourtv-launcher}"
 IMAGE="eclipse-temurin:17-jdk"
 VOLUME="mitv-android-cache"
 BUILD_TOOLS="34.0.0"
 RUN_ID="cyt-launcher-$(date +%Y%m%d%H%M%S)-$$"
-REMOTE_DIR="/home/builder/build/$RUN_ID"
-LOCK="/home/builder/build/.cyt-forge.lock"
 OUT="android/platform/src/main/assets/bundled/cleanyourtv-launcher.apk"
 CMDLINE_TOOLS="https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
-SSH=(ssh -i "$SSH_KEY" -o ConnectTimeout=10 -o BatchMode=yes "$FORGE")
 
 head=$(git -C third_party/cleanyourtv rev-parse HEAD)
 [ "$head" = "$PIN" ] || { echo "third_party/cleanyourtv is at $head, expected $PIN" >&2; exit 1; }
 [ -z "$(git -C third_party/cleanyourtv status --porcelain)" ] || { echo "submodule has local changes" >&2; exit 1; }
 [ -r "$SECRETS/launcher-release.p12" ] && [ -r "$SECRETS/keystore-password.txt" ] || { echo "launcher key not found in $SECRETS" >&2; exit 1; }
+
+forge_init
+REMOTE_DIR="$FORGE_ROOT/$RUN_ID"
 
 cleanup() {
   "${SSH[@]}" "docker rm -f '$RUN_ID-a' '$RUN_ID-b' '$RUN_ID-sign' >/dev/null 2>&1 || true; rm -rf '$REMOTE_DIR'" </dev/null || true

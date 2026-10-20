@@ -10,33 +10,32 @@
 # in eclipse-temurin:21-jdk (this repo's JVM toolchain) under the same host lock as
 # scripts/build-on-forge.sh, one at a time. Signing follows scripts/build-launcher-on-forge.sh: a third
 # throwaway container, the keystore and its password over the ssh stdin into the container's /dev/shm,
-# never on forge's disk; v2 and v3 only. Key custody: /Users/dev/jarvis/secrets/cleanyourtv-launcher/
-# on jarvis only. The signer digest must equal PinnedLauncher.SIGNER_SHA256 (same key, one pin).
+# never on forge's disk; v2 and v3 only. Key custody: $CYT_SECRETS/cleanyourtv-launcher/ on the
+# maintainer's machine only (scripts/lib/forge.sh). The signer digest must equal PinnedLauncher.SIGNER_SHA256 (same key, one pin).
 # After a rebuild, update PinnedCurtain in core/trust with the printed size and sha256; the
 # verifyCurtainPin task fails the build until they agree.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-FORGE="${FORGE:-builder@build-host}"
-SSH_KEY="${SSH_KEY:-$HOME/.ssh/id_ed25519}"
-SECRETS="${SECRETS:-/Users/dev/jarvis/secrets/cleanyourtv-launcher}"
+. scripts/lib/forge.sh
+SECRETS="${SECRETS:-$CYT_SECRETS/cleanyourtv-launcher}"
 IMAGE="eclipse-temurin:21-jdk"
 SIGN_IMAGE="eclipse-temurin:17-jdk"
 VOLUME="mitv-android-cache"
 BUILD_TOOLS="34.0.0"
 RUN_ID="cyt-curtain-$(date +%Y%m%d%H%M%S)-$$"
-BASE="/home/builder/build/$RUN_ID"
-LOCK="/home/builder/build/.cyt-forge.lock"
 OUT="android/platform/src/main/assets/bundled/cleanyourtv-curtain.apk"
 UNSIGNED="tv/curtain/build/outputs/apk/release/curtain-release-unsigned.apk"
 CMDLINE_TOOLS="https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
-SSH=(ssh -i "$SSH_KEY" -o ConnectTimeout=10 -o BatchMode=yes "$FORGE")
 
 [ -r "$SECRETS/launcher-release.p12" ] && [ -r "$SECRETS/keystore-password.txt" ] || { echo "launcher key not found in $SECRETS" >&2; exit 1; }
 [ -f third_party/cleanyourtv/README.md ] || { echo "upstream submodule is empty; run: git submodule update --init third_party/cleanyourtv" >&2; exit 1; }
 EPOCH=$(git log -1 --format=%ct)
 EXPECTED_SIGNER=$(sed -n '/^object PinnedLauncher/,/^}/s/.*const val SIGNER_SHA256 = "\([0-9a-f]\{64\}\)".*/\1/p' core/trust/src/main/kotlin/tv/cleanyour/core/trust/Pins.kt | head -1)
 [ -n "$EXPECTED_SIGNER" ] || { echo "PinnedLauncher.SIGNER_SHA256 not found" >&2; exit 1; }
+
+forge_init
+BASE="$FORGE_ROOT/$RUN_ID"
 
 cleanup() {
   "${SSH[@]}" "docker rm -f '$RUN_ID-a' '$RUN_ID-b' '$RUN_ID-sign' >/dev/null 2>&1 || true; rm -rf '$BASE'" </dev/null || true

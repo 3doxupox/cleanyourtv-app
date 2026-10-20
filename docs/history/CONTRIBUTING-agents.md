@@ -52,5 +52,5 @@ Not an RFC: adding fields to the types section 5 marks as growable (`WizardDraft
   implementations (`@GateIssuer`) and `FakeCredentialGate`.
 - No em dashes and no double hyphen sequences in prose, comments or commit messages.
 - Commits: small, plain messages, no co-author trailers, no tool banners or session links.
-- Android builds run on forge with `scripts/build-on-forge.sh`, never on jarvis; never leave a
+- Android builds run on forge with `scripts/build-on-forge.sh`, never on the coordinating machine; never leave a
   container running there.

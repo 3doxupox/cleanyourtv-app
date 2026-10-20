@@ -1,11 +1,15 @@
-# Pull request gate (ARCHITECTURE 6.8). Linux runners only: private-repo minutes are billed.
-# W1 jobs: wrapper validation, checkModuleGraph, unit tests and Android Lint (`check`), the
-# release build with the APK size gate. Later rows of 6.8 join as their owners land them:
-# dependency verification metadata (W9), Roborazzi verify (W7, W8), custom lint rules (W3, W8),
-# license report and Compose compiler metrics diff (W9).
+# Build and test on every push and pull request. Linux runners only. Every action is pinned by
+# commit (bump them by a reviewed change; the comment names the tag the commit belongs to).
+#
+# Steps: the pins and the module graph, unit tests with Android Lint (`check`), the screenshot
+# goldens (Roborazzi verify), the debug build and the release build through R8 with the APK size
+# gate, and the Python tests of the release and redaction scripts with a redaction check over the
+# fixtures.
 name: pr
 
 on:
+  push:
+    branches: ["**"]
   pull_request:
   workflow_dispatch:
 
@@ -13,42 +17,55 @@ permissions:
   contents: read
 
 concurrency:
-  group: pr-${{ github.ref }}
+  group: pr-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  GRADLE_OPTS: -Dorg.gradle.daemon=false
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 75
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          submodules: true   # third_party/cleanyourtv at the pinned launcher commit (fixtures)
+          submodules: true   # third_party/cleanyourtv at the pinned launcher commit
+          persist-credentials: false
 
-      - uses: gradle/actions/wrapper-validation@v4
+      - uses: gradle/actions/wrapper-validation@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with:
           distribution: temurin
           java-version: "21"
 
-      - uses: gradle/actions/setup-gradle@v4
-
-      - name: Module graph rules
-        run: ./gradlew checkModuleGraph --console=plain
-
-      - name: Unit tests and lint
-        run: ./gradlew check --continue --console=plain
-
-      - name: Release build and APK size gate (8 MB)
-        run: ./gradlew :app:assembleRelease :app:checkApkSizeRelease --console=plain
-
-      - name: Test reports
-        if: failure()
-        uses: actions/upload-artifact@v4
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3
         with:
-          name: test-reports
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
+      - name: Pins (bundled launcher and TV curtain) and module graph rules
+        run: ./gradlew :core:trust:verifyLauncherPin :core:trust:verifyCurtainPin checkModuleGraph --console=plain
+
+      - name: Unit tests, Android Lint and the screenshot goldens
+        run: ./gradlew check verifyRoborazziDebug --continue --console=plain
+
+      - name: Debug build, release build through R8 and the APK size gate
+        run: ./gradlew :app:assembleDebug :app:assembleRelease :app:checkApkSizeRelease --console=plain
+
+      - name: Script tests and the fixture redaction check
+        run: |
+          python3 -m unittest discover -s scripts/tests -p 'test_*.py' -v
+          python3 scripts/check-redaction.py fixtures/
+
+      - name: Reports
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: reports
           path: |
             **/build/reports/tests/
             **/build/reports/lint-results-*.html
+            **/build/outputs/roborazzi/
+            **/build/test-results/
           retention-days: 7

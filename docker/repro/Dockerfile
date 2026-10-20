@@ -7,7 +7,8 @@
 # pinned by version and hash.
 #
 # Used by .github/workflows/release.yml (two clean containers per tag) and by
-# scripts/build-internal-apk.sh on forge. scripts/repro-build.sh is the entry point inside.
+# scripts/release-on-forge.sh on the build host. scripts/repro-build.sh is the entry point inside;
+# scripts/verify-release.sh checks a signed APK against an unsigned build with its tools.
 FROM eclipse-temurin:21-jdk@sha256:23cc5734ff46e776f51ce66eb9ee08444fd47caabec0a95b7eb6e94be2d3696d
 
 ARG CMDLINE_TOOLS_URL=https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip

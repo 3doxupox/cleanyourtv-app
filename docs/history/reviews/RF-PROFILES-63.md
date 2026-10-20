@@ -10,7 +10,7 @@ guard), `BundledProfileSource.score`, `SureSetGenerator`, `SetupMachine.replan`,
 already shipped. Goal applied: nothing a person could not easily undo, and nothing that breaks Wi-Fi,
 input, updates, the Play Store, HDMI, accessibility or boot is ever default-off.
 
-Method. No JDK on jarvis, so the Kotlin converter was mirrored in Python (scan, keep-list reader old
+Method. No JDK on the coordinating machine, so the Kotlin converter was mirrored in Python (scan, keep-list reader old
 and new, categories, D22 updater rule, known launchers, setupwraith rule, sure sets). The mirror
 reproduces the commit messages' sure-set sizes exactly (Amazon 8, Hisense 8, Philips 10, Sony 27,
 TCL 25, Xiaomi 24) and the committed protected-in-disable report, so its readings were trusted. All

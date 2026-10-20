@@ -1,0 +1,55 @@
+name: TV support request
+description: Ask for a TV model to get its own profile.
+labels: ["tv-profile"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Profiles come from the community lists in the upstream launcher repository
+        (https://github.com/Gathin23/cleanyourtv, `examples/`). If you can, add your TV's list there first; see
+        CONTRIBUTING.md, "Propose a TV profile". This form is for TVs nobody has listed yet.
+        Do not paste the TV's serial number or any address.
+  - type: input
+    id: model
+    attributes:
+      label: TV brand and model
+      description: As printed on the TV or its box, for example "TCL 55C645".
+    validations:
+      required: true
+  - type: input
+    id: android
+    attributes:
+      label: Android version and firmware build
+      description: Settings, About on the TV (for example "Android 11, UKN6.260116.085").
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Home screen the TV came with
+      options:
+        - Google TV
+        - Android TV (Leanback)
+        - Fire TV
+        - The maker's own launcher
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: found
+    attributes:
+      label: What the app showed
+      description: What did "We found" say for this TV? Did it use the careful brand fallback?
+  - type: textarea
+    id: packages
+    attributes:
+      label: Package list (optional)
+      description: |
+        From a computer with adb: `adb shell pm list packages -s` (system apps). Paste it, or attach it as a file.
+      render: text
+  - type: checkboxes
+    id: offer
+    attributes:
+      label: Testing
+      options:
+        - label: I can test a profile on this TV and live with it for a few days.

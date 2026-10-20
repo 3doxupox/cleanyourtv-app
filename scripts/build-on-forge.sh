@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build the app on forge in a throwaway JDK 21 container (AGP 9 runs on JDK 17 or newer; the JVM
-# modules use a JDK 21 toolchain). jarvis cannot build Android itself.
+# modules use a JDK 21 toolchain). The build host is set in scripts/lib/forge.sh (FORGE).
 #
 #   scripts/build-on-forge.sh                      # ./gradlew check assembleDebug
 #   scripts/build-on-forge.sh checkModuleGraph     # any Gradle tasks and flags instead
@@ -13,22 +13,21 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-FORGE="${FORGE:-builder@build-host}"   # Tailscale address; the LAN address is unreachable from jarvis
-SSH_KEY="${SSH_KEY:-$HOME/.ssh/id_ed25519}"
+. scripts/lib/forge.sh
+forge_init
 IMAGE="${IMAGE:-eclipse-temurin:21-jdk}"
 VOLUME="mitv-android-cache"
 RUN_ID="cyt-$(date +%Y%m%d%H%M%S)-$$"
-REMOTE_DIR="/home/builder/build/$RUN_ID"
+REMOTE_DIR="$FORGE_ROOT/$RUN_ID"
 CONTAINER="$RUN_ID"
 CMDLINE_TOOLS="https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
 # Licences only: AGP downloads the platform and build tools it needs into the shared SDK.
 SDK_PACKAGES='"platform-tools"'
-SSH=(ssh -i "$SSH_KEY" -o ConnectTimeout=10 -o BatchMode=yes "$FORGE")
 
 TASKS="${*:-check assembleDebug}"
 # A fixed debug signing key kept outside git, so every debug APK updates in place on test phones
 # (AGP would make a new one in each throwaway container). Absent: AGP's own throwaway key.
-DEBUG_KEYSTORE="${DEBUG_KEYSTORE:-$HOME/jarvis/secrets/cleanyourtv-debug/debug.keystore}"
+DEBUG_KEYSTORE="${DEBUG_KEYSTORE:-$CYT_SECRETS/cleanyourtv-debug/debug.keystore}"
 
 [ -f third_party/cleanyourtv/README.md ] || {
   echo "upstream submodule is empty; run: git submodule update --init third_party/cleanyourtv" >&2
@@ -54,7 +53,7 @@ fi
 
 echo "==> ./gradlew $TASKS in $IMAGE"
 set +e
-"${SSH[@]}" "mkdir -p /home/builder/build && flock -w 3600 /home/builder/build/.cyt-forge.lock docker run --rm --name '$CONTAINER' --memory 3g --cpus 4 \
+"${SSH[@]}" "flock -w 3600 '$LOCK' docker run --rm --name '$CONTAINER' --memory 3g --cpus 4 \
   -e HOME=/cache/home -e ANDROID_USER_HOME=/src/.android-user -e OWNER=\$(id -u):\$(id -g) \
   -v $VOLUME:/cache -v '$REMOTE_DIR':/src -w /src $IMAGE bash -euc '
     export ANDROID_HOME=/cache/sdk GRADLE_USER_HOME=/cache/gradle

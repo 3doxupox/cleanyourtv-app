@@ -163,8 +163,8 @@ class AppGraph(context: Context, val appVersion: String = "0.1.0") {
     val diagnostics = LogDiagnostics { "Clean Your TV $appVersion, Android ${android.os.Build.VERSION.SDK_INT}" }
     val screenLock = ScreenLock { credentialGate.hasScreenLock() }
 
-    // D12: one GET on user action. The repository is private before announcement, so this
-    // reports "couldn't check" until releases are public.
+    // D12: one GET on user action (Settings, "Check for updates"); "couldn't check" when GitHub
+    // does not answer or the repository has no published release yet.
     val updates = UpdateChecker { current ->
         val r = http.get(RELEASES_URL, null, null)
         if (r.code != 200) { r.body?.close(); null } else {
