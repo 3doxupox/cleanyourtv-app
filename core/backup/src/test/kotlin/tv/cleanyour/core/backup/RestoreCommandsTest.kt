@@ -189,6 +189,35 @@ class RestoreCommandsTest {
         assertTrue(s.single().kind == RestoreStepKind.NOT_FROM_LAPTOP && s.single().note!!.contains("cannot be reinstalled"), s.toString())
     }
 
+    // RFC-DOCK-1: the Setup plan sends the look to a fresh launcher: config.json pushed and
+    // wallpaper.jpg removed, both recorded as absent before us. A wallpaper only ever removed leaves
+    // no step; one a later look from Manage pushed (its prior unknown) is deleted again, by the
+    // script and by the phone's Undo everything alike, as config.json is.
+    @Test fun theSetupLookComesOffAgain() {
+        val wallpaper = tv.cleanyour.core.model.RemotePath(RemoteDir.OVERLAY, listOf("wallpaper.jpg"))
+        val config = tv.cleanyour.core.model.RemotePath(RemoteDir.OVERLAY, listOf("config.json"))
+        val base = Scenario.changes(putBack = false)
+        val t = base.maxOf { it.atMs }
+        val removed = ChangeRecord(base.first().planId, 99, Op.RemoveFile(wallpaper), Prior(present = false), t + 1)
+        fun deletes(s: List<RestoreStep>, path: tv.cleanyour.core.model.RemotePath) = s.filter { (it.inverse as? Op.RemoveFile)?.path == path }
+
+        val onlyRemoved = RestoreCommands(renderer).steps(base + removed)
+        assertTrue(onlyRemoved.none { it.change.op == Op.RemoveFile(wallpaper) || (it.inverse as? Op.RemoveFile)?.path == wallpaper }, onlyRemoved.toString())
+        assertEquals(RestoreStepKind.PUT_BACK, deletes(onlyRemoved, config).single().kind)
+        assertEquals(phoneUndo(base + removed, removeLauncher = false), lines(onlyRemoved, RestoreStepKind.PUT_BACK))
+
+        val jpg = BlobRef(sha256Of("jpg"), 3, "mem:wallpaper")
+        val pushed = ChangeRecord(PlanId("01THEMEPLAN000000000000007"), 0, Op.PushAsset(jpg, wallpaper, jpg.sha256), Prior(present = null), t + 2)
+        val changes = base + removed + pushed
+        val s = RestoreCommands(renderer).steps(changes)
+        assertEquals(RestoreStepKind.PUT_BACK, deletes(s, wallpaper).single().kind)
+        assertEquals(RestoreStepKind.PUT_BACK, deletes(s, config).single().kind)
+        assertTrue(s.none { it.kind == RestoreStepKind.NOT_FROM_LAPTOP }, s.toString())
+        assertEquals(phoneUndo(changes, removeLauncher = false), lines(s, RestoreStepKind.PUT_BACK))
+        // With the launcher removed, both go with its folder.
+        assertTrue(phoneUndo(changes, removeLauncher = true).none { "wallpaper.jpg" in it || "config.json" in it })
+    }
+
     @Test fun anUndoThatNeedsAFileFromThePhoneIsNotALaptopLine() {
         // a renderer whose undo of an uninstall is a reinstall from the phone's cache (a transfer)
         val blob = BlobRef(sha256Of("apk"), 3, "mem:apk")

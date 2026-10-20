@@ -52,6 +52,28 @@ class UndoOrderTest {
             order.map { r.inverse(it.op, it.prior!!) })
     }
 
+    // RFC-DOCK-1: the Setup plan sends the look after the launcher install and before the home
+    // screen switch, so the overlay files are touched before SetHome. Undo still puts the home screen
+    // back and removes our launcher before it touches the files, and the files go only because their
+    // first records say they were not there before us.
+    @Test fun theSetupLookIsUndoneLastThoughItWasSentBeforeTheSwitch() {
+        val wallpaper = RemotePath(RemoteDir.OVERLAY, listOf("wallpaper.jpg"))
+        val changes = listOf(
+            rec("s", 0, 100, Op.Disable(a), Prior(packageState = EnabledState.ENABLED)),
+            rec("s", 1, 101, Op.InstallStream(BlobRef(sha, 5, "l"), sha, launcher.pkg, 1, sha), Prior(present = false)),
+            rec("s", 2, 102, Op.PushAsset(BlobRef(sha, 5, "c"), cfg, sha), Prior(present = false)),
+            rec("s", 3, 103, Op.RemoveFile(wallpaper), Prior(present = false)),
+            rec("s", 4, 104, Op.Disable(stock.pkg), Prior(packageState = EnabledState.ENABLED)),
+            rec("s", 5, 105, Op.SetHome(launcher), Prior(home = stock)),
+        )
+        val order = UndoOrder.undoOrder(changes)
+        assertEquals(listOf("s/4", "s/0", "s/5", "s/1", "s/3", "s/2"), order.map { "${it.planId.value}/${it.step}" })
+        assertEquals(listOf(UndoOrder.Phase.PACKAGES, UndoOrder.Phase.HOME, UndoOrder.Phase.APPS, UndoOrder.Phase.FILES),
+            order.map { UndoOrder.target(it.op)!!.phase }.distinct())
+        val r = ShellRenderer()
+        assertEquals(Op.RemoveFile(cfg), r.inverse(order.last().op, order.last().prior!!))
+    }
+
     @Test fun tiesOnTimeBreakOnThePlanStepAndTransientOpsHaveNoTarget() {
         val x = rec("p", 5, 10, Op.Disable(a), Prior(packageState = EnabledState.ENABLED))
         val y = rec("p", 2, 10, Op.Enable(a), Prior(packageState = EnabledState.DEFAULT))
