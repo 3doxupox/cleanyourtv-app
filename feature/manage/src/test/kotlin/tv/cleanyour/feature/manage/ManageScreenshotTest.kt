@@ -25,6 +25,7 @@ import tv.cleanyour.core.flows.ManageState
 import tv.cleanyour.core.flows.OffGroup
 import tv.cleanyour.core.flows.OffRow
 import tv.cleanyour.core.flows.OpenWrite
+import tv.cleanyour.core.flows.OpenWriteAction
 import tv.cleanyour.core.flows.SwitchedOffState
 import tv.cleanyour.core.flows.TvCard
 import tv.cleanyour.core.flows.TvSettingsState
@@ -134,6 +135,9 @@ object ManageShots {
 
         // The open-run card (R5-W8 O2)
         Shot("openwrite_connection_lost") { SheetOver({ ManageScreen(manage(), {}) }) { OpenWriteContent(openWrite(), {}, {}, {}) } },
+        // Undo and Stop here ask first, in the same sheet.
+        Shot("openwrite_confirm_undo") { SheetOver({ ManageScreen(manage(), {}) }) { OpenWriteContent(openWrite(), {}, {}, {}, initiallyAsking = OpenWriteAction.UNDO) } },
+        Shot("openwrite_confirm_stop_here") { SheetOver({ ManageScreen(manage(), {}) }) { OpenWriteContent(openWrite(), {}, {}, {}, initiallyAsking = OpenWriteAction.STOP_HERE) } },
         Shot("openwrite_step_failed") { SheetOver({ ManageScreen(manage(), {}) }) { OpenWriteContent(openWrite(reason = PauseReason.STEP_FAILED), {}, {}, {}) } },
         Shot("openwrite_busy") { SheetOver({ ManageScreen(manage(), {}) }) { OpenWriteContent(openWrite(busy = true), {}, {}, {}) } },
         Shot("openwrite_not_taken") { SheetOver({ ManageScreen(manage(), {}) }) { OpenWriteContent(openWrite(notTaken = true), {}, {}, {}) } },

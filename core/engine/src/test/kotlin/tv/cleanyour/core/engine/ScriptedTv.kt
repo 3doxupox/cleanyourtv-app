@@ -144,7 +144,7 @@ class ScriptedTv(initial: Snapshot = Samples.miTvSnapshot()) : TvSession {
     }
 
     // The command line a running watchdog shows in `ps`: `sh -c <body> cleanyourtv-rollback-<token>`.
-    private fun watchdogLine(token: String) = "sh -c sleep 120; ... cleanyourtv-rollback-$token"
+    private fun watchdogLine(token: String) = "sh -c sleep 120 & wait; ... cleanyourtv-rollback-$token"
 
     private fun install(path: String): ExecResult {
         val bytes = files[path] ?: return fail("Failure [INSTALL_FAILED_INVALID_URI]")

@@ -113,3 +113,25 @@ private fun Modifier.sheetTopRim(color: Color): Modifier = this.drawWithContent 
 
 // The scrim strip a full-height sheet leaves under the status bar (mockup 08).
 private val SHEET_TOP_GAP = 48.dp
+
+// A question before a run stops or TV changes are undone (owner, first device test): the title
+// asks ("Stop now?"), one calm sentence says what happens and that the TV stays safe, the verb is
+// the primary and drops a tap through another app's overlay (rejectObscuredTouches), and the way
+// back ("Keep going", "Cancel") never needs that guard. The screen sends its intent only from
+// onConfirm, so nothing reaches the TV before the answer.
+@Composable
+fun ColumnScope.ConfirmQuestion(title: String, body: String, confirmLabel: String, onConfirm: () -> Unit, cancelLabel: String, onCancel: () -> Unit) {
+    SheetHeader(title)
+    Text(body, Modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp), color = CytTheme.colors.textSecondary, style = CytTheme.type.bodyMedium)
+    ActionColumn(Modifier.padding(top = 20.dp)) {
+        PrimaryButton(confirmLabel, onConfirm, guardObscured = true)
+        TertiaryButton(cancelLabel, onCancel, quiet = true)
+    }
+}
+
+// ConfirmQuestion in its own modal sheet; dismissing it is the same as Cancel.
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ConfirmSheet(title: String, body: String, confirmLabel: String, onConfirm: () -> Unit, cancelLabel: String, onCancel: () -> Unit) {
+    CytBottomSheet(onCancel) { ConfirmQuestion(title, body, confirmLabel, onConfirm, cancelLabel, onCancel) }
+}

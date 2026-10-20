@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -38,6 +39,7 @@ import kotlinx.coroutines.delay
 import tv.cleanyour.core.engine.RunState
 import tv.cleanyour.core.flows.AppChoice
 import tv.cleanyour.core.flows.ChipState
+import tv.cleanyour.core.flows.Confirmations
 import tv.cleanyour.core.flows.Finishing
 import tv.cleanyour.core.flows.Reconnect
 import tv.cleanyour.core.flows.RestartState
@@ -348,17 +350,22 @@ internal fun WhyContent(state: SetupState.Found) {
 @Composable
 fun DockSheet(current: List<AppChoice>, apps: List<AppChoice>, columns: Int, onDone: (List<PackageName>) -> Unit, onDismiss: () -> Unit) {
     val state = remember(current, columns) { DockEditorState(current.map { it.toDockApp() }, columns) }
+    val scroll = rememberScrollState()
+    val undo = rememberUndoSnackbarState()
     CytBottomSheet(onDismiss) {
-        Column(Modifier.verticalScroll(rememberScrollState())) {
-            DockContent(state, apps, onDone = { onDone(state.apps.map { PackageName(it.key) }) })
+        Box(Modifier.fillMaxWidth()) {
+            Column(Modifier.verticalScroll(scroll)) {
+                DockContent(state, apps, onDone = { onDone(state.apps.map { PackageName(it.key) }) }, scroll, undo)
+            }
+            UndoSnackbarHost(undo, Modifier.align(Alignment.BottomCenter))
         }
     }
 }
 
 @Composable
-internal fun DockContent(state: DockEditorState, apps: List<AppChoice>, onDone: () -> Unit) {
+internal fun DockContent(state: DockEditorState, apps: List<AppChoice>, onDone: () -> Unit, scroll: ScrollState? = null, undo: UndoSnackbarState? = null) {
     SheetHeader(stringResource(R.string.dock_title), subtitle = msg(R.string.dock_body, "count" to state.columns))
-    DockEditor(state, remember(apps) { apps.map { it.toDockApp() } })
+    DockEditor(state, remember(apps) { apps.map { it.toDockApp() } }, scroll = scroll, undo = undo)
     PrimaryButton(stringResource(R.string.action_done), onDone, Modifier.padding(top = 20.dp))
 }
 
@@ -386,13 +393,15 @@ private fun themeDescription(id: String): String? = when (id) {
 @Composable
 fun WorkingScreen(state: SetupState.Working, extras: SetupExtras, actions: SetupActions, modifier: Modifier = Modifier) {
     val run = state.run
+    // "Stop and undo" asks first; the run carries on until the answer is yes.
+    var asking by rememberSaveable { mutableStateOf(false) }
     ScreenScaffold(
         Glow.Tv, modifier,
         topBar = { TopBar(extras) },
         bottomBar = {
             ActionColumn {
                 TertiaryButton(
-                    stringResource(if (extras.rollingBack) R.string.working_stopping else R.string.working_stop), { actions.intent(SetupIntent.StopAndUndo) },
+                    stringResource(if (extras.rollingBack) R.string.working_stopping else R.string.working_stop), { asking = true },
                     quiet = !extras.highlightStop, enabled = !extras.rollingBack,
                 )
             }
@@ -406,6 +415,8 @@ fun WorkingScreen(state: SetupState.Working, extras: SetupExtras, actions: Setup
         )
         Body(stringResource(R.string.working_keep_on), Modifier.padding(start = 4.dp, top = 16.dp))
     }
+    ConfirmSheetFor(if (asking && !extras.rollingBack) Confirmations.stopAndUndo else null,
+        onConfirm = { asking = false; actions.intent(SetupIntent.StopAndUndo) }, onCancel = { asking = false })
 }
 
 // The engine's five line states on the design system's four: a step that did not work is shown as
@@ -477,13 +488,18 @@ private val HOME_CASES = setOf(
 fun StoppedScreen(state: SetupState.Stopped, extras: SetupExtras, actions: SetupActions, modifier: Modifier = Modifier) {
     val c = state.card
     var details by rememberSaveable { mutableStateOf(false) }
+    // "Stop here" and "Undo what we did" ask first (Confirmations); the others act at once.
+    var asking by rememberSaveable(c.case) { mutableStateOf<StopAction?>(null) }
+    fun act(action: StopAction) {
+        if (Confirmations.forStopAction(c.case, action) != null) asking = action else actions.intent(SetupIntent.StopAction(action))
+    }
     ScreenScaffold(Glow.Tv, modifier, topBar = { TopBar(extras) }) {
         val body = if (c.case == StopCase.CONNECTION_LOST && extras.reconnect == Reconnect.GAVE_UP) stringResource(R.string.stop_connection_lost_gone_body) else c.body
         StopCard(
             c.title, body, Modifier.padding(top = 24.dp),
-            primaryLabel = c.primary, onPrimary = { actions.intent(SetupIntent.StopAction(StopAction.PRIMARY)) },
-            secondaryLabel = c.secondary, onSecondary = { actions.intent(SetupIntent.StopAction(StopAction.SECONDARY)) },
-            tertiaryLabel = c.tertiary, onTertiary = { actions.intent(SetupIntent.StopAction(StopAction.TERTIARY)) },
+            primaryLabel = c.primary, onPrimary = { act(StopAction.PRIMARY) },
+            secondaryLabel = c.secondary, onSecondary = { act(StopAction.SECONDARY) },
+            tertiaryLabel = c.tertiary, onTertiary = { act(StopAction.TERTIARY) },
             detailsLabel = if (c.case in HOME_CASES && extras.commands.isNotEmpty()) stringResource(R.string.stop_show_details) else null, onDetails = { details = true },
             busyText = when {
                 c.case == StopCase.CONNECTION_LOST && extras.reconnect == Reconnect.TRYING -> stringResource(R.string.stop_connection_lost_reconnecting)
@@ -499,6 +515,9 @@ fun StoppedScreen(state: SetupState.Stopped, extras: SetupExtras, actions: Setup
         }
     }
     if (details) CytBottomSheet({ details = false }) { DetailsContent(extras.commands) }
+    val pending = asking
+    ConfirmSheetFor(pending?.let { Confirmations.forStopAction(c.case, it) },
+        onConfirm = { asking = null; pending?.let { actions.intent(SetupIntent.StopAction(it)) } }, onCancel = { asking = null })
 }
 
 @Composable

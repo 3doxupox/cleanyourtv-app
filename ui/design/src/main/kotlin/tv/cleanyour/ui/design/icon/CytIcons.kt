@@ -50,6 +50,8 @@ object CytIcons {
     val Lock: ImageVector by lazy { icon("Lock", "M7 10.5h10a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2z", "M8 10.5V7.5a4 4 0 0 1 8 0v3") }
     val External: ImageVector by lazy { icon("External", "M14 4h6v6M20 4l-9 9", "M18 14v5.5H4.5V6H10") }
     val Reorder: ImageVector by lazy { icon("Reorder", "M5 9h14M5 15h14") }
+    // The drag handle: six dots in two columns (the dock sheet's grip).
+    val Grip: ImageVector by lazy { icon("Grip", dot(9f, 6.5f), dot(15f, 6.5f), dot(9f, 12f), dot(15f, 12f), dot(9f, 17.5f), dot(15f, 17.5f), width = 2f) }
     val Circle: ImageVector by lazy { icon("Circle", "M12 6a6 6 0 1 1 0 12a6 6 0 1 1 0-12z") }
     val Dash: ImageVector by lazy { icon("Dash", "M8 12h8", width = 2f) }
 
@@ -57,7 +59,7 @@ object CytIcons {
         get() = listOf(
             Back, Close, Help, Check, ChevronForward, ChevronDown, ChevronUp, Info, Warning, Stopped, Shield,
             Wifi, WifiOff, Tv, Minus, Plus, Refresh, Copy, Settings, ArrowUp, ArrowDown, Search, Cards, Home,
-            Undo, Restart, Key, Download, Phone, Delete, Share, Edit, Lock, External, Reorder, Circle, Dash,
+            Undo, Restart, Key, Download, Phone, Delete, Share, Edit, Lock, External, Reorder, Grip, Circle, Dash,
         )
 
     private fun icon(name: String, vararg paths: String, width: Float = 1.5f, mirror: Boolean = false): ImageVector {
