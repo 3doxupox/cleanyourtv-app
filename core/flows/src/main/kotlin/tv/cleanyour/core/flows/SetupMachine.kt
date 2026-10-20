@@ -46,6 +46,7 @@ import tv.cleanyour.core.model.Tv
 import tv.cleanyour.core.model.TvId
 import tv.cleanyour.core.model.WizardDraft
 import tv.cleanyour.core.planner.Choices
+import tv.cleanyour.core.planner.DefaultPlanner
 import tv.cleanyour.core.planner.Plan
 import tv.cleanyour.core.planner.PlanKind
 import tv.cleanyour.core.planner.PlanRequest
@@ -88,6 +89,9 @@ data class ThemeOption(val id: String, val name: String, val description: String
 enum class Reconnect { TRYING, BACK, GAVE_UP }
 enum class Finishing { SWITCHING, DONE }
 
+// Why S3 offers no new home screen (RF-PROFILES-63 P1, P2); NONE when the switch is offered.
+enum class HomeBlock { NONE, TV_REFUSES, OLD_ANDROID, UNKNOWN_HOME }
+
 // Presentation details the frozen SetupState has no field for (RFC-W8-2). Never a source of truth:
 // everything here is derived from the state, the plan, the draft or a live call.
 data class SetupExtras(
@@ -109,6 +113,7 @@ data class SetupExtras(
     val commands: List<String> = emptyList(),    // "Show commands" (D21): one line per op
     val unknownModel: Boolean = false,           // UX 2 "We found 9 things we're sure about"
     val homePossible: Boolean = true,            // UX 4.6 TV refuses other home screens
+    val homeBlock: HomeBlock = HomeBlock.NONE,   // why the switch is not offered, for S3's line (RF-PROFILES-63 P1, P2)
     val staleNotice: Boolean = false,            // the TV changed under the plan; a new plan is shown
     val finishing: Finishing? = null,            // D7 "Switching debugging off... done."
     val restartSlow: Boolean = false,            // UX 4.8 at 3 minutes
@@ -611,10 +616,21 @@ class SetupMachine(
 
     private fun profile(): Profile? = (resolution as? ProfileResolution.Exact)?.profile
 
-    private fun homePossible(): Boolean {
-        val f = deviceFacts ?: return true
+    private fun homePossible(): Boolean = homeBlock() == HomeBlock.NONE
+
+    // Why the new home screen is not offered: the TV refuses other home screens (UX 4.6); it runs an
+    // Android older than the launcher's (RF-PROFILES-63 P1: the clean-up only, no install, look,
+    // curtain or switch); or its profile knows no stock launcher the switch could hand Home back to
+    // (P2: the clean-up only, instead of a plan the planner refuses as a whole).
+    private fun homeBlock(): HomeBlock {
+        val f = deviceFacts ?: return HomeBlock.NONE
         val p = profile()
-        return !f.installRefusal && p?.platform != Platform.FIRE_OS && p?.platform != Platform.TCL_CN
+        return when {
+            f.installRefusal || p?.platform == Platform.FIRE_OS || p?.platform == Platform.TCL_CN -> HomeBlock.TV_REFUSES
+            f.sdk < DefaultPlanner.TV_MIN_SDK -> HomeBlock.OLD_ANDROID
+            p != null && p.stockLaunchers.isEmpty() -> HomeBlock.UNKNOWN_HOME
+            else -> HomeBlock.NONE
+        }
     }
 
     // Plans the Setup from the current snapshot and draft; pure and quick (the planner is pure).
@@ -653,7 +669,8 @@ class SetupMachine(
         // RFC-CURTAIN-1: the TV shows the progress unless Custom switched it off (Simple never shows
         // the switch). An asset that does not match its pin is never offered; the plan goes without it.
         val showOnTv = draft.level == Level.SIMPLE || draft.curtain
-        val curtain = if (!showOnTv) null else deps.curtainPin?.let { pin -> attempt { pin.bundled() }
+        val oldAndroid = (deviceFacts?.sdk ?: DefaultPlanner.TV_MIN_SDK) < DefaultPlanner.TV_MIN_SDK   // P1: the curtain cannot install either
+        val curtain = if (!showOnTv || oldAndroid) null else deps.curtainPin?.let { pin -> attempt { pin.bundled() }
             .onFailure { deps.log.line("setup: the TV curtain does not match its pin, planned without it") }.getOrNull() }
         when (val r = deps.runner.plan(record, PlanRequest.Setup(res, choices.copy(curtain = showOnTv), launcher, draft.level, look?.config, look?.wallpaper, curtain), snap)) {
             is PlanResult.Ok -> {
@@ -664,7 +681,7 @@ class SetupMachine(
                 deps.log.line("setup: plan ready, ${r.plan.steps.size} steps, ${r.plan.steps.count { it.op is Op.Disable }} to switch off, " +
                     "level ${draft.level}, dock ${dock.size}, ${apps.size} dock candidates")
                 mutableExtras.update {
-                    it.copy(commands = commandsOf(r.plan), unknownModel = res !is ProfileResolution.Exact, homePossible = possible,
+                    it.copy(commands = commandsOf(r.plan), unknownModel = res !is ProfileResolution.Exact, homePossible = possible, homeBlock = homeBlock(),
                         noScreenLock = !deps.screenLock.available(), draft = draft, dock = dock.map { p -> AppChoice(p, label(p)) }, apps = apps,
                         dockColumns = columns)
                 }

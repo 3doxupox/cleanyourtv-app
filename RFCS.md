@@ -256,3 +256,46 @@ launcher 2.4 and later). Follow-ups, open:
 - F19: RF-CURTAIN-1 F8 stays open (W8).
 - No API 34 Android TV emulator image on forge (only android-34 google_apis), so S06 and S09 ran on
   API 28 only.
+
+## RF-PROFILES-63: the 60 profiles from upstream v2.4.0 (APPROVE WITH FOLLOW-UPS, reviews/RF-PROFILES-63.md)
+
+Done on profiles63: P1 below Android 8 (SDK 26, `DefaultPlanner.TV_MIN_SDK`, the launcher's and the
+curtain's minSdk) Setup is the clean-up alone: `SetupMachine.homeBlock` is OLD_ANDROID, so no install,
+look, curtain or switch is asked for, S3 says "The new home screen needs Android 8 or newer...", and
+the planner refuses an install or a switch asked for anyway and never weaves the curtain in. P2 an
+exact profile with no known stock launcher (xiaomi-mitv-astp1, stellamore-t950s) is UNKNOWN_HOME, the
+clean-up only, with its own S3 line. `SetupExtras.homeBlock` is new (a presentation field, RFC-W8-2).
+P3 a numbered note ends a header keep paragraph. P4 to P7 in profile-meta.json with curation notes.
+P8 tcl-43c645 parked in unconverted.txt, tcl-40s5400a matches device C06 alone, and ProfilesTest pins
+every tie the resolver settles by id. P9 the facts pass and the brand-inferred notes. Follow-ups, open:
+- P10 (ruling 4): the curated meta should win over a listed setupwraith (panasonic-4ktv-jup,
+  philips-55oled707, tcl-40s5400a: their headers say the wizard does not claim Home); better, the
+  takeover switches the wizard off only when the snapshot shows it among the HOME claimants.
+- P11, before release: switch the wizard off before the stock launcher; when a
+  HOME_TAKEOVER_SETUPWRAITH profile must keep the wizard on, skip the switch up front with the
+  HOME_SETUPWRAITH card instead of attempting it.
+- P12: confirm the PH1M_EA_9970A model strings with the contributors (adb prints underscores).
+- P13: kalley-r10g and prismplus-q65-ultra-r10g may report R10G as the model; add it to models once
+  getprop is known; kalley-r10g `rebootTested` true.
+- P14, owner call: `com.google.android.tvrecommendations` stays default-off for now. Switching it off
+  loses the system notification panel, so a Google sign-in notice has nowhere to show. Ask row, or a
+  Manage help line that puts it back for a minute.
+- P15: a per-profile note on S3's home switch row when the remote's Input key (kalley-r10g,
+  hisense-hismarttv-a4-android11) or app keys (tcl-65c735) stop working after the switch.
+- P16: Sony b2b vendorprotocol and the stock home customisers as ask rows.
+- P17: the Google TV app (`com.google.android.videos`) as an ask row on GOOGLE_TV profiles and out of
+  the sure sets.
+- P18: tcl-55s470g `rebootTested` true; tcl-c755 WIRELESS_DEBUG_PAIRING_REQUIRED; the Hitachi CDH
+  `com.tcl.guard` (persistent) as an ask row or a note.
+- P19: the header "Kept" lists into the curated never-disable lists (skyworth, panasonic, TCL remote
+  services, `com.tcl.system.server`).
+- P20: the same rules on the earlier 30 profiles (`fusion.android.tv.demo`, `com.tcl.partnercustomizer`,
+  the tcl-qm6k keep-list read).
+- P21: facts wording (Hisense words on the Vu, the HG9 SmartSense rows, `com.mediatek.testpq`).
+- P22: curation notes for the departures listed in the review (55PUS7503's credit is done).
+- P23: define each quirk's meaning when its first consumer lands.
+- P24: the S3 row for the wizard on xiaomi-mitv-afmu0 could say it re-pairs the remote.
+- P25: the scanner turns commented-out package lines with a note into group titles (Fire TV Stick);
+  correct but fragile.
+- Ruling 1: a resolver policy instead of the id order (score, then the more specific match, then an
+  explicit `supersedes`, then a test failure); tcl-g10-google-tv marked superseded, not removed.

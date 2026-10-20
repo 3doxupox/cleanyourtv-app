@@ -245,7 +245,8 @@ class DefaultPlanner(
             if (choices.takeover) takeover(req.launcher, profile, stockLaunchers, launcherSteps, choices.wizardWifi)
             homeSwitchRows()
             val curtain = req.curtain
-            if (curtain != null && choices.curtain && !snapshot.facts.installRefusal && reasons.isEmpty()) weaveCurtain(curtain)
+            // RF-PROFILES-63 P1: the curtain is an app like the launcher (minSdk TV_MIN_SDK); below it there is none.
+            if (curtain != null && choices.curtain && !snapshot.facts.installRefusal && snapshot.facts.sdk >= TV_MIN_SDK && reasons.isEmpty()) weaveCurtain(curtain)
         }
 
         // ---- The TV curtain (RFC-CURTAIN-1) ---------------------------------------------------------
@@ -384,6 +385,8 @@ class DefaultPlanner(
         // Returns true when install steps were added (false when the pin is already installed).
         fun launcherInstall(artifact: LauncherArtifact, replaceSigner: Boolean, stockLaunchers: List<Component>): Boolean {
             if (artifact.pkg != launcher.pkg) { refuse("the launcher artifact is ${artifact.pkg.value}, not ${launcher.pkg.value}"); return false }
+            // RF-PROFILES-63 P1: Setup never asks for it below Android 8; this is the defence in depth.
+            if (snapshot.facts.sdk < TV_MIN_SDK) { refuse(REASON_OLD_ANDROID); return false }
             val current = state(artifact.pkg)
             val present = current != null
             if (current != null && current.signer != null && current.signer != artifact.signer) {
@@ -421,6 +424,7 @@ class DefaultPlanner(
         fun takeover(artifact: LauncherArtifact, profile: Profile?, stockLaunchers: List<Component>, launcherInstalledByPlan: Boolean, wizardWifi: WizardWifi) {
             if (snapshot.home.resolved == launcher) { homeScreenPossible = true; return }   // already ours
             if (snapshot.facts.installRefusal) { refuse("this TV refuses app installs, so the home screen switch is not possible"); return }
+            if (snapshot.facts.sdk < TV_MIN_SDK) { refuse(REASON_OLD_ANDROID); return }
             val current = state(launcher.pkg)
             val installedAndVerified = current != null && current.signer == artifact.signer
             if (!launcherInstalledByPlan && !installedAndVerified) { refuse("the new home screen is not installed and the plan does not install it"); return }
@@ -759,6 +763,10 @@ class DefaultPlanner(
         const val NARRATION_CURTAIN = "Showing the progress on the TV"
         const val NARRATION_CURTAIN_SETTLE = "Giving the TV a moment"
         const val WATCHDOG_SECONDS = 150
+        // RF-PROFILES-63 P1: the launcher (upstream minSdk 26) and the TV curtain (Toolchain.TV_MIN_SDK)
+        // need Android 8. Below it a Setup is the clean-up alone: no install, no look, no curtain, no switch.
+        const val TV_MIN_SDK = 26
+        const val REASON_OLD_ANDROID = "the new home screen needs Android 8 or newer, and this TV has an older Android"
         const val REASON_WIZARD_WHILE_OURS = "on this TV the first-run setup wizard takes the Home button back; use the TV's own home screen first"
         const val REASON_HOME_SCREEN = "it is the TV's own home screen; only the home screen switch changes it"
         const val REASON_WIZARD_SECTION_ONLY = "the first-run setup wizard is only switched off as part of the home screen switch"

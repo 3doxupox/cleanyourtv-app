@@ -1,0 +1,51 @@
+# facts.tsv names and descriptions written without a source to check them against: not in the
+# contributor's comments and not known for sure. The text in facts.tsv is a best reading of the
+# package name; confirm it on a real TV (or from the app's own label) and drop the line here.
+# package	why it is unverified
+com.amazon.livedeviceservice	purpose not documented upstream
+com.amazon.privacypassservice	purpose not documented upstream
+com.apps.esticker3	purpose from the list's comment only
+com.apps.mk.gameui	purpose from the package name
+com.apps.puresound	purpose from the package name (could be audio processing)
+com.apps.scast	the list itself says likely screen mirroring
+com.cvte.haier.tv.appmanager	purpose from the list's comment only (a boot receiver that manages Haier apps)
+com.gameloft.android.HEP.GloftANHP	which Gameloft game it is
+com.goodtoolapps.zeus	what the app does; the list only says Zeus
+com.google.android.apps.nbu.smartconnect.tv	purpose from the headers (data-saver VPN); not confirmed on a TV
+com.google.android.tv.remote.service	the remote mic role is from the tcl-c755 header only
+com.haier.yudee.tv	purpose from the list's short comment only
+com.haierubic.usmartdevice	what the service does; the list only says smart-device service
+com.hisense.myapplication	taken for a screensaver from the list's comment (DayDreamService)
+com.joxdev.orbia	what the app is (taken for a game from the list's games group)
+com.mautilus.tvgames.portal.androidtv	what the app is (taken for a game portal from the name and group)
+com.mediatek.androidbox	what it is on each set: the Miracast receiver on the Hisense and Haier lists, a test app on the AiPro2K
+com.mediatek.wwtv.tvrecommendation	purpose from the package name
+com.mitv.ABUpdateStatus	purpose from the package name; the list files it under firmware updates
+com.mitv.toolhouse	purpose from the package name
+com.mk.tv.meeting.service	purpose from the package name
+com.nvidia.developerwidget	purpose from the list's short comment only
+com.seraphic.media.tv.interactive.app	purpose from the package name
+com.sony.dtv.b2b.noderuntimeextension.bpk	what the extension does; from the package name
+com.sony.dtv.calibrationmonitor	purpose from the package name
+com.sony.dtv.irbrecommendation	purpose from the package name (the irb packages run the IR blaster)
+com.sony.dtv.networkrecommendation	purpose from the package name
+com.sony.dtv.osat.music.toast	purpose from the package name
+com.sony.dtv.recommendationservice	purpose from the package name
+com.sony.dtv.servicemode.tuner	purpose from the package name
+com.sony.dtv.sonyshelf	purpose from the package name
+com.sony.dtv.watchtvrecommendation	purpose from the package name
+com.sony.dtv.woprecommendation	purpose from the package name
+com.tcl.interactive	purpose from the list's comment only (TIAS service)
+com.vectorunit.purple.googleplay	which Vector Unit game it is (Beach Buggy Racing 2 assumed)
+com.vt.tv.interactive	purpose from the package name and its group (broadcast middleware)
+com.wrcplus.release	whether it is a rally game or the WRC+ video app
+com.xiaomi.gamecenter.sdk.service.mibox	purpose from the package name; the list only says game SDK
+com.xiaomi.mi_connect_service	purpose from the package name; not described in the list
+com.xiaomi.tvqs.overseas	contested: the Mi Box S 2nd gen header calls it the quick settings panel, the MOSR4 and MOOR2 lists call it Firebase analytics
+io.tiv.dvtv.tv	taken for DVTV (Czech news) from the name and the Czech unit
+jp.co.rarity.tvweb	taken for a TV web browser from the name
+net.hexage.ritual	taken for a Hexage game from the name and group
+org.droidtv.nettvapp4771	what Divan.TV offers (label from the list)
+org.droidtv.nettvapp5251	what Min Bio offers (label from the list)
+org.droidtv.nettvapps	read from its manifest only (silent install permission), behaviour not traced
+ro.pontes.forinaline	taken for a four-in-a-row game from the name

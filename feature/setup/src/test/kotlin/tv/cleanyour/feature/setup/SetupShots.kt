@@ -20,6 +20,7 @@ import tv.cleanyour.core.engine.RunState
 import tv.cleanyour.core.flows.AppChoice
 import tv.cleanyour.core.flows.ChipState
 import tv.cleanyour.core.flows.DoneSummary
+import tv.cleanyour.core.flows.HomeBlock
 import tv.cleanyour.core.flows.Finishing
 import tv.cleanyour.core.flows.NoSetupActions
 import tv.cleanyour.core.flows.Reconnect
@@ -253,6 +254,9 @@ object SetupShots {
         Shot("found_unknown_home_switch_only") { Setup(found(homeSwitchOnlyPlan), connected.copy(unknownModel = true)) },
         Shot("found_no_screen_lock") { Setup(found(), connected.copy(noScreenLock = true)) },
         Shot("found_tv_refuses_home") { Setup(found(noHomePlan), connected.copy(tvName = "TCL C635", homePossible = false)) },
+        // RF-PROFILES-63 P1 and P2: Android 7 (the clean-up only), and a profile with no known stock home.
+        Shot("found_home_old_android") { Setup(found(noHomePlan), connected.copy(tvName = "Sony KD-55X8509C", homePossible = false, homeBlock = HomeBlock.OLD_ANDROID)) },
+        Shot("found_home_unknown_stock") { Setup(found(noHomePlan), connected.copy(tvName = "Mi TV ASTP1", homePossible = false, homeBlock = HomeBlock.UNKNOWN_HOME)) },
         Shot("found_starting") { Setup(found(), connected.copy(starting = true)) },
         // D36 (RF-LAUNCHER-240 F1): the plan replaces a home screen app signed with another key.
         Shot("found_replaces_launcher") { Setup(found(fullPlan.copy(summary = fullPlan.summary.copy(replacesLauncher = true)))) },
