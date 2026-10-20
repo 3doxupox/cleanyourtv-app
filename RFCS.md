@@ -89,4 +89,8 @@ versionCode is the pin's, and no other signer is known; a package under our name
 signer gets no curtain steps and is never uninstalled. The planner takes the pinned signer as
 `curtainSigner` (AppGraph passes `PinnedCurtain.SIGNER_SHA256`). A Setup with no steps shows no
 curtain.
+(c) The Customise switch needs an intent: `SetupIntent` (frozen, 5.12) gains
+`ShowOnTv(on: Boolean)`; `SetupDeps` gains `curtainPin: CurtainPin? = null`. The switch shows in
+Custom only; replan hands the pin's artifact in when the level is Simple or the draft's `curtain` is
+on, and plans without it when the asset does not match its pin.
 

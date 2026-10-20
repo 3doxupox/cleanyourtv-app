@@ -104,6 +104,9 @@ owning stream supplies bodies):
   curtain 2026-10-20; RFCS.md carries the RFC and the owner's amendment for the group words).
 - `core.trust` gains `interface CurtainPin { fun bundled(): LauncherArtifact }` next to `LauncherPin`,
   marked `// RFC-CURTAIN-1`.
+- `core.flows.SetupIntent` gains `ShowOnTv(on: Boolean)` (the Customise switch "Show the progress on
+  the TV") and `core.model.WizardDraft` (growable) gains `curtain: Boolean = true`, both marked
+  `// RFC-CURTAIN-1`.
 
 Added because the section 5 prose names it: `core.probe.ProbeException(stage, detail)` (R0: 7).
 

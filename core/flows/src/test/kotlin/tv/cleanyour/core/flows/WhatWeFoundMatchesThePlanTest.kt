@@ -33,6 +33,7 @@ import tv.cleanyour.core.spec.DockRanking
 import tv.cleanyour.core.spec.LauncherConfigCodec
 import tv.cleanyour.core.spec.LauncherConfigDoc
 import tv.cleanyour.core.spec.ProfileResolution
+import tv.cleanyour.core.trust.PinnedCurtain
 import tv.cleanyour.testing.fixtures.FakeClock
 import tv.cleanyour.testing.fixtures.FakeIdGen
 import tv.cleanyour.testing.fixtures.FakeProber
@@ -58,6 +59,11 @@ class WhatWeFoundMatchesThePlanTest {
     private val planner = DefaultPlanner(FakeClock(), FakeIdGen(), ShellRenderer(), FileOverlayTransport(FakeProber()), "0.1.0")
     private val launcher = Samples.launcherArtifact()
     private val blobs = MemoryBlobStore()
+    // RFC-CURTAIN-1: replan hands in the bundled TV curtain in Simple, so S3's plan carries it.
+    private val curtain = tv.cleanyour.core.model.LauncherArtifact(PackageName(PinnedCurtain.PACKAGE), PinnedCurtain.VERSION_CODE, PinnedCurtain.VERSION_NAME,
+        tv.cleanyour.core.model.Sha256(PinnedCurtain.SHA256), tv.cleanyour.core.model.Sha256(PinnedCurtain.SIGNER_SHA256),
+        BlobRef(tv.cleanyour.core.model.Sha256(PinnedCurtain.SHA256), PinnedCurtain.SIZE, "bundled:${PinnedCurtain.ASSET_NAME}"))
+    private fun body(plan: Plan) = plan.steps.filter { it.group != DefaultPlanner.GROUP_CURTAIN }
 
     // The Setup request SetupMachine.replan sends for a first visit in Simple: nothing kept, nothing
     // extra, the auto-picked dock (or the one given), the launcher and the switch when the TV allows
@@ -68,7 +74,7 @@ class WhatWeFoundMatchesThePlanTest {
         val dock = chosenDock ?: DockRanking.pick(profile, snapshot.packages.keys, snapshot.hdmi.isNotEmpty(), profile?.liveTv, "en")
         val choices = Choices(emptySet(), emptySet(), dock, null, installLauncher = true, takeover = true, replaceLauncherSigner = false, keepDebuggingOn = false)
         val look = runBlocking { Look.encode(ConfigEncoder.Codec, blobs, null, dock) }
-        val r = planner.plan(PlanRequest.Setup(res, choices, launcher, Level.SIMPLE, look.config, look.wallpaper), snapshot, facts, emptyList())
+        val r = planner.plan(PlanRequest.Setup(res, choices, launcher, Level.SIMPLE, look.config, look.wallpaper, curtain), snapshot, facts, emptyList())
         return assertIs<PlanResult.Ok>(r, r.toString()).plan to res
     }
 
@@ -151,13 +157,23 @@ class WhatWeFoundMatchesThePlanTest {
         val (plan, _) = plan(Samples.snapshot(packages = Samples.miTvPackages(emptySet())), apps)
         assertS3AgreesWithThePlan(plan)
         assertTheLookIsPushed(plan, apps, rowsBelowDock = 1)
-        val tail = plan.steps.drop(plan.steps.indexOfFirst { it.op is Op.Settle })
+        val steps = body(plan)
+        val tail = steps.drop(steps.indexOfFirst { it.op is Op.Settle })
         assertEquals(
             listOf("Settle", "InstallStream", "StartActivity", "Mkdir", "PushAsset", "RemoveFile", "RestartHome",
                 "StartActivity", "Mkdir", "ArmHomeWatchdog", "Disable", "SetHome", "VerifyHome", "ConfirmHome", "KillWatchdog"),
             tail.map { it.op::class.simpleName },
         )
-        assertTrue(plan.steps.take(plan.steps.size - tail.size).all { it.op is Op.Disable }, "the debloat comes first")
+        assertTrue(steps.take(steps.size - tail.size).all { it.op is Op.Disable }, "the debloat comes first")
+        // RFC-CURTAIN-1: the curtain's start and cues around that body; the final order for this TV.
+        val curtainOrder = plan.steps.map { s -> (s.op as? Op.CurtainCue)?.stage?.name ?: s.op::class.simpleName }
+        assertEquals(listOf("InstallStream", "StartActivity", "SCAN", "RESTORE_SAVED"), curtainOrder.take(4))
+        val cleaning = curtainOrder.subList(4, curtainOrder.indexOf("Settle")).filter { it != "GROUP_DONE" }
+        assertEquals(cleaning.indices.map { if (it % 2 == 0) "Disable" else "OFF" }, cleaning, "one OFF cue after each switch-off")
+        assertEquals(plan.summary.groups.count { g -> g.id != DefaultPlanner.GROUP_HOME && g.off > 0 }, curtainOrder.count { it == "GROUP_DONE" })
+        val end = curtainOrder.drop(curtainOrder.indexOf("Settle"))
+        assertEquals(listOf("Settle", "INSTALL", "InstallStream", "INSTALLED", "FINALE", "Settle", "StartActivity", "Mkdir", "PushAsset", "RemoveFile", "RestartHome",
+            "StartActivity", "Mkdir", "ArmHomeWatchdog", "Disable", "SetHome", "VerifyHome", "ConfirmHome", "KillWatchdog", "Uninstall"), end)
     }
 
     @Test fun referenceMiTvAfterItsHandDebloat() {
@@ -198,17 +214,27 @@ class WhatWeFoundMatchesThePlanTest {
 
         // The plan log's "9 steps, 1 to switch off" of round 3, now 14 (RFC-DOCK-1): the streamed
         // launcher install, the five steps that send the dock and look, then the eight steps of the
-        // home screen switch, whose one switch-off is the TV's own home screen.
-        assertEquals(14, plan.steps.size)
+        // home screen switch, whose one switch-off is the TV's own home screen. RFC-CURTAIN-1 adds
+        // nine around them: the curtain's install and start, SCAN and RESTORE_SAVED (nothing to
+        // switch off outside the switch), INSTALL and INSTALLED, FINALE and its settle before the
+        // launcher's first start, and the curtain's removal last.
+        assertEquals(14, body(plan).size)
         assertEquals(
             listOf("InstallStream", "StartActivity", "Mkdir", "PushAsset", "RemoveFile", "RestartHome",
                 "StartActivity", "Mkdir", "ArmHomeWatchdog", "Disable", "SetHome", "VerifyHome", "ConfirmHome", "KillWatchdog"),
-            plan.steps.map { it.op::class.simpleName },
+            body(plan).map { it.op::class.simpleName },
+        )
+        assertEquals(23, plan.steps.size)
+        assertEquals(
+            listOf("InstallStream", "StartActivity", "SCAN 0/0", "RESTORE_SAVED 0/0", "INSTALL 0/0", "InstallStream", "INSTALLED 0/0", "FINALE 0/0", "Settle",
+                "StartActivity", "Mkdir", "PushAsset", "RemoveFile", "RestartHome",
+                "StartActivity", "Mkdir", "ArmHomeWatchdog", "Disable", "SetHome", "VerifyHome", "ConfirmHome", "KillWatchdog", "Uninstall"),
+            plan.steps.map { s -> (s.op as? Op.CurtainCue)?.let { "${it.stage} ${it.count}/${it.total}" } ?: s.op::class.simpleName },
         )
         val dock = DockRanking.pick(null, snapshot.packages.keys, snapshot.hdmi.isNotEmpty(), null, "en")
         assertTheLookIsPushed(plan, dock, DockLayers.rowsBelowDock(dock.size, DockLayers.DEFAULT_COLUMNS))
         assertEquals(listOf(PackageName("com.google.android.tvlauncher")), plan.disabledPackages)
-        assertTrue(plan.steps.none { it.op is Op.Settle }, "no debloat, so no settle")
+        assertTrue(body(plan).none { it.op is Op.Settle }, "no debloat, so no settle")
         // S3 now says one thing to switch off, under "Needed for the new home screen", by its name.
         assertEquals(1, plan.summary.switchOffCount)
         val row = plan.summary.groups.single { it.off > 0 }.let { g ->

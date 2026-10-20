@@ -114,12 +114,13 @@ class Harness(val clock: FakeClock = FakeClock(Samples.NOW_MS)) {
     // The launchable apps the TV reports (null: the TV could not say).
     var launchable: Set<PackageName>? = null
 
-    fun setupDeps(dock: DockPicker = DockPicker { _, _, _, _, _ -> listOf(PackageName("com.netflix.ninja")) }) = SetupDeps(
+    fun setupDeps(dock: DockPicker = DockPicker { _, _, _, _, _ -> listOf(PackageName("com.netflix.ninja")) }, curtainPin: tv.cleanyour.core.trust.CurtainPin? = null) = SetupDeps(
         discovery, sessions, prober, profiles, facts, runner, engine, gate, tvs, snapshots, ledger,
         FakeLauncherPin(Samples.launcherArtifact()), themes, restorePoint, FakeRestoreNote(), sessionEnd, access, clock, KeyCopy,
         blobs = blobs, dock = dock, screenLock = { true }, diagnostics = { "diagnostics" },
         launchable = tv.cleanyour.core.probe.LaunchableApps { launchable ?: throw tv.cleanyour.core.probe.ProbeException(tv.cleanyour.core.probe.ProbeStage.LAUNCHER, "no answer") },
         log = FlowLog { logLines += it },
+        curtainPin = curtainPin,
     )
 
     fun setup(scope: CoroutineScope, start: SetupStart = SetupStart.Fresh) = SetupMachine(setupDeps(), scope, start)

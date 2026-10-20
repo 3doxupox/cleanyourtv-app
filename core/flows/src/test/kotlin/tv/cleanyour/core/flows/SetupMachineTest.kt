@@ -448,6 +448,35 @@ class SetupMachineTest {
         assertTrue(m.extras.value.chip != ChipState.DEBUGGING_OFF)
     }
 
+    // RFC-CURTAIN-1: replan hands the bundled curtain to the planner; Custom's switch turns it off and
+    // on again, the draft keeps the choice; a pin that refuses its asset plans without it.
+    @Test fun theTvCurtainIsHandedInAndTheCustomSwitchTurnsItOff() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+        val sha = tv.cleanyour.core.model.Sha256("e".repeat(64))
+        val curtain = tv.cleanyour.core.model.LauncherArtifact(PackageName("tv.cleanyour.curtain"), 1, "0.1", sha, Samples.zeroHash,
+            tv.cleanyour.core.model.BlobRef(sha, 49_571, "bundled:cleanyourtv-curtain.apk"))
+        val m = SetupMachine(h.setupDeps(curtainPin = object : tv.cleanyour.core.trust.CurtainPin { override fun bundled() = curtain }), backgroundScope)
+        toFound(h, m)
+        fun last() = h.planner.requests.filterIsInstance<PlanRequest.Setup>().last()
+        assertEquals(curtain, last().curtain)
+        assertTrue(last().choices.curtain)
+        m.dispatch(SetupIntent.Open(Sheet.CUSTOMISE)); settle()
+        m.dispatch(SetupIntent.ShowOnTv(false)); settle()
+        assertNull(last().curtain)
+        assertFalse(last().choices.curtain)
+        assertFalse(h.tvs.tvs.value.single().wizard!!.curtain, "the draft keeps the choice")
+        m.dispatch(SetupIntent.ShowOnTv(true)); settle()
+        assertEquals(curtain, last().curtain)
+
+        val h2 = Harness()
+        h2.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+        val refusing = SetupMachine(h2.setupDeps(curtainPin = object : tv.cleanyour.core.trust.CurtainPin { override fun bundled() = error("does not match its pin") }), backgroundScope)
+        toFound(h2, refusing)
+        assertNull(h2.planner.requests.filterIsInstance<PlanRequest.Setup>().last().curtain)
+        assertIs<SetupState.Found>(refusing.state.value)
+    }
+
     @Test fun keepDebuggingOnSkipsDebugOffAtFinish() = runTest(timeout = 30.seconds) {
         val h = Harness()
         h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"

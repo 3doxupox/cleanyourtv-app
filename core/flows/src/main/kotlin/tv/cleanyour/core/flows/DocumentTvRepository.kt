@@ -76,7 +76,8 @@ object TvJson {
         "wizard" to (tv.wizard?.let { w -> obj("step" to p(w.step), "level" to p(w.level.name),
             "kept" to JsonArray(w.kept.map { p(it.value) }), "extraOff" to JsonArray(w.extraOff.map { p(it.value) }),
             "dock" to (w.dock?.let { d -> JsonArray(d.map { p(it.value) }) } ?: JsonNull), "themeId" to p(w.themeId),
-            "keepDebuggingOn" to p(w.keepDebuggingOn), "planId" to p(w.planId?.value), "updatedAtMs" to p(w.updatedAtMs)) } ?: JsonNull),
+            "keepDebuggingOn" to p(w.keepDebuggingOn), "planId" to p(w.planId?.value), "updatedAtMs" to p(w.updatedAtMs),
+            "curtain" to p(w.curtain)) } ?: JsonNull),
         "lastSeenAt" to p(tv.lastSeenAt), "debugging" to p(tv.debugging.name),
     )).encodeToByteArray()
 
@@ -96,7 +97,8 @@ object TvJson {
             wizard = o.objOrNull("wizard")?.let { w -> WizardDraft(w.int("step") ?: 0, Level.valueOf(w.str("level")!!),
                 w.strings("kept").map(::PackageName).toSet(), w.strings("extraOff").map(::PackageName).toSet(),
                 if (w["dock"] is JsonArray) w.strings("dock").map(::PackageName) else null, w.str("themeId"),
-                w.bool("keepDebuggingOn") ?: false, w.str("planId")?.let(::PlanId), w.long("updatedAtMs") ?: 0) },
+                w.bool("keepDebuggingOn") ?: false, w.str("planId")?.let(::PlanId), w.long("updatedAtMs") ?: 0,
+                curtain = w.bool("curtain") ?: true) },   // RFC-CURTAIN-1: a draft written before the switch existed shows the curtain
             lastSeenAt = o.long("lastSeenAt") ?: 0, debugging = DebugState.valueOf(o.str("debugging") ?: "UNKNOWN"),
         )
     }
