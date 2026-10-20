@@ -2,6 +2,7 @@ package tv.cleanyour.core.flows
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import tv.cleanyour.core.engine.RunStatus
 import tv.cleanyour.core.model.Component
 import tv.cleanyour.core.model.EnabledState
 import tv.cleanyour.core.model.PackageName
@@ -11,8 +12,8 @@ import tv.cleanyour.core.planner.PlanRequest
 import tv.cleanyour.core.spec.DockLayers
 
 // M2 Home screen: the dock (S3b sheet), the look (theme picker), "Use the TV's own home screen"
-// with its preview, and the drift banner (D15: the overlay digest re-read on every connect;
-// "Restore mine" pushes ours again).
+// with its preview, the drift banner (D15: the overlay digest re-read on every connect; "Restore
+// mine" pushes ours again) and "Update the home screen" with its preview (D4, RFC-LAUNCHER-1).
 data class AppChoice(val pkg: PackageName, val name: String)
 
 data class HomeScreenState(
@@ -27,6 +28,8 @@ data class HomeScreenState(
     val busy: Busy? = null,
     val homeScreenOurs: Boolean = true,
     val columns: Int = DockLayers.DEFAULT_COLUMNS,     // apps per dock row for the look on the TV
+    val updateTo: String? = null,                       // D4: the bundled launcher's version, when the TV has an older build of ours
+    val updatePreview: Plan? = null,
 )
 
 sealed interface HomeScreenIntent {
@@ -36,6 +39,8 @@ sealed interface HomeScreenIntent {
     data object PreviewStock : HomeScreenIntent
     data object UseStock : HomeScreenIntent
     data object CancelPreview : HomeScreenIntent
+    data object PreviewUpdate : HomeScreenIntent       // D4
+    data object UpdateHomeScreen : HomeScreenIntent    // D4
 }
 
 class HomeScreenMachine(
@@ -49,15 +54,18 @@ class HomeScreenMachine(
     private data class BusyNow(val busy: Busy?)
     private data class Preview(val plan: Plan?)
     private data class Drift(val drift: Boolean)
+    private data class UpdatePreview(val plan: Plan?)
+    private var updated = false   // D4: this screen updated the launcher; the stored snapshot does not know yet
 
     init { scope.launch { load(); checkDrift() } }
 
     override fun reduce(state: HomeScreenState, event: Any): HomeScreenState = when (event) {
-        is Loaded -> event.s.copy(busy = state.busy, stockPreview = state.stockPreview, drift = state.drift)
+        is Loaded -> event.s.copy(busy = state.busy, stockPreview = state.stockPreview, drift = state.drift, updatePreview = state.updatePreview)
+        is UpdatePreview -> state.copy(updatePreview = event.plan)
         is BusyNow -> state.copy(busy = event.busy)
         is Preview -> state.copy(stockPreview = event.plan)
         is Drift -> state.copy(drift = event.drift)
-        HomeScreenIntent.CancelPreview -> state.copy(stockPreview = null)
+        HomeScreenIntent.CancelPreview -> state.copy(stockPreview = null, updatePreview = null)
         else -> state
     }
 
@@ -69,6 +77,8 @@ class HomeScreenMachine(
             HomeScreenIntent.RestoreMine -> scope.launch { apply(after.dock.map { it.pkg }, after.themeId) }
             HomeScreenIntent.PreviewStock -> after.stock?.let { stock -> scope.launch { send(Preview(writer.preview(tvId, PlanRequest.UseStockHome(stock)))) } }
             HomeScreenIntent.UseStock -> after.stock?.let { stock -> scope.launch { useStock(stock) } }
+            HomeScreenIntent.PreviewUpdate -> scope.launch { previewUpdate() }
+            HomeScreenIntent.UpdateHomeScreen -> scope.launch { update() }
             else -> {}
         }
     }
@@ -89,7 +99,52 @@ class HomeScreenMachine(
         val shown = { p: PackageName -> snap == null || packages[p]?.enabled.let { it != null && it != EnabledState.DISABLED && it != EnabledState.DISABLED_USER } }
         val dock = DockLayers.decode(choice?.dock.orEmpty(), shown, columns).map { AppChoice(it, d.nameOf(it, packages[it]?.label)) }
         send(Loaded(HomeScreenState(tv.nickname, dock, apps, choice?.themeId, state.value.themes, stock = profile?.stockLaunchers?.firstOrNull(),
-            homeScreenOurs = tv.launcher != null, columns = columns)))
+            homeScreenOurs = tv.launcher != null, columns = columns, updateTo = updateTo(tv, packages))))
+    }
+
+    // D4: the bundled launcher is newer than ours on the TV (same signer, lower versionCode). The
+    // stored snapshot says which build is installed and with which key; one from before the app
+    // read signers falls back to what Setup recorded for this TV. The planner checks again on a
+    // fresh snapshot before anything is installed.
+    private fun updateTo(tv: tv.cleanyour.core.model.Tv, packages: Map<PackageName, tv.cleanyour.core.model.PackageState>): String? {
+        if (updated) return null
+        val pin = runCatching { d.launcherPin.bundled() }.getOrNull() ?: return null
+        val installed = packages[pin.pkg] ?: return null
+        val signer = installed.signer ?: tv.launcher?.signer ?: return null
+        return pin.versionName.takeIf { signer == pin.signer && installed.versionCode < pin.versionCode }
+    }
+
+    private suspend fun previewUpdate() {
+        val pin = attempt { d.launcherPin.bundled() }.getOrNull() ?: return
+        val plan = writer.preview(tvId, PlanRequest.UpdateLauncher(pin), fresh = true)
+        if (plan == null || plan.steps.isEmpty()) {
+            // Nothing to update after all (a fresher look at the TV), or it cannot be planned.
+            if (plan != null) updated = true
+            effect(ManageEffect.Snackbar(if (plan != null) SnackKind.HOME_UPDATED else SnackKind.FAILED, pin.versionName, false))
+            load()
+            return
+        }
+        send(UpdatePreview(plan))
+    }
+
+    // "Update the home screen": the bundled launcher over ours, in place (RFC-LAUNCHER-1). The dock,
+    // the look (config.json) and the card answers stay on the TV, since only an uninstall removes
+    // them, so nothing is pushed again.
+    private suspend fun update() {
+        send(UpdatePreview(null))
+        val pin = attempt { d.launcherPin.bundled() }.getOrNull() ?: return effect(ManageEffect.Snackbar(SnackKind.FAILED, "", false))
+        val r = writer.write(tvId, PlanRequest.UpdateLauncher(pin), fresh = true) { send(BusyNow(it)) }
+        send(BusyNow(null))
+        when {
+            r is WriteResult.Done && r.finished.status == RunStatus.COMPLETED -> {
+                updated = true
+                d.tv(tvId)?.let { t -> t.launcher?.let { l -> d.tvs.upsert(t.copy(launcher = l.copy(versionCode = pin.versionCode, signer = pin.signer))) } }
+                effect(ManageEffect.Snackbar(SnackKind.HOME_UPDATED, pin.versionName, false))
+            }
+            r is WriteResult.GateCancelled || r is WriteResult.NoTv || r is WriteResult.Paused -> {}   // Paused: the open-run card (O2)
+            else -> effect(ManageEffect.Snackbar(SnackKind.FAILED, "", false))
+        }
+        load()
     }
 
     private suspend fun checkDrift() {

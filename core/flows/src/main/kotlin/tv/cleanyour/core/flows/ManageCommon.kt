@@ -46,7 +46,7 @@ sealed interface ManageEffect {
     data object HapticDouble : ManageEffect
 }
 
-enum class SnackKind { PUT_BACK, SWITCHED_OFF, HOME_SAVED, MODULE_REMOVED, EXPORT_SAVED, EXPORT_FAILED, FAILED }
+enum class SnackKind { PUT_BACK, SWITCHED_OFF, HOME_SAVED, MODULE_REMOVED, EXPORT_SAVED, EXPORT_FAILED, FAILED, HOME_UPDATED }
 
 // What a write in the Manage family is doing, for the narration row and the disabled buttons.
 sealed interface Busy {
@@ -162,8 +162,10 @@ sealed interface WriteResult {
 
 // The returning-user write of UX 4.11: the debugging step if needed (TvAccess), a plan from the
 // newest snapshot, the credential gate (D17), the run, then the restore point on the TV (D44).
+// `fresh` plans from a new snapshot instead of the newest stored one, for a request that needs what
+// an older snapshot may not hold (UpdateLauncher: the installed launcher's signer, launcher v2.4.0).
 class TvWriter(private val d: ManageDeps) {
-    suspend fun write(tvId: TvId, request: PlanRequest, onBusy: (Busy) -> Unit = {}): WriteResult {
+    suspend fun write(tvId: TvId, request: PlanRequest, fresh: Boolean = false, onBusy: (Busy) -> Unit = {}): WriteResult {
         onBusy(Busy.Connecting)
         val session = when (val a = d.access.session(tvId)) {
             is AccessResult.Ok -> a.session
@@ -174,7 +176,7 @@ class TvWriter(private val d: ManageDeps) {
         // An earlier write left its run open: no new plan, no prompt, the card for that run (O2).
         (d.engine.runState(tvId).value as? RunState.Paused)?.let { p -> d.openWrites.show(tv, p); return WriteResult.Paused(p.plan, p) }
         return attempt {
-            val snapshot = d.runner.snapshotFor(tv, session)
+            val snapshot = if (fresh) d.runner.freshSnapshot(session) else d.runner.snapshotFor(tv, session)
             val plan = when (val r = d.runner.plan(tv, request, snapshot)) {
                 is PlanResult.Ok -> r.plan
                 is PlanResult.Refused -> return@attempt WriteResult.Refused(r.reasons)
@@ -255,9 +257,11 @@ class TvWriter(private val d: ManageDeps) {
     companion object { const val MOVE_WAIT_MS = 5_000L }
 
     // A plan for preview only (Undo everything, Use the TV's own home screen): no gate, no run.
-    suspend fun preview(tvId: TvId, request: PlanRequest): Plan? {
+    // `fresh`: from a new snapshot while the TV is connected (as write takes it), else the stored one.
+    suspend fun preview(tvId: TvId, request: PlanRequest, fresh: Boolean = false): Plan? {
         val tv = d.tv(tvId) ?: return null
-        val snapshot = d.snapshots.latest(tvId) ?: d.access.live(tvId)?.let { d.runner.snapshotFor(tv, it) } ?: return null
+        val live = if (fresh) d.access.live(tvId)?.let { s -> attempt { d.runner.freshSnapshot(s) }.getOrNull() } else null
+        val snapshot = live ?: d.snapshots.latest(tvId) ?: d.access.live(tvId)?.let { d.runner.snapshotFor(tv, it) } ?: return null
         return (d.runner.plan(tv, request, snapshot) as? PlanResult.Ok)?.plan
     }
 }

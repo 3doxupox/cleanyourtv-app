@@ -114,7 +114,8 @@ class Harness(val clock: FakeClock = FakeClock(Samples.NOW_MS)) {
     // The launchable apps the TV reports (null: the TV could not say).
     var launchable: Set<PackageName>? = null
 
-    fun setupDeps(dock: DockPicker = DockPicker { _, _, _, _, _ -> listOf(PackageName("com.netflix.ninja")) }, curtainPin: tv.cleanyour.core.trust.CurtainPin? = null) = SetupDeps(
+    fun setupDeps(dock: DockPicker = DockPicker { _, _, _, _, _ -> listOf(PackageName("com.netflix.ninja")) }, curtainPin: tv.cleanyour.core.trust.CurtainPin? = null,
+                  savedWifi: tv.cleanyour.core.probe.SavedWifiOwners? = null) = SetupDeps(
         discovery, sessions, prober, profiles, facts, runner, engine, gate, tvs, snapshots, ledger,
         FakeLauncherPin(Samples.launcherArtifact()), themes, restorePoint, FakeRestoreNote(), sessionEnd, access, clock, KeyCopy,
         blobs = blobs, dock = dock, screenLock = { true }, diagnostics = { "diagnostics" },
@@ -122,6 +123,7 @@ class Harness(val clock: FakeClock = FakeClock(Samples.NOW_MS)) {
         log = FlowLog { logLines += it },
         homePrefs = HomePrefs(documents),
         curtainPin = curtainPin,
+        savedWifi = savedWifi,
     )
 
     fun setup(scope: CoroutineScope, start: SetupStart = SetupStart.Fresh) = SetupMachine(setupDeps(), scope, start)
@@ -140,10 +142,11 @@ class Harness(val clock: FakeClock = FakeClock(Samples.NOW_MS)) {
         override suspend fun reset() { resets++ }
     }
 
-    fun manageDeps(fetcherSources: tv.cleanyour.core.registry.ArtifactFetcher = fetcher, encoder: ConfigEncoder = ConfigEncoder { "{}".encodeToByteArray() }) = ManageDeps(
+    fun manageDeps(fetcherSources: tv.cleanyour.core.registry.ArtifactFetcher = fetcher, encoder: ConfigEncoder = ConfigEncoder { "{}".encodeToByteArray() },
+                   launcherPin: tv.cleanyour.core.trust.LauncherPin = FakeLauncherPin(Samples.launcherArtifact())) = ManageDeps(
         tvs = tvs, sessions = sessions, discovery = discovery, access = access, gate = gate, runner = runner, engine = engine,
         ledger = ledger, prober = prober, profiles = profiles, facts = facts, snapshots = snapshots, documents = documents,
-        blobs = blobs, themes = themes, launcherPin = FakeLauncherPin(Samples.launcherArtifact()), configTransport = configTransport,
+        blobs = blobs, themes = themes, launcherPin = launcherPin, configTransport = configTransport,
         restorePoint = restorePoint, bundleWriter = bundleWriter, registry = registry, fetcher = fetcherSources, inspector = inspector,
         cardDetector = CardAnswerDetector { _, _ -> cardAnswer }, sessionEnd = sessionEnd, homePrefs = HomePrefs(documents),
         appPrefs = AppPrefs(documents), keyInfo = keyInfo, updates = UpdateChecker { "0.2.0" }, diagnostics = Diagnostics { "redacted" },
@@ -173,6 +176,7 @@ class Harness(val clock: FakeClock = FakeClock(Samples.NOW_MS)) {
         tv.cleanyour.core.planner.PlanRequest.DebugOff -> PlanKind.DEBUG_OFF
         is tv.cleanyour.core.planner.PlanRequest.WriteRestorePoint -> PlanKind.WRITE_RESTORE_POINT
         tv.cleanyour.core.planner.PlanRequest.Reboot -> PlanKind.REBOOT
+        is tv.cleanyour.core.planner.PlanRequest.UpdateLauncher -> PlanKind.UPDATE_LAUNCHER
     }
 }
 

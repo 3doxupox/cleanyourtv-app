@@ -14,6 +14,9 @@ import tv.cleanyour.core.engine.RunStatus
 import tv.cleanyour.core.model.ArtifactRef
 import tv.cleanyour.core.model.ApkInfo
 import tv.cleanyour.core.model.LauncherState
+import tv.cleanyour.core.model.Sha256
+import tv.cleanyour.core.model.SnapshotReason
+import tv.cleanyour.testing.fixtures.FakeLauncherPin
 import tv.cleanyour.core.model.Level
 import tv.cleanyour.core.model.Module
 import tv.cleanyour.core.model.ModuleVersion
@@ -577,4 +580,53 @@ class ManageMachinesTest {
 }
 
 private fun kotlinx.coroutines.CoroutineScope.launchAccess(h: Harness, tv: Tv, done: (AccessResult) -> Unit) =
-    launch { done(h.access.session(tv.id)) }
+    launch { done(h.access.session(tv.id)) 
+    // D4 (RFC-LAUNCHER-1): "Update the home screen" is offered while the TV has an older build of
+    // ours, previews the plan from a fresh look at the TV, runs it, and pushes no look again: the
+    // dock and look stay on the TV through an in-place update.
+    @Test fun updateTheHomeScreenOffersPreviewsAndRunsInPlace() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val tv = h.knownTv().copy(launcher = LauncherState(2, Samples.zeroHash, null, null))
+        h.tvs.upsert(tv)
+        val pin = Samples.launcherArtifact().copy(versionCode = 5, versionName = "2.4")
+        fun launcher(vc: Long, signer: Sha256?) = PackageState(EnabledState.ENABLED, false, vc, signer, false, false, null, true)
+        fun snapWith(vc: Long, signer: Sha256?, at: Long = Samples.NOW_MS + 1) =
+            Samples.snapshot(packages = Samples.miTvPackages() + (pin.pkg to launcher(vc, signer)), takenAtMs = at)
+        h.snapshots.save(snapWith(2, Samples.zeroHash))
+        h.prober.snapshotFor = { snapWith(2, Samples.zeroHash, Samples.NOW_MS + 5) }
+        val updatePlan = h.plan(listOf(Op.InstallStream(pin.blob, pin.sha256, pin.pkg, 5, pin.signer)), kind = PlanKind.UPDATE_LAUNCHER, id = "01FAKEUPDA0000000000000001")
+        val previous = h.planner.respond
+        h.planner.respond = { r, s -> if (r is PlanRequest.UpdateLauncher) PlanResult.Ok(updatePlan) else previous(r, s) }
+        val deps = h.manageDeps(launcherPin = FakeLauncherPin(pin))
+        val m = HomeScreenMachine(deps, backgroundScope, tv.id)
+        settle()
+        assertEquals("2.4", m.state.value.updateTo)
+        m.dispatch(HomeScreenIntent.PreviewUpdate); settle()
+        assertEquals(updatePlan, m.state.value.updatePreview)
+        assertTrue(h.prober.calls.any { it == "snapshot ${SnapshotReason.MANUAL}" }, "the preview reads the TV afresh")
+        m.effects.test {
+            m.dispatch(HomeScreenIntent.UpdateHomeScreen)
+            settle()
+            val snack = assertIs<ManageEffect.Snackbar>(drain().single())
+            assertEquals(SnackKind.HOME_UPDATED, snack.kind)
+            assertEquals("2.4", snack.name)
+        }
+        assertEquals(pin, h.planner.requests.filterIsInstance<PlanRequest.UpdateLauncher>().last().launcher)
+        assertTrue(h.planner.requests.none { it is PlanRequest.ApplyTheme }, "the look is not pushed again")
+        assertNull(m.state.value.updatePreview)
+        assertNull(m.state.value.updateTo)
+        assertEquals(5L, h.tvs.tvs.value.single { it.id == tv.id }.launcher?.versionCode)
+
+        // Not offered: the pin itself, another key, or a key nobody knows.
+        for (snap in listOf(snapWith(5, Samples.zeroHash, Samples.NOW_MS + 10), snapWith(2, Sha256("e".repeat(64)), Samples.NOW_MS + 11))) {
+            h.snapshots.save(snap)
+            assertNull(HomeScreenMachine(deps, backgroundScope, tv.id).also { settle() }.state.value.updateTo)
+        }
+        h.tvs.upsert(tv.copy(launcher = null))
+        h.snapshots.save(snapWith(2, null, Samples.NOW_MS + 20))
+        assertNull(HomeScreenMachine(deps, backgroundScope, tv.id).also { settle() }.state.value.updateTo)
+        // An older snapshot without the signer, but Setup recorded our key for this TV: offered.
+        h.tvs.upsert(tv)
+        assertEquals("2.4", HomeScreenMachine(deps, backgroundScope, tv.id).also { settle() }.state.value.updateTo)
+    }
+}
