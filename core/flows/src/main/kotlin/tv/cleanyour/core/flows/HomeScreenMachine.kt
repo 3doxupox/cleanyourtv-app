@@ -4,9 +4,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import tv.cleanyour.core.model.Component
 import tv.cleanyour.core.model.EnabledState
-import tv.cleanyour.core.model.LauncherState
 import tv.cleanyour.core.model.PackageName
-import tv.cleanyour.core.model.Sha256
 import tv.cleanyour.core.model.TvId
 import tv.cleanyour.core.planner.Plan
 import tv.cleanyour.core.planner.PlanRequest
@@ -107,29 +105,24 @@ class HomeScreenMachine(
     // Dock and look go to the TV as one config.json (LauncherConfigCodec), pushed by an ApplyTheme
     // plan; the digest we wrote is remembered so the next connect can warn on drift. dock_apps is
     // the dock and the rows under it in order, rows_below_dock the rows under the dock that hold an
-    // app (DockLayers), so the TV shows the rows the sheet showed.
+    // app (DockLayers), so the TV shows the rows the sheet showed. module_cards keeps this TV's cards
+    // choice (RFC-CARDS-1): a new dock or theme never turns cards on or off.
     private suspend fun apply(dock: List<PackageName>, themeId: String?) {
-        val look = attempt { Look.encode(d.encoder, d.blobs, theme(themeId), dock) }.getOrNull()
+        val cards = Cards.current(d, tvId, d.homePrefs.load(tvId))
+        val look = attempt { Look.encode(d.encoder, d.blobs, theme(themeId), dock, cards) }.getOrNull()
             ?: return effect(ManageEffect.Snackbar(SnackKind.FAILED, "", false))
         val kept = look.doc.dockApps.orEmpty()
         val r = writer.write(tvId, PlanRequest.ApplyTheme(look.doc, look.config, look.wallpaper)) { send(BusyNow(it)) }
         send(BusyNow(null))
         if (r is WriteResult.Done) {
-            d.homePrefs.save(tvId, HomeChoice(kept, themeId))
-            remember(look.digest)
+            d.homePrefs.save(tvId, HomeChoice(kept, themeId, cards))
+            rememberPushedLook(d, tvId, look.digest)
             send(Drift(false))
             effect(ManageEffect.Snackbar(SnackKind.HOME_SAVED, "", false))
         } else if (r !is WriteResult.GateCancelled && r !is WriteResult.NoTv && r !is WriteResult.Paused) {   // Paused: the open-run card (O2)
             effect(ManageEffect.Snackbar(SnackKind.FAILED, "", false))
         }
         load()
-    }
-
-    private suspend fun remember(digest: Sha256) {
-        val tv = d.tv(tvId) ?: return
-        val pin = d.launcherPin.bundled()
-        val l = tv.launcher ?: LauncherState(pin.versionCode, pin.signer, null, null)
-        d.tvs.upsert(tv.copy(launcher = l.copy(overlayDigest = digest, ourOverlayDigest = digest)))
     }
 
     // "Use the TV's own home screen": re-enables the stock launcher, sets it as home, keeps ours

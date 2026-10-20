@@ -23,7 +23,8 @@ sealed interface PlanRequest {
     data class SwitchOff(val pkgs: Set<PackageName>) : PlanRequest
     data class Leftovers(val expectedDisabled: Set<PackageName>) : PlanRequest
     data class ApplyTheme(val doc: LauncherConfigDoc, val config: BlobRef, val wallpaper: BlobRef?) : PlanRequest   // R0: 14 renamed from Theme; config = encode(doc) in the BlobStore
-    data class AddModule(val module: Module, val version: ModuleVersion, val apk: BlobRef) : PlanRequest           // R0: 14 renamed from Module
+    data class AddModule(val module: Module, val version: ModuleVersion, val apk: BlobRef,
+        val config: BlobRef? = null, val wallpaper: BlobRef? = null) : PlanRequest   // R0: 14 renamed from Module; RFC-CARDS-1: config = the look with module_cards on
     data class RemoveModule(val pkg: PackageName) : PlanRequest
     data class UseStockHome(val stock: Component) : PlanRequest
     data class UndoEverything(val changes: List<ChangeRecord>, val removeLauncher: Boolean) : PlanRequest

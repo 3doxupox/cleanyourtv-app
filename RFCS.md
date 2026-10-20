@@ -66,3 +66,48 @@ W9 (forge build script, e2e). Smallest alternative: no new op, cues as `PushAsse
 file polled by the curtain; rejected because a push per stage costs a sync round trip, shows as a
 sync line with a hash in Show commands, and leaves files to clean. Ordering: applied on `main` after
 RFC-DOCK-1 (`setupcfg`) merges; the FINALE cue goes before whichever step starts the launcher first.
+
+## RFC-CARDS-1: module cards stay off until the person asks for a card (applied on cardsoptin; Fable APPROVE WITH FOLLOW-UPS, reviews/RF-CARDS-1.md)
+
+What: the owner's first real Setup ended with the new home screen asking "New card from Retro ...
+Keep hidden / Show card", because Retro was already on the TV and the config.json Setup pushes
+(RFC-DOCK-1) leaves `module_cards` out, which the launcher reads as on (upstream main 1bbf0c9,
+MainActivity: with it on, every installed app that declares a DOCK_CARD is discovered and asked
+about; with it off, no discovery, no prompt, and the Settings long press does nothing). Cards are
+optional and something to add after Setup, never forced. Change: (1) `Look.encode` always writes
+`module_cards`, from the TV's cards choice (`Cards.of`, rule as revised by RF-CARDS-1 F1): the value
+kept in HomePrefs (`tvs/<id>/home.txt`, new line `cards=true|false`, `HomeChoice.cards: Boolean? =
+null`) wins; else the TV's current overlay, whoever wrote it, when it carries an explicit
+`module_cards`; else the caller's default, Setup off and Manage on (what the launcher does on that
+TV now, its built-in default, so a dock or theme change never takes a card away). A first Setup is therefore always off,
+and so is a re-run on a TV whose earlier overlay left the key out; a TV whose cards were turned on
+earlier keeps them. `SetupDeps` gains `homePrefs: HomePrefs? = null`;
+Done keeps what the run pushed (dock, theme, cards) so Manage starts from it. M2 (HomeScreenMachine)
+keeps the current value on every dock or theme change. (2) Cards come on only from Cards and
+modules: `PlanRequest.AddModule` gains `config: BlobRef? = null, wallpaper: BlobRef? = null`
+(frozen section 5.8, defaulted so every caller compiles); when the TV's home screen is ours and its
+cards are off, the Modules add encodes the kept dock and theme with `module_cards` true and the
+planner appends `configTransport.writePlanSteps(config, wallpaper)` after the install and before
+Home, with ApplyTheme's priors, narration and failure policy (STOP_AND_ROLLBACK), so the plan, its
+hash and Show commands carry the push and the launcher's restart is what makes the TV ask. A card
+module already on the TV gets "Show its card" on M3 while cards are off: the same look as an
+ApplyTheme plan, then the M3c mirror. Turning cards off again is not offered: with no card
+module left nothing is discovered and nothing asks, and a later install of an app with a card is
+the person's own choice. Affected: W3 (planner), W8 (flows, M3 screen), W1 (DECISIONS-W1 lists the
+5.8 edit). Alternative without an interface change: a second ApplyTheme run after the add; not
+chosen, because the person's one tap would be two plans and two journal entries, and a failed push
+would leave a module installed with cards still off and no honest way to say so.
+
+Review (RF-CARDS-1, Fable APPROVE WITH FOLLOW-UPS): F1 applied (the rule above, tests in
+`aTvWithoutAKeptChoiceKeepsWhatItsOverlaySays` for both defaults), F2 applied (M3b says, while cards
+are off, that adding the module turns them on), F5 applied (PRODUCT-SPEC 5.8 shows the new fields).
+Follow-ups, open:
+- F3: the add's look pushes STOP_AND_ROLLBACK, so a failed push pauses the run for the open-run
+  card. "Undo what we did" there uninstalls the module but cannot put the earlier config.json back
+  (its prior is the probed overlay, the 0.1 limit on files that existed), so cards stay on after
+  that undo. Add a sentence to the card's undo question when the plan is an add with a look, or
+  accept and document.
+- F4: "our launcher is home" is `tv.launcher != null`, which misses a HOME changed by hand on the
+  TV; the add's RestartHome then starts our launcher over the stock home for a moment (ApplyTheme
+  has the same gap). A check in `cardsOnLook` that the latest snapshot's resolved HOME is the
+  launcher would close it.

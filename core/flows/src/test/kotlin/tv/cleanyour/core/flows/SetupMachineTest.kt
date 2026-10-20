@@ -592,7 +592,8 @@ class SetupMachineTest {
         val m = h.setup(backgroundScope)
         toFound(h, m)
         fun last() = h.planner.requests.filterIsInstance<PlanRequest.Setup>().last()
-        fun expected(doc: LauncherConfigDoc, dock: List<PackageName>) = LauncherConfigCodec.encode(DockLayers.applyTo(doc, dock))
+        // RFC-CARDS-1: module_cards is always written, off on a first Setup.
+        fun expected(doc: LauncherConfigDoc, dock: List<PackageName>) = LauncherConfigCodec.encode(DockLayers.applyTo(doc, dock).copy(moduleCards = false))
         // The first plan: the picked dock on the launcher's own look.
         val first = expected(LauncherConfigDoc(), listOf(PackageName("com.netflix.ninja")))
         assertTrue(first.contentEquals(h.blobs.bytes(assertNotNull(last().config))))
@@ -619,6 +620,26 @@ class SetupMachineTest {
         assertIs<SetupState.Done>(m.state.value)
         assertEquals(sha256Of(bytes), h.tvs.tvs.value.single().launcher?.ourOverlayDigest)
         assertEquals(sha256Of(bytes), h.tvs.tvs.value.single().launcher?.overlayDigest)
+        // RFC-CARDS-1: Manage starts from what the run pushed: the dock, the look and cards off.
+        assertEquals(HomeChoice(apps, "aurora", cards = false), HomePrefs(h.documents).load(h.tvs.tvs.value.single().id))
+    }
+
+    // RFC-CARDS-1: the first Setup never turns module cards on, so the new home screen never asks
+    // "New card from ..." about an app already on the TV; a TV whose cards the person turned on in
+    // an earlier session keeps them on.
+    @Test fun setupKeepsModuleCardsOffUnlessTheyWereTurnedOnBefore() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+        val m = h.setup(backgroundScope)
+        toFound(h, m)
+        fun cards(): Boolean? {
+            val sent = assertNotNull(h.planner.requests.filterIsInstance<PlanRequest.Setup>().last().config)
+            return assertIs<tv.cleanyour.core.spec.DecodeResult.Ok>(LauncherConfigCodec.decode(h.blobs.bytes(sent))).doc.moduleCards
+        }
+        assertEquals(false, cards())
+        HomePrefs(h.documents).save(h.tvs.tvs.value.single().id, HomeChoice(emptyList(), null, cards = true))
+        m.dispatch(SetupIntent.SetDock(listOf(PackageName("com.netflix.ninja")))); settle()
+        assertEquals(true, cards())
     }
 
     @Test fun startDestinationFollowsTheDisk() = runTest(timeout = 30.seconds) {

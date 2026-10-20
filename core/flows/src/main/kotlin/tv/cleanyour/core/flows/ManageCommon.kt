@@ -100,7 +100,9 @@ class ManageDeps(
 
 // The dock and theme this phone last pushed to a TV. Tv has no field for them once the wizard
 // draft is gone, so they live beside the TV record: tvs/<id>/home.txt, "dock=a,b" and "theme=id".
-data class HomeChoice(val dock: List<PackageName>, val themeId: String?)
+// `cards` is the module_cards value the look carries (RFC-CARDS-1, "cards=true"): null when this
+// phone has not kept one for the TV yet (Cards.of decides then).
+data class HomeChoice(val dock: List<PackageName>, val themeId: String?, val cards: Boolean? = null)
 
 class HomePrefs(private val store: DocumentStore) {
     private fun path(id: TvId) = "tvs/${id.value}/home.txt"
@@ -108,11 +110,13 @@ class HomePrefs(private val store: DocumentStore) {
     suspend fun load(id: TvId): HomeChoice? = store.read(path(id)) { bytes ->
         val map = bytes.decodeToString().lines().filter { '=' in it }.associate { it.substringBefore('=') to it.substringAfter('=') }
         HomeChoice(map["dock"].orEmpty().split(',').filter { it.isNotBlank() }.mapNotNull { runCatching { PackageName(it) }.getOrNull() },
-            map["theme"]?.takeIf { it.isNotBlank() })
+            map["theme"]?.takeIf { it.isNotBlank() }, map["cards"]?.toBooleanStrictOrNull())
     }
 
     suspend fun save(id: TvId, choice: HomeChoice) {
-        store.write(path(id), "dock=${choice.dock.joinToString(",") { it.value }}\ntheme=${choice.themeId.orEmpty()}\n".encodeToByteArray())
+        val text = "dock=${choice.dock.joinToString(",") { it.value }}\ntheme=${choice.themeId.orEmpty()}\n" +
+            (choice.cards?.let { "cards=$it\n" } ?: "")
+        store.write(path(id), text.encodeToByteArray())
     }
 }
 

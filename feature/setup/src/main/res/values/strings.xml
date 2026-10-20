@@ -252,7 +252,8 @@
     <string name="done_skipped_many">{count, plural, one {# thing wouldn\'t switch off; it\'s harmless.} other {# things wouldn\'t switch off; they\'re harmless.}}</string>
     <string name="done_mibox_usb">Your USB port is powered again.</string>
     <string name="done_add_card_title">Add a card to the home screen</string>
-    <string name="done_add_card_body">Retro games, a Stremio shelf...</string>
+    <!-- Optional, never a step of Setup: the new home screen starts with module cards off (RFC-CARDS-1) -->
+    <string name="done_add_card_body">Optional. You can add cards later in Manage.</string>
     <string name="done_note_title">Save a restore note for the family</string>
     <string name="done_finish">Finish</string>
     <string name="done_finishing">Switching debugging off...</string>

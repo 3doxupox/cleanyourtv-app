@@ -41,6 +41,7 @@ import tv.cleanyour.testing.fixtures.Fixtures
 import tv.cleanyour.testing.fixtures.Samples
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -294,6 +295,26 @@ class PlannerTest {
         assertTrue(refused(PlanRequest.RemoveModule(PackageName("mitv.service"))).single().contains("system"))
         assertTrue(refused(PlanRequest.RemoveModule(launcher.pkg), snapshot(home = launcher, claimants = listOf(launcher, stock), extra = mapOf(installedLauncher()))).single().contains("own home screen first"))
         assertEquals(listOf(Op.Uninstall(launcher.pkg)), ops(plan(PlanRequest.RemoveModule(launcher.pkg), snapshot(extra = mapOf(installedLauncher())))))
+    }
+
+    // RFC-CARDS-1: an add that turns the TV's module cards on carries the look in the same plan:
+    // the install, then the transport's steps as ApplyTheme sends them (so Show commands and the
+    // hash include the push), then Home. Without the new home screen on the TV the look is left out.
+    @Test fun addModuleWithTheLookTurnsCardsOnInTheSamePlan() {
+        val (m, v) = module()
+        val apk = BlobRef(v.artifact.sha256, v.artifact.size, "cache/retro")
+        val config = BlobRef(Sha256("c".repeat(64)), 100, "cfg")
+        val transport = OverlayTransport()
+        val withLauncher = snapshot(extra = mapOf(installedLauncher()))
+        val p = plan(PlanRequest.AddModule(m, v, apk, config, null), withLauncher, planner = PlannerFixtures.planner(transport))
+        assertIs<Op.InstallStream>(ops(p).first())
+        assertEquals(transport.writePlanSteps(config, null) + Op.PressHome, ops(p).drop(1))
+        assertEquals(PlanKind.ADD_MODULE, p.kind)
+        val look = p.steps.filter { it.group == DefaultPlanner.GROUP_THEME }
+        assertEquals(transport.writePlanSteps(config, null), look.map { it.op })
+        val push = look.single { it.op is Op.PushAsset && (it.op as Op.PushAsset).src == config }
+        assertEquals(FailurePolicy.STOP_AND_ROLLBACK, push.onFailure, "as ApplyTheme")
+        assertEquals(listOf("InstallStream", "PressHome"), ops(plan(PlanRequest.AddModule(m, v, apk, config, null))).map { it::class.simpleName })
     }
 
     @Test fun useStockHomeAndBeforeFactoryReset() {

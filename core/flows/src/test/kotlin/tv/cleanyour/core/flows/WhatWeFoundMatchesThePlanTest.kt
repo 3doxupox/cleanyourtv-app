@@ -67,7 +67,7 @@ class WhatWeFoundMatchesThePlanTest {
         val profile = (res as? ProfileResolution.Exact)?.profile
         val dock = chosenDock ?: DockRanking.pick(profile, snapshot.packages.keys, snapshot.hdmi.isNotEmpty(), profile?.liveTv, "en")
         val choices = Choices(emptySet(), emptySet(), dock, null, installLauncher = true, takeover = true, replaceLauncherSigner = false, keepDebuggingOn = false)
-        val look = runBlocking { Look.encode(ConfigEncoder.Codec, blobs, null, dock) }
+        val look = runBlocking { Look.encode(ConfigEncoder.Codec, blobs, null, dock, cards = false) }   // RFC-CARDS-1: a first visit
         val r = planner.plan(PlanRequest.Setup(res, choices, launcher, Level.SIMPLE, look.config, look.wallpaper), snapshot, facts, emptyList())
         return assertIs<PlanResult.Ok>(r, r.toString()).plan to res
     }
@@ -75,8 +75,9 @@ class WhatWeFoundMatchesThePlanTest {
     // RFC-DOCK-1: the Setup plan pushes exactly the config.json DockLayers makes for the dock and its
     // rows (encoded here on its own, not through the helper), in group "theme", after the launcher
     // install and before the guarded home screen switch, and "Show commands" names the push.
+    // RFC-CARDS-1: with module_cards false, so the new home screen asks about no card on its first start.
     private fun assertTheLookIsPushed(plan: Plan, dock: List<PackageName>, rowsBelowDock: Int) {
-        val expected = LauncherConfigCodec.encode(DockLayers.applyTo(LauncherConfigDoc(), dock))
+        val expected = LauncherConfigCodec.encode(DockLayers.applyTo(LauncherConfigDoc(), dock).copy(moduleCards = false))
         val pushes = plan.steps.filter { (it.op as? Op.PushAsset)?.dest == FileOverlayTransport.CONFIG }
         val push = pushes.single().op as Op.PushAsset
         assertEquals(sha256Of(expected), push.sha256)
@@ -87,6 +88,8 @@ class WhatWeFoundMatchesThePlanTest {
         val trimmed = DockLayers.trim(dock, DockLayers.DEFAULT_COLUMNS)
         assertEquals(trimmed.ifEmpty { null }, back.dockApps)
         assertEquals(if (trimmed.isEmpty()) null else rowsBelowDock, back.rowsBelowDock)
+        assertEquals(false, back.moduleCards, "a first Setup never turns module cards on")
+        assertEquals(false, LauncherConfigCodec.effective(back, LauncherConfigCodec.builtInDefaults).moduleCards)
         val theme = plan.steps.filter { it.group == DefaultPlanner.GROUP_THEME }
         assertEquals(listOf("StartActivity", "Mkdir", "PushAsset", "RemoveFile", "RestartHome"), theme.map { it.op::class.simpleName })
         assertEquals((theme.first().index..theme.last().index).toList(), theme.map { it.index }, "one run of steps")
