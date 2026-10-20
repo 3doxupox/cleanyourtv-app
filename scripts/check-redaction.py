@@ -9,7 +9,7 @@ your LAN address) given with --secret or --secrets-file.
 Inputs: files, directories (walked), .zip files (every entry, e.g. a "Share diagnostics" zip or a
 restore zip) and "-" for stdin, so a logcat can be piped in:
 
-  adb logcat -d | scripts/check-redaction.py - --secret <tv serial> --secret 192.168.1.23
+  adb logcat -d | scripts/check-redaction.py - --secret <tv serial> --secret <tv address>
   scripts/check-redaction.py diagnostics.zip restore.zip fixtures/
 
 Patterns need a key or a shape: a bare serial (an `adb devices` line), a Wi-Fi name in free text

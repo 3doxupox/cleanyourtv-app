@@ -20,14 +20,12 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-FORGE="${FORGE:-builder@build-host}"
-SSH_KEY="${SSH_KEY:-$HOME/.ssh/id_ed25519}"
+. scripts/lib/forge.sh
 BUILD_VOLUME="mitv-android-cache"
 EMU_VOLUME="cyt-emulator-sdk"
-LOCK="/home/builder/build/.cyt-forge.lock"
 CMDLINE_TOOLS="https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
 SESSION_TIMEOUT_S="${SESSION_TIMEOUT_S:-2400}"
-SSH=(ssh -i "$SSH_KEY" -o ConnectTimeout=10 -o BatchMode=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=4 "$FORGE")
+forge_init -o ServerAliveInterval=30 -o ServerAliveCountMax=4
 
 TAG="cyt-emu:$(shasum -a 256 docker/emulator/Dockerfile | cut -c1-12)"
 MODE="${1:-run}"
@@ -70,7 +68,7 @@ run)
   build_image
 
   RUN_ID="cyt-emu-$(date +%Y%m%d%H%M%S)-$$"
-  REMOTE_DIR="/home/builder/build/$RUN_ID"
+  REMOTE_DIR="$FORGE_ROOT/$RUN_ID"
   cleanup() {
     "${SSH[@]}" "docker rm -f '$RUN_ID' >/dev/null 2>&1 || true; rm -rf '$REMOTE_DIR'" </dev/null || true
   }
