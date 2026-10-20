@@ -1,0 +1,99 @@
+package tv.cleanyour.core.spec
+
+import org.junit.Test
+import tv.cleanyour.core.model.PackageName
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertNull
+
+// The dock and the rows under it: one ordered list cut into rows of `columns`, written as
+// dock_apps (the list) and rows_below_dock (the rows under the dock that hold an app).
+class DockLayersTest {
+    private fun apps(n: Int) = List(n) { PackageName("com.example.app$it") }
+
+    @Test fun theListIsCutIntoRowsOfColumns() {
+        assertEquals(emptyList(), DockLayers.rows(apps(0), 4))
+        assertEquals(listOf(apps(3)), DockLayers.rows(apps(3), 4))
+        assertEquals(listOf(apps(4)), DockLayers.rows(apps(4), 4))
+        assertEquals(listOf(apps(4), apps(5).drop(4)), DockLayers.rows(apps(5), 4))
+        assertEquals(listOf(apps(6)), DockLayers.rows(apps(6), 6))
+    }
+
+    @Test fun rowsBelowDockCountsTheRowsUnderTheDockThatHoldAnApp() {
+        assertEquals(listOf(0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2), (0..13).map { DockLayers.rowsBelowDock(it, 4) })
+        assertEquals(0, DockLayers.rowsBelowDock(6, 6))
+        assertEquals(1, DockLayers.rowsBelowDock(7, 6))
+    }
+
+    // Dock plus two rows is the most: a fourth row is never written.
+    @Test fun atMostThreeRows() {
+        assertEquals(12, DockLayers.capacity(4))
+        assertEquals(apps(12), DockLayers.trim(apps(20), 4))
+        assertEquals(3, DockLayers.rows(apps(20), 4).size)
+        assertEquals(2, DockLayers.rowsBelowDock(20, 4))
+        val doc = DockLayers.applyTo(LauncherConfigDoc(), apps(20))
+        assertEquals(apps(12), doc.dockApps)
+        assertEquals(2, doc.rowsBelowDock)
+    }
+
+    // A row only holds apps once the rows above it are full: every row but the last of the cut is
+    // full, whatever was added, removed or moved.
+    @Test fun aLowerRowNeverHoldsAppsWhileARowAboveHasRoom() {
+        for (n in 0..12) {
+            val rows = DockLayers.rows(apps(n), 4)
+            rows.dropLast(1).forEach { assertEquals(4, it.size, "n=$n") }
+            assertEquals(n, rows.sumOf { it.size })
+            assertEquals(maxOf(0, rows.size - 1), DockLayers.rowsBelowDock(n, 4))
+        }
+    }
+
+    @Test fun applyWritesExactlyTheListAndItsRows() {
+        val six = apps(6)
+        val doc = DockLayers.applyTo(LauncherConfigDoc(backgroundColor = "#000000"), six + six.take(2))
+        assertEquals(six, doc.dockApps, "repeats are dropped")
+        assertEquals(1, doc.rowsBelowDock)
+        assertEquals("#000000", doc.backgroundColor, "the theme's other keys stay")
+        // The six columns theme: six fit in the dock, so no row under it.
+        val wide = DockLayers.applyTo(LauncherConfigDoc(columns = 6, rowsBelowDock = 1), six)
+        assertEquals(6, DockLayers.columnsOf(wide))
+        assertEquals(0, wide.rowsBelowDock)
+    }
+
+    // An empty dock writes no dock_apps (the launcher keeps its own) and leaves the theme's rows.
+    @Test fun anEmptyDockLeavesTheLauncherItsOwn() {
+        val doc = DockLayers.applyTo(LauncherConfigDoc(dockApps = apps(2), rowsBelowDock = 1), emptyList())
+        assertNull(doc.dockApps)
+        assertEquals(1, doc.rowsBelowDock)
+    }
+
+    @Test fun columnsFollowTheLauncherRange() {
+        assertEquals(4, DockLayers.columnsOf(null))
+        assertEquals(4, DockLayers.columnsOf(LauncherConfigDoc()))
+        assertEquals(6, DockLayers.columnsOf(LauncherConfigDoc(columns = 6)))
+        assertEquals(4, DockLayers.columnsOf(LauncherConfigDoc(columns = 9)))
+        assertEquals(4, DockLayers.columnsOf(LauncherConfigDoc(columns = 0)))
+    }
+
+    // Decoding skips what the TV cannot show, so later apps move up a slot, as on the TV.
+    @Test fun decodeSkipsAppsTheTvDoesNotShow() {
+        val all = apps(7)
+        val gone = setOf(all[1], all[5])
+        val shown = DockLayers.decode(all, { it !in gone }, 4)
+        assertEquals(listOf(all[0], all[2], all[3], all[4], all[6]), shown)
+        assertEquals(listOf(listOf(all[0], all[2], all[3], all[4]), listOf(all[6])), DockLayers.rows(shown, 4))
+        assertEquals(apps(12), DockLayers.decode(apps(15), { true }, 4))
+    }
+
+    // Encode, then read the bytes back the launcher's way: the same list and the same rows.
+    @Test fun roundTripThroughTheConfigFile() {
+        for (n in 0..13) for (columns in listOf(4, 6)) {
+            val theme = LauncherConfigDoc(columns = columns.takeIf { it != 4 })
+            val doc = DockLayers.applyTo(theme, apps(n))
+            val back = assertIs<DecodeResult.Ok>(LauncherConfigCodec.decode(LauncherConfigCodec.encode(doc))).doc
+            assertEquals(doc, back)
+            val decoded = DockLayers.decode(back.dockApps.orEmpty(), { true }, DockLayers.columnsOf(back))
+            assertEquals(DockLayers.trim(apps(n), columns), decoded)
+            if (n > 0) assertEquals(DockLayers.rows(decoded, columns).size - 1, back.rowsBelowDock)
+        }
+    }
+}

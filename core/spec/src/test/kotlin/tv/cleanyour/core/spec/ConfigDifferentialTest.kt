@@ -10,6 +10,7 @@ import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.testing.fixtures.Fixtures
 import kotlin.random.Random
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.test.fail
 
@@ -156,6 +157,42 @@ class ConfigDifferentialTest {
             assertEquals(JSONObject(bytes.decodeToString()).length(), (back as DecodeResult.Ok).doc.let { countKeys(it) })
         }
         assertEquals(2_000, t.applied)
+    }
+
+    // The dock sheet's rows reach the TV as the sheet shows them. Our doc goes through the real
+    // Config.java; the grid is then built the way AppAdapter.reload sorts (dock_apps index first,
+    // the rest by label) and GridLayoutManager cuts it (`columns` per row, the first row the dock,
+    // rows_below_dock rows in view under it). The rows in view must start with exactly the sheet's
+    // rows, also when some dock apps are not on the TV (they are skipped, the later ones move up).
+    @Test fun dockRowsShowOnTheTvAsTheSheetShowsThem() {
+        val up = UpstreamLauncher(latest = true, dir = tmp.newFolder("dock"))
+        val r = Random(0x5EED_0005)
+        val pool = List(20) { PackageName("com.example.app$it") }
+        repeat(500) { i ->
+            val columns = listOf(4, 4, 6, 3).random(r)
+            val theme = LauncherConfigDoc(columns = columns.takeIf { it != 4 }, rowsBelowDock = listOf(null, 0, 1).random(r))
+            val chosen = pool.shuffled(r).take(r.nextInt(1, 16))
+            val onTv = (pool.filter { r.nextInt(5) != 0 } + PackageName("com.example.other")).toSet()
+            val doc = DockLayers.applyTo(theme, chosen)
+            val u = assertIs<UpstreamLauncher.Outcome.Loaded>(up.load(LauncherConfigCodec.encode(doc), wallpaper = false)).config
+            val kept = DockLayers.trim(chosen, columns)
+            assertEquals(kept.map { it.value }, u.dockApps, "#$i dock_apps")
+            assertEquals(DockLayers.rowsBelowDock(kept.size, columns), u.rowsBelowDock, "#$i rows_below_dock")
+            assertEquals(columns, u.columns)
+            // AppAdapter.reload's comparator, on the apps the TV has (labels: the package names).
+            val grid = onTv.map { it.value }.sortedWith { a, b ->
+                val fa = u.dockApps.indexOf(a)
+                val fb = u.dockApps.indexOf(b)
+                if (fa >= 0 || fb >= 0) { if (fa < 0) 1 else if (fb < 0) -1 else fa.compareTo(fb) } else a.compareTo(b, ignoreCase = true)
+            }
+            val inView = grid.chunked(u.columns).take(1 + u.rowsBelowDock)
+            val sheet = DockLayers.rows(DockLayers.decode(kept, { it in onTv }, columns), columns).map { row -> row.map { it.value } }
+            assertTrue(sheet.size <= inView.size, "#$i the TV keeps every sheet row in view")
+            // With every app on the TV the rows match exactly; with some missing, the TV fills the
+            // freed slots after the sheet's apps with the next apps by name.
+            sheet.forEachIndexed { k, row -> assertEquals(row, inView[k].take(row.size), "#$i row ${k + 1}") }
+            if (kept.all { it in onTv }) assertEquals(sheet.dropLast(1), inView.take(sheet.size - 1), "#$i full rows")
+        }
     }
 
     private fun countKeys(d: LauncherConfigDoc) = listOfNotNull(d.dockApps, d.hiddenApps, d.liveTvPackage, d.liveTvAction, d.sourcePanelService,
