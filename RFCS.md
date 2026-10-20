@@ -21,3 +21,31 @@ S3's commands list and the plan hash include it. Affected: W3 (planner), W8 (Set
 records the digest it already looks for), W1 (fakes). Alternative without an interface change: run
 an ApplyTheme plan after Done, which the person would not see in S3's "Show commands"; not
 recommended (plan honesty).
+
+## RFC-CURTAIN-1: the TV curtain (proposed, needs owner and Fable sign-off)
+
+What: a bundled, pinned TV app (`tv.cleanyour.curtain`, new module `:tv:curtain`, signed with the
+launcher key K1) that the Setup plan installs after the engine's restore point, cues once per
+narration stage, and uninstalls as its last step, so the TV shows the approved Lantern animation
+while the phone works. Full plan: `app-design/CURTAIN-PLAN.md`. Interface changes, each binding
+under section 5: (1) `:core:model` 5.2: `enum class CurtainStage { SCAN, RESTORE_SAVED, OFF,
+GROUP_DONE, INSTALL, INSTALLED, FINALE }` and `data class Op.CurtainCue(receiver: Component,
+token: RunToken, stage: CurtainStage, count: Int, total: Int)`, rendered by `ShellRenderer` as one
+fixed `am broadcast` argv (component, constant action, token, stage name, count, total; no free
+text), `Privilege.PROFILE_STEP`, no verify, `inverse` null, `UndoOrder.target` null; JSON tag
+`curtain_cue` in `OpJson` and `ChangeJson`. (2) `:core:planner` 5.8: `PlanRequest.Setup` gains
+`curtain: LauncherArtifact? = null`; `Choices` gains `curtain: Boolean = true`; group id `curtain`;
+every curtain step `CONTINUE`; `Uninstall(curtain)` also planned first by Leftovers and DebugOff
+when the package is present. (3) `:core:trust`: `PinnedCurtain`, `interface CurtainPin { fun
+bundled(): LauncherArtifact }`, `BundledCurtainPin`, `verifyCurtainPin` before `:android:platform`
+`preBuild`. (4) `:core:engine`: a step with a blank narration is silent (not listed on the Working
+screen, not counted in the percent). (5) `build-logic` `ModuleRules`: layer entry `:tv:curtain` at
+10 with no edges in or out and an empty external allowlist; a size gate entry at 256 KB. (6)
+`WizardDraft.curtain: Boolean = true` (growable, listed for completeness). Why: the approved design
+needs a TV-side renderer fed by typed cues; the existing verbs cover install, start and uninstall,
+only the cue is new. Affected: W1 (model, fakes, build-logic), W3 (ops, planner, engine), W5
+(trust, bundled asset), W6 (ChangeJson, RestoreCommands branches), W8 (flows, Customise switch),
+W9 (forge build script, e2e). Smallest alternative: no new op, cues as `PushAsset` of a one-line
+file polled by the curtain; rejected because a push per stage costs a sync round trip, shows as a
+sync line with a hash in Show commands, and leaves files to clean. Ordering: applied on `main` after
+RFC-DOCK-1 (`setupcfg`) merges; the FINALE cue goes before whichever step starts the launcher first.
