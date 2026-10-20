@@ -22,7 +22,7 @@
         "com.android.adservices.api": { "category": "ads", "ask": false },
         "com.android.ondevicepersonalization.services": { "category": "ads", "ask": false },
         "com.google.android.syncadapters.calendar": { "category": "other", "ask": false },
-        "fusion.android.tv.demo": { "category": "demo", "ask": false },
+        "fusion.android.tv.demo": { "category": "demo", "ask": true },
         "com.mediatek.androidbox": { "category": "casting", "ask": true },
         "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": true },
         "com.google.android.apps.tv.dreamx": { "category": "screensaver", "ask": true },
@@ -68,7 +68,8 @@
         "com.amazon.ods.kindleconnect": { "category": "brand", "ask": false },
         "com.amazon.privacypassservice": { "category": "tracking", "ask": false },
         "com.amazon.providers.contentsupport": { "category": "ads", "ask": false },
-        "com.amazon.tv.releasenotes": { "category": "other", "ask": false }
+        "com.amazon.tv.releasenotes": { "category": "other", "ask": false },
+        "com.amazon.tv.easyupgrade": { "category": "updates", "ask": true }
       }
     },
     "benq-e55-735": {
@@ -210,7 +211,8 @@
         "com.haier.yudee.tv": { "category": "casting", "ask": true },
         "com.haier.sharetv.webview": { "category": "casting", "ask": true },
         "com.google.android.feedback": { "category": "tracking", "ask": false },
-        "com.google.android.partnersetup": { "category": "tracking", "ask": false }
+        "com.google.android.partnersetup": { "category": "tracking", "ask": false },
+        "com.mediatek.android.leanbacklauncher.partnercustomizer": { "category": "ads", "ask": true }
       }
     },
     "haier-h32s80efx": {
@@ -270,7 +272,8 @@
         "com.google.android.backdrop": { "category": "screensaver", "ask": true },
         "com.google.android.tts": { "category": "accessibility", "ask": true },
         "com.google.android.play.games": { "category": "preloads", "ask": false },
-        "com.jamdeo.tv.mediacenter": { "category": "preloads", "ask": true }
+        "com.jamdeo.tv.mediacenter": { "category": "preloads", "ask": true },
+        "fusion.android.tv.demo": { "category": "demo", "ask": true }
       }
     },
     "hisense-hismarttv-a4": {
@@ -291,7 +294,7 @@
       },
       "packages": {
         "com.hisense.storemode": { "category": "demo", "ask": false },
-        "fusion.android.tv.demo": { "category": "demo", "ask": false },
+        "fusion.android.tv.demo": { "category": "demo", "ask": true },
         "com.mstar.android.tv.disclaimercustomization": { "category": "other", "ask": true },
         "com.netflix.ninja": { "category": "streaming", "ask": true },
         "com.amazon.amazonvideo.livingroom": { "category": "streaming", "ask": true },
@@ -513,7 +516,8 @@
         "Stock Google TV launcher, replaced by launcher/": { "category": "home", "ask": false }
       },
       "packages": {
-        "com.jmgo.overseas.atmosphere": { "category": "screensaver", "ask": true }
+        "com.jmgo.overseas.atmosphere": { "category": "screensaver", "ask": true },
+        "fusion.android.tv.demo": { "category": "demo", "ask": true }
       }
     },
     "kalley-r10g": {
@@ -645,7 +649,7 @@
       "liveTv": "com.mediatek.wwtv.tvcenter",
       "setupWraith": null,
       "quirks": [],
-      "neverDisable": ["com.mediatek.wwtv.tvcenter"],
+      "neverDisable": ["com.mediatek.wwtv.tvcenter", "com.google.android.leanbacklauncher.partnercustomizer"],
       "suggestedDock": [],
       "tested": { "by": "KimiWang2046 (PR #142)", "firmware": "4.501 / RTM2.210929.137", "daysLivedWith": null, "rebootTested": false },
       "groups": {
@@ -663,7 +667,8 @@
         "com.android.providers.calendar": { "category": "other", "ask": true },
         "com.panasonic.demomode": { "category": "demo", "ask": false },
         "com.panasonic.hotelmode": { "category": "demo", "ask": false },
-        "com.google.android.play.games": { "category": "preloads", "ask": false }
+        "com.google.android.play.games": { "category": "preloads", "ask": false },
+        "com.google.android.leanbacklauncher.partnercustomizer": { "category": "other", "ask": true }
       }
     },
     "panasonic-th-40hs550k": {
@@ -673,7 +678,7 @@
       "liveTv": "com.mediatek.wwtv.tvcenter",
       "setupWraith": null,
       "quirks": [],
-      "neverDisable": ["com.mediatek.wwtv.tvcenter"],
+      "neverDisable": ["com.mediatek.wwtv.tvcenter", "com.google.android.leanbacklauncher.partnercustomizer"],
       "suggestedDock": [],
       "tested": { "by": "Afif Zafri (PR #250)", "firmware": "RTO9.240708.002", "daysLivedWith": null, "rebootTested": false },
       "groups": {
@@ -690,7 +695,8 @@
         "com.mediatek.testpq": { "category": "other", "ask": true },
         "com.google.android.play.games": { "category": "preloads", "ask": false },
         "com.mediatek.wwtv.mediaplayer": { "category": "preloads", "ask": true },
-        "com.google.android.katniss": { "category": "voice", "ask": true }
+        "com.google.android.katniss": { "category": "voice", "ask": true },
+        "com.google.android.leanbacklauncher.partnercustomizer": { "category": "other", "ask": true }
       }
     },
     "philips-50pus8517": {
@@ -959,7 +965,7 @@
         "Stock home. Disable only after the new launcher is installed and set as home.": { "category": "ads", "ask": false }
       },
       "packages": {
-        "fusion.android.tv.demo": { "category": "demo", "ask": false },
+        "fusion.android.tv.demo": { "category": "demo", "ask": true },
         "com.Smartdevice.emanual": { "category": "preloads", "ask": false },
         "com.cltv.fast": { "category": "ads", "ask": true },
         "com.google.android.backdrop": { "category": "screensaver", "ask": true }
@@ -1204,7 +1210,8 @@
         "com.goodtoolapps.zeus": { "category": "preloads", "ask": true },
         "android.autoinstalls.config.tpv.device": { "category": "ads", "ask": false },
         "com.google.android.feedback": { "category": "tracking", "ask": false },
-        "com.google.android.play.games": { "category": "preloads", "ask": false }
+        "com.google.android.play.games": { "category": "preloads", "ask": false },
+        "fusion.android.tv.demo": { "category": "demo", "ask": true }
       }
     },
     "sony-bravia-vu31": {
@@ -1258,7 +1265,8 @@
         "YouView (UK TV service), off by owner's choice": { "category": "streaming", "ask": true }
       },
       "packages": {
-        "com.sony.dtv.b2b.vendorprotocol": { "category": "brand", "ask": false }
+        "com.sony.dtv.b2b.vendorprotocol": { "category": "brand", "ask": false },
+        "com.google.android.inputmethod.japanese": { "category": "other", "ask": true }
       }
     },
     "sony-kd-55x85j": {
@@ -1426,7 +1434,7 @@
       }
     },
     "tcl-40s5400a": {
-      "match": { "models": ["Smart TV"], "devices": ["C06"], "brand": "TCL", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
+      "match": { "models": [], "devices": ["C06"], "brand": "TCL", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
       "platform": "ANDROID_TV",
       "stockLaunchers": ["com.google.android.tvlauncher"],
       "liveTv": "com.tcl.tv",
@@ -1456,38 +1464,6 @@
         "com.tcl.audioplayer": { "category": "preloads", "ask": true },
         "com.tcl.videoplayer": { "category": "preloads", "ask": true },
         "com.tcl.imageplayer": { "category": "preloads", "ask": true }
-      }
-    },
-    "tcl-43c645": {
-      "match": { "models": ["Smart TV Pro"], "devices": [], "brand": "TCL", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
-      "platform": "GOOGLE_TV",
-      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
-      "liveTv": "com.tcl.tv",
-      "setupWraith": "com.google.android.tungsten.setupwraith",
-      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
-      "neverDisable": ["com.tcl.providers.config", "com.tcl.initsetup", "com.tcl.factory.view", "com.tcl.system.server", "com.tcl.tcl_bt_rcu_service", "com.tcl.autopair", "com.tcl.tvinput", "com.tcl.tv", "com.tcl.tvpassthrough", "com.tcl.settings", "com.tcl.inputmethod.international", "com.tcl.sourcemananger", "com.tcl.keycustomfunctionservice"],
-      "suggestedDock": [],
-      "tested": { "by": "frcjules (PR #208)", "firmware": "V8-R51MT05-LF1V652", "daysLivedWith": null, "rebootTested": true },
-      "groups": {
-        "1. Telemetry, promos, content rows": { "category": "ads", "ask": false },
-        "1b. Google TV first-run wizard (claims HOME once the stock launcher is off)": { "category": "home", "ask": false },
-        "2. Extras": { "category": "brand", "ask": true },
-        "3. Off by choice": { "category": "casting", "ask": true }
-      },
-      "packages": {
-        "com.tcl.bi": { "category": "tracking", "ask": false },
-        "com.tcl.dashboard": { "category": "brand", "ask": true },
-        "com.tcl.esticker": { "category": "demo", "ask": false },
-        "com.google.android.partnersetup": { "category": "tracking", "ask": false },
-        "com.google.android.feedback": { "category": "tracking", "ask": false },
-        "com.google.android.onetimeinitializer": { "category": "other", "ask": false },
-        "com.tcl.useragreement": { "category": "other", "ask": true },
-        "com.tcl.guard": { "category": "tracking", "ask": false },
-        "com.tcl.tv.tclhome_passive": { "category": "ads", "ask": false },
-        "com.google.android.syncadapters.calendar": { "category": "other", "ask": false },
-        "com.google.android.videos": { "category": "preloads", "ask": false },
-        "tv.wuaki.apptv": { "category": "streaming", "ask": true },
-        "com.tcl.versionUpdateApp": { "category": "updates", "ask": true }
       }
     },
     "tcl-43ep660": {
@@ -1815,7 +1791,7 @@
       }
     },
     "tcl-g07-google-tv": {
-      "match": { "models": ["Smart TV"], "devices": ["G07"], "brand": "TCL", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
+      "match": { "models": [], "devices": ["G07"], "brand": "TCL", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
       "platform": "GOOGLE_TV",
       "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
       "liveTv": "com.tcl.tv",
@@ -1968,7 +1944,8 @@
         "com.google.android.speech.pumpkin": { "category": "voice", "ask": true },
         "com.android.gallery3d": { "category": "preloads", "ask": false },
         "com.android.wallpaper.livepicker": { "category": "preloads", "ask": false },
-        "com.android.dreams.basic": { "category": "screensaver", "ask": true }
+        "com.android.dreams.basic": { "category": "screensaver", "ask": true },
+        "com.tcl.partnercustomizer": { "category": "brand", "ask": true }
       }
     },
     "thomson-32he5800": {
@@ -2408,7 +2385,8 @@
         "com.xiaomi.mitv.tvmanager": { "category": "brand", "ask": false },
         "com.xiaomo.tv.milegal": { "category": "other", "ask": false },
         "android.autoinstalls.config.xiaomi.amelie": { "category": "ads", "ask": false },
-        "com.mitv.toolhouse": { "category": "brand", "ask": false }
+        "com.mitv.toolhouse": { "category": "brand", "ask": false },
+        "fusion.android.tv.demo": { "category": "demo", "ask": true }
       }
     },
     "xiaomi-mitv-mssp3": {

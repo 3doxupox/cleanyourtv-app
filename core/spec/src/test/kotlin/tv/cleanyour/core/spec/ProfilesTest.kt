@@ -25,7 +25,7 @@ class ProfilesTest {
 
     @Test fun everyConvertedUpstreamExampleParsesWithCuratedMetadata() {
         assertEquals(93, upstream.size)
-        assertEquals(90, examples.size)
+        assertEquals(89, examples.size)
         for (e in examples) {
             val profile = DebloatTxtParser.parse(e.debloatTxt, e.folder)
             assertEquals(e.folder, profile.id)
@@ -60,7 +60,7 @@ class ProfilesTest {
     @Test fun theUnconvertedListIsPinnedToTheSubmodule() {
         val meta = ProfileMeta.decode(File(Fixtures.repoRoot, "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json").readText())
         assertEquals(upstream.map { it.folder }.filter { it !in meta.profiles }.toSet(), unconverted)
-        assertEquals(3, unconverted.size)
+        assertEquals(4, unconverted.size)
         val listed = unconvertedFile.readLines().filter { it.isNotBlank() && !it.startsWith("#") }
         assertEquals(listed.sorted(), listed, "one folder per line, sorted")
         assertTrue('\u2014' !in unconvertedFile.readText() && "-".repeat(2) !in unconvertedFile.readText())
@@ -155,8 +155,89 @@ class ProfilesTest {
         // A paragraph on what was already off ends the keep list: sony-xbr-65x900f names Samba TV
         // and Sony's promos there, and its list disables both.
         assertEquals(setOf(p("com.a.b")), DebloatTxt.keepListIn(listOf("# Keep: com.a.b,", "# Already off before the list (owner or factory): com.e.f, listed below anyway")))
+        // A numbered note ends a keep paragraph (philips-55oled707 names its stock launcher in note 3).
+        assertEquals(setOf(p("com.a.b")), DebloatTxt.keepListIn(listOf("# The DO NOT DISABLE block applies: com.a.b", "# 3. com.e.f wins Home while it is on")))
         // A wrapped line that happens to start with "keeps" is not a keep list (nvidia-shield-tv-2019).
         assertEquals(emptySet(), DebloatTxt.keepListIn(listOf("# - Updates are off. The Pro example", "#   keeps KeyComboOta; Play Games and com.a.b are not present here.")))
+    }
+
+    // RF-PROFILES-63 P3: a profile never protects its own stock launcher, or the home screen switch
+    // could never hand Home over (keepStockEnabled), unless it says so with the quirk. Fire OS and
+    // TCL China keep their own home screen anyway.
+    @Test fun noProfileKeepsItsOwnStockLauncherByAccident() {
+        for (pr in BundledProfileSource.bundled.profiles) {
+            if (pr.platform == Platform.FIRE_OS || pr.platform == Platform.TCL_CN || Quirk.STOCK_LAUNCHER_KEEP_ENABLED in pr.quirks) continue
+            assertEquals(emptySet(), pr.stockLaunchers.map { it.pkg }.toSet() intersect pr.neverDisable, pr.id)
+        }
+        assertTrue(p("com.google.android.tvlauncher") !in profile("philips-55oled707").neverDisable)
+    }
+
+    // RF-PROFILES-63 P2: the exact profiles that know no stock launcher get the clean-up only (Setup's
+    // homePossible); pinned, so a new one is a reviewed decision.
+    @Test fun theProfilesWithNoKnownStockLauncher() {
+        val none = BundledProfileSource.bundled.profiles.filter { it.stockLaunchers.isEmpty() && it.platform != Platform.FIRE_OS && it.platform != Platform.TCL_CN }
+        assertEquals(setOf("stellamore-t950s", "xiaomi-mitv-astp1"), none.map { it.id }.toSet())
+    }
+
+    // RF-PROFILES-63 P8: where two profiles score the same for a TV, the resolver takes the first id.
+    // Every such TV is pinned here with the winner its curation note intends, and any new tie fails,
+    // so a renamed or new upstream folder can never flip a reviewed resolution silently.
+    @Test fun everyTieTheResolverSettlesIsPinned() {
+        val source = BundledProfileSource()
+        fun facts(model: String, device: String, brand: String, sdk: Int, fingerprint: String = "", manufacturer: String = brand) =
+            Fixtures.miTv().facts().copy(model = model, device = device, brand = brand, manufacturer = manufacturer, sdk = sdk, fingerprint = fingerprint)
+        fun winner(f: tv.cleanyour.core.model.DeviceFacts) = (source.resolveNow(f) as? ProfileResolution.Exact)?.profile?.id
+        val pinned = listOf(
+            facts("unknown", "G10", "TCL", 31, "TCL/G10_4K_US_NF/G10:12/STT2.230203.001/AS50") to "tcl-55s470g",   // supersedes tcl-g10-google-tv (ruling 1)
+            facts("BRAVIA 4K GB", "BRAVIA_ATV2", "Sony", 28, "Sony/BRAVIA_ATV2_EU/BRAVIA_ATV2:9/x") to "sony-bravia-4k-gb",
+            facts("BRAVIA 4K GB", "BRAVIA_ATV2", "Sony", 28, "Sony/BRAVIA_ATV2_UC/BRAVIA_ATV2:9/x") to "sony-bravia-4k-gb-us",
+            facts("BRAVIA 4K VH2", "BRAVIA_VH2", "Sony", 31, "Sony/BRAVIA_VH2_EU/BRAVIA_VH2:12/x") to "sony-bravia-4k-vh2",
+            facts("BRAVIA 4K VH2", "BRAVIA_VH2", "Sony", 31, "Sony/BRAVIA_VH2_SA/BRAVIA_VH2:12/x") to "sony-kd-55x85j",
+            facts("BRAVIA 4K VH2", "BRAVIA_VH2", "Sony", 29) to "sony-kd-65x80j",
+            facts("Smart TV Pro", "G05", "TCL", 30, "TCL/G05_4K_GB/G05:11/x") to "tcl-65c735",
+            facts("Smart TV Pro", "G05", "TCL", 30, "TCL/G05_4K_US/G05:11/x") to "tcl-g05-google-tv",
+            facts("Smart TV Pro", "G08", "TCL", 34, "TCL/G08_4K_GB/G08:14/x") to "tcl-c755-google-tv",
+            facts("Smart TV Pro", "G08", "TCL", 34, "TCL/G08_4K_US/G08:14/x") to "tcl-qm6k-google-tv",
+            facts("Smart TV Pro", "BeyondTV4", "TCL", 30) to "tcl-65c725",
+            facts("UnionTV", "UnionTV", "TCL", 28) to "tcl-uniontv-latin-america",
+            facts("UnionTV", "UnionTV", "Thomson", 28) to "thomson-32he5800",
+            facts("UnionTV", "UnionTV", "Thomson", 28, manufacturer = "TCL") to "tcl-uniontv-latin-america",
+            facts("unknown", "R10G", "Kalley", 34, manufacturer = "MOKA") to "kalley-r10g",
+            facts("unknown", "R10G", "PRISMPLUS", 34, manufacturer = "MOKA") to "prismplus-q65-ultra-r10g",
+            facts("2021_22_Philips_UHD_Android_TV", "PH1M_EA_9970A", "Philips", 30) to "philips-50pus8517",
+            facts("2021/22 Philips UHD Android TV", "PH1M_EA_9970A", "Philips", 30) to "philips-55oled707",
+            facts("unknown", "PH1M_EA_9970A", "Philips", 30) to "philips-50pus8517",
+            facts("Philips Smart 4K TV", "eleonas", "Philips", 34) to "philips-smart-4k-google-tv",
+            facts("SWTV-24NA-4K NF", "eleonas", "Skyworth", 34) to "skyworth-swtv-24na-4k-nf",
+            facts("BeyondTV", "BeyondTV", "TCL", 28, "TCL/BeyondTV/BeyondTV:9/PPR1.180610.011/AP04:user/release-keys") to "tcl-43ep660",
+            facts("BeyondTV", "BeyondTV", "TCL", 28, "TCL/BeyondTV/BeyondTV:9/PPR1.180610.011/AP06:user/release-keys") to "tcl-beyondtv-rt2851",
+            facts("BeyondTV", "BeyondTV", "TCL", 28, "TCL/BeyondTV/BeyondTV:9/PPR1.180610.011/AP02:user/release-keys") to "tcl-beyondtv",
+            facts("BeyondTV2", "BeyondTV", "TCL", 28, "TCL/BeyondTV2/BeyondTV:9/PPR1.180610.011/AP08:user/release-keys") to "tcl-beyondtv2-latin-america",
+            facts("Smart TV", "C06", "TCL", 30, "TCL/C06_2K_GB/C06:11/AR2101/AR14:user/release-keys") to "hitachi-cdh-le32smart21",
+            facts("Smart TV", "C06", "TCL", 30, "TCL/C06_2K_GB/C06:11/AR2101/AR20:user/release-keys") to "tcl-40s5400a",
+            facts("Smart TV", "G07", "TCL", 30) to "tcl-g07-google-tv",
+            facts("Smart TV", "unknown", "TCL", 30) to null,
+            // The shipped tcl-65c725 and tcl-g05-google-tv still match the family name alone and tie;
+            // the earlier id order stands until the resolver policy (ruling 1). tcl-43c645 is parked.
+            facts("Smart TV Pro", "unknown", "TCL", 30) to "tcl-65c725",
+        )
+        for ((f, id) in pinned) assertEquals(id, winner(f), "${f.brand} ${f.model} ${f.device} ${f.sdk} ${f.fingerprint}")
+        // Each profile, asked with its own keys, resolves to itself, except the one superseded list;
+        // and the ties settled by id are exactly these.
+        val profiles = BundledProfileSource.bundled.profiles
+        val ties = mutableSetOf<Set<String>>()
+        for (pr in profiles) {
+            val m = pr.match
+            val own = facts(m.models.firstOrNull() ?: "unknown", m.devices.firstOrNull() ?: "unknown", m.brand!!, m.sdkMin ?: 30, (m.fingerprintPrefix ?: "") + "x")
+            val scored = profiles.mapNotNull { o -> BundledProfileSource.score(o, own)?.let { it to o.id } }
+            val top = scored.maxOf { it.first }
+            scored.filter { it.first == top }.map { it.second }.toSet().takeIf { it.size > 1 }?.let { ties += it }
+            assertEquals(if (pr.id == "tcl-g10-google-tv") "tcl-55s470g" else pr.id, winner(own), pr.id)
+        }
+        assertEquals(setOf(
+            setOf("sony-bravia-4k-gb", "sony-bravia-4k-gb-us"), setOf("sony-bravia-4k-vh2", "sony-kd-55x85j"),
+            setOf("tcl-55s470g", "tcl-g10-google-tv"), setOf("tcl-65c735", "tcl-g05-google-tv"), setOf("tcl-c755-google-tv", "tcl-qm6k-google-tv"),
+        ), ties)
     }
 
     @Test fun malformedFilesFailWithTheLine() {

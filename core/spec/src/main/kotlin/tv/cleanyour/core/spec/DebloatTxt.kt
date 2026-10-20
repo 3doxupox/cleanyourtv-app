@@ -112,7 +112,7 @@ internal object DebloatTxt {
     // Packages a header line says to keep ("Keep:", "KEEP", "Do NOT disable", "must stay
     // enabled"); continuation lines of the same paragraph count too, up to a line that starts
     // "Already" (a note on what the owner or the factory had already switched off, which names
-    // packages the list then disables anyway). Used in addition to the curated list, since an
+    // packages the list then disables anyway) or a numbered note. Used in addition to the curated list, since an
     // extra protected name only makes the plan smaller.
     fun keepListIn(lines: List<String>): Set<PackageName> {
         val out = linkedSetOf<PackageName>()
@@ -123,7 +123,7 @@ internal object DebloatTxt {
             val lower = t.lowercase().removePrefix("- ")
             val starts = KEEP_WORD.containsMatchIn(lower) || "do not disable" in lower || "must stay enabled" in lower || "keep enabled" in lower
             if (starts) { inKeep = true; bulletStart = t.startsWith("- ") }
-            else if (inKeep && (t.isEmpty() || (bulletStart && t.startsWith("- ")) || HEADING.containsMatchIn(t) || lower.startsWith("already "))) inKeep = false
+            else if (inKeep && (t.isEmpty() || (bulletStart && t.startsWith("- ")) || HEADING.containsMatchIn(t) || lower.startsWith("already ") || NUMBERED_NOTE.containsMatchIn(t))) inKeep = false
             if (inKeep) out += packagesIn(t)
         }
         return out
@@ -131,6 +131,9 @@ internal object DebloatTxt {
     private val HEADING = Regex("^[A-Z][A-Za-z ]{2,40}:")
     // "Keep" as a word: a wrapped sentence that goes on "keeps X; re-enable ..." starts no keep list.
     private val KEEP_WORD = Regex("^keep\\b")
+    // A numbered note ("2. Play-Fi could not be kept disabled") starts a new paragraph: philips-55oled707
+    // mentions another list's DO NOT DISABLE block inside note 1, and its stock launcher in note 3.
+    private val NUMBERED_NOTE = Regex("^\\d+\\.\\s")
 
     fun parse(text: String, folder: String, meta: FolderMeta?): Profile {
         val scan = scan(text, folder)

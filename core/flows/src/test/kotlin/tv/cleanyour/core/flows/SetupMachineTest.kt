@@ -479,6 +479,48 @@ class SetupMachineTest {
         assertIs<SetupState.Found>(refusing.state.value)
     }
 
+    // RF-PROFILES-63 P1: below Android 8 (the launcher's and the curtain's minSdk) Setup is the
+    // clean-up alone: no launcher install, no look, no curtain, no home screen switch, and S3 says why.
+    @Test fun belowAndroid8TheSetupIsTheCleanUpAlone() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+        h.prober.facts = Samples.miTvFacts().copy(sdk = 24, release = "7.0")
+        val sha = Sha256("e".repeat(64))
+        val curtain = tv.cleanyour.core.model.LauncherArtifact(PackageName("tv.cleanyour.curtain"), 1, "0.1", sha, Samples.zeroHash, BlobRef(sha, 49_571, "bundled:cleanyourtv-curtain.apk"))
+        val m = SetupMachine(h.setupDeps(curtainPin = object : tv.cleanyour.core.trust.CurtainPin { override fun bundled() = curtain }), backgroundScope)
+        toFound(h, m)
+        assertIs<SetupState.Found>(m.state.value)
+        val setup = h.planner.requests.filterIsInstance<PlanRequest.Setup>().last()
+        assertFalse(setup.choices.installLauncher)
+        assertFalse(setup.choices.takeover)
+        assertNull(setup.curtain, "the curtain needs Android 8 too")
+        assertNull(setup.config, "no look without the new home screen")
+        assertFalse(m.extras.value.homePossible)
+        assertEquals(HomeBlock.OLD_ANDROID, m.extras.value.homeBlock)
+    }
+
+    // RF-PROFILES-63 P2: an exact profile that knows no stock launcher (a China PatchWall home, a
+    // projector's own) gets the clean-up instead of a plan the planner refuses as a whole.
+    @Test fun aProfileWithNoKnownStockHomeGetsTheCleanUp() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+        h.profiles.resolver = { _, _ -> tv.cleanyour.core.spec.ProfileResolution.Exact(miProfile.copy(stockLaunchers = emptyList())) }
+        val m = h.setup(backgroundScope)
+        toFound(h, m)
+        assertIs<SetupState.Found>(m.state.value)
+        val setup = h.planner.requests.filterIsInstance<PlanRequest.Setup>().last()
+        assertFalse(setup.choices.installLauncher)
+        assertFalse(setup.choices.takeover)
+        assertEquals(HomeBlock.UNKNOWN_HOME, m.extras.value.homeBlock)
+        // The reference TV still gets the switch.
+        val h2 = Harness()
+        h2.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+        val m2 = h2.setup(backgroundScope)
+        toFound(h2, m2)
+        assertTrue(h2.planner.requests.filterIsInstance<PlanRequest.Setup>().last().choices.takeover)
+        assertEquals(HomeBlock.NONE, m2.extras.value.homeBlock)
+    }
+
     @Test fun keepDebuggingOnSkipsDebugOffAtFinish() = runTest(timeout = 30.seconds) {
         val h = Harness()
         h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"

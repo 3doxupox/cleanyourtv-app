@@ -41,6 +41,7 @@ import tv.cleanyour.core.flows.AppChoice
 import tv.cleanyour.core.flows.ChipState
 import tv.cleanyour.core.flows.Confirmations
 import tv.cleanyour.core.flows.Finishing
+import tv.cleanyour.core.flows.HomeBlock
 import tv.cleanyour.core.flows.Reconnect
 import tv.cleanyour.core.flows.RestartState
 import tv.cleanyour.core.flows.SetupActions
@@ -209,7 +210,13 @@ fun FoundScreen(state: SetupState.Found, extras: SetupExtras, actions: SetupActi
             }
             TextActionRow(row, stringResource(R.string.found_home_change), { actions.intent(SetupIntent.Open(Sheet.DOCK)) }, Modifier.padding(top = 8.dp))
         } else {
-            Banner(msg(R.string.stop_tv_refuses_home_body, "brand" to (extras.tvName ?: "")), BannerTone.INFO, Modifier.padding(top = 16.dp))
+            // RF-PROFILES-63 P1, P2: an older Android, or a home screen we do not know, says so plainly.
+            val line = when (extras.homeBlock) {
+                HomeBlock.OLD_ANDROID -> stringResource(R.string.found_home_old_android)
+                HomeBlock.UNKNOWN_HOME -> stringResource(R.string.found_home_unknown_stock)
+                else -> msg(R.string.stop_tv_refuses_home_body, "brand" to (extras.tvName ?: ""))
+            }
+            Banner(line, BannerTone.INFO, Modifier.padding(top = 16.dp))
         }
         if (extras.noScreenLock) Body(stringResource(R.string.found_no_lock), Modifier.padding(start = 4.dp, top = 12.dp))
         Gap(8.dp)

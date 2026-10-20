@@ -82,7 +82,7 @@ com.amazon.hedwig	Fire TV Channels	Free channels with ads	ads
 com.amazon.hybridadidservice	Advertising ID service	Provides the ID used to target adverts	ads
 com.amazon.imdb.tv.android.app	Freevee (stub)	Placeholder for Amazon's free streaming app	streaming
 com.amazon.kso.blackbird	Amazon ad sync	Fetches sponsored banners and rows	ads
-com.amazon.livedeviceservice	Amazon live device service	Part of Amazon's telemetry group	tracking
+com.amazon.livedeviceservice	Amazon live device service	Amazon background service for live content; purpose unclear	tracking
 com.amazon.logan	Amazon Logan	An Amazon background service	brand
 com.amazon.media.recommendations	Amazon recommendations	Content recommendations on the home screen	ads
 com.amazon.metrics.api	Amazon metrics	Sends usage metrics to Amazon	tracking
@@ -93,11 +93,11 @@ com.amazon.neo.minerva	Amazon Neo Minerva	Amazon usage metrics service	tracking
 com.amazon.neo.minerva.logcat	Amazon Neo log collector	Collects logs for Amazon metrics	tracking
 com.amazon.neodelegate	Amazon Neo delegate	An Amazon background service	brand
 com.amazon.neopactservice	Amazon Neo service	An Amazon background service	brand
-com.amazon.ods.kindleconnect	Kindle connect	Links the TV to Kindle devices	brand
+com.amazon.ods.kindleconnect	Show on Fire TV	Shows content sent from an Echo Show or Fire tablet	brand
 com.amazon.perfc	Amazon performance collector	Collects performance data for Amazon	tracking
 com.amazon.perfcollection	Amazon performance data	Collects performance data for Amazon	tracking
 com.amazon.platform.fdrw	Amazon platform service	An Amazon background service	brand
-com.amazon.privacypassservice	Amazon Privacy Pass	Part of Amazon's telemetry group	tracking
+com.amazon.privacypassservice	Amazon Privacy Pass	Amazon token service; purpose not documented	tracking
 com.amazon.providers.contentsupport	Amazon content provider	Supplies content rows to the home screen	ads
 com.amazon.recess	Amazon Recess	An Amazon background service	brand
 com.amazon.rialto.cordova.webapp.webapp855cc15add08457a8a1fe62312eab585	Fox News	Fox News web app	streaming
@@ -123,7 +123,7 @@ com.amazon.tv.csapp	Amazon customer service	Amazon customer service app	brand
 com.amazon.tv.democontent.provider	Retail demo videos	Demo videos for store displays	demo
 com.amazon.tv.developer.dataservice	Amazon content data	Shares viewing data for personalization	tracking
 com.amazon.tv.easyupgrade	Fire TV easy upgrade	Helps install system upgrades	updates
-com.amazon.tv.ffsprovisioneeclient	Amazon device setup	Sets up other Amazon devices on Wi-Fi	other
+com.amazon.tv.ffsprovisioneeclient	Amazon easy setup client	Lets an Amazon phone app set this device up on Wi-Fi	other
 com.amazon.tv.forcedotaupdater.v2	Fire OS forced updater	Installs required firmware updates	updates
 com.amazon.tv.fw.metrics	Fire OS metrics	Sends system metrics to Amazon	tracking
 com.amazon.tv.launcher	Fire TV home	The Fire TV home screen	launcher
@@ -247,10 +247,10 @@ com.fubo.firetv.screen	Fubo	Live TV streaming service	streaming
 com.gameloft.android.HEP.GloftANHP	Gameloft game	Preloaded Gameloft game	preloads
 com.gitvdemo.video	GITV demo reel	Promotional demo video app	ads
 com.glance.tv	Glance	Adverts on the lock screen	ads
-com.goodtoolapps.zeus	Zeus	Preloaded app the owner does not use	preloads
+com.goodtoolapps.zeus	Zeus	Preloaded app; purpose not documented	preloads
 com.google.android.adservices.api	Privacy Sandbox ad services	Google's ad targeting service	ads
 com.google.android.apps.mediashell	Chromecast built-in	Lets phones cast to the TV	casting
-com.google.android.apps.nbu.smartconnect.tv	Google Smart Connect	A Google network helper service	other
+com.google.android.apps.nbu.smartconnect.tv	Google data saver	Data-saver VPN service and data meter	other
 com.google.android.apps.tachyon	Google Meet (Duo)	Video calling app	preloads
 com.google.android.apps.tv.dreamx	Google ambient mode	Screensaver that mixes in recommendations	screensaver
 com.google.android.apps.tv.launcherx	Google TV home	The stock Google TV home screen	launcher
@@ -281,10 +281,10 @@ com.google.android.tv	Live Channels	Android TV Live Channels app	preloads
 com.google.android.tv.assistant	Assistant light service	Controls the Assistant light and listening	voice
 com.google.android.tv.bugreportsender	Bug report sender	Uploads bug reports to Google	tracking
 com.google.android.tv.dfuservice	Remote firmware updates	Updates the remote's own firmware	system
-com.google.android.tv.remote.service	Android TV phone remote	Use your phone as a remote	casting
+com.google.android.tv.remote.service	Android TV phone remote	Phone remote; on some TVs also the remote's mic button	casting
 com.google.android.tv.remotecontrol.logging	Remote usage logging	Logs how you use the remote	tracking
 com.google.android.tvlauncher	Android TV home	The stock Android TV home screen	launcher
-com.google.android.tvrecommendations	Home recommendations	Promoted content rows	ads
+com.google.android.tvrecommendations	Home recommendations	Promoted rows; also the notification panel and sign-in notices	ads
 com.google.android.tvtutorials	Android TV tutorials	First-use tutorial screens	preloads
 com.google.android.videos	Google TV app (Play Movies & TV)	Google's film store, recommendations and your purchased films	preloads
 com.google.android.youtube.tv	YouTube	Videos from YouTube	streaming
@@ -639,7 +639,7 @@ com.tcl.systemui.plugin	TCL system UI plugin	System UI add-on, needed	system
 com.tcl.t_solo	TCL T-Solo	Bluetooth headphones for one listener	brand
 com.tcl.tcl_bt_rcu_service	TCL Bluetooth remote	Bluetooth remote pairing	system
 com.tcl.tclmusic	TCL music	Music app	preloads
-com.tcl.ttvs	TCL viewing data service	Samba TV viewing data and TCL analytics; may also run Alexa, T-Cast	tracking
+com.tcl.ttvs	TCL viewing data service	Samba TV and TCL analytics; on some TCL TVs the firmware updater	tracking
 com.tcl.tv	TCL Live TV	Live TV, HDMI and tuner app	system
 com.tcl.tv.plus	TCL TV+	TCL's ad-funded channels	ads
 com.tcl.tv.tclchannel	TCL Channel	TCL channel app with Google ads	ads
@@ -731,7 +731,7 @@ com.zeasn.whalelive	WhaleLive	Free channels with ads	streaming
 com.zee5.amazon	ZEE5 (Fire TV)	Streaming app	streaming
 com.zee5.xiaomiTV	ZEE5 (old Mi copy)	Old partner copy of the ZEE5 app	streaming
 dw.com.androidtv.live	DW	Deutsche Welle news app	streaming
-fusion.android.tv.demo	Retail demo	In-store demo loop	demo
+fusion.android.tv.demo	Retail demo	Retail demo app; on some MediaTek TVs it also handles the Input key	demo
 in.startv.hotstar	JioHotstar	Streaming app	streaming
 io.tiv.dvtv.tv	DVTV	Czech news video app	streaming
 it.hon.service	Haier hOn	Links Haier home appliances	brand
