@@ -32,6 +32,7 @@ import tv.cleanyour.core.flows.LeftoversState
 import tv.cleanyour.core.flows.ManageIntent
 import tv.cleanyour.core.flows.ManageSection
 import tv.cleanyour.core.flows.ManageState
+import tv.cleanyour.core.flows.Confirmations
 import tv.cleanyour.core.flows.OpenWrite
 import tv.cleanyour.core.flows.OpenWriteAction
 import tv.cleanyour.core.flows.Reach
@@ -185,7 +186,7 @@ fun OpenWriteSheet(open: OpenWrite, onAction: (OpenWriteAction) -> Unit, onOpenS
 }
 
 @Composable
-internal fun ColumnScope.OpenWriteContent(open: OpenWrite, onAction: (OpenWriteAction) -> Unit, onOpenSetup: () -> Unit, onDismiss: () -> Unit) {
+internal fun ColumnScope.OpenWriteContent(open: OpenWrite, onAction: (OpenWriteAction) -> Unit, onOpenSetup: () -> Unit, onDismiss: () -> Unit, initiallyAsking: OpenWriteAction? = null) {
     val setup = open.kind == PlanKind.SETUP
     val body = when {
         open.notTaken -> stringResource(R.string.openwrite_not_taken)
@@ -201,10 +202,19 @@ internal fun ColumnScope.OpenWriteContent(open: OpenWrite, onAction: (OpenWriteA
             tertiaryLabel = stringResource(R.string.openwrite_later), onTertiary = onDismiss,
             primaryGuarded = false)   // navigation: it only opens the wizard's resume card
     } else {
+        // "Undo what we did" and "Stop here" ask first, in this same sheet; the action is sent on yes.
+        var asking by rememberSaveable(open.planId.value) { mutableStateOf(initiallyAsking) }
+        val pending = asking
+        val question = pending?.let { Confirmations.forOpenWrite(it) }
+        if (pending != null && question != null && !open.busy) {
+            ConfirmQuestionFor(question, onConfirm = { asking = null; onAction(pending) }, onCancel = { asking = null })
+            return
+        }
+        fun act(a: OpenWriteAction) { if (Confirmations.forOpenWrite(a) != null) asking = a else onAction(a) }
         StopCard(title, body,
-            primaryLabel = if (open.busy) null else stringResource(R.string.openwrite_carry_on), onPrimary = { onAction(OpenWriteAction.CARRY_ON) },
-            secondaryLabel = if (open.busy) null else stringResource(R.string.openwrite_undo), onSecondary = { onAction(OpenWriteAction.UNDO) },
-            tertiaryLabel = if (open.busy) null else stringResource(R.string.openwrite_stop), onTertiary = { onAction(OpenWriteAction.STOP_HERE) },
+            primaryLabel = if (open.busy) null else stringResource(R.string.openwrite_carry_on), onPrimary = { act(OpenWriteAction.CARRY_ON) },
+            secondaryLabel = if (open.busy) null else stringResource(R.string.openwrite_undo), onSecondary = { act(OpenWriteAction.UNDO) },
+            tertiaryLabel = if (open.busy) null else stringResource(R.string.openwrite_stop), onTertiary = { act(OpenWriteAction.STOP_HERE) },
             busyText = if (open.busy) stringResource(R.string.openwrite_busy) else null)
     }
 }

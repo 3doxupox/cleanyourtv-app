@@ -37,6 +37,7 @@ import tv.cleanyour.ui.design.component.CytIconButton
 import tv.cleanyour.ui.design.component.DestructiveButton
 import tv.cleanyour.ui.design.component.DiffGroupSection
 import tv.cleanyour.ui.design.component.DiscoveryChip
+import tv.cleanyour.ui.design.component.ConfirmQuestion
 import tv.cleanyour.ui.design.component.DockApp
 import tv.cleanyour.ui.design.component.DockEditor
 import tv.cleanyour.ui.design.component.DockEditorState
@@ -354,6 +355,14 @@ object Samples {
         },
         Sample("c36_dock_editor_drag_reduced", reducedMotion = true) {
             DockEditor(androidx.compose.runtime.remember { DockEditorState(dockApps.take(6), 4).apply { previewDrag(from = 4, to = 3, nudgePx = -36f) } }, dockApps)
+        },
+        // The question before a stop or an undo (ConfirmQuestion), as the sheet shows it.
+        Sample("c37_confirm_question") {
+            Column {
+                ConfirmQuestion(
+                    "Stop now?", "We stop here and put back what we changed so far. Your TV stays safe.", "Stop and undo", {}, "Keep going", {},
+                )
+            }
         },
     )
 

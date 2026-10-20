@@ -124,7 +124,7 @@
 
     <!-- S3b Your dock (sheet) -->
     <string name="dock_title">Your dock</string>
-    <string name="dock_body">Up to {count, spellout} along the bottom. Hold an app and drag it to change the order.</string>
+    <string name="dock_body">Up to {count, spellout} along the bottom. Drag an app by its dots to change the order.</string>
 
     <!-- S4a Making it clean -->
     <string name="working_title">Making it clean</string>
@@ -276,4 +276,16 @@
     <string name="restart_back_try">Try with the wizard off</string>
     <string name="restart_back_leave">Leave it as is</string>
 
+
+    <!-- Stop and undo ask first (Confirmations): a question, one calm sentence, the verb and a way back -->
+    <string name="confirm_stop_title">Stop now?</string>
+    <string name="confirm_stop_body">We stop here and put back what we changed so far. Your TV stays safe.</string>
+    <string name="confirm_stop_button">Stop and undo</string>
+    <string name="confirm_keep_going">Keep going</string>
+    <string name="confirm_stop_here_title">Stop here?</string>
+    <string name="confirm_stop_here_body">We keep what is already done and change nothing else. Your TV stays safe.</string>
+    <string name="confirm_stop_here_button">Stop here</string>
+    <string name="confirm_undo_title">Undo the changes on the TV?</string>
+    <string name="confirm_undo_body">We put back everything this change did, so the TV is as it was before. Nothing is deleted.</string>
+    <string name="confirm_undo_button">Undo the changes</string>
 </resources>

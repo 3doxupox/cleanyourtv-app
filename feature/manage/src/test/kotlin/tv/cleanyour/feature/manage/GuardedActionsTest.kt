@@ -3,6 +3,7 @@ package tv.cleanyour.feature.manage
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import org.junit.Assert.assertEquals
+import androidx.compose.ui.test.onNodeWithText
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -58,7 +59,26 @@ class GuardedActionsTest {
         compose.showColumn { OpenWriteContent(open(PlanKind.SWITCH_OFF), { hits += it }, {}, {}) }
         compose.tap("Carry on", OBSCURED)
         compose.tap("Stop here", OBSCURED)
+        // Stop here asks first: nothing is sent until the question is answered.
+        assertEquals(emptyList<OpenWriteAction>(), hits)
+        compose.onNodeWithText("Stop here?").assertExists()
+        compose.tap("Stop here", OBSCURED)
+        assertEquals(emptyList<OpenWriteAction>(), hits)
+        compose.tap("Stop here", 0)
         assertEquals(listOf(OpenWriteAction.STOP_HERE), hits)
+    }
+
+    // Undo asks first; Cancel is never guarded and sends nothing.
+    @Test fun undoWhatWeDidAsksFirstAndCancelSendsNothing() {
+        val hits = mutableListOf<OpenWriteAction>()
+        compose.showColumn { OpenWriteContent(open(PlanKind.SWITCH_OFF), { hits += it }, {}, {}) }
+        compose.tap("Undo what we did", 0)
+        compose.onNodeWithText("Undo the changes on the TV?").assertExists()
+        compose.tap("Cancel", OBSCURED)
+        assertEquals(emptyList<OpenWriteAction>(), hits)
+        compose.tap("Undo what we did", 0)
+        compose.tap("Undo the changes", 0)
+        assertEquals(listOf(OpenWriteAction.UNDO), hits)
     }
 
     @Test fun openingTheSetupIsNavigationAndNotGuarded() {

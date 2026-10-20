@@ -53,6 +53,6 @@
 
     <!-- S3b Your dock (sheet) -->
     <string name="dock_title">Your dock</string>
-    <string name="dock_body">Up to {count, spellout} along the bottom. Hold an app and drag it to change the order.</string>
+    <string name="dock_body">Up to {count, spellout} along the bottom. Drag an app by its dots to change the order.</string>
 
 </resources>

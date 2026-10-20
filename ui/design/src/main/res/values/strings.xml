@@ -65,8 +65,6 @@
     <string name="cyt_dock_row_n">Row %1$d</string>
     <string name="cyt_dock_item_dock_cd">%1$s, in the dock, place %2$d</string>
     <string name="cyt_dock_item_row_cd">%1$s, in row %2$d, place %3$d</string>
-    <string name="cyt_dock_move_up_cd">Move %1$s up</string>
-    <string name="cyt_dock_move_down_cd">Move %1$s down</string>
     <string name="cyt_dock_remove_cd">Take %1$s out</string>
     <string name="cyt_dock_add_dock_cd">Add %1$s to the dock</string>
     <string name="cyt_dock_add_row_cd">Add %1$s to row %2$d</string>
@@ -77,6 +75,9 @@
     <string name="cyt_dock_action_to_row">Move to row %1$d</string>
     <string name="cyt_dock_action_remove">Take out</string>
     <string name="cyt_dock_add_row">Add a row under the dock</string>
+    <string name="cyt_dock_remove_row">Remove row</string>
+    <string name="cyt_dock_remove_row_cd">Remove row %1$d</string>
+    <string name="cyt_dock_row_removed">Row %1$d removed. Its apps are back under Other apps.</string>
     <string name="cyt_dock_row_empty">Tap an app below to put it in this row.</string>
     <string name="cyt_dock_full">The dock holds %1$d. Take one out, or add a row under it.</string>
     <string name="cyt_dock_row_full">These rows are full. Take one out, or add another row.</string>

@@ -6,7 +6,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.Alignment
+import tv.cleanyour.ui.design.component.UndoSnackbarHost
+import tv.cleanyour.ui.design.component.UndoSnackbarState
+import tv.cleanyour.ui.design.component.rememberUndoSnackbarState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
@@ -129,16 +136,22 @@ internal fun ColumnScope.StockPreviewContent(plan: Plan, onIntent: (HomeScreenIn
 @Composable
 fun DockSheet(current: List<AppChoice>, apps: List<AppChoice>, columns: Int, onDone: (List<PackageName>) -> Unit, onDismiss: () -> Unit) {
     val state = remember(current, columns) { DockEditorState(current.map { it.toDockApp() }, columns) }
+    val scroll = rememberScrollState()
+    val undo = rememberUndoSnackbarState()
     CytBottomSheet(onDismiss) {
-        // Three rows and the other apps can be taller than the screen.
-        Column(Modifier.verticalScroll(rememberScrollState())) { DockContent(state, apps, { onDone(state.apps.map { PackageName(it.key) }) }) }
+        // Three rows and the other apps can be taller than the screen; the sheet scrolls, also by
+        // itself while an app is dragged near its edge.
+        Box(Modifier.fillMaxWidth()) {
+            Column(Modifier.verticalScroll(scroll)) { DockContent(state, apps, { onDone(state.apps.map { PackageName(it.key) }) }, scroll, undo) }
+            UndoSnackbarHost(undo, Modifier.align(Alignment.BottomCenter))
+        }
     }
 }
 
 @Composable
-internal fun ColumnScope.DockContent(state: DockEditorState, apps: List<AppChoice>, onDone: () -> Unit) {
+internal fun ColumnScope.DockContent(state: DockEditorState, apps: List<AppChoice>, onDone: () -> Unit, scroll: ScrollState? = null, undo: UndoSnackbarState? = null) {
     SheetHeader(stringResource(R.string.dock_title), subtitle = msg(R.string.dock_body, "count" to state.columns))
-    DockEditor(state, remember(apps) { apps.map { it.toDockApp() } })
+    DockEditor(state, remember(apps) { apps.map { it.toDockApp() } }, scroll = scroll, undo = undo)
     PrimaryButton(stringResource(R.string.action_done), onDone, Modifier.padding(top = 20.dp))
 }
 
