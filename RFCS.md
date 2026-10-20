@@ -1,6 +1,6 @@
 # RFCs from the dockrows workstream
 
-## RFC-DOCK-1: the Setup plan should push the dock and the look (not applied, needs sign-off)
+## RFC-DOCK-1: the Setup plan should push the dock and the look (applied on setupcfg, pending Fable review)
 
 What: `DefaultPlanner.setup` uses `Choices.dock` only for `PlanSummary.dock` (the names on S3 and the
 check screen) and never uses `Choices.theme`; the Setup plan has no config.json step at all (the
@@ -21,3 +21,20 @@ S3's commands list and the plan hash include it. Affected: W3 (planner), W8 (Set
 records the digest it already looks for), W1 (fakes). Alternative without an interface change: run
 an ApplyTheme plan after Done, which the person would not see in S3's "Show commands"; not
 recommended (plan honesty).
+
+Applied (setupcfg, 2026-10-20, pending Fable review): `PlanRequest.Setup` gains `config: BlobRef? = null`
+and `wallpaper: BlobRef? = null` after its four parameters (DECISIONS-W1 lists the edit).
+`SetupMachine.replan` builds both with `Look.encode`, the helper `HomeScreenMachine.apply` now uses
+too, whenever the switch is possible; `SetupDeps` gains `blobs` (and `encoder`, defaulted). In
+`DefaultPlanner.setup` the transport's steps (group "theme") come after the launcher install and
+before the guarded home screen switch, only when the switch is chosen and the launcher is on the TV
+or installed by the plan; ApplyTheme and Setup share one private function for the steps, their
+priors and narration. Two choices to review: (1) the steps sit before the section rather than after
+it, so the check screen's "with ... along the bottom" is what the TV shows when the person is asked,
+nothing is added to the watchdog's window, and a failed push happens while the TV's own home screen
+is still in charge; (2) in Setup the pushes CONTINUE on failure (ApplyTheme keeps
+STOP_AND_ROLLBACK): outside a section STOP_AND_ROLLBACK pauses the run, and the Setup stop card's
+way back is undoing the whole run for a cosmetic step that Manage can send again. On a fresh or
+replaced launcher both pushes record `present = false`, so Undo everything and the laptop restore
+scripts delete them again; the laptop scripts also delete a wallpaper whose first record is that
+removal when a later look pushed one.
