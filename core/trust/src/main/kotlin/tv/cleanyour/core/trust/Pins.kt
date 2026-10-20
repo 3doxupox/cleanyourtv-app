@@ -47,8 +47,8 @@ object PinnedCurtain {
     const val RECEIVER = ".CueReceiver"
     const val VERSION_CODE = 1L
     const val VERSION_NAME = "0.1"
-    const val SIZE = 49_571L
-    const val SHA256 = "d114a60ee0eb7b52b16646bdedfdac15af1a0ef47b15fa88af35c7aaa6772215"
+    const val SIZE = 65_955L
+    const val SHA256 = "bd1e075c7a2d87b3306134ff81c4f99fd34ac03a76ecff0e0d2c94aa392f6da1"
     const val SIGNER_SHA256 = PinnedLauncher.SIGNER_SHA256
 }
 
