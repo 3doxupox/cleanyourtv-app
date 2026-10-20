@@ -6,7 +6,18 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
+import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.layout.boundsInRoot
+import kotlinx.coroutines.Job
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -60,11 +71,16 @@ import tv.cleanyour.ui.design.theme.glass
 @Immutable
 data class DockApp(val key: String, val name: String)
 
+// The rows as they were before "Remove row", for its Undo.
+@Immutable
+class DockSnapshot internal constructor(internal val apps: List<DockApp>, internal val extraRow: Boolean)
+
 // The dock sheet (S3b) as one ordered list cut into rows of `columns`: the first row is the dock,
 // the next are Row 2 and Row 3 under it on the TV's home screen. The launcher sorts its grid by
 // the same list, so a row can only hold apps once the rows above it are full; the list cannot
 // have a gap, and taking an app out pulls the next one up, as the TV would. A row under the dock
-// opens only when the person asks for it ("Add a row under the dock") and the rows above are full.
+// opens only when the person asks for it ("Add a row under the dock") and the rows above are full,
+// and goes again with "Remove row" (the dock itself is never removed).
 @Stable
 class DockEditorState(initial: List<DockApp>, columns: Int, val maxRows: Int = MAX_ROWS) {
     val columns: Int = columns.coerceAtLeast(1)
@@ -119,6 +135,22 @@ class DockEditorState(initial: List<DockApp>, columns: Int, val maxRows: Int = M
         if (canAddRow) extraRow = true
     }
 
+    // Takes a row under the dock away (never the dock): its apps go back to the other apps and any
+    // row under it moves up, so the rows stay without a gap, as on the TV. Returns what to put
+    // back for Undo, or null when there is no such row.
+    fun removeRow(row: Int): DockSnapshot? {
+        if (row <= 0 || row >= rowCount) return null
+        val before = DockSnapshot(apps, extraRow)
+        apps = apps.filterIndexed { i, _ -> rowOf(i) != row }
+        extraRow = false
+        return before
+    }
+
+    fun restore(snapshot: DockSnapshot) {
+        apps = snapshot.apps
+        extraRow = snapshot.extraRow
+    }
+
     // The app being dragged and where its lifted copy is, in the editor's own coordinates.
     var dragging: String? by mutableStateOf(null)
         internal set
@@ -141,16 +173,19 @@ class DockEditorState(initial: List<DockApp>, columns: Int, val maxRows: Int = M
     }
 }
 
-// Where each row sits, for the drag and for the spring that moves the others out of the way:
-// layout positions in the editor's coordinates (outside each row's translation), the position
-// each app had before the last change, and the offset each app springs back from.
+// Where each row and its grip sit, for the drag and for the spring that moves the others out of
+// the way: layout positions in the editor's coordinates (outside each row's translation), the
+// position each app had before the last change, and the offset each app springs back from.
 @Stable
 private class DockMotion {
     var editor: LayoutCoordinates? = null
     val coords = HashMap<String, LayoutCoordinates>()
+    val grips = HashMap<String, LayoutCoordinates>()
     val lastTop = HashMap<String, Float>()
     val offsets = HashMap<String, Animatable<Float, AnimationVector1D>>()
     var awaitingLayout = false
+    var autoScroll: Job? = null
+    var fingerY = 0f   // the finger, in the editor's coordinates
 
     fun top(key: String): Float? {
         val e = editor?.takeIf { it.isAttached } ?: return null
@@ -159,6 +194,18 @@ private class DockMotion {
     }
 
     fun height(key: String): Int = coords[key]?.takeIf { it.isAttached }?.size?.height ?: 0
+
+    // The app whose grip is under the finger, if any.
+    fun gripAt(at: Offset, keys: List<String>): String? {
+        val e = editor?.takeIf { it.isAttached } ?: return null
+        return keys.firstOrNull { k -> grips[k]?.takeIf { it.isAttached }?.let { e.localBoundingBoxOf(it, clipBounds = false).contains(at) } == true }
+    }
+
+    // The app whose row is under the finger, if any.
+    fun rowAt(at: Offset, keys: List<String>): String? = keys.firstOrNull { k ->
+        val t = top(k) ?: return@firstOrNull false
+        at.y >= t && at.y < t + height(k)
+    }
 
     // Before a change: where every app is now, so each one that moves can spring from there.
     fun capture(keys: List<String>) {
@@ -188,39 +235,82 @@ private class DockMotion {
     }
 }
 
-// The dock, its rows and the other apps (S3b). Hold an app and drag it to a new place, in its row
-// or another one; the others make room. The up and down buttons stay for motor access (UX 7.1),
-// and TalkBack gets "Move up", "Move down", "Move to row 2" and "Take out" on every app. Under
-// reduced motion nothing lifts or springs: the apps change places at once.
+// The dock, its rows and the other apps (S3b). Each app has a grip at the end of its row: touch
+// it and move, and the app lifts and follows the finger, in its row or into another one, while
+// the others make room; a swipe anywhere else scrolls the sheet as usual (a long press on the
+// row also lifts it). Near the sheet's top or bottom edge the sheet scrolls on its own when
+// `scroll` is the sheet's scroll state. TalkBack and switch access get "Move up", "Move down",
+// "Move to the dock", "Move to row n" and "Take out" on every app instead of dragging. Under
+// reduced motion nothing lifts or springs: the apps change places at once. Rows under the dock
+// have "Remove row"; with `undo`, a snackbar offers to put the row back.
 @Composable
-fun DockEditor(state: DockEditorState, apps: List<DockApp>, modifier: Modifier = Modifier, haptics: Boolean = true) {
+fun DockEditor(
+    state: DockEditorState,
+    apps: List<DockApp>,
+    modifier: Modifier = Modifier,
+    haptics: Boolean = true,
+    scroll: ScrollState? = null,
+    undo: UndoSnackbarState? = null,
+) {
     val reduced = CytTheme.reducedMotion
     val feel = rememberCytHaptics(haptics)
     val scope = rememberCoroutineScope()
     val motion = remember(state) { DockMotion() }
+    val edge = with(LocalDensity.current) { EDGE.toPx() }
+    val speed = with(LocalDensity.current) { SCROLL_PER_FRAME.toPx() }
     fun edit(change: () -> Unit) {
         motion.capture(state.apps.map { it.key })
         change()
     }
+    val removedText = stringResource(R.string.cyt_dock_row_removed)
     Column(modifier.fillMaxWidth()) {
         // An empty dock has no "Dock" heading over nothing (round 3); the apps to add follow.
         if (state.apps.isNotEmpty()) {
             Box(
                 Modifier.fillMaxWidth()
                     .onGloballyPositioned { motion.editor = it; motion.seedGhost(state) }
-                    .pointerInput(state, motion, feel, reduced) {
-                        detectDragGesturesAfterLongPress(
-                            onDragStart = { at -> startDrag(state, motion, at) { feel.light() } },
-                            onDrag = { change, amount -> if (dragBy(state, motion, amount.y)) change.consume() },
-                            onDragEnd = { endDrag(state, motion, reduced, scope) { feel.light() } },
-                            onDragCancel = { endDrag(state, motion, reduced, scope) { feel.light() } },
-                        )
+                    .pointerInput(state, motion, feel, reduced, scroll) {
+                        awaitEachGesture {
+                            val down = awaitFirstDown(requireUnconsumed = false)
+                            if (state.settling || state.dragging != null) return@awaitEachGesture
+                            val keys = state.apps.map { it.key }
+                            val grip = motion.gripAt(down.position, keys)
+                            // The grip lifts at once; the rest of a row only after a long press, so
+                            // a swipe there still scrolls the sheet.
+                            var key = grip
+                            if (key == null) {
+                                val held = awaitLongPressOrCancellation(down.id) ?: return@awaitEachGesture
+                                key = motion.rowAt(held.position, keys) ?: return@awaitEachGesture
+                            }
+                            if (grip != null) down.consume()
+                            if (!startDrag(state, motion, key)) return@awaitEachGesture
+                            feel.light()
+                            motion.fingerY = down.position.y
+                            if (scroll != null) motion.autoScroll = scope.launch { autoScroll(state, motion, scroll, edge, speed) }
+                            val id = down.id
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                val change = event.changes.firstOrNull { it.id == id } ?: break
+                                if (!change.pressed) { change.consume(); break }
+                                val dy = change.positionChange().y
+                                change.consume()
+                                motion.fingerY = change.position.y
+                                dragBy(state, motion, dy)
+                            }
+                            motion.autoScroll?.cancel()
+                            motion.autoScroll = null
+                            endDrag(state, motion, reduced, scope) { feel.light() }
+                        }
                     },
             ) {
                 Column {
                     for (row in 0 until state.rowCount) {
-                        val title = if (row == 0) stringResource(R.string.cyt_dock_row_dock) else stringResource(R.string.cyt_dock_row_n, row + 1)
-                        Overline(title, Modifier.padding(start = 4.dp, top = 16.dp, bottom = 8.dp))
+                        RowHeader(row) {
+                            edit {
+                                val before = state.removeRow(row) ?: return@edit
+                                undo?.show(String.format(removedText, row + 1)) { edit { state.restore(before) } }
+                            }
+                        }
                         ListGroup {
                             val inRow = state.rowApps(row)
                             if (inRow.isEmpty()) {
@@ -278,7 +368,26 @@ fun DockEditor(state: DockEditorState, apps: List<DockApp>, modifier: Modifier =
     }
 }
 
-// One app in a row: the tile and name, up, down and take out, and the TalkBack actions.
+private val EDGE = 56.dp
+private val SCROLL_PER_FRAME = 6.dp
+
+// "Dock", or "Row 2" with "Remove row" at its end (rows under the dock only).
+@Composable
+private fun RowHeader(row: Int, onRemove: () -> Unit) {
+    val title = if (row == 0) stringResource(R.string.cyt_dock_row_dock) else stringResource(R.string.cyt_dock_row_n, row + 1)
+    if (row == 0) {
+        Overline(title, Modifier.padding(start = 4.dp, top = 16.dp, bottom = 8.dp))
+        return
+    }
+    Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Overline(title, Modifier.weight(1f).padding(start = 4.dp))
+        val cd = stringResource(R.string.cyt_dock_remove_row_cd, row + 1)
+        TertiaryButton(stringResource(R.string.cyt_dock_remove_row), onRemove, Modifier.semantics { contentDescription = cd }, quiet = true)
+    }
+}
+
+// One app in a row: the tile and name, a small take out button and the grip, and the TalkBack
+// actions that stand in for dragging.
 @Composable
 private fun DockItem(
     state: DockEditorState,
@@ -321,13 +430,32 @@ private fun DockItem(
             }
             .semantics { contentDescription = cd; customActions = actions },
         controls = {
-            Row {
-                if (index > 0) CytIconButton(CytIcons.ArrowUp, stringResource(R.string.cyt_dock_move_up_cd, app.name), { edit { state.move(index, index - 1) } })
-                if (index < last) CytIconButton(CytIcons.ArrowDown, stringResource(R.string.cyt_dock_move_down_cd, app.name), { edit { state.move(index, index + 1) } })
-                CytIconButton(CytIcons.Minus, stringResource(R.string.cyt_dock_remove_cd, app.name), { edit { state.remove(app.key) } })
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TakeOutButton(stringResource(R.string.cyt_dock_remove_cd, app.name)) { edit { state.remove(app.key) } }
+                Grip(Modifier.onGloballyPositioned { motion.grips[app.key] = it })
             }
         },
     )
+}
+
+// Take out: a small minus in a quiet disc, with the full 48 dp touch target.
+@Composable
+private fun TakeOutButton(contentDescription: String, onClick: () -> Unit) {
+    val c = CytTheme.colors
+    IconButton(onClick = onClick, modifier = Modifier.size(48.dp)) {
+        Box(Modifier.size(26.dp).clip(CircleShape).background(c.surface3), contentAlignment = Alignment.Center) {
+            Icon(CytIcons.Minus, contentDescription, Modifier.size(16.dp), tint = c.textPrimary)
+        }
+    }
+}
+
+// The grip at the end of each row: six dots in a 48 dp target. Touch and move lifts the app. Not a
+// TalkBack stop of its own (the row's actions move the app).
+@Composable
+private fun Grip(modifier: Modifier = Modifier) {
+    Box(modifier.size(48.dp).clearAndSetSemantics {}, contentAlignment = Alignment.Center) {
+        CytIcon(CytIcons.Grip, null, tint = CytTheme.colors.textSecondary, size = 24.dp)
+    }
 }
 
 // The lifted copy of the app being dragged: the glass highlight on a solid surface, a soft shadow
@@ -353,50 +481,65 @@ private fun DragGhost(state: DockEditorState, reduced: Boolean) {
             .glass(shape, CytTheme.highlight)
             .clearAndSetSemantics {},
     ) {
-        DockRow(app.name, Modifier.heightIn(min = height), controls = {
-            Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) { CytIcon(CytIcons.Reorder, null, tint = c.textSecondary) }
-        })
+        DockRow(app.name, Modifier.heightIn(min = height), controls = { Grip() })
     }
 }
 
-// A long press on an app lifts it; anywhere else in the rows does nothing.
-private fun startDrag(state: DockEditorState, motion: DockMotion, at: Offset, tick: () -> Unit) {
-    if (state.settling || state.dragging != null) return
-    val app = state.apps.firstOrNull { a ->
-        val top = motion.top(a.key) ?: return@firstOrNull false
-        at.y >= top && at.y < top + motion.height(a.key)
-    } ?: return
+// Lifts the app; false when it is not where the finger is any more.
+private fun startDrag(state: DockEditorState, motion: DockMotion, key: String): Boolean {
+    if (state.settling || state.dragging != null) return false
+    val top = motion.top(key) ?: return false
     motion.capture(state.apps.map { it.key })
     state.previewNudge = 0f
-    state.ghostTop = motion.top(app.key) ?: return
-    state.ghostHeight = motion.height(app.key)
-    state.dragging = app.key
-    tick()
+    state.ghostTop = top
+    state.ghostHeight = motion.height(key)
+    state.dragging = key
+    return true
 }
 
-// Moves the lifted copy with the finger and the app to the place nearest its middle. Returns
-// whether this drag is ours (so the sheet does not scroll under it).
-private fun dragBy(state: DockEditorState, motion: DockMotion, dy: Float): Boolean {
-    val key = state.dragging ?: return false
-    if (state.settling) return true
+// Moves the lifted copy with the finger and the app to the place nearest its middle.
+private fun dragBy(state: DockEditorState, motion: DockMotion, dy: Float) {
+    val key = state.dragging ?: return
+    if (state.settling) return
     val h = motion.height(key).toFloat()
-    val first = motion.top(state.apps.first().key) ?: return true
-    val lastTop = motion.top(state.apps.last().key) ?: return true
+    val first = motion.top(state.apps.first().key) ?: return
+    val lastTop = motion.top(state.apps.last().key) ?: return
     state.ghostTop = (state.ghostTop + dy).coerceIn(first - h / 2, lastTop + h / 2)
-    if (motion.awaitingLayout) return true
+    if (motion.awaitingLayout) return
     val from = state.apps.indexOfFirst { it.key == key }
     val middle = state.ghostTop + h / 2
     val to = state.apps.indices.minByOrNull { i ->
         val k = state.apps[i].key
         val top = motion.top(k) ?: return@minByOrNull Float.MAX_VALUE
         abs(top + motion.height(k) / 2f - middle)
-    } ?: return true
+    } ?: return
     if (to != from) {
         motion.capture(state.apps.map { it.key })
         state.move(from, to)
         motion.awaitingLayout = true
     }
-    return true
+}
+
+// While an app is lifted and the finger is near the visible top or bottom of the sheet, the sheet
+// scrolls a little every frame, and the lifted copy moves with the finger over the new place.
+private suspend fun autoScroll(state: DockEditorState, motion: DockMotion, scroll: ScrollState, edge: Float, speed: Float) {
+    while (state.dragging != null && !state.settling) {
+        withFrameNanos { }
+        val e = motion.editor?.takeIf { it.isAttached } ?: continue
+        val visible = e.boundsInRoot()
+        val finger = e.localToRoot(Offset(0f, motion.fingerY)).y
+        val step = when {
+            finger > visible.bottom - edge && e.localToRoot(Offset(0f, e.size.height.toFloat())).y > visible.bottom + 1f -> speed
+            finger < visible.top + edge && e.localToRoot(Offset.Zero).y < visible.top - 1f -> -speed
+            else -> 0f
+        }
+        if (step == 0f) continue
+        val moved = scroll.scrollBy(step)
+        if (moved != 0f) {
+            motion.fingerY += moved
+            dragBy(state, motion, moved)
+        }
+    }
 }
 
 // Drops the app: the lifted copy settles into its place on a spring (at once under reduced motion).
