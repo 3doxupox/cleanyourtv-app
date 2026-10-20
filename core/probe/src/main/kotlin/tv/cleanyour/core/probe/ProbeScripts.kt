@@ -60,9 +60,11 @@ object ProbeScripts {
     val BOOT_ID = ShellLine("cat /proc/sys/kernel/random/boot_id")
     val FREE_DATA = ShellLine("df -k /data")
     val SCREENSHOT = ShellLine("mkdir -p ${RemoteDir.TMP.path} && screencap -p ${RemoteDir.TMP.path}/$SCREEN_FILE")
-    // The directory goes too when nothing else is in it (rmdir refuses a non-empty one), so an
-    // identity check leaves no trace on the TV.
-    val SCREENSHOT_CLEANUP = ShellLine("rm -f ${RemoteDir.TMP.path}/$SCREEN_FILE; rmdir ${RemoteDir.TMP.path} 2>/dev/null; true")
+    // Only the file goes, never the directory: the run takes thumbnails between steps, and an rmdir
+    // here removed the TMP directory the plan had just made for the home watchdog, so the watchdog
+    // could not start and the home screen switch rolled back (first device test, 2026-10-20). An
+    // empty /data/local/tmp/cleanyourtv may stay after an identity check; it holds nothing.
+    val SCREENSHOT_CLEANUP = ShellLine("rm -f ${RemoteDir.TMP.path}/$SCREEN_FILE")
     val MKDIR_TMP = ShellLine("mkdir -p ${RemoteDir.TMP.path}")
     val NOOP_INSTALL = ShellLine("pm install -r ${RemoteDir.TMP.path}/$NOOP_FILE")
     val NOOP_UNINSTALL = ShellLine("pm uninstall ${NOOP_PACKAGE.value}")

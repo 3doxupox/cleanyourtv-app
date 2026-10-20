@@ -11,7 +11,7 @@ HOME_FOCUS	dumpsys activity activities | grep -E 'ResumedActivity'
 BOOT_ID	cat /proc/sys/kernel/random/boot_id
 FREE_DATA	df -k /data
 SCREENSHOT	mkdir -p /data/local/tmp/cleanyourtv && screencap -p /data/local/tmp/cleanyourtv/probe-screen.png
-SCREENSHOT_CLEANUP	rm -f /data/local/tmp/cleanyourtv/probe-screen.png; rmdir /data/local/tmp/cleanyourtv 2>/dev/null; true
+SCREENSHOT_CLEANUP	rm -f /data/local/tmp/cleanyourtv/probe-screen.png
 MKDIR_TMP	mkdir -p /data/local/tmp/cleanyourtv
 NOOP_INSTALL	pm install -r /data/local/tmp/cleanyourtv/noop.apk
 NOOP_UNINSTALL	pm uninstall tv.cleanyour.noop
