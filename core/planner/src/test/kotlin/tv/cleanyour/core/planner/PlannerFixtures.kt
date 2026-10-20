@@ -1,5 +1,6 @@
 package tv.cleanyour.core.planner
 
+import tv.cleanyour.core.model.BlobRef
 import tv.cleanyour.core.model.ChangeRecord
 import tv.cleanyour.core.model.Component
 import tv.cleanyour.core.model.EnabledState
@@ -17,11 +18,16 @@ import tv.cleanyour.core.model.Prior
 import tv.cleanyour.core.model.Profile
 import tv.cleanyour.core.model.ProfileMatch
 import tv.cleanyour.core.model.Quirk
+import tv.cleanyour.core.model.RemoteDir
+import tv.cleanyour.core.model.RemotePath
 import tv.cleanyour.core.model.SettingKey
 import tv.cleanyour.core.model.Sha256
 import tv.cleanyour.core.model.Snapshot
 import tv.cleanyour.core.model.SnapshotReason
+import tv.cleanyour.core.ops.ConfigTransport
+import tv.cleanyour.core.ops.ConfigTransportKind
 import tv.cleanyour.core.ops.ShellRenderer
+import tv.cleanyour.core.session.TvSession
 import tv.cleanyour.core.spec.ProfileResolution
 import tv.cleanyour.core.store.SnapshotCodec
 import tv.cleanyour.testing.fixtures.FakeClock
@@ -77,7 +83,7 @@ object PlannerFixtures {
     fun setup(profile: Profile? = profile(), choices: Choices = choices(), artifact: LauncherArtifact = artifact()) =
         PlanRequest.Setup(profile?.let { ProfileResolution.Exact(it) } ?: ProfileResolution.None(listOf(stock)), choices, artifact, tv.cleanyour.core.model.Level.SIMPLE)
 
-    fun planner(transport: FakeConfigTransport = FakeConfigTransport(), idGen: FakeIdGen = FakeIdGen(), profiles: tv.cleanyour.core.spec.ProfileSource? = null) =
+    fun planner(transport: ConfigTransport = FakeConfigTransport(), idGen: FakeIdGen = FakeIdGen(), profiles: tv.cleanyour.core.spec.ProfileSource? = null) =
         if (profiles == null) DefaultPlanner(clock, idGen, ShellRenderer(), transport, "0.1.0")   // the R0: 15 constructor
         else DefaultPlanner(clock, idGen, ShellRenderer(), transport, "0.1.0", profiles = profiles)
 
@@ -94,6 +100,30 @@ object PlannerFixtures {
         }
 
     fun change(step: Int, op: Op, prior: Prior?, atMs: Long = Samples.NOW_MS + step) = ChangeRecord(tv.cleanyour.core.model.PlanId("01FAKEPLAN0000000000000001"), step, op, prior, atMs)
+}
+
+// The steps FileOverlayTransport (in :core:engine, a layer above the planner) returns, so the
+// config.json tests see the real shape: the launcher's first start, the folder, config.json,
+// wallpaper.jpg pushed or removed, and Home restarted.
+class OverlayTransport : ConfigTransport {
+    override val kind: ConfigTransportKind = ConfigTransportKind.FILE_OVERLAY
+    override suspend fun readDigest(session: TvSession): Sha256? = null
+    override fun writePlanSteps(config: BlobRef, wallpaper: BlobRef?): List<Op> {
+        require(config.size in 1..64L * 1024) { "config.json must be 1 to 65536 bytes" }
+        return listOf(
+            Op.StartActivity(PlannerFixtures.launcher, wait = true),
+            Op.Mkdir(RemoteDir.OVERLAY),
+            Op.PushAsset(config, CONFIG, config.sha256),
+            if (wallpaper != null) Op.PushAsset(wallpaper, WALLPAPER, wallpaper.sha256) else Op.RemoveFile(WALLPAPER),
+            Op.RestartHome(PlannerFixtures.launcher),
+        )
+    }
+    override fun resetPlanSteps(): List<Op> = listOf(Op.RemoveFile(CONFIG), Op.RemoveFile(WALLPAPER), Op.RestartHome(PlannerFixtures.launcher))
+
+    companion object {
+        val CONFIG = RemotePath(RemoteDir.OVERLAY, listOf("config.json"))
+        val WALLPAPER = RemotePath(RemoteDir.OVERLAY, listOf("wallpaper.jpg"))
+    }
 }
 
 // Settings are not part of Samples.snapshot; the hash is recomputed so every store accepts it.

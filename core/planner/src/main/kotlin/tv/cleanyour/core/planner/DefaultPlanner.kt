@@ -220,6 +220,18 @@ class DefaultPlanner(
             val refusedBefore = reasons.size
             val launcherSteps = if (launcherNeeded) launcherInstall(req.launcher, choices.replaceLauncherSigner, stockLaunchers) else false
             if (reasons.size > refusedBefore) return   // the launcher reason says it all; no second reason about the switch
+            // RFC-DOCK-1: the dock (with its rows) and the look picked in the wizard, as one config.json,
+            // only when the new home screen is (or will be) on the TV and the switch is chosen. After the
+            // install, so the launcher's first start finds itself installed; before the guarded section,
+            // so the check screen's "with ... along the bottom" is what the TV shows, and a failed push
+            // happens while the TV's own home screen is still in charge and never touches HOME. The
+            // pushes CONTINUE on failure: a STOP here would pause the setup with an offer to undo the
+            // whole run for a cosmetic step that Manage can send again at any time.
+            val config = req.config
+            if (choices.takeover && config != null && (launcherSteps || installed(launcher.pkg))) {
+                val overlayGone = !installed(launcher.pkg) || replacesLauncher   // a fresh install, or the uninstall took its files
+                look(config, req.wallpaper, overlayGone, FailurePolicy.CONTINUE)
+            }
             if (choices.takeover) takeover(req.launcher, profile, stockLaunchers, launcherSteps)
             homeSwitchRows()
         }
@@ -382,12 +394,28 @@ class DefaultPlanner(
 
         fun applyTheme(config: BlobRef, wallpaper: BlobRef?) {
             if (!installed(launcher.pkg)) { refuse("the new home screen is not installed"); return }
-            val overlayPrior = Prior(present = snapshot.launcherOverlay != null, overlay = snapshot.launcherOverlay)
-            for (op in configTransport.writePlanSteps(config, wallpaper)) {
+            look(config, wallpaper, overlayGone = false, pushPolicy = FailurePolicy.STOP_AND_ROLLBACK)
+        }
+
+        // The transport's config.json steps (D15) with their priors and narration, shared by ApplyTheme
+        // and Setup (RFC-DOCK-1). `overlayGone`: the launcher's folder holds nothing of ours before this
+        // plan (Setup installs the launcher fresh, or replaces it and the uninstall takes its files), so
+        // both pushes record that the files were absent and Undo everything removes them again.
+        // Otherwise the config prior is the overlay the probe read and the wallpaper's is unknown.
+        // `pushPolicy` is the pushes' failure policy; the other steps always CONTINUE.
+        fun look(config: BlobRef, wallpaper: BlobRef?, overlayGone: Boolean, pushPolicy: FailurePolicy) {
+            val ops = try {
+                configTransport.writePlanSteps(config, wallpaper)
+            } catch (e: IllegalArgumentException) {
+                refuse("the look cannot be sent to the TV: ${e.message}"); return
+            }
+            val overlayPrior = if (overlayGone) Prior(present = false) else Prior(present = snapshot.launcherOverlay != null, overlay = snapshot.launcherOverlay)
+            val otherFile = Prior(present = if (overlayGone) false else null)
+            for (op in ops) {
                 val (prior, narration, policy) = when (op) {
-                    is Op.PushAsset -> Triple(if (op.src == config) overlayPrior else Prior(present = null), "Sending the look to the TV", FailurePolicy.STOP_AND_ROLLBACK)
+                    is Op.PushAsset -> Triple(if (op.src == config) overlayPrior else otherFile, "Sending the look to the TV", pushPolicy)
                     is Op.RestartHome -> Triple(null, "Restarting the home screen", FailurePolicy.CONTINUE)
-                    is Op.RemoveFile -> Triple(Prior(present = null), "Clearing the old wallpaper", FailurePolicy.CONTINUE)
+                    is Op.RemoveFile -> Triple(otherFile, "Clearing the old wallpaper", FailurePolicy.CONTINUE)
                     else -> Triple(null, "Preparing the home screen", FailurePolicy.CONTINUE)
                 }
                 step(op, prior, GROUP_THEME, narration, policy)
@@ -477,8 +505,13 @@ class DefaultPlanner(
                     is UndoOrder.Target.File -> {
                         // Only files in the launcher's folder that did not exist before us; a file that
                         // existed cannot be rebuilt in 0.1, and nothing is left to tidy when the launcher goes.
+                        // The earliest record says whether it existed (a push, or the Setup's wallpaper
+                        // removal on a fresh launcher, RFC-DOCK-1); it is on the TV now only when our
+                        // last record of it is a push.
                         val launcherStays = installed(launcher.pkg) && !(removeLauncher && launcher.pkg in ourApps)
-                        if (!launcherStays || t.path.dir != RemoteDir.OVERLAY || c.op !is Op.PushAsset || c.prior?.present != false) continue
+                        if (!launcherStays || t.path.dir != RemoteDir.OVERLAY || c.prior?.present != false) continue
+                        val last = changes.filter { UndoOrder.target(it.op) == t }.maxWithOrNull(UndoOrder.CHRONOLOGICAL)
+                        if (last?.op !is Op.PushAsset) continue
                         step(Op.RemoveFile(t.path), null, GROUP_UNDO, "Clearing the look", FailurePolicy.CONTINUE)
                         clearedLook = true
                     }

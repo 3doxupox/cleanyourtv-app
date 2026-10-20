@@ -95,6 +95,10 @@ owning stream supplies bodies):
 - `core.spec.LauncherConfigDoc` gains `inputAction: String? = null, moduleCards: Boolean? = null`
   and `EffectiveConfig` gains `inputAction: String, moduleCards: Boolean`, both after the existing
   parameters and marked `// RFC-W4-1` (accepted 2026-10-19; PRODUCT-SPEC 5.7 carries the RFC).
+- `core.planner.PlanRequest.Setup` gains `config: BlobRef? = null, wallpaper: BlobRef? = null`, after
+  the existing parameters and defaulted so every caller compiles, marked `// RFC-DOCK-1` (applied on
+  setupcfg 2026-10-20, pending Fable review; RFCS.md carries the RFC). PRODUCT-SPEC 5.8 still shows
+  the four parameter form.
 
 Added because the section 5 prose names it: `core.probe.ProbeException(stage, detail)` (R0: 7).
 
