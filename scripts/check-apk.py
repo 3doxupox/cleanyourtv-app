@@ -32,6 +32,8 @@ D16 = {
     "android.permission.FOREGROUND_SERVICE",
     "android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE",
     "android.permission.POST_NOTIFICATIONS",
+    # RFC-W8-7 (accepted): the credential prompt (BiometricPrompt with the device credential).
+    "android.permission.USE_BIOMETRIC",
 }
 # androidx.core declares and uses <applicationId>.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
 # (signature level) for receivers registered at run time; it grants nothing to other apps.

@@ -129,7 +129,7 @@ Your TV is not listed? See [CONTRIBUTING.md](CONTRIBUTING.md#propose-a-tv-profil
 - "Share diagnostics" shows you a preview first and removes addresses, serial numbers, keys and
   codes; nothing is sent until you choose where to share it.
 - Permissions: internet, network state, Wi-Fi multicast (to find the TV), a foreground service
-  while it works on the TV, and notifications. No location, storage, camera or contacts.
+  while it works on the TV, notifications, and the screen lock prompt (biometric or PIN). No location, storage, camera or contacts.
 
 ## Build from source
 
