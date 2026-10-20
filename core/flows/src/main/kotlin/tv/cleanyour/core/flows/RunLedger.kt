@@ -87,7 +87,7 @@ class RunLedger(private val store: DocumentStore, private val journal: Journal) 
 
     companion object {
         fun isChange(op: Op): Boolean = when (op) {
-            is Op.Read, is Op.VerifyHome, is Op.Settle, Op.PressHome -> false
+            is Op.Read, is Op.VerifyHome, is Op.Settle, Op.PressHome, is Op.CurtainCue -> false
             else -> true
         }
 

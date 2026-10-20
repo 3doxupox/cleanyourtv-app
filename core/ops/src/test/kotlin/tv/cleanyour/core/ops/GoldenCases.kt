@@ -2,6 +2,8 @@ package tv.cleanyour.core.ops
 
 import tv.cleanyour.core.model.BlobRef
 import tv.cleanyour.core.model.Component
+import tv.cleanyour.core.model.CurtainGroup
+import tv.cleanyour.core.model.CurtainStage
 import tv.cleanyour.core.model.EnabledState
 import tv.cleanyour.core.model.InstallFlag
 import tv.cleanyour.core.model.Op
@@ -35,6 +37,16 @@ object GoldenCases {
     val wallpaperPath = RemotePath(RemoteDir.OVERLAY, listOf("wallpaper.jpg"))
 
     private fun p(s: String) = PackageName(s)
+
+    // RFC-CURTAIN-1: the curtain's receiver and one cue per stage, as the Setup plan sends them.
+    val curtainReceiver = Component(PackageName("tv.cleanyour.curtain"), ".CueReceiver")
+    val curtainToken = RunToken("fedcba9876543210")
+    fun cue(stage: CurtainStage): Op.CurtainCue = when (stage) {
+        CurtainStage.SCAN -> Op.CurtainCue(curtainReceiver, curtainToken, stage, 0, 12)
+        CurtainStage.OFF -> Op.CurtainCue(curtainReceiver, curtainToken, stage, 3, 12, CurtainGroup.ADVERTS, 3, 4)
+        CurtainStage.GROUP_DONE -> Op.CurtainCue(curtainReceiver, curtainToken, stage, 4, 12, CurtainGroup.ADVERTS, 4, 4)
+        else -> Op.CurtainCue(curtainReceiver, curtainToken, stage, 0, 0)
+    }
 
     val all: List<GoldenCase> = listOf(
         GoldenCase("01-disable", "Disable a package the profile lists; it was enabled", Op.Disable(p("com.miui.tv.analytics")), Prior(packageState = EnabledState.ENABLED)),
@@ -89,6 +101,13 @@ object GoldenCases {
         GoldenCase("50-settle", "A phone-side wait: no line", Op.Settle(15), null),
         GoldenCase("51-reboot", "Reboot: shown as a line, dispatched to TvSession.reboot", Op.Reboot, null),
         GoldenCase("52-debug-off", "Debugging off: the last op of a session", Op.DebugOff, null),
+        GoldenCase("53-cue-scan", "Curtain cue: the scan, with the plan's switch-off total", cue(CurtainStage.SCAN), null),
+        GoldenCase("54-cue-restore-saved", "Curtain cue: the restore point is saved", cue(CurtainStage.RESTORE_SAVED), null),
+        GoldenCase("55-cue-off", "Curtain cue: one switch-off, third of twelve, third of four adverts", cue(CurtainStage.OFF), null),
+        GoldenCase("56-cue-group-done", "Curtain cue: a group is done", cue(CurtainStage.GROUP_DONE), null),
+        GoldenCase("57-cue-install", "Curtain cue: the new home screen is being installed", cue(CurtainStage.INSTALL), null),
+        GoldenCase("58-cue-installed", "Curtain cue: the new home screen is installed", cue(CurtainStage.INSTALLED), null),
+        GoldenCase("59-cue-finale", "Curtain cue: the finale, before Home switches over", cue(CurtainStage.FINALE), null),
     )
 }
 
@@ -123,6 +142,7 @@ object GoldenText {
         is Op.Settle -> "Settle seconds=${op.seconds}"
         Op.Reboot -> "Reboot"
         Op.DebugOff -> "DebugOff"
+        is Op.CurtainCue -> "CurtainCue receiver=${op.receiver.flat} token=${op.token.value} stage=${op.stage.name} count=${op.count} total=${op.total} group=${op.group.name} groupCount=${op.groupCount} groupTotal=${op.groupTotal}"
     }
 
     fun blob(b: BlobRef) = "${b.sha256.hex}:${b.size}:${b.path}"

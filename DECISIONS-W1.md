@@ -99,6 +99,9 @@ owning stream supplies bodies):
   the existing parameters and defaulted so every caller compiles, marked `// RFC-DOCK-1` (applied on
   setupcfg 2026-10-20, pending Fable review; RFCS.md carries the RFC). PRODUCT-SPEC 5.8 still shows
   the four parameter form.
+- `core.model.Op` gains `CurtainCue(receiver, token, stage, count, total, group, groupCount,
+  groupTotal)` and the enums `CurtainStage` and `CurtainGroup`, marked `// RFC-CURTAIN-1` (applied on
+  curtain 2026-10-20; RFCS.md carries the RFC and the owner's amendment for the group words).
 
 Added because the section 5 prose names it: `core.probe.ProbeException(stage, detail)` (R0: 7).
 

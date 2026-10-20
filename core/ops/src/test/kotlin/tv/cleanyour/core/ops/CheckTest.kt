@@ -98,7 +98,7 @@ class CheckTest {
         bad(r.check(Op.PushAsset(blob, path, sha), "", null))
         ok(r.check(Op.RemoveFile(path), "sha256sum: ${path.absolute}: No such file or directory\n", null))
         bad(r.check(Op.RemoveFile(path), "${sha.hex}  ${path.absolute}\n", null))
-        for (op in listOf(Op.Mkdir(RemoteDir.TMP), Op.PressHome, Op.Reboot, Op.DebugOff, Op.Settle(1), Op.RestartHome(launcher), Op.StartActivity(launcher, true), Op.Read(tv.cleanyour.core.model.ProbeKind.PROPS))) {
+        for (op in listOf(Op.Mkdir(RemoteDir.TMP), Op.PressHome, Op.Reboot, Op.DebugOff, Op.Settle(1), GoldenCases.cue(tv.cleanyour.core.model.CurtainStage.FINALE), Op.RestartHome(launcher), Op.StartActivity(launcher, true), Op.Read(tv.cleanyour.core.model.ProbeKind.PROPS))) {
             ok(r.check(op, "anything", Prior()))
         }
     }

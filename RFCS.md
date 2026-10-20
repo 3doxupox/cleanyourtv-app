@@ -66,3 +66,16 @@ W9 (forge build script, e2e). Smallest alternative: no new op, cues as `PushAsse
 file polled by the curtain; rejected because a push per stage costs a sync round trip, shows as a
 sync line with a hash in Show commands, and leaves files to clean. Ordering: applied on `main` after
 RFC-DOCK-1 (`setupcfg`) merges; the FINALE cue goes before whichever step starts the launcher first.
+
+Applied (curtain, 2026-10-20, owner answers to CURTAIN-PLAN section 8): (1) the TV says the phone's
+words during cleaning ("Adverts: 2 of 4"), so `Op.CurtainCue` carries three more fields after the
+five of the plan, all defaulted: `group: CurtainGroup = NONE`, `groupCount: Int = 0`,
+`groupTotal: Int = 0`, with `enum class CurtainGroup { NONE, ADVERTS, TRACKING, NOBODY_ASKED,
+BRAND_EXTRAS, SHOP_DEMO, OTHER }` in `:core:model`. The cue line gains three constant extras
+(`group` as a string re-checked against `^[A-Z_]{1,16}$`, `gcount` and `gtotal` as ints 0 to 999);
+`count` and `total` stay the switch-offs over the whole plan, for the percent. The words for each
+group live in the curtain APK; the brand in "{brand} extras" is the TV's own `Build.BRAND`, read on
+the TV. (2) The switch "Show the progress on the TV" is in Custom only, default on. (3) Silent. (4)
+Signed with the launcher key K1. One tightening beyond the plan: the renderer refuses a cue whose
+receiver package is not `tv.cleanyour.curtain`, so a cue can never be aimed at another app.
+

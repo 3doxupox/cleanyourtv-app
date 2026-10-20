@@ -43,6 +43,7 @@ class ChangeJsonTest {
         Op.StartActivity(comp, true), Op.Read(ProbeKind.PACKAGES), Op.Read(ProbeKind.PACKAGE_DUMP, ReadArg.Pkg(pkg)),
         Op.Read(ProbeKind.SHA256_OF_FILE, ReadArg.Path(path)), Op.Read(ProbeKind.WATCHDOG_ALIVE, ReadArg.Token(token)),
         Op.Read(ProbeKind.SETTINGS, ReadArg.Ns(SettingsNs.GLOBAL)), Op.Settle(5), Op.Reboot, Op.DebugOff,
+        Op.CurtainCue(comp, token, tv.cleanyour.core.model.CurtainStage.GROUP_DONE, 4, 9, tv.cleanyour.core.model.CurtainGroup.SHOP_DEMO, 2, 2),
     )
 
     @Test fun everyOpRoundTrips() {

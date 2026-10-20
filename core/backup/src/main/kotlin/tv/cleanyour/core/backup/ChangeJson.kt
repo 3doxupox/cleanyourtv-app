@@ -17,6 +17,8 @@ import kotlinx.serialization.json.put
 import tv.cleanyour.core.model.BlobRef
 import tv.cleanyour.core.model.ChangeRecord
 import tv.cleanyour.core.model.Component
+import tv.cleanyour.core.model.CurtainGroup
+import tv.cleanyour.core.model.CurtainStage
 import tv.cleanyour.core.model.EnabledState
 import tv.cleanyour.core.model.InstallFlag
 import tv.cleanyour.core.model.Op
@@ -105,6 +107,10 @@ object ChangeJson {
             is Op.Settle -> put("seconds", op.seconds)
             Op.Reboot -> {}
             Op.DebugOff -> {}
+            is Op.CurtainCue -> {
+                put("receiver", op.receiver.flat); put("token", op.token.value); put("stage", op.stage.name)
+                put("count", op.count); put("total", op.total); put("group", op.group.name); put("groupCount", op.groupCount); put("groupTotal", op.groupTotal)
+            }
         }
     }
 
@@ -134,6 +140,8 @@ object ChangeJson {
         "settle" -> Op.Settle(o.int("seconds"))
         "reboot" -> Op.Reboot
         "debug_off" -> Op.DebugOff
+        "curtain_cue" -> Op.CurtainCue(component(o.str("receiver")), RunToken(o.str("token")), CurtainStage.valueOf(o.str("stage")),
+            o.int("count"), o.int("total"), CurtainGroup.valueOf(o.str("group")), o.int("groupCount"), o.int("groupTotal"))
         else -> throw IllegalArgumentException("unknown op type $type")
     }
 
@@ -160,6 +168,7 @@ object ChangeJson {
         is Op.Settle -> "settle"
         Op.Reboot -> "reboot"
         Op.DebugOff -> "debug_off"
+        is Op.CurtainCue -> "curtain_cue"
     }
 
     fun prior(p: Prior): JsonObject = buildJsonObject {

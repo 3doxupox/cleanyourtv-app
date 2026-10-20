@@ -2,6 +2,8 @@ package tv.cleanyour.core.ops
 
 import tv.cleanyour.core.model.BlobRef
 import tv.cleanyour.core.model.Component
+import tv.cleanyour.core.model.CurtainGroup
+import tv.cleanyour.core.model.CurtainStage
 import tv.cleanyour.core.model.InstallFlag
 import tv.cleanyour.core.model.Op
 import tv.cleanyour.core.model.PackageName
@@ -71,7 +73,11 @@ class RendererPropertyTest {
         return Op.Read(kind, arg)
     }
 
-    private fun anyOp(): Op = when (rnd.nextInt(22)) {
+    private val curtain = Component(PackageName("tv.cleanyour.curtain"), ".CueReceiver")
+    private fun cue() = Op.CurtainCue(curtain, token(), CurtainStage.entries[rnd.nextInt(CurtainStage.entries.size)], rnd.nextInt(0, 1000), rnd.nextInt(0, 1000),
+        CurtainGroup.entries[rnd.nextInt(CurtainGroup.entries.size)], rnd.nextInt(0, 1000), rnd.nextInt(0, 1000))
+
+    private fun anyOp(): Op = when (rnd.nextInt(23)) {
         0 -> Op.Disable(pkg())
         1 -> Op.Enable(pkg())
         2 -> Op.DefaultState(pkg())
@@ -93,6 +99,7 @@ class RendererPropertyTest {
         18 -> read()
         19 -> Op.Settle(rnd.nextInt(1, 61))
         20 -> Op.Reboot
+        21 -> cue()
         else -> Op.DebugOff
     }
 
@@ -128,6 +135,40 @@ class RendererPropertyTest {
             r.verify?.let { v -> renderer.render(v).lines.forEach { ShellTokens.assertLine(it.text) } }
         }
         assertTrue(lines > 3500)
+    }
+
+    // RFC-CURTAIN-1: every cue is one fixed argv: constant words, the token, two enum names and four
+    // decimal numbers; nothing out of range or aimed at another package renders.
+    @Test fun everyCueIsOneFixedArgv() {
+        repeat(2000) {
+            val op = cue()
+            val r = renderer.render(op)
+            val argv = ShellTokens.tokenize(r.lines.single().text)
+            assertEquals(listOf("am", "broadcast", "-n", "tv.cleanyour.curtain/.CueReceiver", "-a", "tv.cleanyour.curtain.CUE",
+                "--es", "token", op.token.value, "--es", "stage", op.stage.name, "--es", "group", op.group.name,
+                "--ei", "count", "${op.count}", "--ei", "total", "${op.total}", "--ei", "gcount", "${op.groupCount}", "--ei", "gtotal", "${op.groupTotal}"), argv)
+            assertEquals(Privilege.PROFILE_STEP, r.privilege)
+            assertEquals(null, r.verify)
+            assertEquals(null, r.transfer)
+            assertEquals(null, renderer.inverse(op, tv.cleanyour.core.model.Prior(present = false)))
+        }
+        val t = RunToken("0123456789abcdef")
+        val bad = listOf(
+            Op.CurtainCue(curtain, t, CurtainStage.OFF, -1, 3), Op.CurtainCue(curtain, t, CurtainStage.OFF, 1, 1000),
+            Op.CurtainCue(curtain, t, CurtainStage.OFF, 1, 3, CurtainGroup.ADVERTS, 1000, 1), Op.CurtainCue(curtain, t, CurtainStage.OFF, 1, 3, CurtainGroup.ADVERTS, 1, -5),
+            Op.CurtainCue(Component(PackageName("com.gathin.tvhome"), ".CueReceiver"), t, CurtainStage.SCAN, 0, 0),
+            Op.CurtainCue(Component(PackageName("tv.cleanyour.curtainx"), ".CueReceiver"), t, CurtainStage.SCAN, 0, 0),
+        )
+        for (op in bad) assertFailsWith<RenderRefused>(op.toString()) { renderer.render(op) }
+    }
+
+    // A plan with a cue hashes differently from the same plan without it (the cue lines are in the hash).
+    @Test fun cueLinesAreInThePlanHash() {
+        val base = listOf(Op.Disable(PackageName("com.miui.tv.analytics")), Op.Settle(3)).map { renderer.render(it) }
+        val withCue = base + renderer.render(Op.CurtainCue(curtain, RunToken("0123456789abcdef"), CurtainStage.FINALE, 0, 0))
+        assertTrue(renderer.planHash(base) != renderer.planHash(withCue))
+        val otherStage = base + renderer.render(Op.CurtainCue(curtain, RunToken("0123456789abcdef"), CurtainStage.INSTALL, 0, 0))
+        assertTrue(renderer.planHash(withCue) != renderer.planHash(otherStage))
     }
 
     @Test fun inverseOfAnInverseRendersToo() {
