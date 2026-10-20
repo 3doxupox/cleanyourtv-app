@@ -121,7 +121,7 @@ internal object DebloatTxt {
         for (l in lines) {
             val t = commentText(l)
             val lower = t.lowercase().removePrefix("- ")
-            val starts = lower.startsWith("keep") || "do not disable" in lower || "must stay enabled" in lower || "keep enabled" in lower
+            val starts = KEEP_WORD.containsMatchIn(lower) || "do not disable" in lower || "must stay enabled" in lower || "keep enabled" in lower
             if (starts) { inKeep = true; bulletStart = t.startsWith("- ") }
             else if (inKeep && (t.isEmpty() || (bulletStart && t.startsWith("- ")) || HEADING.containsMatchIn(t) || lower.startsWith("already "))) inKeep = false
             if (inKeep) out += packagesIn(t)
@@ -129,6 +129,8 @@ internal object DebloatTxt {
         return out
     }
     private val HEADING = Regex("^[A-Z][A-Za-z ]{2,40}:")
+    // "Keep" as a word: a wrapped sentence that goes on "keeps X; re-enable ..." starts no keep list.
+    private val KEEP_WORD = Regex("^keep\\b")
 
     fun parse(text: String, folder: String, meta: FolderMeta?): Profile {
         val scan = scan(text, folder)

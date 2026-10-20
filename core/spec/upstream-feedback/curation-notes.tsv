@@ -3,6 +3,15 @@
 # network setup, store, installer, system UI, sole keyboard, TV input, firmware updater,
 # accessibility helper or stock home outside the home screen switch is ever default-off).
 # folder	package	note
+aipro2k	(match)	the header names the maker Expressluck but not the brand string the TV reports; the profile matches when brand or manufacturer is Expressluck
+aipro2k	com.mediatek.androidbox	called a Wi-Fi Display test app here, but the Hisense A4 and Haier lists keep it as the Miracast receiver; casting ask row
+amazon-fire-tv-stick-4k-2018	(launcher)	Fire OS: the clean-up only; the app does not offer the home screen here
+amazon-fire-tv-stick-4k-2018	com.amazon.franktvinput	the live TV input behind the Live tab; TV inputs are never default-off, so it is an ask row
+amazon-fire-tv-stick-4k-2018	com.amazon.hedwig	Fire TV Channels, which also registers a Live input; ask row
+amazon-fire-tv-stick-4k-2018	com.amazon.tahoe	Amazon Kids, a parental control; ask row as on insignia-ns55f301na25
+amazon-fire-tv-stick-4k-2018	com.amazon.tv.livetv	the Live tab and guide (never-disable on insignia-ns55f301na25); ask row
+amazon-fire-tv-stick-4k-2018	com.amazon.whisperjoin.wss.wifiprovisioner	Wi-Fi provisioning for other Amazon devices; network setup is never default-off
+amazon-fire-tv-stick-4k-2018	com.amazon.wifilocker	default-off as listed (it uploads saved Wi-Fi passwords to Amazon), as on insignia-ns55f301na25
 benq-e55-750	(match)	model AI PONT on Android 11; benq-e55-735 is the same model on Android 14, told apart by the SDK
 haier-android-tv-dvb2k	com.cvte.haier.tv.appmanager	a boot receiver that manages Haier apps, purpose not clear; ask row
 haier-android-tv-dvb2k	com.haierubic.usmartdevice	Haier smart-device service in the list's telemetry group, purpose not clear; ask row
@@ -25,6 +34,17 @@ hitachi-65qledsm20	fusion.android.tv.demo	the header says it handles the remote'
 hitachi-cdh-le32smart21	(match)	a Hitachi-branded TCL build: the fingerprint's brand is TCL, so the profile's brand is TCL; the AR14 fingerprint keeps it apart from tcl-40s5400a on the same C06 product
 hitachi-cdh-le32smart21	com.google.android.apps.nbu.smartconnect.tv	registers a VPN service; tcl-g07 leaves it alone as unclear; ask row
 hitachi-cdh-le32smart21	com.tcl.useragreement	tcl-55s470g and tcl-c755 keep it (setup screens); ask row
+jmgo-n1s-holan	(header)	the header's never-disable list (optics, gimbal, remote and updates) is in the curated never-disable list, since the keep-list reader only reacts to keep wording
+jmgo-n1s-holan	com.jmgo.helpcenter	the help centre also carries a preinstall download service; an extras ask row
+kalley-r10g	(match)	same R10G hardware as prismplus-q65-ultra-r10g; this profile needs the TV to report the brand Kalley, and the PRISM+ one matches on the maker MOKA
+kalley-r10g	com.seraphic.media.tv.interactive.app	interactive broadcast service, purpose not documented; ask row
+nvidia-shield-tv-2019	com.android.bluetoothmidiservice	a Bluetooth service by name; ask row
+nvidia-shield-tv-2019	com.android.hotspot2.osulogin	Passpoint hotspot sign-in is network setup; ask row
+nvidia-shield-tv-2019	com.google.android.tv	Live Channels hosts network tuner inputs; ask row
+nvidia-shield-tv-2019	com.nvidia.KeyComboOta	the owner's choice; updaters stay Software updates (the Pro list keeps it on)
+nvidia-shield-tv-2019	com.nvidia.tegraprofiler.security	purpose not documented beyond profiler permissions; ask row
+onn-4k-streaming-box-2023	(match)	the header gives device YOC but not the brand string; the profile matches when brand or manufacturer is onn
+onn-4k-streaming-box-2023	com.google.android.tungsten.setupwraith	the header says it owns the Wi-Fi saved at setup; the takeover's Wi-Fi guard skips it then
 panasonic-4ktv-jup	com.google.android.tungsten.setupwraith	listed as a background service; the header does not say it takes Home, so the meta names no wizard, but the converter still moves a listed wizard into the home screen switch (R5-W4 O3), where the Wi-Fi guard applies
 panasonic-4ktv-jup	com.mediatek.wwtv.tvrecommendation	the header says never disable any com.mediatek package (tuner, input and HDMI stack); ask row
 panasonic-th-40hs550k	(match)	Skyworth-built; the brand is taken as Panasonic, which the TV's brand or manufacturer must report for the profile to match
@@ -43,6 +63,10 @@ philips-65pus8102	com.opera.sdk.example	on Sony sets this package is the built-i
 philips-65pus8102	org.droidtv.nettvregistration	the philips-50pus8517 header files it with the firmware update packages; Software updates row
 philips-r8g-google-tv	(match)	ro.product.brand is PHILIPS and the manufacturer MOKA; brands match without case
 philips-r8g-google-tv	com.google.android.tungsten.setupwraith	the header reports it deleted the Wi-Fi saved at setup; the takeover's Wi-Fi guard skips it when it owns the network
+prismplus-q65-ultra-r10g	(match)	the header names the maker MOKA but not the PRISM+ brand string, so the profile matches on the maker; kalley-r10g (same R10G hardware) wins when the TV reports Kalley
+prismplus-q65-ultra-r10g	com.apps.wifihotspot	a Wi-Fi hotspot service; network setup is never default-off
+prismplus-q65-ultra-r10g	com.mk.tv.meeting.service	purpose not documented; ask row
+prismplus-q65-ultra-r10g	com.realtek.dtmb	the unused broadcast tuners are TV inputs, never default-off; ask row (with com.realtek.tv.isdb and com.realtek.tv.atsc)
 skyworth-swtv-21ae	com.cltv.fast	FAST channels register a TV input (hitachi-65qledsm20 header); ask row
 skyworth-swtv-24na-4k-nf	com.google.android.tungsten.setupwraith	the header reports it deleted the Wi-Fi saved at setup; the takeover's Wi-Fi guard skips it when it owns the network
 skyworth-swtv-24na-4k-nf	tv.mopa.ginga	default-off as listed: Brazilian interactive TV, unused on this US set (the U75 and C755 lists keep it where it is used)
@@ -104,6 +128,14 @@ tcl-uniontv-latin-america	com.tcl.appmarket2	TCL's app store, carries a package 
 tcl-uniontv-latin-america	com.tcl.common.terminalmanagerplus	device management that watches installs; tcl-beyondtv2 and the Thomson list keep it; ask row
 tcl-uniontv-latin-america	com.tcl.copydatatotv	tcl-beyondtv2 and the Thomson list keep it; ask row
 tcl-uniontv-latin-america	com.tcl.tvweishi	carries a package installer service; ask row
+thomson-32he5800	(match)	a TCL-built UnionTV sold as Thomson; if the TV reports the brand TCL it gets tcl-uniontv-latin-america, the same platform and build
+thomson-32he5800	com.tcl.appmarket2	TCL's app store, carries a package installer service; ask row
+thomson-32he5800	com.tcl.tvweishi	the header says it has its own installer; ask row
+vu-4k-lushan	(match)	the header names the manufacturer HVCL; the profile matches on it (Vu's own brand string is not given)
+wanbo-x5-pro	(match)	the header gives the manufacturer SkyworthDigital (the projector's Google TV stick); the profile matches on it
+wanbo-x5-pro	com.amlogic.voicesubtitle	a voice subtitle overlay, an accessibility aid; ask row
+wanbo-x5-pro	com.google.android.tungsten.setupwraith	the header reports it deleted the Wi-Fi saved at setup; the takeover's Wi-Fi guard skips it then
+wanbo-x5-pro	com.sdt.producttest	factory test apps; other brands keep their factory menus, so the group is an ask row
 xiaomi-mi-box-s-2nd-gen	com.xiaomi.tvqs.overseas	never-disable here: the header says it is the box's quick settings panel (the MOSR4 and MOOR2 lists call it Firebase analytics), which also keeps it out of the Xiaomi sure set
 xiaomi-mitv-afmu0	com.google.android.marvin.talkback	listed under preloaded apps; accessibility is never default-off, so it is an ask row
 xiaomi-mitv-afmu0	com.mitv.videoplayer	listed under preloaded apps; it is the USB video player, so it is an ask row

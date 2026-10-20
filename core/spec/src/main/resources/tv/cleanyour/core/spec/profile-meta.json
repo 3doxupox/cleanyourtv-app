@@ -2,6 +2,75 @@
   "schema": 1,
   "upstreamCommit": "69c93b6",
   "profiles": {
+    "aipro2k": {
+      "match": { "models": [], "devices": ["dongnae"], "brand": "Expressluck", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.mediatek.wwtv.tvcenter",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": ["com.mediatek.wwtv.tvcenter.plus"],
+      "suggestedDock": [],
+      "tested": { "by": "Alefrankie (PR #233)", "firmware": "UKN6.260116.085", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Telemetry and ad services": { "category": "tracking", "ask": false },
+        "Content rows and partner junk": { "category": "ads", "ask": false },
+        "Preloaded apps and demos": { "category": "preloads", "ask": false },
+        "Stock launcher and its first-run wizard. Do this LAST, after the new launcher is installed and set as": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.android.adservices.api": { "category": "ads", "ask": false },
+        "com.android.ondevicepersonalization.services": { "category": "ads", "ask": false },
+        "com.google.android.syncadapters.calendar": { "category": "other", "ask": false },
+        "fusion.android.tv.demo": { "category": "demo", "ask": false },
+        "com.mediatek.androidbox": { "category": "casting", "ask": true },
+        "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": true },
+        "com.google.android.apps.tv.dreamx": { "category": "screensaver", "ask": true },
+        "com.google.android.tts": { "category": "accessibility", "ask": true }
+      }
+    },
+    "amazon-fire-tv-stick-4k-2018": {
+      "match": { "models": ["AFTMM"], "devices": ["mantis"], "brand": "Amazon", "sdkMin": 25, "sdkMax": 25, "fingerprintPrefix": null },
+      "platform": "FIRE_OS",
+      "stockLaunchers": ["com.amazon.tv.launcher"],
+      "liveTv": null,
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.amazon.tv.launcher", "com.amazon.tv.ime", "com.amazon.venezia", "com.amazon.tigris", "com.amazon.vizzini", "com.amazon.logan"],
+      "suggestedDock": [],
+      "tested": { "by": "IdentityDC (PR #195)", "firmware": "Fire OS 6.7.1.1 (NS6711/5908)", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Amazon telemetry, metrics, logs, crash and usage reporting": { "category": "tracking", "ask": false },
+        "com.amazon.device.metrics                 # protected by Fire OS": { "category": "tracking", "ask": false },
+        "com.amazon.minerva.client.api            # protected by Fire OS": { "category": "tracking", "ask": false },
+        "com.amazon.device.logmanager              # protected by Fire OS": { "category": "tracking", "ask": false },
+        "com.amazon.diode                        # on-device analysis / diagnostics uploader (protected by Fire OS)": { "category": "tracking", "ask": false },
+        "com.fireos.usagestats.proxy             # reports app usage to Amazon (protected by Fire OS)": { "category": "brand", "ask": false },
+        "Ads, sponsored rows, recommendations, promos": { "category": "ads", "ask": false },
+        "com.amazon.ftvads.deeplinking           # ad deep links (protected by Fire OS)": { "category": "ads", "ask": false },
+        "Preloaded Amazon apps and services not used": { "category": "preloads", "ask": false },
+        "Alexa extras (voice search itself stays on)": { "category": "voice", "ask": true },
+        "Streaming apps not used (kept: Netflix, Prime Video, Disney+, Apple TV, DirecTV, Crunchyroll, YouTube)": { "category": "streaming", "ask": true },
+        "Added 2026-10-19 from the Insignia and Toshiba Fire OS 7 lists in this repo": { "category": "brand", "ask": false }
+      },
+      "packages": {
+        "com.amazon.hedwig": { "category": "ads", "ask": true },
+        "com.amazon.tv.livetv": { "category": "other", "ask": true },
+        "com.amazon.franktvinput": { "category": "ads", "ask": true },
+        "com.amazon.livedeviceservice": { "category": "tracking", "ask": false },
+        "com.amazon.gamehub": { "category": "preloads", "ask": true },
+        "com.amazon.imdb.tv.android.app": { "category": "streaming", "ask": true },
+        "com.amazon.minitv.android.app": { "category": "preloads", "ask": true },
+        "com.amazon.tahoe": { "category": "brand", "ask": true },
+        "com.amazon.whisperjoin.middleware.np": { "category": "other", "ask": true },
+        "com.amazon.whisperjoin.wss.wifiprovisioner": { "category": "other", "ask": true },
+        "com.amazon.tv.ffsprovisioneeclient": { "category": "other", "ask": true },
+        "com.amazon.ods.kindleconnect": { "category": "brand", "ask": false },
+        "com.amazon.privacypassservice": { "category": "tracking", "ask": false },
+        "com.amazon.providers.contentsupport": { "category": "ads", "ask": false },
+        "com.amazon.tv.releasenotes": { "category": "other", "ask": false }
+      }
+    },
     "benq-e55-735": {
       "match": { "models": ["AI PONT"], "devices": [], "brand": "BenQ", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
       "platform": "GOOGLE_TV",
@@ -69,6 +138,30 @@
         "com.google.android.syncadapters.calendar": { "category": "other", "ask": false },
         "com.google.android.katniss": { "category": "voice", "ask": true },
         "com.homwee.alexacontrol": { "category": "voice", "ask": true }
+      }
+    },
+    "chiq-gtvu65": {
+      "match": { "models": ["AI PONT"], "devices": ["dangni"], "brand": "CHiQ", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.mediatek.wwtv.tvcenter.plus",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": ["com.mediatek.wwtv.tvcenter.plus"],
+      "suggestedDock": [],
+      "tested": { "by": "Mfolio (PR #133)", "firmware": "UKN2.241219.138.A1", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Telemetry and ad services": { "category": "tracking", "ask": false },
+        "Changhong / Homwee store and help": { "category": "brand", "ask": false },
+        "Preloaded apps": { "category": "preloads", "ask": false },
+        "Streaming apps not used in this home (by choice; keep the ones you use)": { "category": "streaming", "ask": true },
+        "Stock home. Disable only after the new launcher is installed and set as home.": { "category": "home", "ask": false },
+        "Launcher partner customization (rows and branding for the stock home). Unlike the Google variant on": { "category": "ads", "ask": false }
+      },
+      "packages": {
+        "android.autoinstalls.config.google.gtvpai": { "category": "ads", "ask": false },
+        "com.android.adservices.api": { "category": "ads", "ask": false },
+        "com.google.android.marvin.talkback": { "category": "accessibility", "ask": true }
       }
     },
     "google-chromecast-gtv-4k": {
@@ -399,6 +492,92 @@
         "com.amazon.tv.ottssocompanionapp": { "category": "other", "ask": true }
       }
     },
+    "jmgo-n1s-holan": {
+      "match": { "models": ["K80A"], "devices": ["holan"], "brand": "JMGO", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": null,
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": ["com.jmgo.hippo", "com.jmgo.autofocus", "com.jmgo.tofautofocus", "com.jmgo.autokeystone", "com.jmgo.dewarping", "com.jmgo.ptz", "com.jmgo.autobrightness", "com.jmgo.a2dpsinkservice", "com.jmgo.android.tv.globalkeyoverlay", "com.jmgo.remotecontrolota", "com.jmgo.factory", "com.jmgo.update", "com.softwinner.tvremoteserver"],
+      "suggestedDock": [],
+      "tested": { "by": "spikeganush (PR #284)", "firmware": "UKNV.260401.001", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "JMGO telemetry": { "category": "tracking", "ask": false },
+        "JMGO extras": { "category": "brand", "ask": true },
+        "Retail demo": { "category": "demo", "ask": false },
+        "Google telemetry": { "category": "tracking", "ask": false },
+        "Google preloads": { "category": "preloads", "ask": false },
+        "Partner rows on the stock home screen": { "category": "ads", "ask": false },
+        "Google TV setup wizard: only its RecoveryActivity matters after setup, see the quirk above.": { "category": "home", "ask": false },
+        "Stock Google TV launcher, replaced by launcher/": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.jmgo.overseas.atmosphere": { "category": "screensaver", "ask": true }
+      }
+    },
+    "kalley-r10g": {
+      "match": { "models": [], "devices": ["R10G"], "brand": "Kalley", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": null,
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": ["com.realtek.dtv", "com.realtek.tv.atv", "com.realtek.tv", "com.apps.ota", "com.apps.authota", "com.realsil.ota"],
+      "suggestedDock": [],
+      "tested": { "by": "Keneth Lallemand (PR #266)", "firmware": "UKR1.260612.001", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "Google partner setup and store plumbing": { "category": "tracking", "ask": false },
+        "Preloaded services": { "category": "other", "ask": true },
+        "Karaoke": { "category": "preloads", "ask": true },
+        "Preloaded apps not used on this set; comment out anything you use": { "category": "streaming", "ask": true },
+        "Stock home and the Google TV setup wizard. Disable only after the new launcher is installed and": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.google.android.videos": { "category": "streaming", "ask": true },
+        "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": true },
+        "com.amazon.amazonvideo.livingroom": { "category": "streaming", "ask": true },
+        "net.froemling.bombsquad": { "category": "preloads", "ask": false },
+        "com.yodo1.crossyroad": { "category": "preloads", "ask": false }
+      }
+    },
+    "nvidia-shield-tv-2019": {
+      "match": { "models": ["P3430"], "devices": ["sif"], "brand": "NVIDIA", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": null,
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.nvidia.blakepairing", "com.nvidia.shieldtech.accessoryui", "com.nvidia.ControllerMapper", "com.nvidia.remotelocator", "com.nvidia.irtuner", "com.nvidia.NvCPLSvc", "com.nvidia.nvaudiosvc", "com.nvidia.avsync", "com.dolby.android.audio.service", "com.nvidia.packagemanagerservice", "com.android.tv.settings", "com.android.providers.tv", "com.google.android.tv.remote.service", "com.google.android.tungsten.setupwraith", "com.android.se"],
+      "suggestedDock": [],
+      "tested": { "by": "xbsheng (PR #314), reported by geekitup (issue #312)", "firmware": "RQ1A.210105.003 (SHIELD Experience 9.2.4)", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "NVIDIA and Google telemetry and feedback": { "category": "tracking", "ask": false },
+        "Sponsored rows, promos and auto-installs": { "category": "ads", "ask": false },
+        "NVIDIA gaming leftovers": { "category": "brand", "ask": false },
+        "Preloaded apps and services": { "category": "preloads", "ask": false },
+        "Personal choice (the owner's picks)": { "category": "updates", "ask": true },
+        "Idle stubs: no RAM saved, disabled for tidiness; nothing broke across a reboot": { "category": "other", "ask": false },
+        "Stock Android TV launcher: disabling it is what hands Home to the replacement launcher": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.nvidia.developerwidget": { "category": "other", "ask": true },
+        "com.nvidia.tegraprofiler.security": { "category": "other", "ask": true },
+        "com.nvidia.factorysyschecker": { "category": "demo", "ask": false },
+        "com.nvidia.factory": { "category": "demo", "ask": true },
+        "com.nvidia.inputviewer": { "category": "demo", "ask": false },
+        "com.nvidia.shield.beta": { "category": "brand", "ask": false },
+        "com.nvidia.shieldbeta": { "category": "brand", "ask": false },
+        "com.nvidia.shield.nas": { "category": "brand", "ask": true },
+        "com.nvidia.shield.smbserver": { "category": "brand", "ask": true },
+        "com.nvidia.shield.smbauth": { "category": "brand", "ask": true },
+        "com.google.android.apps.nbu.smartconnect.tv": { "category": "other", "ask": true },
+        "com.google.android.tv": { "category": "other", "ask": true },
+        "com.google.android.backdrop": { "category": "screensaver", "ask": true },
+        "com.android.hotspot2.osulogin": { "category": "other", "ask": true },
+        "com.android.bluetoothmidiservice": { "category": "other", "ask": true }
+      }
+    },
     "nvidia-shield-tv-pro-2019": {
       "match": { "models": ["P2897"], "devices": ["mdarcy"], "brand": "NVIDIA", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
       "platform": "ANDROID_TV",
@@ -436,6 +615,27 @@
       },
       "packages": {
         "com.google.android.tvrecommendations": { "category": "ads", "ask": false }
+      }
+    },
+    "onn-4k-streaming-box-2023": {
+      "match": { "models": [], "devices": ["YOC"], "brand": "onn", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": null,
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": ["com.gretzky.GlobalKey", "com.gretzky.hwinfo", "com.onn.bluetoothconnect", "com.onn.updatenotification", "com.google.android.tv.dfuservice", "com.google.android.tv.remote.service"],
+      "suggestedDock": [],
+      "tested": { "by": "shuklamrajat (PR #270)", "firmware": "URO4.260304.011.B1.15051976", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "Telemetry and feedback": { "category": "tracking", "ask": false },
+        "Preloaded apps": { "category": "preloads", "ask": false },
+        "Google ambient mode screensaver (replaced by the launcher's Clock screensaver)": { "category": "screensaver", "ask": true },
+        "Stock home. launcher/build-and-install.sh disables launcherx itself once the new launcher is installed": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.google.android.videos": { "category": "streaming", "ask": true },
+        "com.google.android.marvin.talkback": { "category": "accessibility", "ask": true }
       }
     },
     "panasonic-4ktv-jup": {
@@ -651,6 +851,33 @@
         "com.smartdevice.myapp": { "category": "brand", "ask": false },
         "com.Smartdevice.emanual": { "category": "preloads", "ask": false },
         "com.google.android.feedback": { "category": "tracking", "ask": false }
+      }
+    },
+    "prismplus-q65-ultra-r10g": {
+      "match": { "models": [], "devices": ["R10G"], "brand": "MOKA", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": null,
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.realtek.dtv", "com.realtek.tv.atv"],
+      "suggestedDock": [],
+      "tested": { "by": "dineshalphaque (PR #238)", "firmware": "UKR1.251010.001", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "Launcher partner customization and Google partner setup": { "category": "ads", "ask": false },
+        "Preloaded services": { "category": "other", "ask": true },
+        "Broadcast tuner apps not used here (DTMB, ISDB, ATSC)": { "category": "other", "ask": true },
+        "Karaoke": { "category": "preloads", "ask": true },
+        "Preloaded apps": { "category": "preloads", "ask": true },
+        "Stock home. Disable only after the new launcher is installed and running, or Home lands on a factory test app.": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.google.android.partnersetup": { "category": "tracking", "ask": false },
+        "com.google.android.apps.tv.dreamx": { "category": "screensaver", "ask": true },
+        "com.apps.scast": { "category": "casting", "ask": true },
+        "com.apps.esticker3": { "category": "demo", "ask": false },
+        "com.android.printspooler": { "category": "preloads", "ask": false },
+        "com.wbd.stream": { "category": "streaming", "ask": true }
       }
     },
     "rca-ai-pont": {
@@ -1744,6 +1971,33 @@
         "com.android.dreams.basic": { "category": "screensaver", "ask": true }
       }
     },
+    "thomson-32he5800": {
+      "match": { "models": ["UnionTV"], "devices": ["UnionTV"], "brand": "Thomson", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.tcl.tv",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": [],
+      "suggestedDock": [],
+      "tested": { "by": "MarioParraL (PR #130)", "firmware": "PPR2.180905.006.A1", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "Telemetry and analytics": { "category": "tracking", "ask": false },
+        "Content, ads and promos": { "category": "ads", "ask": false },
+        "Background services": { "category": "brand", "ask": true },
+        "Preloaded apps": { "category": "preloads", "ask": false },
+        "Off by choice on this unit": { "category": "preloads", "ask": true }
+      },
+      "packages": {
+        "android.autoinstalls.config.tcl.device": { "category": "ads", "ask": false },
+        "com.tcl.appmarket2": { "category": "brand", "ask": true },
+        "com.tcl.usercenter": { "category": "other", "ask": true },
+        "com.tcl.esticker": { "category": "demo", "ask": false },
+        "com.tcl.useragreement": { "category": "other", "ask": true },
+        "com.google.android.katniss": { "category": "voice", "ask": true },
+        "com.google.android.speech.pumpkin": { "category": "voice", "ask": true }
+      }
+    },
     "toshiba-fire-tv-aftha004": {
       "match": { "models": ["AFTHA004"], "devices": ["hazel"], "brand": "Amazon", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": null },
       "platform": "FIRE_OS",
@@ -1765,6 +2019,57 @@
       "packages": {
         "com.amazon.tv.acr": { "category": "tracking", "ask": false },
         "com.amazon.tv.democontent.provider": { "category": "demo", "ask": false }
+      }
+    },
+    "vu-4k-lushan": {
+      "match": { "models": ["VU 4K"], "devices": ["lushan"], "brand": "HVCL", "sdkMin": 31, "sdkMax": 31, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.vt.tv.tvcenter",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": ["com.vt.tv.tvcenter", "com.vt.source.external", "com.vt.tv.input", "com.vt.tvservice", "com.vt.avmiddleware", "com.vt.edv.drmp", "com.vt.tv.commonui", "com.vt.tv.videocolor", "com.vt.eula", "com.vt.udpserver"],
+      "suggestedDock": [],
+      "tested": { "by": "harshmandalgi (PR #182)", "firmware": "STT2.230929.001.080", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Vu telemetry: ACR (\"Enhanced Viewing\" content recognition, consent and promotion screens)": { "category": "tracking", "ask": false },
+        "Ads, auto-installs, retail demo": { "category": "ads", "ask": false },
+        "Preloaded apps not used (by choice)": { "category": "preloads", "ask": false },
+        "Google TV setup wizard: its RecoveryActivity claims Home at priority 1 and can crash-loop system_server": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.vt.storemode": { "category": "demo", "ask": false },
+        "com.google.android.videos": { "category": "streaming", "ask": true },
+        "com.hisense.odinbrowser": { "category": "preloads", "ask": true },
+        "com.mxtech.videoplayer.television": { "category": "streaming", "ask": true },
+        "com.vt.alexa": { "category": "voice", "ask": true }
+      }
+    },
+    "wanbo-x5-pro": {
+      "match": { "models": ["4K Google TV Stick"], "devices": ["YYT"], "brand": "SkyworthDigital", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": null,
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": ["com.sdt.projector.observer", "com.mft.rcupair", "com.sdt.globalkey", "com.mft.frontpanelledsservice", "com.google.android.tv.dfuservice", "com.dolby.android.audio.service", "com.sdt.customization", "com.android.devicelockcontroller"],
+      "suggestedDock": [],
+      "tested": { "by": "swordfish6975 (PR #303)", "firmware": "UKG3.260128.001.C3.3.5_20260723", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "Telemetry and remote management": { "category": "tracking", "ask": false },
+        "Ads and personalization": { "category": "ads", "ask": false },
+        "Factory test apps": { "category": "demo", "ask": true },
+        "Unused on a projector stick": { "category": "preloads", "ask": false },
+        "Off by choice (comment out if you use them)": { "category": "voice", "ask": true },
+        "Stock home, only for a replacement launcher. Re-enable setupwraith before a factory reset.": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.android.federatedcompute.services": { "category": "tracking", "ask": false },
+        "com.amlogic.voicesubtitle": { "category": "accessibility", "ask": true },
+        "com.android.hotspot2.osulogin": { "category": "other", "ask": true },
+        "com.google.android.syncadapters.calendar": { "category": "other", "ask": false },
+        "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": true },
+        "com.google.android.marvin.talkback": { "category": "accessibility", "ask": true }
       }
     },
     "xgimi-horizon-s-pro": {

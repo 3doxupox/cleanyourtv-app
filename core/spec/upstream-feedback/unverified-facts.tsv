@@ -2,6 +2,9 @@
 # contributor's comments and not known for sure. The text in facts.tsv is a best reading of the
 # package name; confirm it on a real TV (or from the app's own label) and drop the line here.
 # package	why it is unverified
+com.apps.mk.gameui	purpose from the package name
+com.apps.puresound	purpose from the package name (could be audio processing)
+com.apps.scast	the list itself says likely screen mirroring
 com.cvte.haier.tv.appmanager	purpose from the list's comment only (a boot receiver that manages Haier apps)
 com.gameloft.android.HEP.GloftANHP	which Gameloft game it is
 com.goodtoolapps.zeus	what the app does; the list only says Zeus
@@ -9,8 +12,12 @@ com.haierubic.usmartdevice	what the service does; the list only says smart-devic
 com.hisense.myapplication	taken for a screensaver from the list's comment (DayDreamService)
 com.joxdev.orbia	what the app is (taken for a game from the list's games group)
 com.mautilus.tvgames.portal.androidtv	what the app is (taken for a game portal from the name and group)
+com.mediatek.androidbox	what it is on each set: the Miracast receiver on the Hisense and Haier lists, a test app on the AiPro2K
 com.mediatek.wwtv.tvrecommendation	purpose from the package name
 com.mitv.ABUpdateStatus	purpose from the package name; the list files it under firmware updates
+com.mk.tv.meeting.service	purpose from the package name
+com.nvidia.developerwidget	purpose from the list's short comment only
+com.seraphic.media.tv.interactive.app	purpose from the package name
 com.sony.dtv.b2b.noderuntimeextension.bpk	what the extension does; from the package name
 com.sony.dtv.calibrationmonitor	purpose from the package name
 com.sony.dtv.irbrecommendation	purpose from the package name (the irb packages run the IR blaster)

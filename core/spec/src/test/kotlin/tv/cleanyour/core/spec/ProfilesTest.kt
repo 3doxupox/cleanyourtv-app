@@ -25,7 +25,7 @@ class ProfilesTest {
 
     @Test fun everyConvertedUpstreamExampleParsesWithCuratedMetadata() {
         assertEquals(93, upstream.size)
-        assertEquals(79, examples.size)
+        assertEquals(90, examples.size)
         for (e in examples) {
             val profile = DebloatTxtParser.parse(e.debloatTxt, e.folder)
             assertEquals(e.folder, profile.id)
@@ -60,7 +60,7 @@ class ProfilesTest {
     @Test fun theUnconvertedListIsPinnedToTheSubmodule() {
         val meta = ProfileMeta.decode(File(Fixtures.repoRoot, "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json").readText())
         assertEquals(upstream.map { it.folder }.filter { it !in meta.profiles }.toSet(), unconverted)
-        assertEquals(14, unconverted.size)
+        assertEquals(3, unconverted.size)
         val listed = unconvertedFile.readLines().filter { it.isNotBlank() && !it.startsWith("#") }
         assertEquals(listed.sorted(), listed, "one folder per line, sorted")
         assertTrue('\u2014' !in unconvertedFile.readText() && "-".repeat(2) !in unconvertedFile.readText())
@@ -155,6 +155,8 @@ class ProfilesTest {
         // A paragraph on what was already off ends the keep list: sony-xbr-65x900f names Samba TV
         // and Sony's promos there, and its list disables both.
         assertEquals(setOf(p("com.a.b")), DebloatTxt.keepListIn(listOf("# Keep: com.a.b,", "# Already off before the list (owner or factory): com.e.f, listed below anyway")))
+        // A wrapped line that happens to start with "keeps" is not a keep list (nvidia-shield-tv-2019).
+        assertEquals(emptySet(), DebloatTxt.keepListIn(listOf("# - Updates are off. The Pro example", "#   keeps KeyComboOta; Play Games and com.a.b are not present here.")))
     }
 
     @Test fun malformedFilesFailWithTheLine() {
