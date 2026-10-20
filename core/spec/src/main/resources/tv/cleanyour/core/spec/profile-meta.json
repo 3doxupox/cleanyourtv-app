@@ -23,6 +23,26 @@
         "com.google.android.apps.tv.dreamx": { "category": "screensaver", "ask": false }
       }
     },
+    "benq-e55-750": {
+      "match": { "models": ["AI PONT"], "devices": [], "brand": "BenQ", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": null,
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": ["com.mediatek.autopair", "com.homwee.synckey"],
+      "suggestedDock": [],
+      "tested": { "by": "sorosora (PR #252)", "firmware": "RTM8.240401.136", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "Changhong / Homwee store and help": { "category": "brand", "ask": false },
+        "Google TV recommendations and screensaver (set another screensaver first)": { "category": "preloads", "ask": false },
+        "Streaming apps not used in this home (by choice; keep the ones you use)": { "category": "streaming", "ask": true },
+        "Stock home. Disable only after the new launcher is installed and set as home.": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.google.android.apps.tv.dreamx": { "category": "screensaver", "ask": true }
+      }
+    },
     "chiq-ai-pont": {
       "match": { "models": ["AI PONT"], "devices": ["samseong"], "brand": "CHiQ", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
       "platform": "ANDROID_TV",
@@ -74,6 +94,144 @@
         "com.google.android.marvin.talkback": { "category": "accessibility", "ask": false }
       }
     },
+    "haier-android-tv-dvb2k": {
+      "match": { "models": ["Haier Android TV DVB2K"], "devices": ["broadway"], "brand": "Haier", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.mediatek.wwtv.tvcenter",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": [],
+      "suggestedDock": [],
+      "tested": { "by": "Manjunathan (PR #296)", "firmware": "RTMA.250416.179", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "Content recognition and retail demo": { "category": "tracking", "ask": false },
+        "Haier telemetry, share, and content apps": { "category": "brand", "ask": true },
+        "Stock-home recommendation rows and partner auto-install": { "category": "ads", "ask": false }
+      },
+      "packages": {
+        "fusion.android.tv.demo": { "category": "demo", "ask": false },
+        "com.haier.apps": { "category": "ads", "ask": false },
+        "com.haier.launcher.haiermatrix": { "category": "ads", "ask": false },
+        "com.haier.tvhousekeeper": { "category": "brand", "ask": false },
+        "com.haier.yudee.tv": { "category": "casting", "ask": true },
+        "com.haier.sharetv.webview": { "category": "casting", "ask": true },
+        "com.google.android.feedback": { "category": "tracking", "ask": false },
+        "com.google.android.partnersetup": { "category": "tracking", "ask": false }
+      }
+    },
+    "haier-h32s80efx": {
+      "match": { "models": ["Haier MatrixTV CE"], "devices": ["deto"], "brand": "Haier", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.mediatek.wwtv.tvcenter",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": [],
+      "suggestedDock": [],
+      "tested": { "by": "devilnaked (PR #267)", "firmware": "UKNV.260302.001", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "Haier / partner telemetry and IoT": { "category": "tracking", "ask": false },
+        "Haier content and ads on the stock home": { "category": "ads", "ask": false },
+        "Retail demo, cleaner, manual": { "category": "demo", "ask": false },
+        "Preloaded apps": { "category": "preloads", "ask": false },
+        "Streaming apps not used in this home (by choice; keep the ones you use)": { "category": "streaming", "ask": true },
+        "Stock home. Disable only after the new launcher is installed and set as home.": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "it.hon.service": { "category": "brand", "ask": true },
+        "com.haierubic.usmartdevice": { "category": "brand", "ask": true },
+        "com.haier.tvhousekeeper": { "category": "brand", "ask": false },
+        "com.haier.emanual": { "category": "preloads", "ask": false }
+      }
+    },
+    "hisense-hg9": {
+      "match": { "models": [], "devices": ["laohushan"], "brand": "Hisense", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": null,
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": ["com.hisense.tv.hitvinput"],
+      "suggestedDock": [],
+      "tested": { "by": "Tanner Powell (PR #100)", "firmware": "PTMR.190127.037", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Hisense telemetry and viewing-data collection": { "category": "tracking", "ask": false },
+        "Hisense promos, cleaners, demo, business mode": { "category": "demo", "ask": false },
+        "Google recommendation rows and reporters": { "category": "ads", "ask": false },
+        "Owner-confirmed streaming preload removals": { "category": "streaming", "ask": true },
+        "Launchers (stock replaced by FLauncher)": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.hisense.tv.smartsense": { "category": "tracking", "ask": true },
+        "com.hisense.tv.smartservice": { "category": "tracking", "ask": true },
+        "com.vt.tv.smartsense.ui": { "category": "tracking", "ask": true },
+        "com.mstar.netflixobserver": { "category": "other", "ask": true },
+        "com.hisense.service.message": { "category": "ads", "ask": false },
+        "com.hisense.hitv.hicloud.account": { "category": "other", "ask": true },
+        "android.autoinstalls.config.hisense.laohushan": { "category": "ads", "ask": false },
+        "com.hisense.tv.customerlauncher": { "category": "brand", "ask": true },
+        "com.hisense.tv.protector": { "category": "brand", "ask": false },
+        "com.google.android.feedback": { "category": "tracking", "ask": false },
+        "com.google.android.tv.bugreportsender": { "category": "tracking", "ask": false },
+        "com.google.android.backdrop": { "category": "screensaver", "ask": true },
+        "com.google.android.tts": { "category": "accessibility", "ask": true },
+        "com.google.android.play.games": { "category": "preloads", "ask": false },
+        "com.jamdeo.tv.mediacenter": { "category": "preloads", "ask": true }
+      }
+    },
+    "hisense-hismarttv-a4": {
+      "match": { "models": [], "devices": ["xiaoyushan"], "brand": "Hisense", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.mediatek.wwtv.tvcenter",
+      "setupWraith": null,
+      "quirks": ["SETTLE_BEFORE_REBOOT"],
+      "neverDisable": ["com.mediatek.wwtv.tvcenter"],
+      "suggestedDock": [],
+      "tested": { "by": "Prateek Jain (PR #184)", "firmware": "PTMR.190127.037 (01.00.00.04)", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Group 1: telemetry": { "category": "tracking", "ask": false },
+        "Group 2: recommendation rows, retail demo, silent preload installs": { "category": "ads", "ask": false },
+        "Group 3: preloaded apps": { "category": "preloads", "ask": false },
+        "Group 4: firmware updates. Re-enable both to receive an OTA update.": { "category": "updates", "ask": true }
+      },
+      "packages": {
+        "com.hisense.storemode": { "category": "demo", "ask": false },
+        "fusion.android.tv.demo": { "category": "demo", "ask": false },
+        "com.mstar.android.tv.disclaimercustomization": { "category": "other", "ask": true },
+        "com.netflix.ninja": { "category": "streaming", "ask": true },
+        "com.amazon.amazonvideo.livingroom": { "category": "streaming", "ask": true },
+        "com.hisense.tv.hisremotenow": { "category": "other", "ask": true },
+        "com.jamdeo.tv.mediacenter": { "category": "preloads", "ask": true },
+        "com.hisense.myapplication": { "category": "screensaver", "ask": true }
+      }
+    },
+    "hisense-hismarttv-a4-android11": {
+      "match": { "models": [], "devices": ["xiaoyushan"], "brand": "Hisense", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.mediatek.wwtv.tvcenter",
+      "setupWraith": null,
+      "quirks": ["SETTLE_BEFORE_REBOOT"],
+      "neverDisable": ["com.mediatek.wwtv.tvcenter"],
+      "suggestedDock": [],
+      "tested": { "by": "vcheckk (PR #262)", "firmware": "RTT2.221108.001 (00.00.00.18)", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Group 1: telemetry, ACR and tracking": { "category": "tracking", "ask": false },
+        "Group 2: promo content, retail and commercial modes, Hisense preloads": { "category": "ads", "ask": false },
+        "Group 3: preloaded streaming apps, optional. Comment out the ones you use.": { "category": "streaming", "ask": true },
+        "Group 4: unused on a television": { "category": "preloads", "ask": false }
+      },
+      "packages": {
+        "com.hisense.service.message": { "category": "ads", "ask": false },
+        "android.autoinstalls.config.hisense.xiaoyushan": { "category": "ads", "ask": false },
+        "com.mstar.android.tv.disclaimercustomization": { "category": "other", "ask": true },
+        "com.hisense.tv.b2b": { "category": "demo", "ask": false },
+        "com.hisense.alexa": { "category": "voice", "ask": true },
+        "com.google.android.syncadapters.calendar": { "category": "other", "ask": false }
+      }
+    },
     "hisense-smarttv-4k-ffm": {
       "match": { "models": ["SmartTV 4K FFM"], "devices": ["huangshan"], "brand": "Hisense", "sdkMin": 29, "sdkMax": 29, "fingerprintPrefix": null },
       "platform": "ANDROID_TV",
@@ -97,6 +255,96 @@
         "com.hisense.service.message": { "category": "ads", "ask": false },
         "com.google.android.videos": { "category": "preloads", "ask": false },
         "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": false }
+      }
+    },
+    "hisense-u75-hengshan": {
+      "match": { "models": ["SmartTV 4K FFM"], "devices": ["hengshan"], "brand": "Hisense", "sdkMin": 31, "sdkMax": 31, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.vt.tv.tvcenter",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": ["com.vt.tv.smartsense", "com.vt.tv.smartsense.ui", "com.vt.tv.ai_sense", "com.vt.tv.aiot", "com.vt.tv.aiotprotocolapp", "com.vt.tv.aiotsystemservice"],
+      "suggestedDock": [],
+      "tested": { "by": "Charles Zwicker (PR #235)", "firmware": "STT2.230310.002", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "Hisense ACR: automatic content recognition, the codePath is literally Vtp_ACR": { "category": "tracking", "ask": false },
+        "Hisense content, preloads and promo surfaces": { "category": "ads", "ask": false },
+        "Retail demo, hotel/commercial mode, factory tools": { "category": "demo", "ask": false },
+        "Voice assistant, off by choice": { "category": "voice", "ask": true },
+        "Broadcast interactive middleware. Only does anything with the built-in tuner; off by choice": { "category": "other", "ask": true },
+        "Background services that are not needed": { "category": "brand", "ask": false },
+        "Google TV ad, preload and tracking services": { "category": "ads", "ask": false },
+        "Unused on a television": { "category": "preloads", "ask": false },
+        "Launcher phase only. Google TV's setup wizard also claims android.intent.category.HOME (priority 1,": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.vt.hishow": { "category": "preloads", "ask": false },
+        "com.hisense.odinbrowser": { "category": "preloads", "ask": true },
+        "com.vt.factory": { "category": "demo", "ask": true },
+        "com.vt.fte": { "category": "other", "ask": true },
+        "com.google.android.partnersetup": { "category": "tracking", "ask": false },
+        "com.google.android.feedback": { "category": "tracking", "ask": false },
+        "com.google.android.syncadapters.calendar": { "category": "other", "ask": false },
+        "com.android.providers.calendar": { "category": "other", "ask": true },
+        "com.android.providers.contacts": { "category": "other", "ask": true }
+      }
+    },
+    "hitachi-65qledsm20": {
+      "match": { "models": [], "devices": ["bangbae"], "brand": "Hitachi", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.mediatek.wwtv.tvcenter",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.mediatek.wwtv.tvcenter", "fusion.android.tv.demo"],
+      "suggestedDock": [],
+      "tested": { "by": "adrian jurcevic (PR #144)", "firmware": "RTO8.250915.001", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Batch 1: telemetry, ads and recommendation rows": { "category": "ads", "ask": false },
+        "Batch 2: background services and preloaded apps": { "category": "preloads", "ask": false },
+        "Batch 3: personal choice, comment out what you use": { "category": "streaming", "ask": true }
+      },
+      "packages": {
+        "tv.anoki.acr.controller": { "category": "tracking", "ask": false },
+        "com.cltv.fast": { "category": "ads", "ask": true },
+        "android.autoinstalls.config.JVC": { "category": "ads", "ask": false },
+        "com.google.android.feedback": { "category": "tracking", "ask": false },
+        "com.google.android.apps.nbu.smartconnect.tv": { "category": "other", "ask": true },
+        "com.google.android.backdrop": { "category": "screensaver", "ask": true },
+        "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": true },
+        "com.google.android.syncadapters.calendar": { "category": "other", "ask": false },
+        "com.google.android.katniss": { "category": "voice", "ask": true }
+      }
+    },
+    "hitachi-cdh-le32smart21": {
+      "match": { "models": ["Smart TV"], "devices": ["C06"], "brand": "TCL", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": "TCL/C06_2K_GB/C06:11/AR2101/AR14" },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.tcl.tv",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": [],
+      "suggestedDock": [],
+      "tested": { "by": "Dinamarcus (PR #242)", "firmware": "AR2101 AR14 (V8-T221T01-LF1V030)", "daysLivedWith": 1, "rebootTested": true },
+      "groups": {
+        "Telemetry": { "category": "tracking", "ask": false },
+        "Content, ads and promos": { "category": "ads", "ask": false },
+        "Background services": { "category": "brand", "ask": false },
+        "Off by choice on this unit: comment out what you use": { "category": "streaming", "ask": true }
+      },
+      "packages": {
+        "android.autoinstalls.config.tcl.device": { "category": "ads", "ask": false },
+        "com.tcl.esticker": { "category": "demo", "ask": false },
+        "com.tcl.useragreement": { "category": "other", "ask": true },
+        "com.google.android.apps.nbu.smartconnect.tv": { "category": "other", "ask": true },
+        "com.tcl.t_solo": { "category": "brand", "ask": true },
+        "com.google.android.apps.mediashell": { "category": "casting", "ask": true },
+        "com.tcl.ui_mediaCenter": { "category": "preloads", "ask": true },
+        "com.tcl.videoplayer": { "category": "preloads", "ask": true },
+        "com.tcl.audioplayer": { "category": "preloads", "ask": true },
+        "com.tcl.imageplayer": { "category": "preloads", "ask": true },
+        "com.google.android.play.games": { "category": "preloads", "ask": false }
       }
     },
     "insignia-ns55f301na25": {
@@ -190,6 +438,195 @@
         "com.google.android.tvrecommendations": { "category": "ads", "ask": false }
       }
     },
+    "panasonic-4ktv-jup": {
+      "match": { "models": ["4KTV-JUP"], "devices": ["Jupiter_PA"], "brand": "Panasonic", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.mediatek.wwtv.tvcenter",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.mediatek.wwtv.tvcenter"],
+      "suggestedDock": [],
+      "tested": { "by": "KimiWang2046 (PR #142)", "firmware": "4.501 / RTM2.210929.137", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "Google telemetry / setup leftovers": { "category": "tracking", "ask": false },
+        "Recommendation and content services": { "category": "ads", "ask": false },
+        "Background services nobody needs on a TV": { "category": "preloads", "ask": false },
+        "Panasonic preloads": { "category": "preloads", "ask": false },
+        "Streaming apps disabled by choice (comment out the ones you use)": { "category": "streaming", "ask": true }
+      },
+      "packages": {
+        "com.google.android.onetimeinitializer": { "category": "other", "ask": false },
+        "com.mediatek.wwtv.tvrecommendation": { "category": "ads", "ask": true },
+        "com.google.android.backdrop": { "category": "screensaver", "ask": true },
+        "com.google.android.syncadapters.calendar": { "category": "other", "ask": false },
+        "com.android.providers.calendar": { "category": "other", "ask": true },
+        "com.panasonic.demomode": { "category": "demo", "ask": false },
+        "com.panasonic.hotelmode": { "category": "demo", "ask": false },
+        "com.google.android.play.games": { "category": "preloads", "ask": false }
+      }
+    },
+    "panasonic-th-40hs550k": {
+      "match": { "models": [], "devices": ["shibuya"], "brand": "Panasonic", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.mediatek.wwtv.tvcenter",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.mediatek.wwtv.tvcenter"],
+      "suggestedDock": [],
+      "tested": { "by": "Afif Zafri (PR #250)", "firmware": "RTO9.240708.002", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "Skyworth auto-installs, shop demo and setup leftovers": { "category": "demo", "ask": false },
+        "Telemetry and background services": { "category": "tracking", "ask": false },
+        "Recommendation rows and stock-launcher partner config": { "category": "ads", "ask": false },
+        "Not used (by choice)": { "category": "streaming", "ask": true }
+      },
+      "packages": {
+        "android.autoinstalls.config.skyworth": { "category": "ads", "ask": false },
+        "com.mstar.android.tv.disclaimercustomization": { "category": "other", "ask": true },
+        "com.Smartdevice.emanual": { "category": "preloads", "ask": false },
+        "com.google.android.apps.nbu.smartconnect.tv": { "category": "other", "ask": true },
+        "com.mediatek.testpq": { "category": "other", "ask": true },
+        "com.google.android.play.games": { "category": "preloads", "ask": false },
+        "com.mediatek.wwtv.mediaplayer": { "category": "preloads", "ask": true },
+        "com.google.android.katniss": { "category": "voice", "ask": true }
+      }
+    },
+    "philips-50pus8517": {
+      "match": { "models": ["2021_22_Philips_UHD_Android_TV"], "devices": ["PH1M_EA_9970A"], "brand": "Philips", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "org.droidtv.playtv",
+      "setupWraith": null,
+      "quirks": ["SETTLE_BEFORE_REBOOT"],
+      "neverDisable": ["org.droidtv.playtv", "org.droidtv.xtv", "org.droidtv.xtvsystem", "org.droidtv.channels", "org.droidtv.hdmiservice", "org.droidtv.tv.tptvservice", "org.droidtv.tvsystemui", "org.droidtv.tvpowermanagerservice", "org.droidtv.GlobalKey", "org.droidtv.settings", "org.droidtv.homeintentresolver", "org.droidtv.eum", "org.droidtv.aurora", "org.droidtv.nettvbrowser", "com.vewd.core.browserui", "org.droidtv.contentexplorer", "org.droidtv.oad", "com.easy.oad", "org.droidtv.networkwizard", "org.droidtv.nettvregistration", "com.google.android.tv.remote.service"],
+      "suggestedDock": [],
+      "tested": { "by": "Artem Veikus (PR #178)", "firmware": "RTT2.211108.001 (21029)", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "TP Vision telemetry. org.droidtv.gel runs inside the candeebug process": { "category": "tracking", "ask": false },
+        "Philips content promos and the app gallery": { "category": "ads", "ask": false },
+        "Philips features this owner does not use. Check each against your own setup.": { "category": "brand", "ask": true },
+        "Google telemetry and first-setup leftovers": { "category": "tracking", "ask": false },
+        "Google apps this owner does not use": { "category": "preloads", "ask": false },
+        "Preinstalled streaming apps. All of these sit in /data/app rather than on the system": { "category": "streaming", "ask": true },
+        "Stock launcher and its content engine, replaced by launcher/ (or Projectivy).": { "category": "ads", "ask": false },
+        "Stock YouTube, replaced by SmartTube (ads and sponsor segments). 119 MB resident vs ~35 MB.": { "category": "streaming", "ask": true }
+      },
+      "packages": {
+        "org.droidtv.nettvapp1814": { "category": "streaming", "ask": true },
+        "org.droidtv.nettvapp4546": { "category": "streaming", "ask": true },
+        "org.droidtv.nettvapp4633": { "category": "streaming", "ask": true },
+        "org.droidtv.nettvapp4655": { "category": "streaming", "ask": true },
+        "org.droidtv.nettvapp5326": { "category": "streaming", "ask": true },
+        "org.droidtv.nettvapp5512": { "category": "streaming", "ask": true },
+        "org.droidtv.nettvapp4932": { "category": "preloads", "ask": false },
+        "org.droidtv.nettvapp20004410": { "category": "preloads", "ask": false },
+        "org.droidtv.android.fitness": { "category": "preloads", "ask": false },
+        "org.droidtv.amazonalexa": { "category": "voice", "ask": true },
+        "org.droidtv.dlna": { "category": "casting", "ask": true },
+        "org.droidtv.demome": { "category": "demo", "ask": false },
+        "com.google.android.onetimeinitializer": { "category": "other", "ask": false },
+        "com.google.android.sss.authbridge": { "category": "other", "ask": true },
+        "com.google.android.syncadapters.calendar": { "category": "other", "ask": false },
+        "com.google.android.katniss": { "category": "voice", "ask": true },
+        "com.google.android.videos": { "category": "streaming", "ask": true },
+        "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": true },
+        "com.google.android.marvin.talkback": { "category": "accessibility", "ask": true }
+      }
+    },
+    "philips-55oled707": {
+      "match": { "models": ["2021/22 Philips UHD Android TV"], "devices": ["PH1M_EA_9970A"], "brand": "Philips", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "org.droidtv.playtv",
+      "setupWraith": null,
+      "quirks": ["SETTLE_BEFORE_REBOOT"],
+      "neverDisable": ["org.droidtv.playtv", "org.droidtv.xtv", "org.droidtv.xtvsystem", "org.droidtv.channels", "org.droidtv.hdmiservice", "org.droidtv.tv.tptvservice", "org.droidtv.tvsystemui", "org.droidtv.tvpowermanagerservice", "org.droidtv.GlobalKey", "org.droidtv.settings", "org.droidtv.homeintentresolver", "org.droidtv.eum", "org.droidtv.aurora", "org.droidtv.nettvbrowser", "com.vewd.core.browserui", "org.droidtv.contentexplorer", "org.droidtv.oad", "com.easy.oad", "org.droidtv.networkwizard", "org.droidtv.nettvregistration", "com.google.android.tv.remote.service"],
+      "suggestedDock": [],
+      "tested": { "by": "Oliver Roberts (PR #285)", "firmware": "RTT2.211108.001 (21029)", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "TP Vision telemetry, as in 50PUS8517. Disable candeebug and gel together.": { "category": "tracking", "ask": false },
+        "Philips content promos and the app gallery": { "category": "ads", "ask": false },
+        "Philips features this owner does not use. Check each against your own setup.": { "category": "brand", "ask": true },
+        "com.phorus.playfi.tv                    # Play-Fi multi-room audio; re-enables itself at every boot, see note 2": { "category": "brand", "ask": true },
+        "Google telemetry and first-setup leftovers": { "category": "tracking", "ask": false },
+        "Google apps this owner does not use": { "category": "preloads", "ask": false },
+        "Preinstalled streaming apps, all in /data/app": { "category": "streaming", "ask": true },
+        "Stock launcher and its content engine. Disable the launcher FIRST; see 50PUS8517 for why.": { "category": "ads", "ask": false }
+      },
+      "packages": {
+        "org.droidtv.nettvapp1814": { "category": "streaming", "ask": true },
+        "org.droidtv.nettvapp4546": { "category": "streaming", "ask": true },
+        "org.droidtv.nettvapp5326": { "category": "streaming", "ask": true },
+        "org.droidtv.nettvapp5512": { "category": "streaming", "ask": true },
+        "org.droidtv.nettvapp5527": { "category": "streaming", "ask": true },
+        "org.droidtv.nettvapp4932": { "category": "preloads", "ask": false },
+        "org.droidtv.nettvapp20004410": { "category": "preloads", "ask": false },
+        "org.droidtv.android.fitness": { "category": "preloads", "ask": false },
+        "org.droidtv.amazonalexa": { "category": "voice", "ask": true },
+        "org.droidtv.demome": { "category": "demo", "ask": false },
+        "com.google.android.katniss": { "category": "voice", "ask": true },
+        "com.google.android.videos": { "category": "streaming", "ask": true },
+        "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": true }
+      }
+    },
+    "philips-65pus8102": {
+      "match": { "models": [], "devices": ["PH7M_EU_5596"], "brand": "Philips", "sdkMin": 26, "sdkMax": 26, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "org.droidtv.playtv",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["org.droidtv.playtv"],
+      "suggestedDock": [],
+      "tested": { "by": "Riku Pirttinokka (PR #295)", "firmware": "TPM171E_R.107.001.143.000", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "Google feedback, tutorials and recommendation rows (same as philips-55pus7503)": { "category": "ads", "ask": false },
+        "Philips promotion and telemetry": { "category": "tracking", "ask": false },
+        "Philips NetTV app store (pre-Android web app platform; Play Store replaces it)": { "category": "preloads", "ask": false },
+        "Preinstalled NetTV web apps (labels from the APKs; comment out any you use)": { "category": "streaming", "ask": true },
+        "Preinstalled apps, off by choice": { "category": "preloads", "ask": false },
+        "Voice assistants, off by choice: the remote's microphone button does nothing afterwards": { "category": "voice", "ask": true }
+      },
+      "packages": {
+        "com.google.android.feedback": { "category": "tracking", "ask": false },
+        "com.google.android.tvtutorials": { "category": "preloads", "ask": false },
+        "org.droidtv.demome": { "category": "demo", "ask": false },
+        "org.droidtv.nettvrecommender": { "category": "ads", "ask": false },
+        "org.droidtv.nettvapps": { "category": "ads", "ask": false },
+        "org.droidtv.nettvregistration": { "category": "updates", "ask": true },
+        "org.droidtv.nettvapp20004410": { "category": "preloads", "ask": false },
+        "com.ted.android.tv": { "category": "streaming", "ask": true },
+        "com.opera.sdk.example": { "category": "preloads", "ask": true },
+        "com.google.android.videos": { "category": "streaming", "ask": true }
+      }
+    },
+    "philips-r8g-google-tv": {
+      "match": { "models": ["R8G"], "devices": ["whitefield"], "brand": "Philips", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.realtek.tv",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": ["com.realtek.tv", "com.realtek.tv.passthrough", "com.realtek.tv.atsc", "com.realtek.tv.atv", "com.realtek.systemservice", "com.realtek.menu", "com.google.android.tv.remote.service", "com.google.android.tv.dfuservice", "com.realtek.rtkvirtualkeyboard", "com.google.android.tv.inputplayer"],
+      "suggestedDock": [],
+      "tested": { "by": "maxhayim (PR #212)", "firmware": "UKRE.260524.058", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "Telemetry": { "category": "tracking", "ask": false },
+        "Android ad and personalisation services": { "category": "ads", "ask": false },
+        "Manufacturer content": { "category": "ads", "ask": false },
+        "Not needed on a TV": { "category": "preloads", "ask": false },
+        "Off by owner's choice": { "category": "voice", "ask": true },
+        "Stock home. Disable only after the new launcher is installed and set as home.": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.apps.esticker3": { "category": "demo", "ask": false },
+        "com.android.federatedcompute.services": { "category": "tracking", "ask": false },
+        "com.seraphic.hbbtv.app": { "category": "preloads", "ask": false },
+        "com.google.android.apps.tv.dreamx": { "category": "screensaver", "ask": true }
+      }
+    },
     "philips-smart-4k-google-tv": {
       "match": { "models": ["Philips Smart 4K TV"], "devices": ["eleonas"], "brand": "Philips", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
       "platform": "GOOGLE_TV",
@@ -276,6 +713,54 @@
         "com.apps.networkspeed": { "category": "preloads", "ask": false },
         "com.apps.ota": { "category": "updates", "ask": false },
         "com.apps.authota": { "category": "updates", "ask": false }
+      }
+    },
+    "skyworth-swtv-21ae": {
+      "match": { "models": [], "devices": ["sunnyvale"], "brand": "Skyworth", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.mediatek.wwtv.tvcenter",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.mediatek.wwtv.tvcenter"],
+      "suggestedDock": [],
+      "tested": { "by": "fakhri626 (PR #161)", "firmware": "UKNV.260824.001", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "Skyworth content, ads and preloads": { "category": "ads", "ask": false },
+        "Telemetry and feedback": { "category": "tracking", "ask": false },
+        "Not used (by choice)": { "category": "streaming", "ask": true },
+        "Stock home. Disable only after the new launcher is installed and set as home.": { "category": "ads", "ask": false }
+      },
+      "packages": {
+        "fusion.android.tv.demo": { "category": "demo", "ask": false },
+        "com.Smartdevice.emanual": { "category": "preloads", "ask": false },
+        "com.cltv.fast": { "category": "ads", "ask": true },
+        "com.google.android.backdrop": { "category": "screensaver", "ask": true }
+      }
+    },
+    "skyworth-swtv-24na-4k-nf": {
+      "match": { "models": ["SWTV-24NA-4K NF"], "devices": ["eleonas"], "brand": "Skyworth", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.cltv.hybrid",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["WIRELESS_DEBUG_PAIRING_REQUIRED", "HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": ["com.cltv.hybrid", "com.cltv.mal", "com.mediatek.tis", "com.mediatek.dtv.tvinput.atsctuner", "com.mediatek.tv.agent", "com.mediatek.extservice", "com.mediatek.autopair", "com.smartdevice.global.service", "com.smartdevice.dailyshortcut", "com.smartdevice.duplebluetooth", "com.smartdevice.factory", "org.liskovsoft.androidtv.rukeyboard"],
+      "suggestedDock": [],
+      "tested": { "by": "maxhayim (PR #213)", "firmware": "UKN6.260116.056", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "Skyworth telemetry and trackers": { "category": "tracking", "ask": false },
+        "Android ad and personalisation services": { "category": "ads", "ask": false },
+        "Skyworth content and regional broadcast extras": { "category": "ads", "ask": false },
+        "Not needed on a TV": { "category": "preloads", "ask": false },
+        "Off by owner's choice": { "category": "voice", "ask": true },
+        "Stock home. Disable only after the new launcher is installed and set as home.": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.android.federatedcompute.services": { "category": "tracking", "ask": false },
+        "tv.mopa.ginga": { "category": "preloads", "ask": false },
+        "org.obs.mhegservice": { "category": "preloads", "ask": false },
+        "com.google.android.apps.tv.dreamx": { "category": "screensaver", "ask": true }
       }
     },
     "sony-bravia-4k-gb": {

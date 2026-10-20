@@ -3,6 +3,49 @@
 # network setup, store, installer, system UI, sole keyboard, TV input, firmware updater,
 # accessibility helper or stock home outside the home screen switch is ever default-off).
 # folder	package	note
+benq-e55-750	(match)	model AI PONT on Android 11; benq-e55-735 is the same model on Android 14, told apart by the SDK
+haier-android-tv-dvb2k	com.cvte.haier.tv.appmanager	a boot receiver that manages Haier apps, purpose not clear; ask row
+haier-android-tv-dvb2k	com.haierubic.usmartdevice	Haier smart-device service in the list's telemetry group, purpose not clear; ask row
+haier-h32s80efx	it.hon.service	Haier hOn appliance link, a feature some homes use; ask row
+hisense-hg9	com.google.android.tungsten.setupwraith	the header says it re-enables the stock launcher, so it goes with the home screen switch (with the Wi-Fi guard)
+hisense-hg9	com.hisense.app.logreport	the header calls it persistent; the app skips persistent packages on the TV itself
+hisense-hg9	com.hisense.tv.customerlauncher	the FFM and A4 lists keep it; ask row
+hisense-hg9	com.hisense.tv.smartsense	the smartsense family sent the Hisense FFM set to Recovery (its profile never disables them); this header reports a clean reboot, so here they are ask rows, not default-off
+hisense-hg9	com.mstar.netflixobserver	drives the remote's Netflix key (hisense-hismarttv-a4, xiaomi-mitv-mssp3); ask row
+hisense-hismarttv-a4	com.google.android.leanbacklauncher	listed as an old launcher; known stock launchers go to the home screen switch
+hisense-hismarttv-a4	com.mstar.android.tv.disclaimercustomization	the hisense-hg9 list keeps it (first-boot legal text); ask row
+hisense-hismarttv-a4-android11	com.mstar.android.tv.disclaimercustomization	the hisense-hg9 list keeps it (first-boot legal text); ask row
+hisense-u75-hengshan	(header)	the header warns against the smartsense and aiot family (Recovery on the related huangshan set), so they are never-disable here
+hisense-u75-hengshan	com.android.providers.contacts	contacts and calendar storage are ask rows, as on stellamore-t950s
+hisense-u75-hengshan	com.vt.factory	factory tools; other brands keep their factory menus, so it is an ask row
+hisense-u75-hengshan	com.vt.fte	the first-time walkthrough, run again after a factory reset; ask row
+hitachi-65qledsm20	com.cltv.fast	Anoki FAST channels register a TV input (the header says so); ask row
+hitachi-65qledsm20	com.google.android.apps.nbu.smartconnect.tv	registers a VPN service; tcl-g07 leaves it alone as unclear; ask row
+hitachi-65qledsm20	fusion.android.tv.demo	the header says it handles the remote's Input button and Bluetooth pairing on this MTC build; never-disable here, which also takes it out of every sure set
+hitachi-cdh-le32smart21	(match)	a Hitachi-branded TCL build: the fingerprint's brand is TCL, so the profile's brand is TCL; the AR14 fingerprint keeps it apart from tcl-40s5400a on the same C06 product
+hitachi-cdh-le32smart21	com.google.android.apps.nbu.smartconnect.tv	registers a VPN service; tcl-g07 leaves it alone as unclear; ask row
+hitachi-cdh-le32smart21	com.tcl.useragreement	tcl-55s470g and tcl-c755 keep it (setup screens); ask row
+panasonic-4ktv-jup	com.google.android.tungsten.setupwraith	listed as a background service; the header does not say it takes Home, so the meta names no wizard, but the converter still moves a listed wizard into the home screen switch (R5-W4 O3), where the Wi-Fi guard applies
+panasonic-4ktv-jup	com.mediatek.wwtv.tvrecommendation	the header says never disable any com.mediatek package (tuner, input and HDMI stack); ask row
+panasonic-th-40hs550k	(match)	Skyworth-built; the brand is taken as Panasonic, which the TV's brand or manufacturer must report for the profile to match
+panasonic-th-40hs550k	com.google.android.apps.nbu.smartconnect.tv	registers a VPN service; tcl-g07 leaves it alone as unclear; ask row
+panasonic-th-40hs550k	com.mediatek.testpq	the header says never disable any com.mediatek package, and the Hitachi 65QLEDSM20 list keeps it (applies picture settings at boot); ask row
+panasonic-th-40hs550k	com.mediatek.wwtv.mediaplayer	the USB media player (a com.mediatek package); ask row
+panasonic-th-40hs550k	com.mstar.android.tv.disclaimercustomization	the hisense-hg9 list keeps it; ask row
+philips-50pus8517	(header)	the DO NOT DISABLE block sits at the end of the file, where the keep-list reader does not look, so its org.droidtv names are in the curated never-disable list
+philips-50pus8517	com.google.android.sss.authbridge	set-up-from-phone helper, used again after a factory reset; ask row
+philips-50pus8517	com.google.android.tvrecommendations	default-off as listed; the header notes it also serves the system notification panel and should go after the stock launcher
+philips-50pus8517	org.droidtv.amazonalexa	the header warns live TV binds into it and it was not exercised; voice ask row
+philips-55oled707	(match)	same device and firmware as philips-50pus8517; the two headers give the model string differently, and the TV's own string decides which list it gets
+philips-55oled707	com.google.android.tungsten.setupwraith	listed with a Wi-Fi warning; the header does not say it takes Home, so the meta names no wizard, but the converter still moves a listed wizard into the home screen switch (R5-W4 O3), where the Wi-Fi guard applies
+philips-55oled707	com.phorus.playfi.softap	Play-Fi's soft access point helper (network plumbing); ask row
+philips-65pus8102	com.opera.sdk.example	on Sony sets this package is the built-in browser; ask row
+philips-65pus8102	org.droidtv.nettvregistration	the philips-50pus8517 header files it with the firmware update packages; Software updates row
+philips-r8g-google-tv	(match)	ro.product.brand is PHILIPS and the manufacturer MOKA; brands match without case
+philips-r8g-google-tv	com.google.android.tungsten.setupwraith	the header reports it deleted the Wi-Fi saved at setup; the takeover's Wi-Fi guard skips it when it owns the network
+skyworth-swtv-21ae	com.cltv.fast	FAST channels register a TV input (hitachi-65qledsm20 header); ask row
+skyworth-swtv-24na-4k-nf	com.google.android.tungsten.setupwraith	the header reports it deleted the Wi-Fi saved at setup; the takeover's Wi-Fi guard skips it when it owns the network
+skyworth-swtv-24na-4k-nf	tv.mopa.ginga	default-off as listed: Brazilian interactive TV, unused on this US set (the U75 and C755 lists keep it where it is used)
 sony-bravia-4k-gb	(match)	EU firmware of the BRAVIA_ATV2 platform; the fingerprint prefix keeps US and other regions on sony-bravia-4k-gb-us, which has the same package set
 sony-bravia-4k-gb-us	com.sony.dtv.networkapp.wifidirect	Wi-Fi Direct for screen mirroring, in the owner's optional group; an ask row, never default-off
 sony-bravia-4k-gb-us	com.sony.dtv.osat.music	listed under preloaded apps; it plays music from USB, so it is an ask row

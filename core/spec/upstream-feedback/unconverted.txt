@@ -8,32 +8,15 @@
 # folder name.
 aipro2k
 amazon-fire-tv-stick-4k-2018
-benq-e55-750
 chiq-gtvu65
-haier-android-tv-dvb2k
-haier-h32s80efx
-hisense-hg9
-hisense-hismarttv-a4
-hisense-hismarttv-a4-android11
-hisense-u75-hengshan
-hitachi-65qledsm20
-hitachi-cdh-le32smart21
 jmgo-n1s-holan
 kalley-r10g
 nvidia-shield-tv-2019
 onn-4k-streaming-box-2023
-panasonic-4ktv-jup
-panasonic-th-40hs550k
-philips-50pus8517
-philips-55oled707
-philips-55pus7503
-philips-65pus8102
-philips-r8g-google-tv
+philips-55pus7503    # refused: same device, firmware and fingerprint as philips-65pus8102, whose list contains every package of this one; the app resolves one profile per TV, so this list could never be picked
 portronics-beem-470
 prismplus-q65-ultra-r10g
 redmi-mitv-antl0    # refused: Android 5.1.1 (SDK 22). The launcher needs Android 8 (SDK 26), and this firmware refuses pm disable for the shell, the only way the app switches an app off (the list works with pm hide instead)
-skyworth-swtv-21ae
-skyworth-swtv-24na-4k-nf
 thomson-32he5800
 vu-4k-lushan
 wanbo-x5-pro
