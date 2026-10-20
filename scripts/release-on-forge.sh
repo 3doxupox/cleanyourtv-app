@@ -10,6 +10,8 @@
 #    :app:assembleRelease run in two fresh containers of docker/repro (scripts/repro-build.sh): A
 #    with the shared Gradle cache, B with an empty Gradle home of its own, so a cache cannot hide a
 #    difference. The two unsigned APKs must be byte identical.
+#    BUILD_MEMORY caps each build container (default 4g: a cache-less build with R8 needs more
+#    than the 3g of scripts/build-on-forge.sh).
 # 3. The unsigned APK and apksigner (from the same pinned build tools image) come back here and the
 #    APK is signed HERE with the release key: v2 and v3, v1 off (minSdk 28). The key and its
 #    password never leave this machine, not even into a container on the build host.
@@ -79,7 +81,7 @@ echo "==> image $TAG_IMAGE"
 build() {  # <name> <gradle home mount and env>
   local n="$1" home="$2"
   echo "==> clean build $n"
-  "${SSH[@]}" "flock -w 3600 '$LOCK' docker run --rm --name $RUN_ID-$n --memory 3g --memory-swap 3g --cpus 4 \
+  "${SSH[@]}" "flock -w 3600 '$LOCK' docker run --rm --name $RUN_ID-$n --memory ${BUILD_MEMORY:-4g} --memory-swap ${BUILD_MEMORY:-4g} --cpus 4 \
     -e SOURCE_DATE_EPOCH=$EPOCH -e OWNER=\$(id -u):\$(id -g) -v $home -v '$REMOTE':/in:ro -v '$REMOTE/$n':/out \
     '$TAG_IMAGE' bash -euc 'tar -xf /in/src.tar -C / && tar -xf /in/sub.tar -C / && cd /src \
       && { scripts/repro-build.sh /out; s=\$?; chown -R \$OWNER /out; exit \$s; }'" </dev/null
