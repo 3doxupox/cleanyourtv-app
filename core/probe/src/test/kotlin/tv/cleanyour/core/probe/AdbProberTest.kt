@@ -158,9 +158,10 @@ class AdbProberTest {
         s.files[ProbeScripts.screenPath.absolute] = png
         assertContentEquals(png, prober.screenshot(s))
         assertTrue(ProbeScripts.SCREENSHOT_CLEANUP.text in s.execLines)
-        // Finding 4: the cleanup removes the directory too (I1 runbook step 10: no trace left).
-        assertTrue(ProbeScripts.SCREENSHOT_CLEANUP.text.endsWith("rmdir ${RemoteDir.TMP.path} 2>/dev/null; true"))
-        assertTrue(ProbeScripts.SCREENSHOT_CLEANUP.text.indexOf("rm -f") < ProbeScripts.SCREENSHOT_CLEANUP.text.indexOf("rmdir"))
+        // Device test 2026-10-20: the cleanup removes the file only. A thumbnail between Mkdir(TMP) and
+        // ArmHomeWatchdog must never take away the directory the watchdog writes its log into.
+        assertEquals("rm -f ${ProbeScripts.screenPath.absolute}", ProbeScripts.SCREENSHOT_CLEANUP.text)
+        assertTrue(ProbeScripts.all.values.none { "rmdir" in it.text || "rm -r" in it.text }, "no probe script removes a directory")
         s.files[ProbeScripts.screenPath.absolute] = "not a png".encodeToByteArray()
         assertNull(prober.screenshot(s))
     }
