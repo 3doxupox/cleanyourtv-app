@@ -180,6 +180,12 @@ class S09CurtainSetup : E2eScenario() {
         val session = open(manager)
         val tvId = session.tvId
         val plan = setupPlan(session)
+        // D3 on a real adbd (RF-LAUNCHER-240 F14): the saved Wi-Fi read finds WifiConfigManager's list,
+        // so the TV can tell; only owners and counts come back, never a network name.
+        val wifi = prober.savedWifi(session)
+        File(out, "curtain-saved-wifi.txt").writeText("$wifi ${wifi.verdict("com.google.android.tungsten.setupwraith")}\n")
+        assertTrue("saved Wi-Fi list not found: $wifi", wifi.listed)
+        assertTrue(wifi.verdict("com.google.android.tungsten.setupwraith") != tv.cleanyour.core.probe.SavedWifi.Verdict.CANNOT_TELL)
         val curtainSteps = plan.steps.filter { it.group == DefaultPlanner.GROUP_CURTAIN }
         assertTrue("no curtain in the plan", curtainSteps.isNotEmpty())
         assertTrue(curtainSteps.all { it.onFailure == FailurePolicy.CONTINUE })

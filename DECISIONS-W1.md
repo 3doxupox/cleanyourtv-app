@@ -130,6 +130,14 @@ owning stream supplies bodies):
   and `UpdateHomeScreen`, `HomeScreenState.updateTo` and `updatePreview`, `SnackKind.HOME_UPDATED`,
   `CopyKey.STOP_HOME_SETUPWRAITH_WIFI_BODY` and `_PRIMARY`, `TvWriter.write(..., fresh)` and
   `preview(..., fresh)`.
+  App-design edits made for launcher240 (that folder has no history): PRODUCT-SPEC 5.7 (RFC-W4-2 text,
+  the "built from" sentence), 5.8 (`wizardWifi`, `WizardWifi`, `REBOOT` and `UPDATE_LAUNCHER`,
+  `Reboot` and `UpdateLauncher`), the D36 row (narration and the S3 row) and two new decision rows
+  (D3 and D4, launcher 2.4); SECURITY V1 (the keycode note), 3.1 (`ProbeKind` `signer_of_installed`
+  and `wifi_owners`) and 3.3 (the accessibility restore after `RestartHome`).
+  Not frozen, added after review: `SavedWifiOwners.savedWifi(session): SavedWifi` (replacing the
+  owners set), `AdbProber(..., known)`, `CopyKey.STOP_HOME_SETUPWRAITH_WIFI_UNKNOWN_BODY`,
+  `HomeScreenState.tvSideSettings`.
 
 Added because the section 5 prose names it: `core.probe.ProbeException(stage, detail)` (R0: 7).
 

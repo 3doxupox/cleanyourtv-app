@@ -93,7 +93,8 @@ echo "==> sign both builds with the launcher release key (in memory), compare an
     done
     rm -f /dev/shm/ks.p12 /dev/shm/ks.pass
     sha256sum /src/signed-a.apk /src/signed-b.apk
-    cmp /src/signed-a.apk /src/signed-b.apk && echo \"identical after signing: yes\"
+    cmp /src/signed-a.apk /src/signed-b.apk || { echo \"the two signed builds differ: not reproducible\" >&2; exit 1; }
+    echo \"identical after signing: yes\"
     mv /src/signed-a.apk /src/cleanyourtv-launcher.apk
     \$BT/apksigner verify --verbose --print-certs /src/cleanyourtv-launcher.apk | grep -E \"^Verified using|^Signer #1 certificate (DN|SHA-256)|^Number of signers\"
     \$BT/aapt2 dump badging /src/cleanyourtv-launcher.apk | head -1

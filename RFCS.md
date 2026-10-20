@@ -159,7 +159,7 @@ Follow-ups, open:
   launcher would close it.
 
 
-## RFC-W4-2: the keys of launcher v2.4.0 in the config codec (applied on launcher240; for Opus review)
+## RFC-W4-2: the keys of launcher v2.4.0 in the config codec (applied on launcher240; APPROVE WITH FOLLOW-UPS, reviews/RF-LAUNCHER-240.md)
 
 What: `LauncherConfigDoc` and `EffectiveConfig` (frozen, PRODUCT-SPEC 5.7) gain one field per key
 that upstream v2.4.0's `Config.java` reads beyond 1bbf0c9's fifteen, after the RFC-W4-1 fields and
@@ -192,7 +192,7 @@ D1; nothing else of the new keys is written by the app), W1 (DECISIONS-W1 lists 
 Smallest alternative: keep the keys in `unknown` and change only the warning text; rejected
 because the preview and the drift check would then not know what the TV shows.
 
-## RFC-LAUNCHER-1: what launcher v2.4.0 needs from the planner (applied on launcher240; for Opus review)
+## RFC-LAUNCHER-1: what launcher v2.4.0 needs from the planner (applied on launcher240; APPROVE WITH FOLLOW-UPS, reviews/RF-LAUNCHER-240.md)
 
 What, all in `:core:planner` 5.8 and defaulted so every caller compiles: (1) `Choices` gains
 `wizardWifi: WizardWifi = WizardWifi.UNKNOWN`, with `enum class WizardWifi { NOT_OWNER, OWNER,
@@ -224,3 +224,35 @@ Affected: W3 (planner, renderer check), W4 (probe), W8 (Setup and Manage flows, 
 Smallest alternatives: for D3, put the wizard into `Choices.kept`, which would show it as a kept row
 on S3 and say nothing true; for D4, ask the person to run Setup again, which reinstalls everything
 and redoes the takeover for a version bump.
+
+Review (RF-LAUNCHER-240, APPROVE WITH FOLLOW-UPS, both RFCs signed off): the nine must-fix items are
+applied on launcher240. F1: S3 shows "Replaces the home screen app already on this TV. Its look, app
+order, settings and card answers start fresh." above "Make it clean" when `summary.replacesLauncher`;
+the credential gate is the confirmation (D36). F2: `ApkSigners` needs a v2 block, and a v3 block
+when present must name the same first certificate, else the signer is unknown. F3: the takeover's
+first start is CONTINUE again, and the engine opens the section only when that start step is done
+(else the run ends with VERIFY_FAILED, as for a missing launcher); `ScriptedTv` fails `am start -W`
+for a package it does not have. F4: the D4 flow test runs (it sat inside a helper's lambda). F5: a
+`cmp` mismatch stops the launcher build; the double build's output is in
+`reviews/LAUNCHER-240-build-output.txt`. F6 with F14: the probe line also prints WifiConfigManager's
+list markers and one "ID: n SSID" per saved network (checked on the API 28 TV emulator: "Configured
+networks Begin/End", "ID: 0 SSID", "cname=android.uid.system:1000"), so `SavedWifi.verdict` tells
+apart the wizard owning a network (kept on, the owner's card), others owning them or nothing saved
+(NOT_OWNER: the wizard may go off as before) and a TV that could not tell (kept on, its own card).
+F7: the accessibility restore only when the probed `accessibility_enabled` is "1". F8: suites in
+verify mode and S06, S09 on API 28. F9: PRODUCT-SPEC 5.8, D36 and D3/D4 rows; SECURITY 3.1 and 3.3.
+Also done: F11 (a per-copy name, the size checked before the copy, no copy when the installed APK's
+sha256 is a pin's), F12 (the writers check knows `mkdir` and `cp`), F16 (the TV-side note only for
+launcher 2.4 and later). Follow-ups, open:
+- F2 defence in depth: when the plan does not install the launcher, `openSection` could require the
+  installed sha256 to be a known pin.
+- F10: drop setting change records whose before equals now from `ChangeSummary` (the accessibility
+  restore writes the same list back).
+- F13: a failed "Starting the updated home screen" could offer "Use the TV's own home screen"; the
+  "nothing to update" snackbar should name the TV's own newer version.
+- F15: python3 in the forge unit test image, so `upstreamRestoreShReadsIt` runs recovery.py there too.
+- F17: if a push is ever skipped when its digest matches (RF-DOCK-1 F4), write `theme_revision`.
+- F18: consider NUMPAD_ENTER (160) and BUTTON_SELECT (109) in `NAVIGATION_KEYCODES`.
+- F19: RF-CURTAIN-1 F8 stays open (W8).
+- No API 34 Android TV emulator image on forge (only android-34 google_apis), so S06 and S09 ran on
+  API 28 only.
