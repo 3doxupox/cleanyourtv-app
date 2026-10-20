@@ -3,6 +3,64 @@
 # network setup, store, installer, system UI, sole keyboard, TV input, firmware updater,
 # accessibility helper or stock home outside the home screen switch is ever default-off).
 # folder	package	note
+sony-bravia-4k-gb	(match)	EU firmware of the BRAVIA_ATV2 platform; the fingerprint prefix keeps US and other regions on sony-bravia-4k-gb-us, which has the same package set
+sony-bravia-4k-gb-us	com.sony.dtv.networkapp.wifidirect	Wi-Fi Direct for screen mirroring, in the owner's optional group; an ask row, never default-off
+sony-bravia-4k-gb-us	com.sony.dtv.osat.music	listed under preloaded apps; it plays music from USB, so it is an ask row
+sony-bravia-4k-gb-us	com.sony.dtv.smartmediaapp	listed under preloaded apps; it is the USB media player, so it is an ask row
+sony-bravia-4k-vh2	(match)	EU firmware of BRAVIA_VH2; the fingerprint prefix leaves other regions to sony-kd-55x85j (same device and build)
+sony-bravia-4k-vh21	com.google.android.tts	in the owner's memory group; text to speech feeds TalkBack, so it is an accessibility ask row
+sony-bravia-4k-vh21	com.vewd.core.service	Vewd may also run HbbTV here (kept by the owner), so both Vewd packages are ask rows
+sony-bravia-ae2	com.mediatek.dtv.tvinput.atsctuner	the list switches off the ATSC tuner inputs; TV input services are never default-off, so the tuner group is an ask row
+sony-bravia-ae2	com.sony.dtv.seeds.iot	filed under tracking; it is Sony's phone app and smart home link (the VH21 list), so it is an ask row
+sony-bravia-ae2	com.sony.dtv.tvinput.atsc3tuner	TV input service (ATSC 3.0 tuner); ask row, see above
+sony-bravia-ae2	com.sony.dtv.tvinput.atsc3tuner.drmlicenseinstaller	part of the ATSC 3.0 tuner input; ask row, see above
+sony-bravia-tl2	(match)	the TPV device codename OD0M_EA_T32 may be shared with Philips sets; the Sony brand and the BRAVIA_TL2 fingerprint keep them apart
+sony-bravia-vu31	com.google.android.marvin.talkback	in the owner's off by choice group; accessibility is an ask row
+sony-kd-55x8509c	(launcher)	Android 7.0 (SDK 24): the clean-up applies, but the launcher needs SDK 26 and will not install here
+sony-kd-55x8509c	com.google.android.inputmethod.japanese	default-off as listed: the header says leanback.ime is the default keyboard, and the app never switches off the active one
+sony-kd-55x85j	com.google.android.apps.tv.dreamx	in the list's home section; it is the Ambient screensaver, so it is a screensaver ask row
+sony-kd-65x80j	com.sony.dtv.QuickSetupCustomizer	listed as a setup leftover; it customises first setup, which a factory reset runs again, so it is an ask row
+sony-kd-65x80j	com.sony.dtv.b2b.hotelmode	hotel and pro mode services: other Sony lists leave com.sony.dtv.b2b.* alone on purpose, so the group is an ask row
+sony-kd-65x80j	com.sony.dtv.notificationcenter	the BRAVIA notifications inbox, not a camera feature; ask row
+sony-kd-65x80j	com.sony.dtv.sensingcamera.fwupdate	a firmware updater for the camera; updaters stay Software updates
+sony-xbr-65x900f	(header)	the header's already-off paragraph names tv.samba.ssm and com.sony.dtv.promos; the keep-list reader now stops at it, so they stay default-off as listed
+tcl-40s5400a	com.google.android.tungsten.setupwraith	listed as a Google extra; the header does not say it takes Home, so the meta names no wizard, but the converter still moves a listed wizard into the home screen switch (R5-W4 O3), where the Wi-Fi guard applies
+tcl-40s5400a	com.tcl.usercenter	the TCL account; ask row as on tcl-q10g-pro
+tcl-43c645	(match)	the header gives no device codename, so the profile matches the model Smart TV Pro on Android 11; tcl-g05-google-tv, tcl-65c735 and tcl-65c725 still win on their device
+tcl-43c645	com.tcl.android.webview	in the list's extras group; a WebView build, ask row
+tcl-43c645	com.tcl.dashboard	the tcl-55s470g, tcl-c755 and tcl-40s5400a lists keep it, so it is an ask row
+tcl-43c645	com.tcl.keyhelp	in the list's extras group; other TCL lists keep it for the remote's keys, so it is an ask row
+tcl-43c645	com.tcl.useragreement	tcl-55s470g and tcl-c755 keep it (setup screens); ask row
+tcl-43ep660	(match)	same model and device as tcl-beyondtv (India) and tcl-beyondtv-rt2851; the AP04 fingerprint keeps this list to its own firmware
+tcl-43ep660	com.google.android.tungsten.setupwraith	the header keeps it: it owns the Wi-Fi saved at setup (never-disable from the header)
+tcl-43ep660	com.tcl.appmarket2	TCL's app store, carries a package installer service; ask row
+tcl-43ep660	com.tcl.appstatecontroller	in the list's telemetry group, but tcl-beyondtv-rt2851 and tcl-beyondtv2 keep it (purpose unclear); ask row
+tcl-43ep660	com.tcl.tvweishi	carries a package installer service (tcl-beyondtv-rt2851 header); ask row
+tcl-50ep680	com.tcl.copydatatotv	tcl-beyondtv2 keeps it (boot hooks, role unclear); ask row
+tcl-50ep680	com.tcl.dashboard	other TCL lists keep it; ask row
+tcl-55s470g	(match)	same device, product and build as tcl-g10-google-tv; the app picks one profile per TV and the tie goes to this one (ids in order), so G10 sets now get this list, which covers the earlier one apart from TCL's two FAST channel apps
+tcl-55s470g	com.tcl.UpdatePeripheral	soundbar firmware updater; Software updates
+tcl-65c735	(match)	G05 sold in Europe (product G05_4K_GB); the fingerprint prefix leaves other G05 sets on tcl-g05-google-tv
+tcl-65c735	com.tcl.hearaid	hearing test and volume adaptation (tcl-c755 keeps it for accessibility); accessibility ask row
+tcl-65c735	com.tcl.ttvs	filed under telemetry; the tcl-40s5400a and tcl-55s470g headers say ttvs also hosts TCL's firmware updater, so it is a Software updates row
+tcl-beyondtv-rt2851	(match)	same model and device as tcl-beyondtv (India) and tcl-43ep660; the AP06 fingerprint keeps this list to its own firmware
+tcl-beyondtv-rt2851	com.tcl.android.webview	a WebView build (Google's is the active provider here); ask row
+tcl-beyondtv-rt2851	com.tcl.appmarket2	TCL's app store, carries a package installer service; ask row
+tcl-beyondtv-rt2851	com.tcl.keyhelp	remote-key help; tcl-43ep660 and tcl-beyondtv2 keep it as load-bearing, so it is an ask row
+tcl-beyondtv-rt2851	com.tcl.tvweishi	carries a package installer service, and the header says install the launcher first; ask row
+tcl-beyondtv-rt2851	com.tcl.useragreement	tcl-55s470g and tcl-c755 keep it (setup screens); ask row
+tcl-beyondtv2-latin-america	(match)	the device is BeyondTV as on the other BeyondTV sets; the BeyondTV2 fingerprint keeps this two-package list to its own product
+tcl-c755-google-tv	(match)	G08 sold outside the US (product G08_4K_GB); the fingerprint prefix leaves the US G08 on tcl-qm6k-google-tv
+tcl-c755-google-tv	com.tcl.channelplus	TCL Live registers a TV input (tcl-g07 header); TV inputs are never default-off, so it is an ask row
+tcl-c755-google-tv	com.tcl.ttvs	the header calls it tracking and says updates come through Play here, but tcl-qm6k-google-tv (same G08 board) keeps it and other TCL lists say it hosts the firmware updater; tracking ask row
+tcl-g07-google-tv	com.tcl.channelplus	TCL Live registers a TV input (the header says so); ask row
+tcl-g07-google-tv	com.tcl.dashboard	other TCL lists keep it; ask row
+tcl-g07-google-tv	com.tcl.ttvs	the header itself says it is also TCL's firmware updater; Software updates row
+tcl-g07-google-tv	com.tcl.useragreement	tcl-55s470g and tcl-c755 keep it (setup screens); ask row
+tcl-uniontv-latin-america	com.tcl.appmarket2	TCL's app store, carries a package installer service (tcl-beyondtv-rt2851 header); ask row
+tcl-uniontv-latin-america	com.tcl.common.terminalmanagerplus	device management that watches installs; tcl-beyondtv2 and the Thomson list keep it; ask row
+tcl-uniontv-latin-america	com.tcl.copydatatotv	tcl-beyondtv2 and the Thomson list keep it; ask row
+tcl-uniontv-latin-america	com.tcl.tvweishi	carries a package installer service; ask row
 xiaomi-mi-box-s-2nd-gen	com.xiaomi.tvqs.overseas	never-disable here: the header says it is the box's quick settings panel (the MOSR4 and MOOR2 lists call it Firebase analytics), which also keeps it out of the Xiaomi sure set
 xiaomi-mitv-afmu0	com.google.android.marvin.talkback	listed under preloaded apps; accessibility is never default-off, so it is an ask row
 xiaomi-mitv-afmu0	com.mitv.videoplayer	listed under preloaded apps; it is the USB video player, so it is an ask row

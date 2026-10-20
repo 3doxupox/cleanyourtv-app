@@ -278,6 +278,54 @@
         "com.apps.authota": { "category": "updates", "ask": false }
       }
     },
+    "sony-bravia-4k-gb": {
+      "match": { "models": ["BRAVIA 4K GB"], "devices": ["BRAVIA_ATV2", "BRAVIA_ATV2_EU"], "brand": "Sony", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": "Sony/BRAVIA_ATV2_EU/" },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.sony.dtv.tvx",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.sony.dtv.tvx", "com.sony.dtv.sonysystemservice"],
+      "suggestedDock": [],
+      "tested": { "by": "jcardonne (PR #154)", "firmware": "PTT1.190515.001.S54", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "ACR viewing tracker": { "category": "tracking", "ask": false },
+        "Sony and Google content, ads and promos": { "category": "ads", "ask": false },
+        "Retail demo": { "category": "demo", "ask": false },
+        "Telemetry, remote support and feedback": { "category": "tracking", "ask": false },
+        "Preloaded apps": { "category": "preloads", "ask": false }
+      },
+      "packages": {
+        "com.sony.dtv.b2b.vendorprotocol": { "category": "brand", "ask": false },
+        "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": true },
+        "com.google.android.backdrop": { "category": "screensaver", "ask": true }
+      }
+    },
+    "sony-bravia-4k-gb-us": {
+      "match": { "models": ["BRAVIA 4K GB"], "devices": ["BRAVIA_ATV2", "BRAVIA_ATV2_UC"], "brand": "Sony", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.sony.dtv.tvx",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.sony.dtv.tvx", "com.sony.dtv.sonysystemservice"],
+      "suggestedDock": [],
+      "tested": { "by": "akirschke15-cmd (PR #256)", "firmware": "PTT1.190515.001.S54", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "ACR viewing tracker": { "category": "tracking", "ask": false },
+        "Sony and Google content, ads and promos": { "category": "ads", "ask": false },
+        "Retail demo": { "category": "demo", "ask": false },
+        "Telemetry, remote support and feedback": { "category": "tracking", "ask": false },
+        "Preloaded apps": { "category": "preloads", "ask": false },
+        "Optional features, off by owner's choice": { "category": "casting", "ask": true }
+      },
+      "packages": {
+        "com.sony.dtv.osat.music": { "category": "preloads", "ask": true },
+        "com.sony.dtv.smartmediaapp": { "category": "preloads", "ask": true },
+        "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": true },
+        "com.google.android.tv.remote.service": { "category": "other", "ask": true }
+      }
+    },
     "sony-bravia-4k-ur2": {
       "match": { "models": ["BRAVIA_UR2_4K"], "devices": ["BRAVIA_UR2_4K"], "brand": "Sony", "sdkMin": 29, "sdkMax": 29, "fingerprintPrefix": null },
       "platform": "ANDROID_TV",
@@ -302,6 +350,319 @@
         "com.onehundredpics.onehundredpicsquiz": { "category": "preloads", "ask": true },
         "com.google.android.play.games": { "category": "preloads", "ask": true },
         "com.google.android.videos": { "category": "preloads", "ask": true }
+      }
+    },
+    "sony-bravia-4k-vh2": {
+      "match": { "models": ["BRAVIA 4K VH2"], "devices": ["BRAVIA_VH2"], "brand": "Sony", "sdkMin": 31, "sdkMax": 31, "fingerprintPrefix": "Sony/BRAVIA_VH2_EU/" },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.sony.dtv.tvx",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": ["com.sony.dtv.tvx", "com.sony.dtv.tvapi", "com.sony.dtv.sonysystemservice"],
+      "suggestedDock": [],
+      "tested": { "by": "Miroslav Maksimovic (PR #145)", "firmware": "STT2.230505.001.S136", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "ACR viewing tracker": { "category": "tracking", "ask": false },
+        "telemetry and remote support": { "category": "tracking", "ask": false },
+        "demo / shop mode": { "category": "demo", "ask": false },
+        "preloaded apps": { "category": "preloads", "ask": false },
+        "Google TV setup wizard: claims HOME and takes over once the stock launcher is disabled": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": true }
+      }
+    },
+    "sony-bravia-4k-vh21": {
+      "match": { "models": ["BRAVIA 4K VH21"], "devices": ["BRAVIA_VH21"], "brand": "Sony", "sdkMin": 31, "sdkMax": 31, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.sony.dtv.tvx",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": ["com.sony.dtv.tvx", "com.sony.dtv.tvapi", "com.sony.dtv.sonysystemservice"],
+      "suggestedDock": [],
+      "tested": { "by": "swordfish6975 (PR #302)", "firmware": "STT2.230505.001.S136", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "ACR viewing tracker": { "category": "tracking", "ask": false },
+        "telemetry and remote support": { "category": "tracking", "ask": false },
+        "Sony ads, promos and recommendation rows": { "category": "ads", "ask": false },
+        "demo / shop mode": { "category": "demo", "ask": false },
+        "voice assistant (off by choice; the remote's mic button stops working)": { "category": "voice", "ask": true },
+        "preloaded apps (off by choice)": { "category": "streaming", "ask": true },
+        "always-running services, off by choice to free memory (~120 MB together)": { "category": "other", "ask": true },
+        "Google TV setup wizard: with launcherx disabled its RecoveryActivity (HOME priority 1) outranks": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.google.android.play.games": { "category": "preloads", "ask": false },
+        "com.vewd.core.integration.dia": { "category": "preloads", "ask": true },
+        "com.vewd.core.service": { "category": "preloads", "ask": true },
+        "com.google.android.tts": { "category": "accessibility", "ask": true },
+        "com.sony.dtv.seeds.iot": { "category": "brand", "ask": true },
+        "com.sony.dtv.gestureapp": { "category": "brand", "ask": true }
+      }
+    },
+    "sony-bravia-9-ii": {
+      "match": { "models": ["BRAVIA 9 II"], "devices": ["BRAVIA_AE3"], "brand": "Sony", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.sony.dtv.tvlin",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["WIRELESS_DEBUG_PAIRING_REQUIRED", "HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": ["com.sony.dtv.tvlin", "com.sony.dtv.sonysystemservice"],
+      "suggestedDock": [],
+      "tested": { "by": "JegoVPN (PR #127)", "firmware": "UKN4.250422.001", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "ACR viewing tracker and telemetry": { "category": "tracking", "ask": false },
+        "Sony promos and content feeds": { "category": "ads", "ask": false },
+        "Retail demo": { "category": "demo", "ask": false },
+        "Optional features, off by owner's choice": { "category": "casting", "ask": true },
+        "Needed for a custom launcher on Google TV: the setup wizard grabs Home once launcherx is disabled.": { "category": "home", "ask": false }
+      },
+      "packages": {}
+    },
+    "sony-bravia-ae2": {
+      "match": { "models": ["BRAVIA 4K AE2"], "devices": ["BRAVIA_AE2"], "brand": "Sony", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": null,
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["WIRELESS_DEBUG_PAIRING_REQUIRED", "HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": ["com.sony.dtv.tvapi", "com.sony.dtv.sonysystemservice"],
+      "suggestedDock": [],
+      "tested": { "by": "Phil Trinh (PR #171)", "firmware": "UKN4.250422.001", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "tracking / ads / recommendations": { "category": "tracking", "ask": false },
+        "demo / shop mode": { "category": "demo", "ask": false },
+        "help": { "category": "preloads", "ask": false },
+        "Sony extras, disabled by choice": { "category": "brand", "ask": true },
+        "North American broadcast tuner (ATSC 1.0/3.0), unused here: keep these for antenna TV": { "category": "other", "ask": true },
+        "preloaded apps, disabled by choice": { "category": "streaming", "ask": true },
+        "Home: only after the launcher is installed (launcher/build-and-install.sh does this part)": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.sony.dtv.seeds.iot": { "category": "brand", "ask": true },
+        "com.sony.dtv.promos": { "category": "ads", "ask": false },
+        "com.sony.dtv.sonyselect": { "category": "ads", "ask": false },
+        "com.sony.dtv.sonytab": { "category": "ads", "ask": false },
+        "com.sony.dtv.b2b.vendorprotocol": { "category": "brand", "ask": false },
+        "android.autoinstalls.config.sony.bravia": { "category": "ads", "ask": false },
+        "com.sony.dtv.livingfit": { "category": "screensaver", "ask": true },
+        "com.google.android.play.games": { "category": "preloads", "ask": false }
+      }
+    },
+    "sony-bravia-bf1": {
+      "match": { "models": [], "devices": ["BRAVIA_BF1_4K_A"], "brand": "Sony", "sdkMin": 31, "sdkMax": 31, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": null,
+      "setupWraith": null,
+      "quirks": ["REBOOT_COMMAND", "SETTLE_BEFORE_REBOOT"],
+      "neverDisable": ["com.sony.dtv.sonysystemservice", "com.sony.dtv.smartui", "com.sony.dtv.tvinput.dvbtuner"],
+      "suggestedDock": [],
+      "tested": { "by": "Eswaramoorthy Karthikeyan (PR #183)", "firmware": "STT2.230811.001", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "tracking / ads / promos": { "category": "ads", "ask": false },
+        "shop demo mode": { "category": "demo", "ask": false },
+        "preloaded apps (reinstall or re-enable any time)": { "category": "streaming", "ask": true }
+      },
+      "packages": {
+        "tv.samba.ssm": { "category": "tracking", "ask": false },
+        "com.google.android.feedback": { "category": "tracking", "ask": false },
+        "com.google.android.play.games": { "category": "preloads", "ask": false }
+      }
+    },
+    "sony-bravia-tl2": {
+      "match": { "models": [], "devices": ["OD0M_EA_T32"], "brand": "Sony", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": "Sony/BRAVIA_TL2/" },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.mediatek.wwtv.tvcenter",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.mediatek.wwtv.tvcenter", "org.droidtv.eum"],
+      "suggestedDock": [],
+      "tested": { "by": "aidplmraul69 (PR #281)", "firmware": "RTM2.210929.098", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Off by choice (owner does not use them)": { "category": "streaming", "ask": true },
+        "Retail demo, partner auto-installs, Google leftovers": { "category": "demo", "ask": false },
+        "Stock Android TV launcher, replaced by launcher/": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.cg.football": { "category": "preloads", "ask": true },
+        "com.goodtoolapps.zeus": { "category": "preloads", "ask": true },
+        "android.autoinstalls.config.tpv.device": { "category": "ads", "ask": false },
+        "com.google.android.feedback": { "category": "tracking", "ask": false },
+        "com.google.android.play.games": { "category": "preloads", "ask": false }
+      }
+    },
+    "sony-bravia-vu31": {
+      "match": { "models": [], "devices": ["BRAVIA_VU31_4K"], "brand": "Sony", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.android.tv",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": ["com.android.tv", "com.realtek.dtv", "com.realtek.tv.atv", "com.realtek.tv.passthrough", "com.sony.dtv.sonysystemservice", "com.sony.dtv.smartui"],
+      "suggestedDock": [],
+      "tested": { "by": "ipythonist and Anandha Krishnan (PR #258)", "firmware": "UKR1.240726.001", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Sony promos, store demo and help tiles": { "category": "ads", "ask": false },
+        "Ads and on-device ad personalisation (2nd)": { "category": "ads", "ask": false },
+        "Google leftovers a TV never needs": { "category": "preloads", "ask": false },
+        "Screensaver: set `settings put secure screensaver_components com.android.dreams.basic/.Colors` first, or": { "category": "screensaver", "ask": true },
+        "Off by choice (owner does not use them). Alexa (m2.seeds.iot), Chromecast, AirPlay, the phone": { "category": "streaming", "ask": true },
+        "Launcher handover (2nd): setupwraith is safe to disable before the launcher (launcherx keeps Home), but": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.sony.dtv.multiscreendemo": { "category": "demo", "ask": false },
+        "com.sony.dtv.smarthelp": { "category": "preloads", "ask": false },
+        "com.sony.dtv.helpguidecontents": { "category": "preloads", "ask": false },
+        "com.sonypicturescore": { "category": "streaming", "ask": true },
+        "com.android.federatedcompute.services": { "category": "tracking", "ask": false },
+        "com.google.android.feedback": { "category": "tracking", "ask": false },
+        "com.google.android.partnersetup": { "category": "tracking", "ask": false },
+        "com.google.android.syncadapters.calendar": { "category": "other", "ask": false },
+        "android.autoinstalls.config.google.gtvpai": { "category": "ads", "ask": false },
+        "com.analiti.fastest.android": { "category": "preloads", "ask": true },
+        "com.google.android.marvin.talkback": { "category": "accessibility", "ask": true }
+      }
+    },
+    "sony-kd-55x8509c": {
+      "match": { "models": ["BRAVIA 4K 2015"], "devices": ["SVP-DTV15"], "brand": "Sony", "sdkMin": 24, "sdkMax": 24, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.leanbacklauncher"],
+      "liveTv": "com.sony.dtv.tvx",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.sony.dtv.tvx", "com.google.android.leanback.ime"],
+      "suggestedDock": [],
+      "tested": { "by": "MarcusElmett (issue #104), xbsheng (PR #282)", "firmware": "NRD91N.S34", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Telemetry, remote support, bug reports": { "category": "tracking", "ask": false },
+        "Sony and Google content, ads and recommendations": { "category": "ads", "ask": false },
+        "Retail demo": { "category": "demo", "ask": false },
+        "Preloaded help and apps": { "category": "preloads", "ask": false },
+        "Voice assistant, off by owner's choice (removes the remote's mic search)": { "category": "voice", "ask": true },
+        "YouView (UK TV service), off by owner's choice": { "category": "streaming", "ask": true }
+      },
+      "packages": {
+        "com.sony.dtv.b2b.vendorprotocol": { "category": "brand", "ask": false }
+      }
+    },
+    "sony-kd-55x85j": {
+      "match": { "models": ["BRAVIA 4K VH2"], "devices": ["BRAVIA_VH2"], "brand": "Sony", "sdkMin": 31, "sdkMax": 31, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.sony.dtv.tvx",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": ["com.sony.dtv.tvx", "com.sony.dtv.tvapi", "com.sony.dtv.sonysystemservice"],
+      "suggestedDock": [],
+      "tested": { "by": "Patricio Manquepillan (PR #198)", "firmware": "STT2.230505.001.S136", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "ACR viewing tracker": { "category": "tracking", "ask": false },
+        "telemetry and remote support": { "category": "tracking", "ask": false },
+        "Sony content and ads": { "category": "ads", "ask": false },
+        "demo / shop mode and help": { "category": "demo", "ask": false },
+        "preloaded apps, disabled by choice": { "category": "streaming", "ask": true },
+        "extras, disabled by choice": { "category": "casting", "ask": true },
+        "Home: only after the new launcher is installed": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.sony.dtv.customersupport": { "category": "preloads", "ask": false },
+        "com.sony.dtv.smarthelp": { "category": "preloads", "ask": false },
+        "com.google.android.play.games": { "category": "preloads", "ask": false },
+        "com.sony.dtv.osat.music": { "category": "preloads", "ask": true },
+        "com.sony.dtv.gestureapp": { "category": "brand", "ask": true },
+        "com.google.android.apps.tv.dreamx": { "category": "screensaver", "ask": true }
+      }
+    },
+    "sony-kd-65x80j": {
+      "match": { "models": ["BRAVIA 4K VH2"], "devices": ["BRAVIA_VH2"], "brand": "Sony", "sdkMin": 29, "sdkMax": 29, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.sony.dtv.tvx",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": ["com.sony.dtv.tvx", "com.sony.dtv.tvapi", "com.sony.dtv.sonysystemservice"],
+      "suggestedDock": [],
+      "tested": { "by": "Rachit Jain (PR #191)", "firmware": "QTG3.200305.006.S118", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Batch 1: tracking and telemetry": { "category": "tracking", "ask": false },
+        "Batch 2: home-screen ads and promos": { "category": "ads", "ask": false },
+        "Batch 3: retail demo and help": { "category": "demo", "ask": false },
+        "Batch 4: preloaded apps, off by owner's choice": { "category": "streaming", "ask": true },
+        "Batch 5: mirroring, off by owner's choice (Chromecast stays)": { "category": "casting", "ask": true },
+        "Batch 6: needed for a third-party launcher on Google TV (see notes above)": { "category": "home", "ask": false },
+        "Batch 7: setup leftovers and unused services": { "category": "preloads", "ask": false },
+        "Batch 8: hotel / pro mode (not a hotel TV)": { "category": "brand", "ask": true },
+        "Batch 9: BRAVIA CAM features (the X80J has no camera support) and the notifications app": { "category": "brand", "ask": false }
+      },
+      "packages": {
+        "com.sony.dtv.b2b.vendorprotocol": { "category": "brand", "ask": false },
+        "com.sony.dtv.customersupport": { "category": "preloads", "ask": false },
+        "com.sony.dtv.smarthelp": { "category": "preloads", "ask": false },
+        "com.google.android.play.games": { "category": "preloads", "ask": false },
+        "com.google.android.syncadapters.calendar": { "category": "other", "ask": false },
+        "com.google.android.partnersetup": { "category": "tracking", "ask": false },
+        "com.sony.dtv.QuickSetupCustomizer": { "category": "other", "ask": true },
+        "com.sony.dtv.sensingcamera.fwupdate": { "category": "updates", "ask": true },
+        "com.sony.dtv.notificationcenter": { "category": "brand", "ask": true }
+      }
+    },
+    "sony-kd-65x9300d": {
+      "match": { "models": ["BRAVIA 4K 2015"], "devices": ["SVP-DTV15"], "brand": "Sony", "sdkMin": 26, "sdkMax": 26, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.sony.dtv.tvx",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.sony.dtv.tvx"],
+      "suggestedDock": [],
+      "tested": { "by": "waranon (PR #259)", "firmware": "OPR2.170623.027.S16", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Sony and Google content, ads and promos": { "category": "ads", "ask": false },
+        "Telemetry, remote support and feedback": { "category": "tracking", "ask": false },
+        "Preloaded apps and tutorials": { "category": "preloads", "ask": false },
+        "Optional features, off by owner's choice": { "category": "casting", "ask": true }
+      },
+      "packages": {
+        "com.sony.dtv.b2b.vendorprotocol": { "category": "brand", "ask": false },
+        "com.google.android.backdrop": { "category": "screensaver", "ask": true },
+        "com.amazon.aiv.us": { "category": "streaming", "ask": true },
+        "com.sony.dtv.osat.music": { "category": "preloads", "ask": true },
+        "com.sony.dtv.osat.album": { "category": "preloads", "ask": true },
+        "com.sony.dtv.osat.video": { "category": "preloads", "ask": true },
+        "com.vewd.core.integration.dia": { "category": "preloads", "ask": true },
+        "com.google.android.inputmethod.japanese": { "category": "other", "ask": true }
+      }
+    },
+    "sony-xbr-65x900f": {
+      "match": { "models": ["BRAVIA 4K GB ATV3"], "devices": ["BRAVIA_ATV3_4K"], "brand": "Sony", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.sony.dtv.tvx",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.sony.dtv.tvx", "com.sony.dtv.sonysystemservice"],
+      "suggestedDock": [],
+      "tested": { "by": "whiskeykilo (PR #255)", "firmware": "PTT1.190515.001.S54", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "ACR viewing tracker": { "category": "tracking", "ask": false },
+        "Sony and Google content, ads and promos": { "category": "ads", "ask": false },
+        "Retail demo": { "category": "demo", "ask": false },
+        "Telemetry, remote support and feedback": { "category": "tracking", "ask": false },
+        "Preloaded help apps": { "category": "preloads", "ask": false },
+        "Off by choice on this TV: features the owner doesn't use. Comment out any you want.": { "category": "casting", "ask": true }
+      },
+      "packages": {
+        "com.sony.dtv.b2b.vendorprotocol": { "category": "brand", "ask": false },
+        "com.google.android.katniss": { "category": "voice", "ask": true },
+        "com.google.android.tv.remote.service": { "category": "other", "ask": true },
+        "com.google.android.inputmethod.japanese": { "category": "other", "ask": true },
+        "com.sony.dtv.smarthomesettings": { "category": "voice", "ask": true },
+        "com.sony.dtv.smartmediaapp": { "category": "preloads", "ask": true },
+        "com.sony.dtv.osat.music": { "category": "preloads", "ask": true }
       }
     },
     "sony-xbr-x900e": {
@@ -352,6 +713,171 @@
         "com.android.ondevicepersonalization.services": { "category": "tracking", "ask": false }
       }
     },
+    "tcl-40s5400a": {
+      "match": { "models": ["Smart TV"], "devices": ["C06"], "brand": "TCL", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.tcl.tv",
+      "setupWraith": null,
+      "quirks": ["REENABLED_AT_BOOT"],
+      "neverDisable": ["com.tcl.tv", "com.tcl.tvinput", "com.tcl.ttvs"],
+      "suggestedDock": [],
+      "tested": { "by": "adrbsk91 (PR #159)", "firmware": "AR2101 (V8-T221T05-LF1V325)", "daysLivedWith": 1, "rebootTested": true },
+      "groups": {
+        "TCL account, promos and content": { "category": "ads", "ask": false },
+        "Google extras": { "category": "preloads", "ask": false },
+        "Stock home and its recommendation rows, replaced by launcher/": { "category": "ads", "ask": false },
+        "Off by choice on this unit: comment out what you use": { "category": "other", "ask": true }
+      },
+      "packages": {
+        "com.tcl.usercenter": { "category": "other", "ask": true },
+        "com.tcl.guard": { "category": "brand", "ask": false },
+        "com.tcl.esticker": { "category": "demo", "ask": false },
+        "com.google.android.feedback": { "category": "tracking", "ask": false },
+        "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": true },
+        "com.google.android.syncadapters.calendar": { "category": "other", "ask": false },
+        "com.google.android.katniss": { "category": "voice", "ask": true },
+        "com.google.android.tts": { "category": "accessibility", "ask": true },
+        "com.google.android.marvin.talkback": { "category": "accessibility", "ask": true },
+        "com.google.android.backdrop": { "category": "screensaver", "ask": true },
+        "com.tcl.ui_mediaCenter": { "category": "preloads", "ask": true },
+        "com.tcl.audioplayer": { "category": "preloads", "ask": true },
+        "com.tcl.videoplayer": { "category": "preloads", "ask": true },
+        "com.tcl.imageplayer": { "category": "preloads", "ask": true }
+      }
+    },
+    "tcl-43c645": {
+      "match": { "models": ["Smart TV Pro"], "devices": [], "brand": "TCL", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.tcl.tv",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": ["com.tcl.providers.config", "com.tcl.initsetup", "com.tcl.factory.view", "com.tcl.system.server", "com.tcl.tcl_bt_rcu_service", "com.tcl.autopair", "com.tcl.tvinput", "com.tcl.tv", "com.tcl.tvpassthrough", "com.tcl.settings", "com.tcl.inputmethod.international", "com.tcl.sourcemananger", "com.tcl.keycustomfunctionservice"],
+      "suggestedDock": [],
+      "tested": { "by": "frcjules (PR #208)", "firmware": "V8-R51MT05-LF1V652", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "1. Telemetry, promos, content rows": { "category": "ads", "ask": false },
+        "1b. Google TV first-run wizard (claims HOME once the stock launcher is off)": { "category": "home", "ask": false },
+        "2. Extras": { "category": "brand", "ask": true },
+        "3. Off by choice": { "category": "casting", "ask": true }
+      },
+      "packages": {
+        "com.tcl.bi": { "category": "tracking", "ask": false },
+        "com.tcl.dashboard": { "category": "brand", "ask": true },
+        "com.tcl.esticker": { "category": "demo", "ask": false },
+        "com.google.android.partnersetup": { "category": "tracking", "ask": false },
+        "com.google.android.feedback": { "category": "tracking", "ask": false },
+        "com.google.android.onetimeinitializer": { "category": "other", "ask": false },
+        "com.tcl.useragreement": { "category": "other", "ask": true },
+        "com.tcl.guard": { "category": "tracking", "ask": false },
+        "com.tcl.tv.tclhome_passive": { "category": "ads", "ask": false },
+        "com.google.android.syncadapters.calendar": { "category": "other", "ask": false },
+        "com.google.android.videos": { "category": "preloads", "ask": false },
+        "tv.wuaki.apptv": { "category": "streaming", "ask": true },
+        "com.tcl.versionUpdateApp": { "category": "updates", "ask": true }
+      }
+    },
+    "tcl-43ep660": {
+      "match": { "models": ["BeyondTV"], "devices": ["BeyondTV"], "brand": "TCL", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": "TCL/BeyondTV/BeyondTV:9/PPR1.180610.011/AP04" },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.tcl.tv",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": [],
+      "suggestedDock": [],
+      "tested": { "by": "Frane Zunic (PR #279)", "firmware": "PPR1.180610.011 AP04 (V8-R851T02-LF1V378)", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "1. Telemetry and analytics": { "category": "tracking", "ask": false },
+        "2. Content, recommendation rows and promos": { "category": "ads", "ask": false },
+        "3. Background extras": { "category": "brand", "ask": true },
+        "4. Preloads": { "category": "preloads", "ask": false },
+        "5. Off by choice on this unit": { "category": "voice", "ask": true },
+        "6. After the launcher is installed": { "category": "ads", "ask": false }
+      },
+      "packages": {
+        "com.tcl.appstatecontroller": { "category": "other", "ask": true },
+        "com.tcl.usercenter": { "category": "other", "ask": true },
+        "com.tcl.esticker": { "category": "demo", "ask": false },
+        "com.tcl.MultiScreenInteraction_TV": { "category": "casting", "ask": true },
+        "com.android.printspooler": { "category": "preloads", "ask": false },
+        "com.tcl.imageplayer": { "category": "preloads", "ask": true },
+        "com.tcl.audioplayer": { "category": "preloads", "ask": true },
+        "com.tcl.videoplayer": { "category": "preloads", "ask": true },
+        "com.tcl.ui_mediaCenter": { "category": "preloads", "ask": true },
+        "com.tcl.appmarket2": { "category": "brand", "ask": true },
+        "com.tcl.miracast": { "category": "casting", "ask": true }
+      }
+    },
+    "tcl-50ep680": {
+      "match": { "models": ["BeyondTV"], "devices": ["BeyondTV"], "brand": "TCL", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.tcl.tv",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.tcl.tv", "com.tcl.tvinput"],
+      "suggestedDock": [],
+      "tested": { "by": "Jiri Cermak (PR #181)", "firmware": "PPR1.180610.011 AR05", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "TCL telemetry, promos and content feeds": { "category": "ads", "ask": false },
+        "Voice assistant (off by choice)": { "category": "voice", "ask": true },
+        "Google extras, recommendation rows and Play Movies": { "category": "preloads", "ask": false },
+        "Preloaded games (user-space apps: disable-user is enough, and reversible)": { "category": "preloads", "ask": false },
+        "Preloaded news, video and remote-support apps": { "category": "streaming", "ask": true }
+      },
+      "packages": {
+        "com.tcl.bi": { "category": "tracking", "ask": false },
+        "com.tcl.esticker": { "category": "demo", "ask": false },
+        "com.tcl.notereminder": { "category": "preloads", "ask": false },
+        "com.tcl.copydatatotv": { "category": "brand", "ask": true },
+        "com.tcl.dashboard": { "category": "brand", "ask": true },
+        "com.google.android.tvrecommendations": { "category": "ads", "ask": false },
+        "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": true },
+        "com.google.android.feedback": { "category": "tracking", "ask": false },
+        "com.google.android.backdrop": { "category": "screensaver", "ask": true },
+        "com.cloudmosa.puffinTV": { "category": "preloads", "ask": false },
+        "cm.aptoidetv.pt": { "category": "preloads", "ask": false },
+        "com.teamviewer.quicksupport.market": { "category": "preloads", "ask": false },
+        "jp.co.rarity.tvweb": { "category": "preloads", "ask": false }
+      }
+    },
+    "tcl-55s470g": {
+      "match": { "models": [], "devices": ["G10"], "brand": "TCL", "sdkMin": 31, "sdkMax": 31, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.tcl.tv",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH", "REENABLED_AT_BOOT"],
+      "neverDisable": ["com.tcl.ttvs"],
+      "suggestedDock": [],
+      "tested": { "by": "hayitsjose (PR #265)", "firmware": "STT2.230203.001 AS50", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "Batch 1: tracking and analytics": { "category": "tracking", "ask": false },
+        "Batch 2: TCL content, ads and promos": { "category": "ads", "ask": false },
+        "Batch 3: retail demo, hotel mode, preloads": { "category": "demo", "ask": false },
+        "Batch 4: background services (off by choice: voice, Chromecast)": { "category": "other", "ask": true },
+        "Batch 5: preloaded apps (off by choice)": { "category": "streaming", "ask": true },
+        "Needed for the custom launcher. Disable only AFTER launcher/ is installed (see README Troubleshooting).": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.tcl.usercenter": { "category": "other", "ask": true },
+        "com.tcl.ocean.instructions": { "category": "preloads", "ask": false },
+        "com.tcl.repairguide": { "category": "preloads", "ask": false },
+        "com.tcl.gamebar": { "category": "brand", "ask": true },
+        "com.tcl.ui_mediaCenter": { "category": "preloads", "ask": true },
+        "com.tcl.UpdatePeripheral": { "category": "updates", "ask": true },
+        "com.google.android.marvin.talkback": { "category": "accessibility", "ask": true },
+        "com.google.android.play.games": { "category": "preloads", "ask": false },
+        "com.tcl.guard": { "category": "tracking", "ask": false },
+        "com.google.android.apps.tv.dreamx": { "category": "screensaver", "ask": true },
+        "com.google.android.katniss": { "category": "voice", "ask": true },
+        "com.google.android.apps.mediashell": { "category": "casting", "ask": true },
+        "com.tcl.smartalexa": { "category": "voice", "ask": true },
+        "com.google.android.tv.remote.service": { "category": "other", "ask": true }
+      }
+    },
     "tcl-65c725": {
       "match": { "models": ["Smart TV Pro"], "devices": ["BeyondTV4"], "brand": "TCL", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
       "platform": "ANDROID_TV",
@@ -379,6 +905,41 @@
         "com.tcl.tv.tclhome_passive": { "category": "ads", "ask": false },
         "com.google.android.syncadapters.calendar": { "category": "other", "ask": false },
         "com.google.android.tungsten.setupwraith": { "category": "home", "ask": false }
+      }
+    },
+    "tcl-65c735": {
+      "match": { "models": ["Smart TV Pro"], "devices": ["G05"], "brand": "TCL", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": "TCL/G05_4K_GB/" },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.tcl.tv",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": [],
+      "suggestedDock": [],
+      "tested": { "by": "WhidanB (PR #205)", "firmware": "AR2101", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Batch 1 - telemetry and analytics": { "category": "tracking", "ask": false },
+        "Batch 2 - TCL content, ads and promos": { "category": "ads", "ask": false },
+        "Batch 3 - preloaded apps and services not used": { "category": "preloads", "ask": false },
+        "Batch 4 - voice and casting (owner keeps Chromecast and Miracast)": { "category": "voice", "ask": true },
+        "Batch 5 - with the launcher in this repo installed (launcher/build-and-install.sh disables launcherx)": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.tcl.ttvs": { "category": "updates", "ask": true },
+        "com.tcl.usercenter": { "category": "other", "ask": true },
+        "com.tcl.dashboard": { "category": "brand", "ask": true },
+        "com.tcl.esticker": { "category": "demo", "ask": false },
+        "tv.wuaki.apptv": { "category": "streaming", "ask": true },
+        "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": true },
+        "com.google.android.videos": { "category": "streaming", "ask": true },
+        "com.tcl.gallery": { "category": "preloads", "ask": true },
+        "com.tcl.ui_mediaCenter": { "category": "preloads", "ask": true },
+        "com.tcl.hearaid": { "category": "accessibility", "ask": true },
+        "com.google.android.marvin.talkback": { "category": "accessibility", "ask": true },
+        "com.google.android.syncadapters.calendar": { "category": "other", "ask": false },
+        "com.google.android.onetimeinitializer": { "category": "other", "ask": false },
+        "com.tcl.airplay2": { "category": "casting", "ask": true },
+        "com.mediatek.AirplayAPK": { "category": "casting", "ask": true }
       }
     },
     "tcl-ak30a5": {
@@ -431,6 +992,87 @@
         "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": false }
       }
     },
+    "tcl-beyondtv-rt2851": {
+      "match": { "models": ["BeyondTV"], "devices": ["BeyondTV"], "brand": "TCL", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": "TCL/BeyondTV/BeyondTV:9/PPR1.180610.011/AP06" },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.tcl.tv",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": [],
+      "suggestedDock": [],
+      "tested": { "by": "Aleksander Sandnes (PR #137)", "firmware": "PPR1.180610.011 AP06 (V8-R851T02-LF1V606)", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "1. Telemetry and analytics": { "category": "tracking", "ask": false },
+        "2. Content, recommendation rows and promos": { "category": "ads", "ask": false },
+        "3. Preloads and background extras": { "category": "preloads", "ask": false },
+        "com.eros.now                              # Eros Now: refused (\"Shell cannot change component state\"), no tile anyway": { "category": "brand", "ask": true },
+        "4. Off by choice on this unit": { "category": "casting", "ask": true },
+        "5. After the launcher is installed": { "category": "brand", "ask": true },
+        "6. Voice, off by choice. voice_ap and katniss:interactor used ~45% of one core all day.": { "category": "voice", "ask": true }
+      },
+      "packages": {
+        "android.autoinstalls.config.tcl.device": { "category": "ads", "ask": false },
+        "com.tcl.esticker": { "category": "demo", "ask": false },
+        "com.tcl.ui_mediaCenter": { "category": "preloads", "ask": true },
+        "com.tcl.useragreement": { "category": "other", "ask": true },
+        "com.tcl.android.webview": { "category": "other", "ask": true },
+        "com.tcl.versionUpdateApp": { "category": "updates", "ask": true }
+      }
+    },
+    "tcl-beyondtv2-latin-america": {
+      "match": { "models": ["BeyondTV2"], "devices": ["BeyondTV"], "brand": "TCL", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": "TCL/BeyondTV2/" },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.tcl.tv",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": [],
+      "suggestedDock": [],
+      "tested": { "by": "Eddy Sangalli (PR #179)", "firmware": "PPR1.180610.011 AP08 (V8-R851T02-LF1V660)", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "TCL analytics (telemetry)": { "category": "tracking", "ask": false },
+        "Content pushed to the home screen at boot": { "category": "ads", "ask": false }
+      },
+      "packages": {}
+    },
+    "tcl-c755-google-tv": {
+      "match": { "models": ["Smart TV Pro"], "devices": ["G08"], "brand": "TCL", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": "TCL/G08_4K_GB/" },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.tcl.tv",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": [],
+      "suggestedDock": [],
+      "tested": { "by": "Samuel Hinton (PR #241)", "firmware": "UTT2.250416.001 AU02", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "TCL tracking and analytics": { "category": "tracking", "ask": false },
+        "TCL content, ads and promos": { "category": "ads", "ask": false },
+        "Retail demo / hotel mode": { "category": "demo", "ask": false },
+        "Preloaded apps and services": { "category": "preloads", "ask": false },
+        "Off by choice on this unit (casting, mirroring and extras not used here)": { "category": "casting", "ask": true },
+        "Needed for the custom launcher. Disable only AFTER launcher/ is installed and set as Home:": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.tcl.ttvs": { "category": "tracking", "ask": true },
+        "com.tcl.usercenter": { "category": "other", "ask": true },
+        "com.tcl.channelplus": { "category": "ads", "ask": true },
+        "com.tcl.smartalexa": { "category": "voice", "ask": true },
+        "com.tcl.guard": { "category": "brand", "ask": false },
+        "android.autoinstalls.config.google.gtvpai": { "category": "ads", "ask": false },
+        "com.google.android.partnersetup": { "category": "tracking", "ask": false },
+        "com.google.android.feedback": { "category": "tracking", "ask": false },
+        "com.android.tv.feedbackconsent": { "category": "tracking", "ask": false },
+        "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": true },
+        "au.com.stan.and": { "category": "streaming", "ask": true },
+        "com.tcl.gamebar": { "category": "brand", "ask": true },
+        "com.tcl.ui_mediaCenter": { "category": "preloads", "ask": true },
+        "com.tcl.gallery": { "category": "preloads", "ask": true },
+        "com.tcl.UpdatePeripheral": { "category": "updates", "ask": true },
+        "com.google.android.apps.tv.dreamx": { "category": "screensaver", "ask": true }
+      }
+    },
     "tcl-g05-google-tv": {
       "match": { "models": ["Smart TV Pro"], "devices": ["G05"], "brand": "TCL", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
       "platform": "GOOGLE_TV",
@@ -458,6 +1100,44 @@
         "com.google.android.apps.tv.dreamx": { "category": "screensaver", "ask": false },
         "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": true },
         "com.google.android.apps.mediashell": { "category": "casting", "ask": true }
+      }
+    },
+    "tcl-g07-google-tv": {
+      "match": { "models": ["Smart TV"], "devices": ["G07"], "brand": "TCL", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.tcl.tv",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": [],
+      "suggestedDock": [],
+      "tested": { "by": "Erick Mwamodo (PR #290)", "firmware": "RP1A.200622.001 AR20", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "1. Telemetry and analytics": { "category": "tracking", "ask": false },
+        "2. Content and ad services": { "category": "ads", "ask": false },
+        "3. Background services (off by choice)": { "category": "other", "ask": true },
+        "4. Preloaded apps (off by choice)": { "category": "streaming", "ask": true },
+        "5. Launcher handover (setupwraith's RecoveryActivity claims HOME once launcherx is off; the install": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.tcl.ttvs": { "category": "updates", "ask": true },
+        "com.tcl.useragreement": { "category": "other", "ask": true },
+        "com.google.android.onetimeinitializer": { "category": "other", "ask": false },
+        "com.tcl.channelplus": { "category": "ads", "ask": true },
+        "com.tcl.dashboard": { "category": "brand", "ask": true },
+        "com.tcl.usercenter": { "category": "other", "ask": true },
+        "com.tcl.esticker": { "category": "demo", "ask": false },
+        "com.tcl.hotelmenu": { "category": "demo", "ask": false },
+        "com.tcl.MultiScreenInteraction_TV": { "category": "casting", "ask": true },
+        "com.tcl.miracast": { "category": "casting", "ask": true },
+        "com.google.android.katniss": { "category": "voice", "ask": true },
+        "com.tcl.assistant": { "category": "voice", "ask": true },
+        "com.google.android.tv.assistant": { "category": "voice", "ask": true },
+        "com.tcl.t_solo": { "category": "brand", "ask": true },
+        "com.google.android.play.games": { "category": "preloads", "ask": false },
+        "com.tcl.ui_mediaCenter": { "category": "preloads", "ask": true },
+        "com.tcl.gallery": { "category": "preloads", "ask": true },
+        "com.google.android.apps.tv.dreamx": { "category": "screensaver", "ask": true }
       }
     },
     "tcl-g10-google-tv": {
@@ -543,6 +1223,40 @@
         "com.android.tv.feedbackconsent": { "category": "tracking", "ask": false },
         "com.google.android.apps.tv.dreamx": { "category": "screensaver", "ask": false },
         "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": false }
+      }
+    },
+    "tcl-uniontv-latin-america": {
+      "match": { "models": ["UnionTV"], "devices": ["UnionTV"], "brand": "TCL", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.tcl.tv",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.tcl.tv", "com.tcl.tvinput", "com.tcl.tvpassthrough", "com.tcl.sourcemananger"],
+      "suggestedDock": [],
+      "tested": { "by": "Pedro Seixas (PR #200)", "firmware": "PPR2.180905.006.A1", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "Telemetry and feedback": { "category": "tracking", "ask": false },
+        "Content rows, promos and auto-installs": { "category": "ads", "ask": false },
+        "Preloaded apps": { "category": "preloads", "ask": false },
+        "Off by choice on this unit (voice, and two third-party apps installed on this unit); re-enable if wanted": { "category": "voice", "ask": true },
+        "Second pass, applied the same day. The launcher's Clock screensaver replaces Ambient Mode:": { "category": "other", "ask": true }
+      },
+      "packages": {
+        "com.tcl.esticker": { "category": "demo", "ask": false },
+        "com.tcl.appmarket2": { "category": "brand", "ask": true },
+        "com.tcl.tvweishi": { "category": "brand", "ask": true },
+        "com.tcl.usercenter": { "category": "other", "ask": true },
+        "com.tcl.copydatatotv": { "category": "brand", "ask": true },
+        "com.nousguide.android.rbtv": { "category": "streaming", "ask": true },
+        "tv.twitch.android.app": { "category": "streaming", "ask": true },
+        "com.google.android.backdrop": { "category": "screensaver", "ask": true },
+        "com.google.android.tts": { "category": "accessibility", "ask": true },
+        "com.google.android.marvin.talkback": { "category": "accessibility", "ask": true },
+        "com.google.android.speech.pumpkin": { "category": "voice", "ask": true },
+        "com.android.gallery3d": { "category": "preloads", "ask": false },
+        "com.android.wallpaper.livepicker": { "category": "preloads", "ask": false },
+        "com.android.dreams.basic": { "category": "screensaver", "ask": true }
       }
     },
     "toshiba-fire-tv-aftha004": {

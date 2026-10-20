@@ -110,8 +110,10 @@ internal object DebloatTxt {
     }
 
     // Packages a header line says to keep ("Keep:", "KEEP", "Do NOT disable", "must stay
-    // enabled"); continuation lines of the same paragraph count too. Used in addition to the
-    // curated list, since an extra protected name only makes the plan smaller.
+    // enabled"); continuation lines of the same paragraph count too, up to a line that starts
+    // "Already" (a note on what the owner or the factory had already switched off, which names
+    // packages the list then disables anyway). Used in addition to the curated list, since an
+    // extra protected name only makes the plan smaller.
     fun keepListIn(lines: List<String>): Set<PackageName> {
         val out = linkedSetOf<PackageName>()
         var inKeep = false
@@ -121,7 +123,7 @@ internal object DebloatTxt {
             val lower = t.lowercase().removePrefix("- ")
             val starts = lower.startsWith("keep") || "do not disable" in lower || "must stay enabled" in lower || "keep enabled" in lower
             if (starts) { inKeep = true; bulletStart = t.startsWith("- ") }
-            else if (inKeep && (t.isEmpty() || (bulletStart && t.startsWith("- ")) || HEADING.containsMatchIn(t))) inKeep = false
+            else if (inKeep && (t.isEmpty() || (bulletStart && t.startsWith("- ")) || HEADING.containsMatchIn(t) || lower.startsWith("already "))) inKeep = false
             if (inKeep) out += packagesIn(t)
         }
         return out
