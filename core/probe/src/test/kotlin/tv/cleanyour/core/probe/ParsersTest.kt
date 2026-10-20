@@ -23,10 +23,12 @@ class ParsersTest {
             "fileSha256(OVERLAY/config.json)" to ProbeScripts.fileSha256(ProbeScripts.overlayConfig).text,
             "installedSha256(com.gathin.tvhome)" to ProbeScripts.installedSha256(p("com.gathin.tvhome")).text,
             "watchdogAlive(0123456789abcdef)" to ProbeScripts.watchdogAlive(tv.cleanyour.core.model.RunToken("0123456789abcdef")).text,
+            "copyApk(com.gathin.tvhome)" to ProbeScripts.copyApk(p("com.gathin.tvhome")).text,
         )
         assertEquals(golden, actual)
-        // Printable ASCII only, and no write verb outside the four lines that must write.
-        val writers = setOf("SCREENSHOT", "SCREENSHOT_CLEANUP", "MKDIR_TMP", "NOOP_INSTALL", "NOOP_UNINSTALL", "NOOP_CLEANUP")
+        // Printable ASCII only, and no write verb outside the lines that must write (all of them in
+        // the app's TMP folder, or the no-op package).
+        val writers = setOf("SCREENSHOT", "SCREENSHOT_CLEANUP", "MKDIR_TMP", "NOOP_INSTALL", "NOOP_UNINSTALL", "NOOP_CLEANUP", "SIGNER_CLEANUP")
         for ((k, v) in actual) {
             assertTrue(v.all { it in ' '..'~' }, k)
             if (k !in writers) assertFalse(Regex("\\b(disable|enable|install|uninstall|rm|put|delete|setprop|reboot|am|input|svc)\\b").containsMatchIn(v.replace("--brief", "")), "$k writes: $v")

@@ -27,6 +27,7 @@ object ProbeScripts {
     const val HOME_ARGS = "-a android.intent.action.MAIN -c android.intent.category.HOME"
     const val SCREEN_FILE = "probe-screen.png"
     const val NOOP_FILE = "noop.apk"
+    const val SIGNER_FILE = "signer.apk"
     // The no-op APK the install-refusal check uses (W5 bundles it) must have this package name.
     val NOOP_PACKAGE = PackageName("tv.cleanyour.noop")
 
@@ -70,9 +71,15 @@ object ProbeScripts {
     val NOOP_UNINSTALL = ShellLine("pm uninstall ${NOOP_PACKAGE.value}")
     val NOOP_CLEANUP = ShellLine("rm -f ${RemoteDir.TMP.path}/$NOOP_FILE")
     val PS_ARGS = ShellLine("ps -A -o ARGS")
+    val SIGNER_CLEANUP = ShellLine("rm -f ${RemoteDir.TMP.path}/$SIGNER_FILE")
+
+    // Launcher v2.4.0's guard (tools/disable.sh): who saved each Wi-Fi network. Only the cname= words
+    // leave the TV (the app that saved it, with its uid), never a network name.
+    val WIFI_OWNERS = ShellLine("dumpsys wifi | grep -o 'cname=[^ ]*'")
 
     val screenPath = RemotePath(RemoteDir.TMP, listOf(SCREEN_FILE))
     val noopPath = RemotePath(RemoteDir.TMP, listOf(NOOP_FILE))
+    val signerPath = RemotePath(RemoteDir.TMP, listOf(SIGNER_FILE))
     val overlayConfig = RemotePath(RemoteDir.OVERLAY, listOf("config.json"))
 
     fun fileSha256(path: RemotePath) = ShellLine("sha256sum ${q(path.absolute)}")
@@ -81,6 +88,14 @@ object ProbeScripts {
     fun installedSha256(pkg: PackageName): ShellLine {
         require(PACKAGE_RE.matches(pkg.value))
         return ShellLine("p=\$(pm path ${q(pkg.value)} | grep base.apk | head -n 1); sha256sum \"\${p#package:}\"")
+    }
+
+    // A copy of the installed APK in the app's TMP folder, for its signer (ApkSigners): the installed
+    // file itself is outside the folders a pull may read (RemotePath). Like installedSha256, the path
+    // never leaves the TV.
+    fun copyApk(pkg: PackageName): ShellLine {
+        require(PACKAGE_RE.matches(pkg.value))
+        return ShellLine("mkdir -p ${RemoteDir.TMP.path} && p=\$(pm path ${q(pkg.value)} | grep base.apk | head -n 1) && [ -n \"\$p\" ] && cp \"\${p#package:}\" ${RemoteDir.TMP.path}/$SIGNER_FILE")
     }
 
     // The bracket keeps pgrep from matching the shell that runs it.
@@ -92,5 +107,6 @@ object ProbeScripts {
         "HOME_RESOLVED" to HOME_RESOLVED, "LAUNCHABLE" to LAUNCHABLE, "INPUTS" to INPUTS, "SETTINGS" to SETTINGS, "HOME_FOCUS" to HOME_FOCUS, "BOOT_ID" to BOOT_ID,
         "FREE_DATA" to FREE_DATA, "SCREENSHOT" to SCREENSHOT, "SCREENSHOT_CLEANUP" to SCREENSHOT_CLEANUP, "MKDIR_TMP" to MKDIR_TMP,
         "NOOP_INSTALL" to NOOP_INSTALL, "NOOP_UNINSTALL" to NOOP_UNINSTALL, "NOOP_CLEANUP" to NOOP_CLEANUP, "PS_ARGS" to PS_ARGS,
+        "SIGNER_CLEANUP" to SIGNER_CLEANUP, "WIFI_OWNERS" to WIFI_OWNERS,
     )
 }

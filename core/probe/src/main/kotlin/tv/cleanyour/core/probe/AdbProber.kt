@@ -32,7 +32,16 @@ import tv.cleanyour.core.store.SnapshotCodec
 // pull for a full snapshot, plus one call for the launchable apps (LaunchableApps). Every method fails with AdbException like the session it wraps; a
 // parser failure is ProbeException. installRefusal is the one exception to "reads only": it
 // installs and uninstalls the bundled no-op APK, which is the only way to learn the answer.
-class AdbProber(private val clock: Clock) : Prober, LaunchableApps {
+//
+// Signers (launcher v2.4.0 plan, finding 4; RF-CURTAIN-1 F9): for each package in `signed` that
+// the TV has, the snapshot carries the installed APK's signer (ApkSigners). The APK is copied into
+// the app's TMP folder, pulled and deleted again: two more shell calls and one pull per package,
+// only when it is installed. A signer that cannot be read stays null (unknown). The default names
+// the bundled launcher and the TV curtain, the two packages whose replacement rules need it.
+class AdbProber(
+    private val clock: Clock,
+    private val signed: Set<PackageName> = SIGNED_PACKAGES,
+) : Prober, LaunchableApps, SavedWifiOwners {
 
     private suspend fun run(
         session: TvSession, line: ShellLine, stage: ProbeStage, cap: Int, timeoutMs: Long = 30_000, retry: RetryClass = RetryClass.IDEMPOTENT_READ,
@@ -122,6 +131,8 @@ class AdbProber(private val clock: Clock) : Prober, LaunchableApps {
         onStage(ProbeStage.LAUNCHER)
         val overlay = pullOrNull(session, ProbeScripts.overlayConfig, OVERLAY_CAP)
 
+        val signers = signed.filter { pkg -> all.any { it.name == pkg.value } }.associateWith { signerOf(session, it) }
+
         val tvInputPkgs = tif.map { it.pkg }.toSet()
         val packages = LinkedHashMap<PackageName, PackageState>()
         for (p in all) {
@@ -132,7 +143,7 @@ class AdbProber(private val clock: Clock) : Prober, LaunchableApps {
                 enabled = enabledState(p.name in off, i?.enabled),
                 system = i?.flags?.contains("SYSTEM") ?: SYSTEM_PATHS.any { path?.startsWith(it) == true },
                 versionCode = i?.versionCode ?: 0,
-                signer = null,
+                signer = signers[name],
                 persistent = i?.flags?.contains("PERSISTENT") == true,
                 tvInput = name in tvInputPkgs,
                 label = null,
@@ -168,6 +179,24 @@ class AdbProber(private val clock: Clock) : Prober, LaunchableApps {
         val r = run(session, ProbeScripts.LAUNCHABLE, ProbeStage.LAUNCHER, 256 * 1024)
         val s = sections(ProbeStage.LAUNCHER, r.stdout, listOf("launcher"))
         return LaunchableParser.parse(s.getValue("").asSequence()) + LaunchableParser.parse(s.getValue("launcher").asSequence())
+    }
+
+    override suspend fun savedWifiOwners(session: TvSession): Set<String> {
+        val r = run(session, ProbeScripts.WIFI_OWNERS, ProbeStage.LAUNCHER, 256 * 1024)
+        return WifiOwnersParser.parse(lines(r.stdout))
+    }
+
+    // The installed APK's signer, or null when it cannot be read (a transport error included: the
+    // snapshot must not fail for it). The copy in TMP goes whatever happened.
+    private suspend fun signerOf(session: TvSession, pkg: PackageName): Sha256? = try {
+        val copy = run(session, ProbeScripts.copyApk(pkg), ProbeStage.LAUNCHER, 16 * 1024, timeoutMs = 60_000, retry = RetryClass.IDEMPOTENT_WRITE)
+        if (copy.exit != 0) null else pullOrNull(session, ProbeScripts.signerPath, SIGNER_APK_CAP)?.let { ApkSigners.signerSha256(it) }
+    } catch (_: AdbException) {
+        null
+    } catch (_: ProbeException) {
+        null
+    } finally {
+        withContext(NonCancellable) { bestEffort(session, ProbeScripts.SIGNER_CLEANUP) }
     }
 
     override suspend fun homeFocus(session: TvSession): Component? {
@@ -265,6 +294,8 @@ class AdbProber(private val clock: Clock) : Prober, LaunchableApps {
     companion object {
         const val OVERLAY_CAP = 256L * 1024
         const val SCREENSHOT_CAP = 2L * 1024 * 1024
+        const val SIGNER_APK_CAP = 16L * 1024 * 1024
+        val SIGNED_PACKAGES: Set<PackageName> = setOf(PackageName("com.gathin.tvhome"), PackageName("tv.cleanyour.curtain"))
         private val ZERO = Sha256("0".repeat(64))
         private val BOOT_ID_RE = Regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
         private val PNG_SIGNATURE = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
