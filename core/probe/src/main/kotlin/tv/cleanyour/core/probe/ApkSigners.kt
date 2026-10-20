@@ -6,11 +6,13 @@ import java.nio.ByteOrder
 import java.security.MessageDigest
 
 // The signer of an installed APK, as PinnedLauncher.SIGNER_SHA256 names one: the SHA-256 of the
-// first signer's certificate (DER) in the APK Signing Block, from the v3 scheme block when there is
-// one, else from v2 (Android 9 and newer verify v3 first). The TV's package manager verified the
+// first signer's certificate (DER) in the APK Signing Block. The TV's package manager verified the
 // signatures when it installed the APK, and `pm path` names that installed file, so reading the
-// certificate is enough here; nothing is verified again. A v1-only APK or anything malformed gives
-// null, which the planner treats as "signer unknown". The parser is bounded by the buffer: every
+// certificate is enough here, provided it is one the TV verified (RF-LAUNCHER-240 F2): a v2 block
+// is required, since every Android the app supports verifies v2 when it is there, and a v3 block,
+// which Android 8 ignores and v2 does not cover, must name the same first certificate. Anything else
+// (v1 only, v3 only, v2 and v3 disagreeing, a malformed block) gives null, which the planner treats
+// as "signer unknown". Our keys have no rotation, so our APKs read the same either way. The parser is bounded by the buffer: every
 // length is checked before it is used, so a hostile file can only make it return null.
 object ApkSigners {
     private const val EOCD_MAGIC = 0x06054b50
@@ -48,10 +50,17 @@ object ApkSigners {
             pairs.putIfAbsent(id, slice(b, p + 12, (len - 4).toInt()))
             p += 8 + len.toInt()
         }
-        val block = pairs[V3_BLOCK_ID] ?: pairs[V2_BLOCK_ID] ?: return null
-        // Both schemes: a length-prefixed sequence of length-prefixed signers; a signer starts with
-        // its length-prefixed signed data, which holds the digests and then the certificates.
-        val signers = prefixed(block)
+        val v2 = firstCertificate(pairs[V2_BLOCK_ID] ?: return null)
+        val v3 = pairs[V3_BLOCK_ID]?.let { firstCertificate(it) }
+        if (v3 != null && !v3.contentEquals(v2)) return null
+        return v2
+    }
+
+    // Both schemes: a length-prefixed sequence of length-prefixed signers; a signer starts with its
+    // length-prefixed signed data, which holds the digests and then the certificates.
+    private fun firstCertificate(block: ByteBuffer): ByteArray {
+        val b = block.duplicate().order(ByteOrder.LITTLE_ENDIAN)
+        val signers = prefixed(b)
         val signer = prefixed(signers)
         val signedData = prefixed(signer)
         prefixed(signedData)                       // digests

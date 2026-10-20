@@ -34,13 +34,16 @@ import tv.cleanyour.core.store.SnapshotCodec
 // installs and uninstalls the bundled no-op APK, which is the only way to learn the answer.
 //
 // Signers (launcher v2.4.0 plan, finding 4; RF-CURTAIN-1 F9): for each package in `signed` that
-// the TV has, the snapshot carries the installed APK's signer (ApkSigners). The APK is copied into
-// the app's TMP folder, pulled and deleted again: two more shell calls and one pull per package,
-// only when it is installed. A signer that cannot be read stays null (unknown). The default names
-// the bundled launcher and the TV curtain, the two packages whose replacement rules need it.
+// the TV has, the snapshot carries the installed APK's signer (ApkSigners). When the installed APK
+// hashes to one of `known` (the pinned APKs, sha256 to signer), that is its signer and nothing is
+// copied; otherwise the APK (16 MiB at most) is copied into the app's TMP folder under a name of
+// its own, pulled and deleted again. These copies are the second exception to "reads only", beside
+// installRefusal. A signer that cannot be read stays null (unknown). The default names the bundled
+// launcher and the TV curtain, the two packages whose replacement rules need it.
 class AdbProber(
     private val clock: Clock,
     private val signed: Set<PackageName> = SIGNED_PACKAGES,
+    private val known: Map<Sha256, Sha256> = emptyMap(),
 ) : Prober, LaunchableApps, SavedWifiOwners {
 
     private suspend fun run(
@@ -181,23 +184,32 @@ class AdbProber(
         return LaunchableParser.parse(s.getValue("").asSequence()) + LaunchableParser.parse(s.getValue("launcher").asSequence())
     }
 
-    override suspend fun savedWifiOwners(session: TvSession): Set<String> {
+    override suspend fun savedWifi(session: TvSession): SavedWifi {
         val r = run(session, ProbeScripts.WIFI_OWNERS, ProbeStage.LAUNCHER, 256 * 1024)
         return WifiOwnersParser.parse(lines(r.stdout))
     }
 
     // The installed APK's signer, or null when it cannot be read (a transport error included: the
     // snapshot must not fail for it). The copy in TMP goes whatever happened.
-    private suspend fun signerOf(session: TvSession, pkg: PackageName): Sha256? = try {
-        val copy = run(session, ProbeScripts.copyApk(pkg), ProbeStage.LAUNCHER, 16 * 1024, timeoutMs = 60_000, retry = RetryClass.IDEMPOTENT_WRITE)
-        if (copy.exit != 0) null else pullOrNull(session, ProbeScripts.signerPath, SIGNER_APK_CAP)?.let { ApkSigners.signerSha256(it) }
-    } catch (_: AdbException) {
-        null
-    } catch (_: ProbeException) {
-        null
-    } finally {
-        withContext(NonCancellable) { bestEffort(session, ProbeScripts.SIGNER_CLEANUP) }
+    private suspend fun signerOf(session: TvSession, pkg: PackageName): Sha256? {
+        if (known.isNotEmpty()) {
+            val sha = try { installedSha256(session, pkg) } catch (_: AdbException) { null } catch (_: ProbeException) { null }
+            sha?.let { known[it] }?.let { return it }
+        }
+        val path = ProbeScripts.signerPath(token())
+        return try {
+            val copy = run(session, ProbeScripts.copyApk(pkg, path, SIGNER_APK_CAP), ProbeStage.LAUNCHER, 16 * 1024, timeoutMs = 60_000, retry = RetryClass.IDEMPOTENT_WRITE)
+            if (copy.exit != 0) null else pullOrNull(session, path, SIGNER_APK_CAP)?.let { ApkSigners.signerSha256(it) }
+        } catch (_: AdbException) {
+            null
+        } catch (_: ProbeException) {
+            null
+        } finally {
+            withContext(NonCancellable) { bestEffort(session, ProbeScripts.signerCleanup(path)) }
+        }
     }
+
+    private fun token(): String = ByteArray(8).also { random.nextBytes(it) }.joinToString("") { "%02x".format(it) }
 
     override suspend fun homeFocus(session: TvSession): Component? {
         val r = run(session, ProbeScripts.HOME_FOCUS, ProbeStage.HOME, 64 * 1024)
@@ -295,6 +307,7 @@ class AdbProber(
         const val OVERLAY_CAP = 256L * 1024
         const val SCREENSHOT_CAP = 2L * 1024 * 1024
         const val SIGNER_APK_CAP = 16L * 1024 * 1024
+        private val random = java.security.SecureRandom()
         val SIGNED_PACKAGES: Set<PackageName> = setOf(PackageName("com.gathin.tvhome"), PackageName("tv.cleanyour.curtain"))
         private val ZERO = Sha256("0".repeat(64))
         private val BOOT_ID_RE = Regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")

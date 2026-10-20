@@ -73,6 +73,8 @@ import tv.cleanyour.core.spec.BundledThemeSource
 import tv.cleanyour.core.store.Clock
 import tv.cleanyour.core.trust.BundledCurtainPin
 import tv.cleanyour.core.trust.BundledLauncherPin
+import tv.cleanyour.core.trust.PinnedCurtain
+import tv.cleanyour.core.trust.PinnedLauncher
 import tv.cleanyour.core.trust.TrustRoots
 
 // Manual dependency graph (ARCHITECTURE D8): one instance per process, built in CytApplication.
@@ -104,7 +106,12 @@ class AppGraph(context: Context, val appVersion: String = "0.1.0") {
     val sessions = AdbSessionManager(PlainSocketFactory(), signer, tls = null, clock = clock, scope = workScope)
 
     // W4: the probe and the bundled tables.
-    val prober: Prober = AdbProber(clock)
+    // An installed APK that hashes to a pinned one has that pin's signer, so it is not copied to read it
+    // (RF-LAUNCHER-240 F11).
+    val prober: Prober = AdbProber(clock, known = mapOf(
+        tv.cleanyour.core.model.Sha256(PinnedLauncher.SHA256) to tv.cleanyour.core.model.Sha256(PinnedLauncher.SIGNER_SHA256),
+        tv.cleanyour.core.model.Sha256(PinnedCurtain.SHA256) to tv.cleanyour.core.model.Sha256(PinnedCurtain.SIGNER_SHA256),
+    ))
     val profiles = BundledProfileSource()
     val facts = BundledFactsTable()
 
