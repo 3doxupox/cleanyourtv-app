@@ -4,6 +4,7 @@ android.autoinstalls.config.google.gtvpai	Google TV partner installs	Installs pa
 android.autoinstalls.config.homwee	Homwee partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.nvidia	NVIDIA partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.scbc.device	SANYO partner installs	Installs partner apps without asking	ads
+android.autoinstalls.config.soc.amlogic	Amlogic partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.sony.bravia	Sony partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.tcl.device	TCL partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.xgimi.xgimigalileo	XGIMI partner installs	Installs partner apps without asking	ads
@@ -122,6 +123,8 @@ com.amazon.whisperplay.service.install	Whisperplay installer	Sets up Amazon cast
 com.amazon.wifilocker	Wi-Fi password sync	Saves Wi-Fi passwords to Amazon	brand
 com.amazon.wirelessmetrics.service	Wireless metrics	Sends Wi-Fi usage metrics to Amazon	tracking
 com.android.adservices.api	Android ad services	On-device advertising framework	tracking
+com.android.camera2	Camera	Camera app for phones	preloads
+com.android.dreams.basic	Basic screensaver	Simple colour screensaver	screensaver
 com.android.gallery3d	Gallery	Old photo viewer	preloads
 com.android.hotwordenrollment.okgoogle	OK Google setup	Voice training for OK Google	voice
 com.android.hotwordenrollment.xgoogle	Hotword setup	Voice training for the voice hotword	voice
@@ -133,6 +136,7 @@ com.android.providers.calendar	Calendar storage	Stores calendar events for apps	
 com.android.providers.contacts	Contacts storage	Stores contacts for apps	other
 com.android.providers.tv	TV provider	Watch Next and Live Channels data	system
 com.android.se	Secure element service	Secure element support, needed by the system	system
+com.android.smspush	SMS push	Handles push messages sent by SMS, for phones	preloads
 com.android.tv	Live TV	Android TV Live TV app	system
 com.android.tv.feedbackconsent	Feedback consent	Asks permission to send feedback	tracking
 com.android.tv.settings	TV settings	The Android TV settings app	system
@@ -166,11 +170,14 @@ com.discoveryplus.mitv	discovery+	Streaming app	streaming
 com.disney.disneyplus	Disney+	Streaming app	streaming
 com.dolby.android.audio.service	Dolby audio service	Dolby audio processing	system
 com.duokan.factorytest	Xiaomi factory test	Factory test app that also claims Home	other
+com.duokan.videodaily	Video Daily	Daily promoted video picks	ads
 com.eros.mitv	Eros Now	Streaming app	streaming
 com.fancode.tv	FanCode	Sports streaming app	streaming
 com.fireos.arcus.proxy	Fire OS Arcus proxy	An Amazon background service	brand
 com.fireos.usagestats.proxy	Fire OS usage stats	Passes app usage data to Amazon	tracking
+com.formulaone.production	F1 TV	Formula 1 streaming app	streaming
 com.fox.foxone	Fox One	Streaming app	streaming
+com.gitvdemo.video	GITV demo reel	Promotional demo video app	ads
 com.glance.tv	Glance	Adverts on the lock screen	ads
 com.google.android.adservices.api	Privacy Sandbox ad services	Google's ad targeting service	ads
 com.google.android.apps.mediashell	Chromecast built-in	Lets phones cast to the TV	casting
@@ -189,6 +196,7 @@ com.google.android.leanbacklauncher	Old Android TV home	The old Android TV home 
 com.google.android.leanbacklauncher.partnercustomizer	Home partner provider	Provides data the TV service needs at boot	system
 com.google.android.leanbacklauncher.recommendations	Old home recommendations	Recommendation rows for the old home	ads
 com.google.android.marvin.talkback	TalkBack	Screen reader for blind users	accessibility
+com.google.android.music	Google Play Music	Music app; the service has shut down	preloads
 com.google.android.ondevicepersonalization.services	On-device personalization	Personalises content from your usage	tracking
 com.google.android.onetimeinitializer	Google one-time setup	Leftover first-run setup tasks	other
 com.google.android.partnersetup	Google partner setup	Tracks which partner set up the TV	tracking
@@ -269,6 +277,8 @@ com.mediatek.wwtv.setupwizard	Channel scan wizard	Live TV channel scan wizard	sy
 com.mediatek.wwtv.tvcenter	MediaTek Live TV	Live TV and HDMI app	system
 com.mediatek.wwtv.webview	Vendor web view	Web view shell used by the vendor	other
 com.mi.bluetooth	Mi Bluetooth	Remote and Bluetooth pairing	system
+com.mitv.ABUpdateStatus	Update status	Shows the progress of a firmware update	updates
+com.mitv.cloudcontrol	Xiaomi cloud control	Lets Xiaomi push apps to the TV remotely	ads
 com.mitv.download.service	Mi download service	Download helper for the Mi updater	updates
 com.mitv.dream	Mi screensaver	Xiaomi MiDream screensaver	screensaver
 com.mitv.gallery	Mi Gallery	Xiaomi photo gallery	preloads
@@ -276,6 +286,7 @@ com.mitv.livetv	Mi Live TV	Live TV and input switching	system
 com.mitv.milinkservice	Mi Cast (MiLink)	Cast from Xiaomi phones	casting
 com.mitv.overseaservice	Mi overseas service	Netflix key and remote handling	system
 com.mitv.setup	Mi TV setup	Xiaomi setup service	system
+com.mitv.shoplugin	TV shopping plugin	Shopping channel plugin (TV Taobao)	ads
 com.mitv.toolhouse	Mi Tool House	Xiaomi tools app	brand
 com.mitv.tvhome.atv	PatchWall	Xiaomi's home screen with adverts	ads
 com.mitv.tvhome.michannel	Mi Channel	Xiaomi content rows on the home screen	ads
@@ -284,10 +295,13 @@ com.mitv.tvhome.oemtab	Mi Home tab	Xiaomi tab added to Google TV home	ads
 com.mitv.tvlock	Mi TV lock	Parental lock and password; switching it off removes the lock	brand
 com.mitv.upgrader	Mi upgrader	Xiaomi firmware updater	updates
 com.mitv.videoplayer	Mi video player	Xiaomi video player	preloads
+com.miui.analytics	MIUI analytics	Sends usage statistics to Xiaomi	tracking
 com.miui.tv.analytics	Xiaomi Analytics	Reports what you watch to Xiaomi	tracking
 com.mstar.android.tv.disclaimercustomization	Vendor disclaimer	Disclaimer screen	other
 com.mstar.netflixobserver	Netflix button helper	Runs the remote's Netflix button; turns Netflix back on at startup	other
+com.mxtech.videoplayer.television	MX Player	Video player and streaming app	streaming
 com.netflix.ninja	Netflix	Films and series	streaming
+com.newtv.cboxtv	CCTV NewTV	Chinese TV streaming app	streaming
 com.nexgtv.tv	NexG TV	Live TV streaming app	streaming
 com.nousguide.android.rbtv	Red Bull TV	Streaming app	streaming
 com.nvidia.ControllerMapper	NVIDIA controller mapper	Game controller mapping	system
@@ -447,6 +461,7 @@ com.vidaa.persistent.service	VIDAA service	Core VIDAA service, needed	system
 com.vt.tv.aiot	Hisense AIoT	Hisense system service, needed to boot	system
 com.vt.tv.smartsense.ui	SmartSense screens	Hisense system screens, needed to boot	system
 com.vt.tv.usbota	Hisense USB updater	Updates firmware from USB	updates
+com.wbd.hbomax	Max (HBO Max)	HBO's streaming app	streaming
 com.wbd.stream	HBO Max	HBO series and films	streaming
 com.xgimi.atmosphere	XGIMI ambient scenes	Animated screensaver	screensaver
 com.xgimi.atvwifiverify	XGIMI Wi-Fi check	Factory Wi-Fi test	demo
@@ -459,24 +474,34 @@ com.xgimi.minitvfactory	XGIMI factory menu	Factory menu and test services	demo
 com.xiaomi.amazon.alexa	Xiaomi Alexa bridge	Alexa integration	voice
 com.xiaomi.android.tvsetup.partnercustomizer	Xiaomi setup helper	Remote pairing and shortcut keys	system
 com.xiaomi.floatingframe	Xiaomi floating frame	Floating promo overlay	ads
+com.xiaomi.gamecenter.sdk.service.mibox	Xiaomi game service	Sign-in and payments for Xiaomi store games	brand
+com.xiaomi.mi_connect_service	Mi Connect	Links the TV with Xiaomi phones and devices	casting
 com.xiaomi.mimusic2	Mi Music	Xiaomi music app	preloads
 com.xiaomi.mitv.handbook	Mi handbook	On-screen user manual	preloads
 com.xiaomi.mitv.manualhelp	Mi manual	On-screen user manual	preloads
+com.xiaomi.mitv.mediaexplorer	Mi Media Player	Plays videos, music and photos from USB	preloads
 com.xiaomi.mitv.res	Mi TV resources	Framework resources, needed	system
 com.xiaomi.mitv.scenemode	Mi scene mode	Game mode and picture modes	system
+com.xiaomi.mitv.smartpanel	Smart home panel	Controls Xiaomi smart home devices	preloads
 com.xiaomi.mitv.smartshare	Mi SmartShare	Share media from phones	casting
 com.xiaomi.mitv.tvmanager	TV Manager	Cleaner and booster app	brand
+com.xiaomi.mitv.tvpush.tvpushservice	Xiaomi push service	Delivers Xiaomi push messages and promos	ads
 com.xiaomi.mitv.updateservice	Xiaomi updater	Firmware and PatchWall updates	updates
+com.xiaomi.mitv.upgrade	Xiaomi updater	Downloads and installs firmware updates	updates
+com.xiaomi.screenrecorder	Screen recorder	Records the TV screen	preloads
 com.xiaomi.statistic	Xiaomi statistics	Sends usage statistics to Xiaomi	tracking
+com.xiaomi.tv.gallery	Xiaomi Gallery	Photo gallery app	preloads
 com.xiaomi.tvqs.overseas	Xiaomi quality stats	Firebase analytics uploader	tracking
 com.xiaomi.tvqs.overseas.y24	Xiaomi quality stats 2024	Uploads quality logs to Xiaomi	tracking
 com.xiaomi.wfdsinkhelperservice	Miracast helper	Xiaomi Miracast receiver helper	casting
+com.xiaomitv.sonyliv	Sony LIV (old Mi copy)	Old partner copy of the Sony LIV app	streaming
 com.xiaomo.tv.milegal	Xiaomi legal notices	Legal and privacy screens	other
 com.xm.webcontent	Xiaomi web promos	Promo web content	ads
 com.yupptv.androidtv	YuppTV	Streaming app	streaming
 com.yupptv.firetv	YuppTV (Fire TV)	Streaming app	streaming
 com.zeasn.deviceportal.asdprovider.xym_hisi351	Zeasn device portal	Vendor cloud link and system updates	updates
 com.zee5.amazon	ZEE5 (Fire TV)	Streaming app	streaming
+com.zee5.xiaomiTV	ZEE5 (old Mi copy)	Old partner copy of the ZEE5 app	streaming
 fusion.android.tv.demo	Retail demo	In-store demo loop	demo
 in.startv.hotstar	JioHotstar	Streaming app	streaming
 map.finder	Map finder	Map app preloaded on this TV	preloads

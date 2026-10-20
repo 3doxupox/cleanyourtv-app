@@ -1,0 +1,7 @@
+# facts.tsv names and descriptions written without a source to check them against: not in the
+# contributor's comments and not known for sure. The text in facts.tsv is a best reading of the
+# package name; confirm it on a real TV (or from the app's own label) and drop the line here.
+# package	why it is unverified
+com.mitv.ABUpdateStatus	purpose from the package name; the list files it under firmware updates
+com.xiaomi.gamecenter.sdk.service.mibox	purpose from the package name; the list only says game SDK
+com.xiaomi.mi_connect_service	purpose from the package name; not described in the list

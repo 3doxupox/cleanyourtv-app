@@ -1,9 +1,11 @@
-# Upstream examples (commit 69c93b6, v2.4.0) that the app does not ship as profiles yet, because
-# they have no curated entry in profile-meta.json (owner decision D2). The profile build skips
-# exactly these folders and fails on any other folder without an entry, and ProfilesTest pins this
-# list to the submodule, so a new upstream folder can never slip in silently: give it an entry in
+# Upstream examples (commit 69c93b6, v2.4.0) that the app does not ship as profiles, because they
+# have no curated entry in profile-meta.json (owner decision D2). The profile build skips exactly
+# these folders and fails on any other folder without an entry, and ProfilesTest pins this list to
+# the submodule, so a new upstream folder can never slip in silently: give it an entry in
 # profile-meta.json, or add it here. A TV that matches none of the shipped profiles still gets its
 # brand's sure set or the generic plan.
+# Each line below is either still to curate, or refused on purpose with the reason after the
+# folder name.
 aipro2k
 amazon-fire-tv-stick-4k-2018
 benq-e55-750
@@ -29,7 +31,7 @@ philips-65pus8102
 philips-r8g-google-tv
 portronics-beem-470
 prismplus-q65-ultra-r10g
-redmi-mitv-antl0
+redmi-mitv-antl0    # refused: Android 5.1.1 (SDK 22). The launcher needs Android 8 (SDK 26), and this firmware refuses pm disable for the shell, the only way the app switches an app off (the list works with pm hide instead)
 skyworth-swtv-21ae
 skyworth-swtv-24na-4k-nf
 sony-bravia-4k-gb
@@ -60,10 +62,3 @@ tcl-uniontv-latin-america
 thomson-32he5800
 vu-4k-lushan
 wanbo-x5-pro
-xiaomi-mi-box-s-2nd-gen
-xiaomi-mitv-afmu0
-xiaomi-mitv-astp1
-xiaomi-mitv-axfr1
-xiaomi-mitv-axso2
-xiaomi-mitv-mosr4
-xiaomi-mitv-mssp3-android9

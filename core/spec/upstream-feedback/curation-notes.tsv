@@ -1,0 +1,16 @@
+# Where a curated profile departs from what its upstream list does with a package, and why
+# (owner rule: lists are added as contributed, reviewed; nothing the app protects, no Wi-Fi or
+# network setup, store, installer, system UI, sole keyboard, TV input, firmware updater,
+# accessibility helper or stock home outside the home screen switch is ever default-off).
+# folder	package	note
+xiaomi-mi-box-s-2nd-gen	com.xiaomi.tvqs.overseas	never-disable here: the header says it is the box's quick settings panel (the MOSR4 and MOOR2 lists call it Firebase analytics), which also keeps it out of the Xiaomi sure set
+xiaomi-mitv-afmu0	com.google.android.marvin.talkback	listed under preloaded apps; accessibility is never default-off, so it is an ask row
+xiaomi-mitv-afmu0	com.mitv.videoplayer	listed under preloaded apps; it is the USB video player, so it is an ask row
+xiaomi-mitv-afmu0	com.xiaomi.mitv.mediaexplorer	listed under preloaded apps; it is the USB media browser, so it is an ask row (the Mi Box S 2nd gen list keeps it on purpose)
+xiaomi-mitv-astp1	com.mitv.tvhome	the stock home (PatchWall) on this China build; not a known launcher to the app, so it is never-disable and the home screen switch leaves it alone
+xiaomi-mitv-astp1	com.xiaomi.gamecenter.sdk.service.mibox	listed under background services; Xiaomi store games may need it for sign-in, so it is an ask row
+xiaomi-mitv-astp1	com.xiaomi.mitv.settings	never-disable: the header says it is the only settings app on this firmware
+xiaomi-mitv-axfr1	com.android.tv	never-disable: the Live TV app also owns the input picker on this firmware
+xiaomi-mitv-axso2	com.google.android.marvin.talkback	listed under Android extras; accessibility is never default-off, so it is an ask row
+xiaomi-mitv-axso2	com.google.android.tvrecommendations	default-off as listed; the header notes the Google sign-in notice then has nowhere to show
+xiaomi-mitv-mssp3-android9	com.google.android.katniss	the header says the firmware turns it back on at every boot (REENABLED_AT_BOOT)

@@ -625,6 +625,28 @@
         "com.google.android.marvin.talkback": { "category": "accessibility", "ask": false }
       }
     },
+    "xiaomi-mi-box-s-2nd-gen": {
+      "match": { "models": ["MiTV-AFKR0"], "devices": ["jaws"], "brand": "Xiaomi", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": null,
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": ["mitv.service", "com.mi.bluetooth", "com.xiaomi.gtv.settings", "com.xiaomi.tvqs.overseas"],
+      "suggestedDock": [],
+      "tested": { "by": "Bahriish (PR #169), Lorenzo Ganzella (PR #253)", "firmware": "RTT0.211222.001 (772, 737)", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Telemetry and attribution": { "category": "tracking", "ask": false },
+        "Ad rows, promos and auto-installs": { "category": "ads", "ask": false },
+        "Xiaomi update service, off by choice; re-enable to check for a firmware update": { "category": "updates", "ask": true },
+        "Preloaded apps, off by choice": { "category": "preloads", "ask": false },
+        "ONLY AFTER com.gathin.tvhome IS INSTALLED. Disabling launcherx alone hands Home to the setup wizard's": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.amazon.amazonvideo.livingroom": { "category": "streaming", "ask": true },
+        "com.google.android.videos": { "category": "streaming", "ask": true }
+      }
+    },
     "xiaomi-mi-tv-4a": {
       "match": { "models": ["MiTV-MOOQ1"], "devices": ["tarzan"], "brand": "Xiaomi", "sdkMin": 29, "sdkMax": 29, "fingerprintPrefix": null },
       "platform": "ANDROID_TV",
@@ -675,6 +697,81 @@
         "com.nousguide.android.rbtv": { "category": "streaming", "ask": false }
       }
     },
+    "xiaomi-mitv-afmu0": {
+      "match": { "models": ["MiTV-AFMU0"], "devices": ["twilight"], "brand": "Xiaomi", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": null,
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": ["com.xiaomi.android.tvsetup.partnercustomizer", "mitv.service"],
+      "suggestedDock": [],
+      "tested": { "by": "dennisblokland (PR #185), hovsep-dc", "firmware": "UKG3.250826.001 / V816.0.11.0.UZFAABX", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Telemetry and feedback": { "category": "tracking", "ask": false },
+        "PatchWall, content rows, promos, auto-installs": { "category": "ads", "ask": false },
+        "Personal choice: voice assistant, phone remote, Mi cast/share (the mic button stops working)": { "category": "voice", "ask": true },
+        "Preloaded apps": { "category": "preloads", "ask": false },
+        "Setup wizard, takes Home after the stock launcher is disabled": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.google.android.tv.remote.service": { "category": "other", "ask": true },
+        "com.xiaomi.mitv.smartshare": { "category": "casting", "ask": true },
+        "com.xiaomi.wfdsinkhelperservice": { "category": "casting", "ask": true },
+        "com.xiaomi.mi_connect_service": { "category": "casting", "ask": true },
+        "com.disney.disneyplus": { "category": "streaming", "ask": true },
+        "com.wbd.hbomax": { "category": "streaming", "ask": true },
+        "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": true },
+        "com.google.android.marvin.talkback": { "category": "accessibility", "ask": true },
+        "com.xiaomi.mitv.mediaexplorer": { "category": "preloads", "ask": true },
+        "com.mitv.videoplayer": { "category": "preloads", "ask": true }
+      }
+    },
+    "xiaomi-mitv-astp1": {
+      "match": { "models": ["MiTV-ASTP1"], "devices": ["maverick"], "brand": "Xiaomi", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.mitv.tvhome"],
+      "liveTv": null,
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.mitv.tvhome", "mitv.service", "com.xiaomi.mitv.settings"],
+      "suggestedDock": [],
+      "tested": { "by": "Zebro (PR #128)", "firmware": "2.40.641.0514.cn", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "Xiaomi telemetry / push / cloud control": { "category": "tracking", "ask": false },
+        "Ads / promoted content": { "category": "ads", "ask": false },
+        "Xiaomi background services": { "category": "brand", "ask": false },
+        "Preloaded apps not used": { "category": "preloads", "ask": false }
+      },
+      "packages": {
+        "com.android.smspush": { "category": "preloads", "ask": false },
+        "com.xiaomi.gamecenter.sdk.service.mibox": { "category": "brand", "ask": true },
+        "com.newtv.cboxtv": { "category": "streaming", "ask": true }
+      }
+    },
+    "xiaomi-mitv-axfr1": {
+      "match": { "models": ["MiTV-AXFR1"], "devices": ["rango"], "brand": "Xiaomi", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.android.tv",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.android.tv"],
+      "suggestedDock": [],
+      "tested": { "by": "tanaypatwa (PR #229)", "firmware": "RTT0.210630.002.485", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Xiaomi + Google telemetry": { "category": "tracking", "ask": false },
+        "PatchWall, content rows, sponsored rows": { "category": "ads", "ask": false },
+        "Xiaomi background services": { "category": "brand", "ask": false },
+        "Personal choice: screen mirroring (Chromecast built-in kept)": { "category": "casting", "ask": true },
+        "Personal choice: firmware updates (re-enable to check for one)": { "category": "updates", "ask": true },
+        "Preloaded apps": { "category": "preloads", "ask": false },
+        "Personal choice: preloaded streaming apps not used": { "category": "streaming", "ask": true }
+      },
+      "packages": {
+        "com.mitv.dream": { "category": "screensaver", "ask": true }
+      }
+    },
     "xiaomi-mitv-axso0": {
       "match": { "models": ["MiTV-AXSO0"], "devices": ["dangal"], "brand": "Xiaomi", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": null },
       "platform": "ANDROID_TV",
@@ -698,6 +795,30 @@
         "com.xiaomi.mitv.handbook": { "category": "preloads", "ask": false },
         "com.xiaomi.mitv.updateservice": { "category": "updates", "ask": false },
         "com.xiaomo.tv.milegal": { "category": "other", "ask": false }
+      }
+    },
+    "xiaomi-mitv-axso2": {
+      "match": { "models": ["MiTV-AXSO2"], "devices": ["dangalUHD"], "brand": "Xiaomi", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.android.tv",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": [],
+      "suggestedDock": [],
+      "tested": { "by": "Alafazam (PR #260)", "firmware": "PI.6432", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Xiaomi + Google telemetry": { "category": "tracking", "ask": false },
+        "PatchWall, content rows, sponsored rows, partner auto-installs": { "category": "ads", "ask": false },
+        "Xiaomi background services": { "category": "brand", "ask": false },
+        "Preloaded apps": { "category": "preloads", "ask": false },
+        "Personal choice: old partner copies of streaming apps (see notes)": { "category": "streaming", "ask": true },
+        "Android extras a TV without camera, printer or SIM doesn't use": { "category": "preloads", "ask": false }
+      },
+      "packages": {
+        "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": true },
+        "com.google.android.marvin.talkback": { "category": "accessibility", "ask": true },
+        "com.android.dreams.basic": { "category": "screensaver", "ask": true }
       }
     },
     "xiaomi-mitv-mooq0": {
@@ -760,6 +881,32 @@
         "com.graymatrix.did": { "category": "streaming", "ask": true }
       }
     },
+    "xiaomi-mitv-mosr4": {
+      "match": { "models": ["MiTV-MOSR4"], "devices": ["irobot"], "brand": "Xiaomi", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.mitv.livetv",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": ["com.mitv.livetv", "mitv.service", "com.mitv.overseaservice", "com.mediatek.network", "com.mediatek.tvinput", "com.mediatek.tv.service", "com.mi.bluetooth", "com.google.android.tv.remote.service"],
+      "suggestedDock": [],
+      "tested": { "by": "heybyben (PR #177)", "firmware": "RTM5.220609.003.1585", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "Xiaomi telemetry / attribution": { "category": "tracking", "ask": false },
+        "Ad rows, promos and content providers on the home screen (\"Teruskan menonton\", \"Film terlaris\")": { "category": "ads", "ask": false },
+        "Retail demo mode and nagware": { "category": "demo", "ask": false },
+        "Mi Cast / Miracast - Chromecast built-in (mediashell) still works without them": { "category": "casting", "ask": true },
+        "Preloaded apps, off by choice - re-enable any you use": { "category": "preloads", "ask": true },
+        "Firmware updates off by request - re-enable com.xiaomi.mitv.updateservice to get OTA again": { "category": "updates", "ask": true },
+        "ONLY AFTER com.gathin.tvhome IS INSTALLED. Do not apply this section on a fresh run, or the": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.xiaomi.mitv.tvmanager": { "category": "brand", "ask": false },
+        "com.xiaomo.tv.milegal": { "category": "other", "ask": false },
+        "android.autoinstalls.config.xiaomi.amelie": { "category": "ads", "ask": false },
+        "com.mitv.toolhouse": { "category": "brand", "ask": false }
+      }
+    },
     "xiaomi-mitv-mssp3": {
       "match": { "models": ["MiTV-MSSP3"], "devices": ["machuca"], "brand": "Xiaomi", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
       "platform": "ANDROID_TV",
@@ -784,6 +931,26 @@
         "com.xiaomi.mitv.updateservice": { "category": "updates", "ask": true },
         "com.mstar.netflixobserver": { "category": "other", "ask": true }
       }
+    },
+    "xiaomi-mitv-mssp3-android9": {
+      "match": { "models": ["MiTV-MSSP3"], "devices": ["machuca"], "brand": "Xiaomi", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.mediatek.wwtv.tvcenter",
+      "setupWraith": null,
+      "quirks": ["REENABLED_AT_BOOT"],
+      "neverDisable": ["com.mediatek.wwtv.tvcenter", "mitv.service", "com.google.android.tv.remote.service"],
+      "suggestedDock": [],
+      "tested": { "by": "Martin Trajkovski (PR #223)", "firmware": "PI.7524", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "Xiaomi + Google telemetry": { "category": "tracking", "ask": false },
+        "PatchWall, content rows, sponsored rows": { "category": "ads", "ask": false },
+        "Xiaomi background services": { "category": "brand", "ask": false },
+        "Personal choice: voice assistant": { "category": "voice", "ask": true },
+        "Personal choice: Ambient and Mi WallPaper screensavers": { "category": "screensaver", "ask": true },
+        "Preloaded apps": { "category": "preloads", "ask": false }
+      },
+      "packages": {}
     },
     "xiaomi-tv-a-pro-2026": {
       "match": { "models": ["MiTV-MZTU0"], "devices": ["river"], "brand": "Xiaomi", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
