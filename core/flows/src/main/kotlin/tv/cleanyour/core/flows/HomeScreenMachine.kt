@@ -11,7 +11,6 @@ import tv.cleanyour.core.model.TvId
 import tv.cleanyour.core.planner.Plan
 import tv.cleanyour.core.planner.PlanRequest
 import tv.cleanyour.core.spec.DockLayers
-import tv.cleanyour.core.spec.LauncherConfigDoc
 
 // M2 Home screen: the dock (S3b sheet), the look (theme picker), "Use the TV's own home screen"
 // with its preview, and the drift banner (D15: the overlay digest re-read on every connect;
@@ -110,16 +109,14 @@ class HomeScreenMachine(
     // the dock and the rows under it in order, rows_below_dock the rows under the dock that hold an
     // app (DockLayers), so the TV shows the rows the sheet showed.
     private suspend fun apply(dock: List<PackageName>, themeId: String?) {
-        val theme = theme(themeId)
-        val doc = DockLayers.applyTo(theme?.doc ?: LauncherConfigDoc(), dock)
-        val kept = doc.dockApps.orEmpty()
-        val bytes = attempt { d.encoder.encode(doc) }.getOrNull() ?: return effect(ManageEffect.Snackbar(SnackKind.FAILED, "", false))
-        val config = d.blobs.putBytes(bytes)
-        val r = writer.write(tvId, PlanRequest.ApplyTheme(doc, config, theme?.wallpaper)) { send(BusyNow(it)) }
+        val look = attempt { Look.encode(d.encoder, d.blobs, theme(themeId), dock) }.getOrNull()
+            ?: return effect(ManageEffect.Snackbar(SnackKind.FAILED, "", false))
+        val kept = look.doc.dockApps.orEmpty()
+        val r = writer.write(tvId, PlanRequest.ApplyTheme(look.doc, look.config, look.wallpaper)) { send(BusyNow(it)) }
         send(BusyNow(null))
         if (r is WriteResult.Done) {
             d.homePrefs.save(tvId, HomeChoice(kept, themeId))
-            remember(sha256Of(bytes))
+            remember(look.digest)
             send(Drift(false))
             effect(ManageEffect.Snackbar(SnackKind.HOME_SAVED, "", false))
         } else if (r !is WriteResult.GateCancelled && r !is WriteResult.NoTv && r !is WriteResult.Paused) {   // Paused: the open-run card (O2)

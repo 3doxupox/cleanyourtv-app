@@ -48,7 +48,7 @@ class IntegrationBehavioursTest {
         return SetupDeps(
             h.discovery, h.sessions, h.prober, h.profiles, h.facts, runner, h.engine, h.gate, h.tvs, snapshots, h.ledger,
             FakeLauncherPin(Samples.launcherArtifact()), h.themes, RestorePointWriter(FakeTvRestoreFiles(), h.blobs, h.ledger, runner),
-            FakeRestoreNote(), sessionEnd, h.access, h.clock, KeyCopy,
+            FakeRestoreNote(), sessionEnd, h.access, h.clock, KeyCopy, blobs = h.blobs,
             dock = DockPicker { _, _, _, _, _ -> listOf(PackageName("com.netflix.ninja")) }, screenLock = { true }, diagnostics = { "d" },
         )
     }

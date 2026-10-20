@@ -168,7 +168,8 @@ class AppGraph(context: Context, val appVersion: String = "0.1.0") {
         discovery = discovery, sessions = sessions, prober = prober, profiles = profiles, facts = facts,
         runner = runner, engine = engine, gate = gate, tvs = tvs, snapshots = snapshots, ledger = ledger,
         launcherPin = launcherPin, themes = themes, restorePoint = restorePoint, restoreNote = restoreNote,
-        sessionEnd = sessionEnd, access = access, clock = clock, copy = copy, dock = DockPicker.Ranking, screenLock = screenLock,
+        sessionEnd = sessionEnd, access = access, clock = clock, copy = copy, blobs = blobs, encoder = ConfigEncoder.Codec,
+        dock = DockPicker.Ranking, screenLock = screenLock,
         diagnostics = diagnostics, locale = { app.resources.configuration.locales[0].toLanguageTag() },
         log = FlowLog { CytLog.i(it) },   // redacted lines for "Share diagnostics": outcomes and counts only
     )

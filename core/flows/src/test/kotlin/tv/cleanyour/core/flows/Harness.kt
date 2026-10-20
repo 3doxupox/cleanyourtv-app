@@ -117,7 +117,7 @@ class Harness(val clock: FakeClock = FakeClock(Samples.NOW_MS)) {
     fun setupDeps(dock: DockPicker = DockPicker { _, _, _, _, _ -> listOf(PackageName("com.netflix.ninja")) }) = SetupDeps(
         discovery, sessions, prober, profiles, facts, runner, engine, gate, tvs, snapshots, ledger,
         FakeLauncherPin(Samples.launcherArtifact()), themes, restorePoint, FakeRestoreNote(), sessionEnd, access, clock, KeyCopy,
-        dock = dock, screenLock = { true }, diagnostics = { "diagnostics" },
+        blobs = blobs, dock = dock, screenLock = { true }, diagnostics = { "diagnostics" },
         launchable = tv.cleanyour.core.probe.LaunchableApps { launchable ?: throw tv.cleanyour.core.probe.ProbeException(tv.cleanyour.core.probe.ProbeStage.LAUNCHER, "no answer") },
         log = FlowLog { logLines += it },
     )
