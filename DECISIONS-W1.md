@@ -99,6 +99,10 @@ owning stream supplies bodies):
   the existing parameters and defaulted so every caller compiles, marked `// RFC-DOCK-1` (applied on
   setupcfg 2026-10-20, pending Fable review; RFCS.md carries the RFC). PRODUCT-SPEC 5.8 still shows
   the four parameter form.
+- `core.planner.PlanRequest.AddModule` gains `config: BlobRef? = null, wallpaper: BlobRef? = null`,
+  after the existing parameters and defaulted so every caller compiles, marked `// RFC-CARDS-1`
+  (applied on cardsoptin 2026-10-20, pending Fable review; RFCS.md carries the RFC). PRODUCT-SPEC
+  5.8 still shows the three parameter form.
 
 Added because the section 5 prose names it: `core.probe.ProbeException(stage, detail)` (R0: 7).
 

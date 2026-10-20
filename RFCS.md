@@ -66,3 +66,33 @@ W9 (forge build script, e2e). Smallest alternative: no new op, cues as `PushAsse
 file polled by the curtain; rejected because a push per stage costs a sync round trip, shows as a
 sync line with a hash in Show commands, and leaves files to clean. Ordering: applied on `main` after
 RFC-DOCK-1 (`setupcfg`) merges; the FINALE cue goes before whichever step starts the launcher first.
+
+## RFC-CARDS-1: module cards stay off until the person asks for a card (applied on cardsoptin, pending Fable review)
+
+What: the owner's first real Setup ended with the new home screen asking "New card from Retro ...
+Keep hidden / Show card", because Retro was already on the TV and the config.json Setup pushes
+(RFC-DOCK-1) leaves `module_cards` out, which the launcher reads as on (upstream main 1bbf0c9,
+MainActivity: with it on, every installed app that declares a DOCK_CARD is discovered and asked
+about; with it off, no discovery, no prompt, and the Settings long press does nothing). Cards are
+optional and something to add after Setup, never forced. Change: (1) `Look.encode` always writes
+`module_cards`, from the TV's cards choice (`Cards.of`): the value kept in HomePrefs
+(`tvs/<id>/home.txt`, new line `cards=true|false`, `HomeChoice.cards: Boolean? = null`), else what
+the overlay this phone last pushed says (decoded when the TV's copy still matches
+`ourOverlayDigest`; on when this phone pushed one it cannot read back, since older versions never
+wrote the key and the launcher's default is on), else off. A first Setup is therefore always off;
+a TV whose cards were turned on earlier keeps them. `SetupDeps` gains `homePrefs: HomePrefs? = null`;
+Done keeps what the run pushed (dock, theme, cards) so Manage starts from it. M2 (HomeScreenMachine)
+keeps the current value on every dock or theme change. (2) Cards come on only from Cards and
+modules: `PlanRequest.AddModule` gains `config: BlobRef? = null, wallpaper: BlobRef? = null`
+(frozen section 5.8, defaulted so every caller compiles); when the TV's home screen is ours and its
+cards are off, the Modules add encodes the kept dock and theme with `module_cards` true and the
+planner appends `configTransport.writePlanSteps(config, wallpaper)` after the install and before
+Home, with ApplyTheme's priors, narration and failure policy (STOP_AND_ROLLBACK), so the plan, its
+hash and Show commands carry the push and the launcher's restart is what makes the TV ask. A card
+module already on the TV gets "Show its card" on M3 while cards are off: the same look as an
+ApplyTheme plan, then the M3c mirror. Turning cards off again is not offered: with no card
+module left nothing is discovered and nothing asks, and a later install of an app with a card is
+the person's own choice. Affected: W3 (planner), W8 (flows, M3 screen), W1 (DECISIONS-W1 lists the
+5.8 edit). Alternative without an interface change: a second ApplyTheme run after the add; not
+chosen, because the person's one tap would be two plans and two journal entries, and a failed push
+would leave a module installed with cards still off and no honest way to say so.
