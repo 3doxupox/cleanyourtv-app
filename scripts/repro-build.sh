@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # One clean release build inside the reproducible-build container (docker/repro). Run by
-# release.yml and scripts/build-internal-apk.sh, twice per release in two fresh containers, with
+# release.yml and scripts/release-on-forge.sh, twice per release in two fresh containers, with
 # the checkout always at /src (machine paths must not differ between the two).
 #
 #   scripts/repro-build.sh <out-dir>

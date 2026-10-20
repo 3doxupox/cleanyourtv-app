@@ -21,3 +21,6 @@ dist/
 *.pass
 # python caches from scripts/
 __pycache__/
+# local release signing (build-logic ReleaseSigning): never committed
+keystore.properties
+*.jks.properties
