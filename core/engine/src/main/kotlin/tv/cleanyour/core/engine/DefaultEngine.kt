@@ -544,11 +544,15 @@ class DefaultEngine(
         flow(run.plan.tvId).value = RunState.Paused(run.plan, run.at, reason, error)
     }
 
+    // RFC-CURTAIN-1: a step with a blank narration (the TV curtain's start and cues) is silent: not
+    // listed on the Working screen and not counted in the percent. The journal, resume and Show
+    // commands still see every step.
     private fun publishRunning(run: Run, step: Int) {
+        val voiced = run.plan.steps.filter { it.narration.isNotBlank() }
         val lines = listOf(NarrationLine("Restore point saved", run.restorePoint)) +
-            run.plan.steps.mapIndexed { i, s -> NarrationLine(s.narration, run.states[i]) }
-        val total = run.plan.steps.size
-        val percent = if (total == 0) 100 else (run.done.size * 100) / total
+            voiced.map { s -> NarrationLine(s.narration, run.states[s.index]) }
+        val total = voiced.size
+        val percent = if (total == 0) 100 else (voiced.count { it.index in run.done } * 100) / total
         flow(run.plan.tvId).value = RunState.Running(run.plan, step, lines, percent, run.thumbnail)
     }
 

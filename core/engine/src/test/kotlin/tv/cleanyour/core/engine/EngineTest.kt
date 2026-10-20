@@ -1,5 +1,7 @@
 package tv.cleanyour.core.engine
 
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import tv.cleanyour.core.model.AdbError
 import tv.cleanyour.core.model.EnabledState
@@ -76,6 +78,36 @@ class EngineTest {
         val p3 = plan.copy(steps = plan.steps.map { if (it.index == step.index) smuggled else it })
         assertEquals(StartResult.Refused(StartRefusal.HASH_MISMATCH), engine.start(p3, h.tv, p3.hash, h.pass()))
         assertTrue(h.tv.execLog.isEmpty(), "nothing was sent")
+    }
+
+    // RFC-CURTAIN-1: a step with a blank narration (the curtain's start and cues) is silent on the
+    // Working screen: not listed, not counted in the percent. It still runs, and the journal holds
+    // it like any other step.
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    @Test fun silentStepsAreNeitherListedNorCounted() = runTest(timeout = TEST_TIMEOUT) {
+        val h = Harness(this)
+        val engine = h.engine()
+        val base = h.opsPlan(Op.Disable(h.debloat[0]), Op.Settle(5), Op.Disable(h.debloat[1]), Op.Settle(5))
+        val plan = base.copy(steps = base.steps.map { if (it.index == 1) it.copy(narration = " ") else it.copy(narration = "voiced ${it.index}") })
+        assertEquals(base.hash, plan.hash, "narration is not part of the plan hash")
+        assertEquals(StartResult.Started, engine.start(plan, h.tv, plan.hash, h.pass()))
+        runCurrent()   // step 0 done, waiting in the silent settle of step 1
+        val first = engine.runState(h.tv.tvId).value
+        assertIs<RunState.Running>(first)
+        assertEquals(1, first.step)
+        assertEquals(listOf("Restore point saved", "voiced 0", "voiced 2", "voiced 3"), first.narration.map { it.text })
+        assertEquals(33, first.percent)
+        advanceTimeBy(5_500); runCurrent()   // through the silent step and step 2, waiting in step 3
+        val second = engine.runState(h.tv.tvId).value
+        assertIs<RunState.Running>(second)
+        assertEquals(3, second.step)
+        assertEquals(66, second.percent)
+        assertEquals(listOf(NarrationState.DONE, NarrationState.DONE, NarrationState.DOING), second.narration.drop(1).map { it.state })
+        h.settle(engine)
+        assertEquals(RunStatus.COMPLETED, (engine.runState(h.tv.tvId).value as RunState.Finished).status)
+        val expected = listOf("plan") + plan.steps.flatMap { listOf("begin${it.index}", "done${it.index}") } + "end:COMPLETED"
+        assertEquals(expected, h.types(plan))
+        for (p in h.debloat.take(2)) assertEquals(EnabledState.DISABLED_USER, h.tv.state(p), p.value)
     }
 
     @Test fun debloatRunJournalsVerifiesAndSavesTheRestorePoint() = runTest(timeout = TEST_TIMEOUT) {
