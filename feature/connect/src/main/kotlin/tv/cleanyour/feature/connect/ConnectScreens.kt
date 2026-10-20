@@ -70,7 +70,6 @@ import tv.cleanyour.ui.design.component.ScreenTitle
 import tv.cleanyour.ui.design.component.SecondaryButton
 import tv.cleanyour.ui.design.component.SheetHeader
 import tv.cleanyour.ui.design.component.StepCard
-import tv.cleanyour.ui.design.component.StepCounter
 import tv.cleanyour.ui.design.component.StopCard
 import tv.cleanyour.ui.design.component.TertiaryButton
 import tv.cleanyour.ui.design.component.TitleSize
@@ -88,7 +87,6 @@ import tv.cleanyour.ui.design.theme.Glow
 fun isConnectState(state: SetupState): Boolean =
     state is SetupState.Welcome || state is SetupState.Picker || state is SetupState.OpenDoor || state is SetupState.PairingNeeded
 
-private const val WIZARD_STEPS = 5
 
 @Composable
 fun ConnectFlow(state: SetupState, extras: SetupExtras, actions: SetupActions, onReturning: () -> Unit, modifier: Modifier = Modifier) {
@@ -182,7 +180,7 @@ fun PickerScreen(state: SetupState.Picker, extras: SetupExtras, actions: SetupAc
     val chosen = state.found.firstOrNull { it.host == selected } ?: state.found.firstOrNull()
     ScreenScaffold(
         Glow.Tv, modifier,
-        topBar = { CytTopBar(onBack = { actions.back() }, center = { StepCounter(1, WIZARD_STEPS) }) },
+        topBar = { CytTopBar(onBack = { actions.back() }) },
         bottomBar = {
             ActionColumn {
                 PrimaryButton(
@@ -237,7 +235,6 @@ fun DoorScreen(state: SetupState.OpenDoor, extras: SetupExtras, actions: SetupAc
         },
         bottomBar = bottom,
     ) {
-        StepCounter(2, WIZARD_STEPS, Modifier.padding(top = 12.dp))
         when (state.phase) {
             DoorPhase.ALLOW -> { AllowContent(state, extras); NotThisTv(state, actions) }
             DoorPhase.IDENTITY -> IdentityContent(extras)
@@ -388,7 +385,6 @@ internal fun NotSeenContent(retries: Int, onAsk: () -> Unit) {
 fun PairingScreen(state: SetupState.PairingNeeded, extras: SetupExtras, actions: SetupActions, modifier: Modifier = Modifier) {
     var steps by rememberSaveable { mutableStateOf(false) }
     ScreenScaffold(Glow.Tv, modifier, topBar = { CytTopBar(onBack = { actions.back() }) }) {
-        StepCounter(2, WIZARD_STEPS, Modifier.padding(top = 12.dp))
         // "Show me" opens a sheet, "Back" goes back: neither acts on the TV, so neither is guarded.
         StopCard(
             stringResource(R.string.pairing_title), stringResource(R.string.pairing_body), Modifier.padding(top = 20.dp),

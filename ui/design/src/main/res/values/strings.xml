@@ -17,6 +17,7 @@
     <string name="cyt_action_keep">Keep it</string>
     <string name="cyt_action_switch_off">Switch it off</string>
     <string name="cyt_why">Why?</string>
+    <string name="cyt_close_group">Close group</string>
     <plurals name="cyt_show_more">
         <item quantity="one">Show %d more</item>
         <item quantity="other">Show %d more</item>

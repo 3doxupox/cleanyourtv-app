@@ -90,7 +90,6 @@ import tv.cleanyour.ui.design.component.ScreenTitle
 import tv.cleanyour.ui.design.component.SheetHeader
 import tv.cleanyour.ui.design.component.SmallGlassButton
 import tv.cleanyour.ui.design.component.Spinner
-import tv.cleanyour.ui.design.component.StepCounter
 import tv.cleanyour.ui.design.component.StopCard
 import tv.cleanyour.ui.design.component.SummaryGroup
 import tv.cleanyour.ui.design.component.SwitchRow
@@ -134,7 +133,6 @@ fun SetupFlow(
     }
 }
 
-private const val WIZARD_STEPS = 5
 
 @Composable
 private fun TopBar(extras: SetupExtras, onBack: (() -> Unit)? = null) =
@@ -146,7 +144,6 @@ fun dateTime(ms: Long, locale: java.util.Locale): String = SimpleDateFormat("d M
 @Composable
 fun ProbingScreen(state: SetupState.Probing, extras: SetupExtras, modifier: Modifier = Modifier) {
     ScreenScaffold(Glow.Tv, modifier, topBar = { TopBar(extras) }) {
-        StepCounter(3, WIZARD_STEPS, Modifier.padding(top = 8.dp))
         StatusLine(stringResource(R.string.probing_line), Modifier.padding(start = 4.dp, top = 20.dp))
         val stages = tv.cleanyour.core.probe.ProbeStage.entries
         val probingCd = stringResource(R.string.probing_progress_cd)
@@ -173,7 +170,7 @@ fun FoundScreen(state: SetupState.Found, extras: SetupExtras, actions: SetupActi
             }
         },
     ) {
-        StepCounter(3, WIZARD_STEPS, Modifier.padding(top = 8.dp), extra = stringResource(R.string.found_overline))
+        Overline(stringResource(R.string.found_overline), Modifier.padding(top = 8.dp))
         if (off > 0) {
             NumeralHeadline(off, msg(if (extras.unknownModel) R.string.found_unknown_headline else R.string.found_headline, "count" to off), Modifier.padding(top = 6.dp))
         } else {
@@ -260,7 +257,7 @@ internal fun ColumnScope.CustomiseContent(
     // mockup 08).
     var open by rememberSaveable { mutableStateOf(initiallyOpen ?: listOfNotNull(groups.firstOrNull()?.id)) }
     groups.filter { it.id in open }.forEach { g ->
-        GroupSection(g, custom) { row ->
+        GroupSection(g, custom, onCollapse = { open = open - g.id }) { row ->
             actions.intent(SetupIntent.Keep(row.pkg, keep = row.off))
             val text = android.icu.text.MessageFormat(if (row.off) keptText else offText, locale).format(mapOf("name" to row.friendlyName))
             undo.show(text) { actions.intent(SetupIntent.Keep(row.pkg, keep = !row.off)) }
@@ -304,13 +301,14 @@ private fun RowSummary.kept() = protected && !off
 
 // A group of the full list: all rows when there are six or fewer, otherwise four and "Show n more".
 @Composable
-private fun GroupSection(g: GroupSummary, custom: Boolean, onToggle: (RowSummary) -> Unit) {
+private fun GroupSection(g: GroupSummary, custom: Boolean, onCollapse: () -> Unit, onToggle: (RowSummary) -> Unit) {
     var expanded by rememberSaveable(g.id) { mutableStateOf(false) }
     val visible = if (expanded || g.rows.size <= 6) g.rows.size else 4
     DiffGroupSection(
         DiffGroup(g.id, g.title, g.rows.map { it.toItem() }),
         onToggle = { item -> g.rows.firstOrNull { it.pkg.value == item.key && !it.protected }?.let(onToggle) },
         modifier = Modifier.padding(top = 16.dp), showPackageNames = custom, visibleCount = visible, onShowMore = { expanded = true },
+        onCollapse = onCollapse,
     )
 }
 
@@ -410,7 +408,6 @@ fun WorkingScreen(state: SetupState.Working, extras: SetupExtras, actions: Setup
             }
         },
     ) {
-        StepCounter(4, WIZARD_STEPS, Modifier.padding(top = 8.dp))
         ProgressNarration(stringResource(R.string.working_title), run.percent, run.narration.toLines(), Modifier.padding(top = 8.dp))
         if (extras.rollingBack) StatusLine(stringResource(R.string.working_putting_back), Modifier.padding(start = 4.dp, top = 16.dp))
         TvThumbnail(

@@ -23,6 +23,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
+import com.google.android.apps.common.testing.accessibility.framework.AccessibilityCheckResultUtils
+import com.google.android.apps.common.testing.accessibility.framework.AccessibilityViewCheckResult
+import com.google.android.apps.common.testing.accessibility.framework.checks.TouchTargetSizeCheck
+import org.hamcrest.Matcher
 import com.github.takahirom.roborazzi.RoborazziATFAccessibilityCheckOptions
 import com.github.takahirom.roborazzi.RoborazziATFAccessibilityChecker
 import com.github.takahirom.roborazzi.RoborazziOptions
@@ -107,13 +111,20 @@ class SetupScreenshotTest(private val shot: Shot, private val variant: Variant) 
         )
         node.checkRoboAccessibility(
             RoborazziATFAccessibilityCheckOptions(
-                checker = RoborazziATFAccessibilityChecker(suppressions = Matchers.not(Matchers.anything())),
+                checker = RoborazziATFAccessibilityChecker(suppressions = suppressions(shot)),
                 failureLevel = RoborazziATFAccessibilityChecker.CheckLevel.Error,
             ),
         )
     }
 
     companion object {
+        // Nothing is suppressed but one overlap: customise_sheet_custom draws the undo snackbar over
+        // the list on purpose, and ATF measures a row it half covers by its visible part. Only the
+        // touch target size check, only in that shot; the same rows are checked whole in the others.
+        private fun suppressions(shot: Shot): Matcher<in AccessibilityViewCheckResult> =
+            if (shot.name == "customise_sheet_custom") AccessibilityCheckResultUtils.matchesChecks(Matchers.equalTo(TouchTargetSizeCheck::class.java))
+            else Matchers.not(Matchers.anything())
+
         @JvmStatic
         @ParameterizedRobolectricTestRunner.Parameters(name = "{0} {1}")
         fun params(): List<Array<Any>> = SetupShots.all.flatMap { s -> Variant.entries.map { v -> arrayOf<Any>(s, v) } }
