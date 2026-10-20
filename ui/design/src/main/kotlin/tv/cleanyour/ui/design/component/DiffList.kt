@@ -161,6 +161,8 @@ fun DiffGroupHeader(title: String, offCount: Int, total: Int, modifier: Modifier
 // A group of the full list: its header and a card with the first visibleCount rows, then
 // "Show 4 more" while rows are hidden. The first 8 rows fade in with a 24 ms stagger (160 ms
 // each, ModulateAlpha so nothing renders offscreen); none under reduced motion.
+// With onCollapse the header is a 48 dp button with a chevron that folds the group back into the
+// collapsed card (device test 2026-10-20: an opened group had no way to close).
 @Composable
 fun DiffGroupSection(
     group: DiffGroup,
@@ -169,9 +171,21 @@ fun DiffGroupSection(
     showPackageNames: Boolean = false,
     visibleCount: Int = group.items.size,
     onShowMore: (() -> Unit)? = null,
+    onCollapse: (() -> Unit)? = null,
 ) {
     Column(modifier.fillMaxWidth()) {
-        DiffGroupHeader(group.title, group.offCount, group.items.size)
+        if (onCollapse == null) {
+            DiffGroupHeader(group.title, group.offCount, group.items.size)
+        } else {
+            Row(
+                Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                    .clickable(onClickLabel = stringResource(R.string.cyt_close_group), role = Role.Button, onClick = onCollapse),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                DiffGroupHeader(group.title, group.offCount, group.items.size, Modifier.weight(1f).padding(top = 8.dp))
+                CytIcon(CytIcons.ChevronUp, null, Modifier.padding(end = 4.dp, bottom = 8.dp), tint = CytTheme.colors.textTertiary, size = 18.dp)
+            }
+        }
         ListGroup {
             val shown = group.items.take(visibleCount.coerceAtLeast(0))
             shown.forEachIndexed { i, item ->

@@ -46,7 +46,6 @@
     <!-- S3 What we found -->
     <string name="found_title">{count, plural, =0 {Nothing to switch off. Want the new home screen?} one {We found one thing to switch off} other {We found # things to switch off}}</string>
     <string name="found_headline">{count, plural, =0 {Nothing to switch off. Want the new home screen?} one {thing to switch off} other {things to switch off}}</string>
-    <!-- After the step counter: "3 of 5 · We found" -->
     <string name="found_overline">We found</string>
     <string name="found_zero_body">This TV is already tidy.</string>
     <string name="found_group_ads">Adverts and sponsored rows</string>
@@ -159,7 +158,7 @@
     <string name="working_stopping">Stopping and undoing what we did...</string>
 
     <!-- S4b Can you see it? -->
-    <string name="check_overline">4 of 5 · Look at the TV</string>
+    <string name="check_overline">Look at the TV</string>
     <string name="check_title">Can you see it?</string>
     <string name="check_thumbnail_cd">{count, plural, =0 {The TV shows the new home screen with an empty dock} one {The TV shows the new home screen with one app in the dock} other {The TV shows the new home screen with # apps in the dock}}</string>
     <string name="check_dock_sentence">The new home screen, with {dock} along the bottom.</string>
