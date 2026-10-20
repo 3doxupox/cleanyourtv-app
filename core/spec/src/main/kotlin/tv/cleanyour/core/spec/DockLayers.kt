@@ -38,11 +38,18 @@ object DockLayers {
     // The doc the phone pushes: the theme's doc with dock_apps the trimmed list and rows_below_dock
     // the rows under the dock that hold an app. An empty list leaves dock_apps out, so the launcher
     // keeps its own dock, and leaves the theme's rows_below_dock as it is.
+    //
+    // Owner decision D1 (launcher v2.4.0): with three rows (the dock and two under it) dock_title
+    // is written false. Launcher 2.4 fits the rows to the screen, and the focused app's name above
+    // the dock would push most of Row 3 below the edge of a 1080p screen; without it all three
+    // rows fit. One or two rows leave the theme's dock_title as it is. Launcher 2.0 ignores the key.
     fun applyTo(doc: LauncherConfigDoc, apps: List<PackageName>): LauncherConfigDoc {
         val columns = columnsOf(doc)
         val dock = trim(apps, columns)
         if (dock.isEmpty()) return doc.copy(dockApps = null)
-        return doc.copy(dockApps = dock, rowsBelowDock = rowsBelowDock(dock.size, columns))
+        val below = rowsBelowDock(dock.size, columns)
+        val title = if (below == MAX_ROWS - 1) false else doc.dockTitle
+        return doc.copy(dockApps = dock, rowsBelowDock = below, dockTitle = title)
     }
 
     // What the TV shows for a dock_apps list: the apps it can show, in order, cut to MAX_ROWS rows.

@@ -8,31 +8,47 @@ import kotlinx.serialization.json.JsonPrimitive
 import tv.cleanyour.core.model.PackageName
 
 // The body of LauncherConfigCodec: the launcher's Config.java read path, key by key, as of
-// upstream main 1bbf0c9 (which adds input_action and module_cards to the pinned 7205769, modelled
-// as fields by RFC-W4-1; the pinned launcher ignores both). Decoding answers "what will the TV
-// show for these bytes"; a key the launcher would ignore is left null in the doc with a warning,
-// so effective() of the decoded doc equals what Config.load computes. ConfigDifferentialTest
-// holds this to the real Config.java on the theme fixtures and 10,000 generated files.
+// upstream v2.4.0 (69c93b6), the launcher this app bundles. 1bbf0c9 added input_action and
+// module_cards (RFC-W4-1); v2.4.0 adds seventeen more keys (RFC-W4-2), which a TV still on the
+// 2.0 launcher ignores. Decoding answers "what will the TV show for these bytes"; a key the
+// launcher would ignore is left null in the doc with a warning, so effective() of the decoded doc
+// equals what Config.load computes. ConfigDifferentialTest holds this to the real Config.java of
+// both launchers on the theme fixtures and on generated files.
+//
+// Not modelled, because the phone cannot read it: the choices made on the TV in Launcher settings
+// (columns 4 to 7, animations, advanced effects), which override config.json until the next push
+// changes the file, the TV-side reorder (until dock_apps changes) and apps taken off Home there.
 internal object ConfigCodecImpl {
     const val MAX_BYTES = 64 * 1024
 
     // Config.java's keys in the order it reads them; encode writes this order.
     val KEY_ORDER: List<String> = listOf(
-        "dock_apps", "hidden_apps", "live_tv_package", "live_tv_action", "source_panel_service",
-        "source_panel_action", "input_action", "columns", "rows_below_dock", "shamsi_date",
-        "module_cards", "vpn_app", "show_home_settings_shortcut", "background_color", "wallpaper",
+        "dock_apps", "fill_dock", "hidden_apps", "live_tv_package", "live_tv_action", "source_panel_service",
+        "source_panel_action", "input_action", "columns", "rows_below_dock", "animations", "advanced_effects",
+        "shamsi_date", "greeting_name", "module_cards", "reduced_motion", "dock_title", "dock_row",
+        "reorder_button", "vpn_app", "show_home_settings_shortcut", "show_stats", "app_library",
+        "background_color", "sky_intensity", "settings_key_keycodes", "settings_key_panel", "wallpaper",
+        "festival", "festival_until", "greeting", "accent_color",
     )
+    // Remote buttons Home needs to move and choose: Back, the four arrows and centre, Enter, Menu.
+    // MainActivity opens Settings on any key in settings_key_keycodes, HomeKeyService or not, so a
+    // list with one of these takes that button away from the home screen (SECURITY.md V1).
+    val NAVIGATION_KEYCODES: Set<Int> = setOf(4, 19, 20, 21, 22, 23, 66, 82)
     // Keys with a LauncherConfigDoc field: all of Config.java's keys.
     val MODELLED: Set<String> = KEY_ORDER.toSet()
 
-    // res/values/config.xml of the launcher (identical at 7205769 and 1bbf0c9 for the keys both
-    // have; input_action and module_cards are 1bbf0c9's values).
+    // res/values/config.xml of the launcher at v2.4.0 (the keys 1bbf0c9 has keep their values).
+    // config.xml has no festival: a festive skin only ever comes from config.json.
     val BUILT_IN = EffectiveConfig(
         dockApps = listOf("com.netflix.ninja", "com.amazon.amazonvideo.livingroom", "com.google.android.youtube.tv", "in.startv.hotstar"),
         hiddenApps = listOf("com.mediatek.wwtv.tvcenter", "com.mitv.gallery"),
         liveTvPackage = "com.mediatek.wwtv.tvcenter", liveTvAction = "", sourcePanelService = "", sourcePanelAction = "",
         columns = 4, rowsBelowDock = 0, shamsiDate = false, vpnApp = "", showHomeSettingsShortcut = false,
         backgroundColorArgb = 0xFF000000.toInt(), wallpaper = true, inputAction = "", moduleCards = true,
+        fillDock = true, animations = true, advancedEffects = false, greetingName = "", reducedMotion = false,
+        dockTitle = true, dockRow = true, reorderButton = false, showStats = false, appLibrary = false,
+        skyIntensity = 0, settingsKeyKeycodes = emptyList(), settingsKeyPanel = false,
+        festival = "", festivalUntil = "", greeting = "", accentColorArgb = 0,
     )
 
     fun isPackageName(s: String): Boolean = runCatching { PackageName(s) }.isSuccess
@@ -92,7 +108,27 @@ internal object ConfigCodecImpl {
             return i
         }
 
+        // Config.intArray: all or nothing. Every item a number whose intValue() is 1 or more, or
+        // the launcher ignores the whole list.
+        fun intList(key: String): List<Int>? {
+            val v = o[key] ?: return null
+            if (v !is AValue.Arr) { w += "$key is not a list; the launcher keeps its default"; return null }
+            val out = ArrayList<Int>(v.items.size)
+            v.items.forEachIndexed { i, item ->
+                val n = when (item) {
+                    is AValue.IntV -> item.v
+                    is AValue.LongV -> item.v.toInt()
+                    is AValue.Dbl -> item.v.toInt()
+                    else -> { w += "$key[$i] is not a number; the launcher ignores the whole list"; return null }
+                }
+                if (n < 1) { w += "$key[$i] is $n, below 1; the launcher ignores the whole list"; return null }
+                out += n
+            }
+            return out
+        }
+
         val dock = stringList("dock_apps")
+        val fillDock = bool("fill_dock")
         val hidden = stringList("hidden_apps")
         val liveTv = string("live_tv_package")
         val liveTvAction = string("live_tv_action")
@@ -101,10 +137,19 @@ internal object ConfigCodecImpl {
         val inputAction = string("input_action")
         val columns = integer("columns", 1, 8)
         val rows = integer("rows_below_dock", 0, 3)
+        val animations = bool("animations")
+        val advancedEffects = bool("advanced_effects")
         val shamsi = bool("shamsi_date")
+        val greetingName = string("greeting_name")
         val moduleCards = bool("module_cards")
+        val reducedMotion = bool("reduced_motion")
+        val dockTitle = bool("dock_title")
+        val dockRow = bool("dock_row")
+        val reorderButton = bool("reorder_button")
         val vpn = string("vpn_app")
         val homeSettings = bool("show_home_settings_shortcut")
+        val showStats = bool("show_stats")
+        val appLibrary = bool("app_library")
         var background: String? = null
         o["background_color"]?.let { v ->
             if (v !is AValue.Str) { w += "background_color is not a string; the launcher keeps black"; return@let }
@@ -115,10 +160,35 @@ internal object ConfigCodecImpl {
                 AndroidColor.Parse.Crash -> return DecodeResult.Rejected("background_color is empty: the launcher would crash when Home starts")
             }
         }
+        val sky = integer("sky_intensity", 0, 100)
+        val keycodes = intList("settings_key_keycodes")
+        keycodes?.filter { it in NAVIGATION_KEYCODES }?.distinct()?.takeIf { it.isNotEmpty() }?.let { nav ->
+            w += "settings_key_keycodes takes remote buttons the home screen needs (keycode ${nav.joinToString(", ")}): " +
+                "on Home they would open Settings instead of moving or choosing"
+        }
+        val keyPanel = bool("settings_key_panel")
         var wallpaper: Boolean? = null
         o["wallpaper"]?.let { v ->
             if (v is AValue.Bool) wallpaper = v.v
             else w += "wallpaper is not true or false; the launcher shows wallpaper.jpg if it is there"
+        }
+        val festival = string("festival")
+        val festivalUntil = string("festival_until")
+        val greeting = string("greeting")
+        val accent = string("accent_color")
+        when (LauncherFestival.parse(festival.orEmpty(), festivalUntil.orEmpty(), greeting.orEmpty(), accent.orEmpty())) {
+            null -> when {
+                festival != null && festival.isEmpty() -> w += "festival is empty; the launcher shows no festival"
+                festival != null && LauncherFestival.name(festival).length > LauncherFestival.MAX_NAME ->
+                    w += "festival is longer than ${LauncherFestival.MAX_NAME} characters; the launcher shows no festival"
+                festival != null -> w += "festival_until is not a date like 2026-10-21; the launcher shows no festival"
+                else -> listOf("festival_until" to festivalUntil, "greeting" to greeting, "accent_color" to accent)
+                    .filter { it.second != null }
+                    .forEach { w += "${it.first} has no effect without a festival" }
+            }
+            else -> if (!accent.isNullOrEmpty() && LauncherFestival.parseColor(accent) == 0) {
+                w += "accent_color is not a colour like #FFB23C; the launcher uses its diya gold"
+            }
         }
 
         val unknown = LinkedHashMap<String, JsonElement>()
@@ -132,15 +202,23 @@ internal object ConfigCodecImpl {
             sourcePanelService = panelService, sourcePanelAction = panelAction, columns = columns, rowsBelowDock = rows,
             shamsiDate = shamsi, vpnApp = vpn, showHomeSettingsShortcut = homeSettings, backgroundColor = background,
             wallpaper = wallpaper, unknown = unknown, inputAction = inputAction, moduleCards = moduleCards,
+            fillDock = fillDock, animations = animations, advancedEffects = advancedEffects, greetingName = greetingName,
+            reducedMotion = reducedMotion, dockTitle = dockTitle, dockRow = dockRow, reorderButton = reorderButton,
+            showStats = showStats, appLibrary = appLibrary, skyIntensity = sky, settingsKeyKeycodes = keycodes,
+            settingsKeyPanel = keyPanel, festival = festival, festivalUntil = festivalUntil, greeting = greeting,
+            accentColor = accent,
         )
         return DecodeResult.Ok(doc, w)
     }
 
     // What Config.load would compute from this doc. Values the launcher would ignore (out of
     // range, a colour it cannot parse) fall back to `defaults` here too, so a doc built in code
-    // previews the way the TV will show it.
+    // previews the way the TV will show it. The festival is read from the doc alone, as the
+    // launcher reads it from config.json alone; `defaults` give it only when there is no doc.
     fun effective(doc: LauncherConfigDoc?, defaults: EffectiveConfig): EffectiveConfig {
-        if (doc == null) return defaults.copy(columns = maxOf(1, defaults.columns), rowsBelowDock = maxOf(0, defaults.rowsBelowDock))
+        if (doc == null) return defaults.copy(columns = maxOf(1, defaults.columns), rowsBelowDock = maxOf(0, defaults.rowsBelowDock),
+            skyIntensity = defaults.skyIntensity.coerceIn(0, 100))
+        val fest = LauncherFestival.parse(doc.festival.orEmpty(), doc.festivalUntil.orEmpty(), doc.greeting.orEmpty(), doc.accentColor.orEmpty())
         val bg = doc.backgroundColor?.let { (AndroidColor.parseColor(it.javaTrim()) as? AndroidColor.Parse.Ok)?.argb?.or(0xFF000000.toInt()) }
         return EffectiveConfig(
             dockApps = doc.dockApps?.map { it.value } ?: defaults.dockApps,
@@ -158,6 +236,23 @@ internal object ConfigCodecImpl {
             wallpaper = doc.wallpaper ?: defaults.wallpaper,
             inputAction = doc.inputAction?.javaTrim() ?: defaults.inputAction,
             moduleCards = doc.moduleCards ?: defaults.moduleCards,
+            fillDock = doc.fillDock ?: defaults.fillDock,
+            animations = doc.animations ?: defaults.animations,
+            advancedEffects = doc.advancedEffects ?: defaults.advancedEffects,
+            greetingName = doc.greetingName?.javaTrim() ?: defaults.greetingName,
+            reducedMotion = doc.reducedMotion ?: defaults.reducedMotion,
+            dockTitle = doc.dockTitle ?: defaults.dockTitle,
+            dockRow = doc.dockRow ?: defaults.dockRow,
+            reorderButton = doc.reorderButton ?: defaults.reorderButton,
+            showStats = doc.showStats ?: defaults.showStats,
+            appLibrary = doc.appLibrary ?: defaults.appLibrary,
+            skyIntensity = (doc.skyIntensity?.takeIf { it in 0..100 } ?: defaults.skyIntensity).coerceIn(0, 100),
+            settingsKeyKeycodes = doc.settingsKeyKeycodes?.takeIf { l -> l.all { it >= 1 } } ?: defaults.settingsKeyKeycodes,
+            settingsKeyPanel = doc.settingsKeyPanel ?: defaults.settingsKeyPanel,
+            festival = fest?.name ?: "",
+            festivalUntil = fest?.until?.toString() ?: "",
+            greeting = fest?.greeting ?: "",
+            accentColorArgb = fest?.accent ?: 0,
         )
     }
 
@@ -172,8 +267,15 @@ internal object ConfigCodecImpl {
         canonicalString("source_panel_action", doc.sourcePanelAction)
         canonicalString("input_action", doc.inputAction)
         canonicalString("vpn_app", doc.vpnApp)
+        canonicalString("greeting_name", doc.greetingName)
+        canonicalString("festival", doc.festival)
+        canonicalString("festival_until", doc.festivalUntil)
+        canonicalString("greeting", doc.greeting)
+        canonicalString("accent_color", doc.accentColor)
         doc.columns?.let { require(it in 1..8) { "columns $it is outside 1 to 8" } }
         doc.rowsBelowDock?.let { require(it in 0..3) { "rows_below_dock $it is outside 0 to 3" } }
+        doc.skyIntensity?.let { require(it in 0..100) { "sky_intensity $it is outside 0 to 100" } }
+        doc.settingsKeyKeycodes?.let { l -> require(l.all { it >= 1 }) { "settings_key_keycodes holds a keycode below 1, so the launcher would ignore the list" } }
         doc.backgroundColor?.let {
             require(it == it.javaTrim() && AndroidColor.parseColor(it) is AndroidColor.Parse.Ok) { "background_color '$it' is not a colour the launcher reads" }
         }
@@ -183,6 +285,7 @@ internal object ConfigCodecImpl {
         for (key in KEY_ORDER) {
             val value: String? = when (key) {
                 "dock_apps" -> doc.dockApps?.let(::list)
+                "fill_dock" -> doc.fillDock?.toString()
                 "hidden_apps" -> doc.hiddenApps?.let(::list)
                 "live_tv_package" -> doc.liveTvPackage?.let(::quote)
                 "live_tv_action" -> doc.liveTvAction?.let(::quote)
@@ -191,12 +294,28 @@ internal object ConfigCodecImpl {
                 "input_action" -> doc.inputAction?.let(::quote)
                 "columns" -> doc.columns?.toString()
                 "rows_below_dock" -> doc.rowsBelowDock?.toString()
+                "animations" -> doc.animations?.toString()
+                "advanced_effects" -> doc.advancedEffects?.toString()
                 "shamsi_date" -> doc.shamsiDate?.toString()
+                "greeting_name" -> doc.greetingName?.let(::quote)
                 "module_cards" -> doc.moduleCards?.toString()
+                "reduced_motion" -> doc.reducedMotion?.toString()
+                "dock_title" -> doc.dockTitle?.toString()
+                "dock_row" -> doc.dockRow?.toString()
+                "reorder_button" -> doc.reorderButton?.toString()
                 "vpn_app" -> doc.vpnApp?.let(::quote)
                 "show_home_settings_shortcut" -> doc.showHomeSettingsShortcut?.toString()
+                "show_stats" -> doc.showStats?.toString()
+                "app_library" -> doc.appLibrary?.toString()
                 "background_color" -> doc.backgroundColor?.let(::quote)
+                "sky_intensity" -> doc.skyIntensity?.toString()
+                "settings_key_keycodes" -> doc.settingsKeyKeycodes?.joinToString(", ", "[", "]")
+                "settings_key_panel" -> doc.settingsKeyPanel?.toString()
                 "wallpaper" -> doc.wallpaper?.toString()
+                "festival" -> doc.festival?.let(::quote)
+                "festival_until" -> doc.festivalUntil?.let(::quote)
+                "greeting" -> doc.greeting?.let(::quote)
+                "accent_color" -> doc.accentColor?.let(::quote)
                 else -> error("no field for $key")
             }
             if (value != null) entries += key to value

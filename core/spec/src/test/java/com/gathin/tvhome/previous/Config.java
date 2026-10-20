@@ -1,6 +1,8 @@
 // Vendored for the W4 differential test: upstream github.com/Gathin23/cleanyourtv at main 1bbf0c9,
-// launcher/app/src/main/java/com/gathin/tvhome/Config.java, MIT licence. Unchanged below this header.
-package com.gathin.tvhome;
+// launcher/app/src/main/java/com/gathin/tvhome/Config.java, MIT licence: the launcher 2.0 the app
+// bundled before v2.4.0, kept as the model of a TV still on it. Unchanged below this header except
+// the package line (com.gathin.tvhome upstream).
+package com.gathin.tvhome.previous;
 
 import android.content.Context;
 import android.content.res.Resources;
