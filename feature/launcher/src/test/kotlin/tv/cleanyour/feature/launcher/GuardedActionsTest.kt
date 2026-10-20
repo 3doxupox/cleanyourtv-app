@@ -33,6 +33,16 @@ class GuardedActionsTest {
         assertEquals(listOf<HomeScreenIntent>(HomeScreenIntent.CancelPreview), hits)
     }
 
+    @Test fun updateIsGuardedAndCancelIsNot() {
+        val hits = mutableListOf<HomeScreenIntent>()
+        compose.showColumn { UpdatePreviewContent(Samples.plan(emptyList()), "2.4") { hits += it } }
+        compose.tap("Update", OBSCURED)
+        compose.tap("Cancel", OBSCURED)
+        assertEquals(listOf<HomeScreenIntent>(HomeScreenIntent.CancelPreview), hits)
+        compose.tap("Update", 0)
+        assertEquals(listOf(HomeScreenIntent.CancelPreview, HomeScreenIntent.UpdateHomeScreen), hits)
+    }
+
     @Test fun dockDoneIsGuardedAndEditingIsNot() {
         val netflix = AppChoice(PackageName("com.netflix.ninja"), "Netflix")
         val state = DockEditorState(listOf(netflix.toDockApp()), 4)

@@ -320,6 +320,11 @@ object SetupShots {
             Stopped(home(StopCase.HOME_SETUPWRAITH, R.string.stop_home_setupwraith_title, R.string.stop_home_setupwraith_body,
                 R.string.stop_home_setupwraith_primary, R.string.stop_home_setupwraith_secondary), connected.copy(commands = commands))
         },
+        // D3: the wizard may have saved the TV's Wi-Fi, so it stays on and the card says why.
+        Shot("stopped_home_setupwraith_wifi") {
+            Stopped(home(StopCase.HOME_SETUPWRAITH, R.string.stop_home_setupwraith_title, R.string.stop_home_setupwraith_wifi_body,
+                R.string.stop_home_setupwraith_wifi_primary, R.string.stop_home_setupwraith_secondary), connected.copy(commands = commands))
+        },
         Shot("stopped_home_rolling_back") {
             Stopped(home(StopCase.HOME_SETUPWRAITH, R.string.stop_home_setupwraith_title, R.string.stop_home_setupwraith_body,
                 R.string.stop_home_setupwraith_primary, R.string.stop_home_setupwraith_secondary), connected.copy(rollingBack = true))

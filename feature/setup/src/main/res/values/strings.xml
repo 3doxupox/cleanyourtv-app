@@ -178,6 +178,9 @@
     <string name="stop_home_setupwraith_body">This TV\'s first-run setup wizard holds on to the Home button. On this model the new home screen only works if the wizard is switched off too. That\'s safe for everyday use; we switch it back on if you undo or before a factory reset.</string>
     <string name="stop_home_setupwraith_primary">Try with the wizard off</string>
     <string name="stop_home_setupwraith_secondary">Leave the old home screen</string>
+    <!-- D3: the wizard saved the TV's Wi-Fi (or the TV could not say), so it is never switched off. -->
+    <string name="stop_home_setupwraith_wifi_body">Your TV\'s Wi-Fi was saved by its setup wizard, so switching the wizard off would forget it. Use a cable, or forget and re-add the network in Settings, then try again.</string>
+    <string name="stop_home_setupwraith_wifi_primary">Try again</string>
     <string name="stop_home_other_launcher_title">The old home screen is back</string>
     <string name="stop_home_other_launcher_body">Another home screen app, {launcher}, is in charge of Home. We don\'t switch off apps we don\'t know. Choose which one you want.</string>
     <string name="stop_home_other_launcher_primary">Use the new home screen</string>
