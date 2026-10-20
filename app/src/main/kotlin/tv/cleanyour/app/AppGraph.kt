@@ -172,6 +172,7 @@ class AppGraph(context: Context, val appVersion: String = "0.1.0") {
         dock = DockPicker.Ranking, screenLock = screenLock,
         diagnostics = diagnostics, locale = { app.resources.configuration.locales[0].toLanguageTag() },
         log = FlowLog { CytLog.i(it) },   // redacted lines for "Share diagnostics": outcomes and counts only
+        homePrefs = homePrefs,
     )
 
     val manageDeps = ManageDeps(

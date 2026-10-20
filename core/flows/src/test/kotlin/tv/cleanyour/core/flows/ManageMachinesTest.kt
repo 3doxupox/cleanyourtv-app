@@ -13,6 +13,7 @@ import tv.cleanyour.core.model.PackageState
 import tv.cleanyour.core.engine.RunStatus
 import tv.cleanyour.core.model.ArtifactRef
 import tv.cleanyour.core.model.ApkInfo
+import tv.cleanyour.core.model.LauncherState
 import tv.cleanyour.core.model.Level
 import tv.cleanyour.core.model.Module
 import tv.cleanyour.core.model.ModuleVersion
@@ -458,13 +459,97 @@ class ManageMachinesTest {
         val bytes = LauncherConfigCodec.encode(apply.doc)
         assertEquals(sha256Of(bytes), apply.config.sha256)
         val back = assertIs<DecodeResult.Ok>(LauncherConfigCodec.decode(bytes)).doc
-        assertEquals(LauncherConfigDoc(dockApps = six, rowsBelowDock = 1), back)
+        assertEquals(LauncherConfigDoc(dockApps = six, rowsBelowDock = 1, moduleCards = false), back)   // RFC-CARDS-1: cards stay off
         assertEquals(six, m.state.value.dock.map { it.pkg })
         // Later the second app is switched off on the TV: the rest move up a slot, as on the TV.
         h.snapshots.save(Samples.snapshot(packages = Samples.miTvPackages() + six.associateWith { state(it != six[1]) }, takenAtMs = Samples.NOW_MS + 2))
         val again = HomeScreenMachine(h.manageDeps(encoder = ConfigEncoder.Codec), backgroundScope, tv.id)
         settle()
         assertEquals(six - six[1], again.state.value.dock.map { it.pkg })
+    }
+
+    // RFC-CARDS-1: a TV set up with the new home screen and module cards off, Retro in the index.
+    private suspend fun Harness.cardsOffTv(dock: List<PackageName>): Pair<Tv, Module> {
+        val apk = "retro apk bytes".encodeToByteArray()
+        val signer = sha256Of("signer".encodeToByteArray())
+        val ref = ArtifactRef("https://github.com/x/retro.apk", apk.size.toLong(), sha256Of(apk), signer)
+        val version = ModuleVersion(1, "0.1.0", "2026-10-03", ref, emptyList(), "", 21, emptyList(), emptyList())
+        val retro = Module("retro", "Retro", "NES games on the TV", "A card", PackageName("io.github.example.retro"), "card", Tier.COMMUNITY,
+            "example", "https://github.com/example/retro", "MIT", null, null, listOf(version))
+        registry.onRefresh = { IndexState.Ready(VerifiedIndex(1, Long.MAX_VALUE, listOf(retro), emptyList()), stale = false, fetchedAtMs = 0) }
+        inspector = FakeApkInspector(mapOf(sha256Of(apk) to ApkInfo(retro.pkg, 1, "0.1.0", signer, sha256Of(apk), apk.size.toLong(), "test")))
+        retroFetcher = FakeArtifactFetcher(blobs, mapOf(ref.url to apk))
+        val tv = knownTv().copy(launcher = LauncherState(1, Samples.zeroHash, Samples.zeroHash, Samples.zeroHash))
+        tvs.upsert(tv)
+        HomePrefs(documents).save(tv.id, HomeChoice(dock, "aurora", cards = false))
+        return tv to retro
+    }
+    private var retroFetcher: tv.cleanyour.core.registry.ArtifactFetcher? = null
+    private fun Harness.cardsDeps() = manageDeps(retroFetcher ?: fetcher, encoder = ConfigEncoder.Codec)
+    private fun Harness.pushedDoc(config: tv.cleanyour.core.model.BlobRef?): LauncherConfigDoc =
+        assertIs<DecodeResult.Ok>(LauncherConfigCodec.decode(blobs.bytes(assertNotNull(config)))).doc
+
+    // Adding a card is the person asking for cards: the AddModule plan itself carries the look with
+    // module_cards on (the dock and theme kept for the TV), the choice is kept, and a later theme
+    // change keeps it on.
+    @Test fun addingACardTurnsModuleCardsOnInTheSamePlanAndALaterLookKeepsThem() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val dock = listOf(PackageName("com.netflix.ninja"), PackageName("com.google.android.youtube.tv"))
+        val (tv, _) = h.cardsOffTv(dock)
+        h.respond(PlanKind.ADD_MODULE, listOf(Op.Disable(adPkg)))
+        val m = ModulesMachine(h.cardsDeps(), backgroundScope, tv.id, pollMs = 1_000)
+        settle()
+        assertTrue(m.state.value.cardsOff)
+        m.dispatch(ModulesIntent.Add("retro")); settle()
+        assertIs<InstallStep.Asking>(m.state.value.install)
+        val add = h.planner.requests.filterIsInstance<PlanRequest.AddModule>().single()
+        val doc = h.pushedDoc(add.config)
+        assertEquals(true, doc.moduleCards)
+        assertEquals(dock, doc.dockApps)
+        assertEquals(h.themes.bundled().single { it.id == "aurora" }.wallpaper, add.wallpaper)
+        assertEquals(HomeChoice(dock, "aurora", cards = true), HomePrefs(h.documents).load(tv.id))
+        assertEquals(add.config?.sha256, h.tvs.tvs.value.single().launcher?.ourOverlayDigest)
+        assertFalse(m.state.value.cardsOff)
+        // A new look later keeps the cards on.
+        val home = HomeScreenMachine(h.cardsDeps(), backgroundScope, tv.id)
+        settle()
+        home.dispatch(HomeScreenIntent.SetTheme("aurora")); settle()
+        assertEquals(true, h.planner.requests.filterIsInstance<PlanRequest.ApplyTheme>().last().doc.moduleCards)
+        assertEquals(true, HomePrefs(h.documents).load(tv.id)?.cards)
+        // With the cards already on, the next add sends no look.
+        m.dispatch(ModulesIntent.DismissInstall); settle()
+        m.dispatch(ModulesIntent.Add("retro")); settle()
+        assertNull(h.planner.requests.filterIsInstance<PlanRequest.AddModule>().last().config)
+    }
+
+    // A card module already on the TV while the cards are off: "Show its card" sends the look with
+    // module_cards on as an ApplyTheme plan, then mirrors the TV's question.
+    @Test fun showItsCardTurnsModuleCardsOnAndMirrorsTheQuestion() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val (tv, retro) = h.cardsOffTv(emptyList())
+        val m = ModulesMachine(h.cardsDeps(), backgroundScope, tv.id, pollMs = 1_000)
+        settle()
+        m.dispatch(ModulesIntent.ShowCard(retro.id)); settle()
+        val apply = h.planner.requests.filterIsInstance<PlanRequest.ApplyTheme>().single()
+        assertEquals(true, apply.doc.moduleCards)
+        assertEquals(true, h.pushedDoc(apply.config).moduleCards)
+        assertEquals(retro.pkg.value, assertIs<InstallStep.Asking>(m.state.value.install).pkg)
+        assertEquals(true, HomePrefs(h.documents).load(tv.id)?.cards)
+        assertFalse(m.state.value.cardsOff)
+        assertNull(m.state.value.showing)
+    }
+
+    // Existing TVs: without a kept choice, the overlay this phone pushed decides (decoded when the
+    // TV still holds it; on when an older version pushed one, since it never wrote module_cards).
+    @Test fun aTvWithoutAKeptChoiceKeepsWhatItsOverlaySays() {
+        val off = LauncherConfigCodec.encode(LauncherConfigDoc(moduleCards = false))
+        val old = LauncherConfigCodec.encode(LauncherConfigDoc(dockApps = listOf(PackageName("com.netflix.ninja"))))
+        assertFalse(Cards.of(null, null, null), "never pushed: off")
+        assertFalse(Cards.of(null, off, sha256Of(off)))
+        assertTrue(Cards.of(null, old, sha256Of(old)), "an older push left module_cards out: the launcher shows cards")
+        assertTrue(Cards.of(null, null, sha256Of(off)), "a push this phone cannot read back: kept on as before")
+        assertFalse(Cards.of(false, old, sha256Of(old)), "a kept choice wins")
+        assertTrue(Cards.of(true, null, null))
     }
 
     @Test fun renameTrimsTheTypedName() = runTest(timeout = 30.seconds) {
