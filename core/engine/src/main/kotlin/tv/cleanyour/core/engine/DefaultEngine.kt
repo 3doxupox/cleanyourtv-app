@@ -286,9 +286,15 @@ class DefaultEngine(
         end(run, if (run.skipped.isEmpty()) RunStatus.COMPLETED else RunStatus.COMPLETED_WITH_SKIPS, run.home)
     }
 
-    // Section 3.4 preconditions at run time: the launcher installed and, when this plan installed
-    // it, hashing to what was pushed; a screenshot probe succeeding; the token in the journal.
+    // Section 3.4 preconditions at run time: the new home screen started, the launcher installed
+    // and, when this plan installed it, hashing to what was pushed; a screenshot probe succeeding;
+    // the token in the journal.
     private suspend fun openSection(run: Run, section: GuardedSection): Boolean {
+        // Launcher v2.4.0 (RF-LAUNCHER-240 F3): the start of the new home screen just before the
+        // section must have succeeded ("Status: ok" from am start -W); a plan without that step
+        // (written before it) is not held to it.
+        val start = run.plan.steps.subList(0, section.from).lastOrNull { it.op == Op.StartActivity(section.expectedHome, wait = true) }
+        if (start != null && start.index !in run.done) return false
         val launcherPkg = section.expectedHome.pkg
         val installed = prober.installedSha256(run.session, launcherPkg) ?: return false
         val expected = run.plan.steps.firstNotNullOfOrNull { s ->

@@ -54,11 +54,12 @@ class Launcher24PlanTest {
     }
 
     // Launcher v2.4.0's precondition: the TV's own home screen is only touched once the new one
-    // really started, so a start that fails stops the run before the switch.
-    @Test fun theTakeoverStopsWhenTheLauncherDoesNotStart() {
+    // really started. The start CONTINUEs; the engine opens the section only when it is done
+    // (RF-LAUNCHER-240 F3, SectionTest.aLauncherThatDoesNotStartSkipsTheSwitch).
+    @Test fun theTakeoverStartsTheLauncherBeforeTheSwitch() {
         val p = plan(setup())
         val start = p.steps.single { it.op == Op.StartActivity(launcher, wait = true) && it.group == DefaultPlanner.GROUP_HOME }
-        assertEquals(FailurePolicy.STOP_AND_ROLLBACK, start.onFailure)
+        assertEquals(FailurePolicy.CONTINUE, start.onFailure)
         val section = p.sections.single()
         assertTrue(start.index < section.from, "before the watchdog is armed")
         assertTrue(p.steps.filter { it.op == Op.Disable(stock.pkg) }.all { it.index > start.index })
@@ -142,7 +143,15 @@ class Launcher24PlanTest {
         )
         assertTrue(p.steps.drop(restart + 1).all { it.onFailure == FailurePolicy.CONTINUE && it.group == DefaultPlanner.GROUP_THEME })
         assertEquals(list, p.steps[restart + 2].prior?.settingValue)
-        // Someone else's service only: the restart does not touch it.
+        // Accessibility off on the TV (switched off, or a vendor build): nothing is switched on, so no
+        // service in the list, ours or anyone's, is bound by the app (RF-LAUNCHER-240 F7).
+        for (off in listOf("0", null)) {
+            val settings = base.settings + mapOf(SettingKey.ENABLED_ACCESSIBILITY to list) + (if (off != null) mapOf(SettingKey.ACCESSIBILITY_ENABLED to off) else emptyMap())
+            val r = plan(PlanRequest.ApplyTheme(tv.cleanyour.core.spec.LauncherConfigDoc(), config, null), snapshot = base.withSettings(settings), planner = planner(transport))
+            assertTrue(ops(r).last() is Op.RestartHome, "accessibility_enabled $off")
+            assertTrue(ops(r).none { it is Op.SettingsPut })
+        }
+                // Someone else's service only: the restart does not touch it.
         val others = base.withSettings(base.settings + mapOf(SettingKey.ENABLED_ACCESSIBILITY to "com.example.reader/.Reader"))
         val q = plan(PlanRequest.ApplyTheme(tv.cleanyour.core.spec.LauncherConfigDoc(), config, null), snapshot = others, planner = planner(transport))
         assertTrue(ops(q).last() is Op.RestartHome)

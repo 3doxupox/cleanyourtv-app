@@ -17,7 +17,8 @@ data class Choices(val kept: Set<PackageName>, val extraOff: Set<PackageName>, v
     val curtain: Boolean = true,   // RFC-CURTAIN-1: show the progress on the TV
     val wizardWifi: WizardWifi = WizardWifi.UNKNOWN)   // RFC-LAUNCHER-1 (D3): may the takeover switch the setup wizard off
 // RFC-LAUNCHER-1 (D3): whether the setup wizard saved the TV's Wi-Fi network (dumpsys wifi, SavedWifiOwners). Switching the
-// wizard off deletes a network it saved, so the takeover switches it off only when the TV says NOT_OWNER.
+// wizard off deletes a network it saved, so the takeover switches it off only when the TV says NOT_OWNER: others saved its
+// networks, or none is saved (a cable). UNKNOWN: the TV could not tell (RF-LAUNCHER-240 F6, F14).
 enum class WizardWifi { NOT_OWNER, OWNER, UNKNOWN }
 enum class PlanKind { SETUP, PUT_BACK, SWITCH_OFF, LEFTOVERS, THEME, ADD_MODULE, REMOVE_MODULE, USE_STOCK_HOME,
     UNDO_EVERYTHING, BEFORE_FACTORY_RESET, DEBUG_OFF, WRITE_RESTORE_POINT, REBOOT,   // R0: 11 (was kind: String); REBOOT: RFC-W8-5

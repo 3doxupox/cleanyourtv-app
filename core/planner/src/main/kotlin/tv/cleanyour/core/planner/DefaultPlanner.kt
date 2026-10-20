@@ -447,9 +447,10 @@ class DefaultPlanner(
             val token = idGen.runToken()
 
             // Launcher v2.4.0's precondition: the TV's own home screen is left alone unless the new one
-            // really starts ("Status: ok" from am start -W, ShellRenderer.check). A start that fails
-            // stops the run here, before anything of the switch has happened.
-            step(Op.StartActivity(launcher, wait = true), null, GROUP_HOME, "Starting the new home screen", FailurePolicy.STOP_AND_ROLLBACK)
+            // really starts ("Status: ok" from am start -W, ShellRenderer.check). The step CONTINUEs;
+            // the engine opens the section only when it is done (RF-LAUNCHER-240 F3), so a launcher
+            // that does not start ends the run cleanly with the switch skipped.
+            step(Op.StartActivity(launcher, wait = true), null, GROUP_HOME, "Starting the new home screen", FailurePolicy.CONTINUE)
             step(Op.Mkdir(RemoteDir.TMP), null, GROUP_HOME, "Preparing the safety timer", FailurePolicy.CONTINUE)
             val from = step(Op.ArmHomeWatchdog(stock, watchdogSeconds, token), null, GROUP_HOME, "Arming the safety timer", FailurePolicy.STOP_AND_ROLLBACK)
             if (!keepStockEnabled) disable(stock.pkg, GROUP_HOME, FailurePolicy.STOP_AND_ROLLBACK, "Switching off the TV's own home screen")
@@ -556,7 +557,12 @@ class DefaultPlanner(
         // one of ours on, wait a second (Android drops them while the launcher restarts), clear the
         // list, write it back and switch accessibility on, so they bind again. Typed, allowlisted
         // settings steps (SECURITY 3.3) with the probed values, shown in Show commands.
+        //
+        // Only when the TV had accessibility on (RF-LAUNCHER-240 F7): switching it on would bind every
+        // service in the list, someone else's too, and an accessibility service reads the screen, so
+        // the app never switches one on; it only puts back exactly what the TV had.
         fun restoreAccessibility(group: String) {
+            if (snapshot.settings[SettingKey.ACCESSIBILITY_ENABLED] != "1") return
             val list = snapshot.settings[SettingKey.ENABLED_ACCESSIBILITY] ?: return
             if (list.split(':').none { it.startsWith(launcher.pkg.value + "/") }) return
             if (!SettingKey.ENABLED_ACCESSIBILITY.valueShape.matches(list)) return   // a list the renderer would refuse is left as the TV has it
@@ -564,8 +570,7 @@ class DefaultPlanner(
             step(Op.Settle(1), null, group, narration, FailurePolicy.CONTINUE)
             step(Op.SettingsPut(SettingKey.ENABLED_ACCESSIBILITY, null), Prior(settingValue = list), group, narration, FailurePolicy.CONTINUE)
             step(Op.SettingsPut(SettingKey.ENABLED_ACCESSIBILITY, list), Prior(settingValue = list), group, narration, FailurePolicy.CONTINUE)
-            step(Op.SettingsPut(SettingKey.ACCESSIBILITY_ENABLED, "1"), Prior(settingValue = snapshot.settings[SettingKey.ACCESSIBILITY_ENABLED]),
-                group, narration, FailurePolicy.CONTINUE)
+            step(Op.SettingsPut(SettingKey.ACCESSIBILITY_ENABLED, "1"), Prior(settingValue = "1"), group, narration, FailurePolicy.CONTINUE)
         }
 
         fun addModule(req: PlanRequest.AddModule) {
