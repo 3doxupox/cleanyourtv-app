@@ -31,25 +31,25 @@ internal class Look(val doc: LauncherConfigDoc, val digest: Sha256, val config: 
 // The launcher's module cards (module_cards). With them on, the launcher asks on the TV about every
 // installed app that declares a card ("New card from ... Keep hidden / Show card"), so they stay
 // off until the person asks for a card in Cards and modules; a first Setup never turns them on.
-// The choice is per TV and kept in HomePrefs. A TV without a kept choice keeps what the overlay
-// this phone last pushed says: the bytes decoded when the TV's copy is still ours, else on when
-// this phone pushed one at all (an older version never wrote module_cards, and the launcher's
-// default is on). A TV this phone never pushed a look to starts with them off.
+// The choice is per TV and kept in HomePrefs, and a kept choice wins. Without one, the TV's own
+// overlay decides when it says module_cards outright, whoever wrote it (this phone, an older
+// version, another phone). Otherwise (no overlay, unreadable, or the key left out) the caller's
+// default: Setup off (cards are something to add later), Manage on (what the launcher does on
+// that TV right now, its built-in default), so a dock or theme change never takes a card away.
 internal object Cards {
-    fun of(saved: Boolean?, overlay: ByteArray?, ours: Sha256?): Boolean {
+    const val SETUP_DEFAULT = false
+    const val MANAGE_DEFAULT = true
+
+    fun of(saved: Boolean?, overlay: ByteArray?, default: Boolean): Boolean {
         if (saved != null) return saved
-        if (ours == null) return false
-        if (overlay != null && sha256Of(overlay) == ours) {
-            val doc = (LauncherConfigCodec.decode(overlay) as? DecodeResult.Ok)?.doc
-            if (doc != null) return LauncherConfigCodec.effective(doc, LauncherConfigCodec.builtInDefaults).moduleCards
-        }
-        return true
+        val doc = overlay?.let { (LauncherConfigCodec.decode(it) as? DecodeResult.Ok)?.doc }
+        return doc?.moduleCards ?: default
     }
 
     // The cards choice for a TV in Manage, from what is kept and the TV's overlay (the last stored
     // snapshot's, unless a fresher one is given).
     suspend fun current(d: ManageDeps, tvId: TvId, choice: HomeChoice?, overlay: ByteArray? = null): Boolean =
-        of(choice?.cards, overlay ?: d.snapshots.latest(tvId)?.launcherOverlay, d.tv(tvId)?.launcher?.ourOverlayDigest)
+        of(choice?.cards, overlay ?: d.snapshots.latest(tvId)?.launcherOverlay, MANAGE_DEFAULT)
 }
 
 // D15: the digest of the config.json Manage just pushed, so the next connect can warn on drift.

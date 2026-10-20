@@ -110,6 +110,7 @@ object ModulesShots {
 
         // M3b Module: Retro (mockup 07)
         Shot("module_detail_retro", tall) { DetailScreen(detail(), "Mi TV 4A", {}, {}) },
+        Shot("module_detail_retro_cards_off", tall) { DetailScreen(detail(), "Mi TV 4A", {}, {}, cardsOff = true) },   // RFC-CARDS-1
         Shot("module_detail_retro_installed", tall) { DetailScreen(detail(installed = true), "Mi TV 4A", {}, {}) },
         Shot("module_detail_service", tall) { DetailScreen(detail(airplay), "Mi TV 4A", {}, {}) },
         Shot("module_detail_paused_installed", tall) { DetailScreen(detail(pausedModule, installed = true), "Mi TV 4A", {}, {}) },

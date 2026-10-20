@@ -74,7 +74,7 @@ fun ModulesFlow(state: ModulesState, onIntent: (ModulesIntent) -> Unit, onBack: 
     val detail = state.detail
     when {
         install != null -> InstallScreen(install, state, onIntent, modifier)
-        detail != null -> DetailScreen(detail, state.tvName, onIntent, onOpenUrl, modifier)
+        detail != null -> DetailScreen(detail, state.tvName, onIntent, onOpenUrl, modifier, cardsOff = state.cardsOff)
         adding -> AddScreen(state, onIntent, onBack = { adding = false }, modifier)
         else -> InstalledScreen(state, onIntent, onAdd = { adding = true }, onBack, modifier)
     }
@@ -243,7 +243,7 @@ internal fun ColumnScope.TiersContent() {
 
 // M3b the module page (UX 5.2 with D1 and D6; mockup 07).
 @Composable
-internal fun DetailScreen(d: ModuleDetail, tvName: String, onIntent: (ModulesIntent) -> Unit, onOpenUrl: (String) -> Unit, modifier: Modifier = Modifier) {
+internal fun DetailScreen(d: ModuleDetail, tvName: String, onIntent: (ModulesIntent) -> Unit, onOpenUrl: (String) -> Unit, modifier: Modifier = Modifier, cardsOff: Boolean = false) {
     val m = d.module
     val v = d.version
     val paused = m.tier == Tier.REVOKED || m.tier == Tier.QUARANTINED
@@ -260,6 +260,8 @@ internal fun DetailScreen(d: ModuleDetail, tvName: String, onIntent: (ModulesInt
             badge = if (m.type == "card") stringResource(R.string.module_hero_badge) else null)
         ScreenTitle(m.name, Modifier.padding(top = 16.dp))
         Body(m.description, Modifier.padding(top = 4.dp))
+        // RFC-CARDS-1: the add's plan also turns the TV's cards on; say so before the person taps it.
+        if (cardsOff && !paused && !d.installed) Body(stringResource(R.string.module_add_turns_cards_on), Modifier.padding(top = 8.dp), color = c.textPrimary)
         FlowRow(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             moduleChips(m.tier, m.licence, v.artifact.size).forEach { InfoChip(it) }
         }

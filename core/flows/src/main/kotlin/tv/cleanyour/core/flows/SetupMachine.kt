@@ -628,8 +628,9 @@ class SetupMachine(
         // the new home screen there is nothing to read it. If it cannot be made, the plan goes without
         // it and the launcher keeps its own dock.
         // RFC-CARDS-1: module_cards off, so the new home screen never asks about cards the person did
-        // not ask for; on only when they turned cards on for this TV in an earlier session.
-        val cards = Cards.of(deps.homePrefs?.let { attempt { it.load(record.id) }.getOrNull() }?.cards, snap.launcherOverlay, record.launcher?.ourOverlayDigest)
+        // not ask for; on only when they turned cards on for this TV in an earlier session (kept, or
+        // said outright by the TV's overlay).
+        val cards = Cards.of(deps.homePrefs?.let { attempt { it.load(record.id) }.getOrNull() }?.cards, snap.launcherOverlay, Cards.SETUP_DEFAULT)
         val look = if (!possible) null else attempt { Look.encode(deps.encoder, deps.blobs, theme, dock, cards) }
             .onFailure { deps.log.line("setup: the look could not be encoded, planned without it") }.getOrNull()
         setupHome = look?.let { it.digest to HomeChoice(it.doc.dockApps.orEmpty(), draft.themeId, cards) }

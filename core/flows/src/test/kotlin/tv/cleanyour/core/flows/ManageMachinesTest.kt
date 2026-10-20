@@ -459,7 +459,8 @@ class ManageMachinesTest {
         val bytes = LauncherConfigCodec.encode(apply.doc)
         assertEquals(sha256Of(bytes), apply.config.sha256)
         val back = assertIs<DecodeResult.Ok>(LauncherConfigCodec.decode(bytes)).doc
-        assertEquals(LauncherConfigDoc(dockApps = six, rowsBelowDock = 1, moduleCards = false), back)   // RFC-CARDS-1: cards stay off
+        // RFC-CARDS-1: no kept choice and no overlay on the TV: Manage keeps the launcher's default, on.
+        assertEquals(LauncherConfigDoc(dockApps = six, rowsBelowDock = 1, moduleCards = true), back)
         assertEquals(six, m.state.value.dock.map { it.pkg })
         // Later the second app is switched off on the TV: the rest move up a slot, as on the TV.
         h.snapshots.save(Samples.snapshot(packages = Samples.miTvPackages() + six.associateWith { state(it != six[1]) }, takenAtMs = Samples.NOW_MS + 2))
@@ -539,17 +540,29 @@ class ManageMachinesTest {
         assertNull(m.state.value.showing)
     }
 
-    // Existing TVs: without a kept choice, the overlay this phone pushed decides (decoded when the
-    // TV still holds it; on when an older version pushed one, since it never wrote module_cards).
+    // Existing TVs: a kept choice wins; without one, the TV's overlay decides when it says
+    // module_cards outright, whoever wrote it; otherwise the caller's default (Setup off, Manage on).
     @Test fun aTvWithoutAKeptChoiceKeepsWhatItsOverlaySays() {
-        val off = LauncherConfigCodec.encode(LauncherConfigDoc(moduleCards = false))
-        val old = LauncherConfigCodec.encode(LauncherConfigDoc(dockApps = listOf(PackageName("com.netflix.ninja"))))
-        assertFalse(Cards.of(null, null, null), "never pushed: off")
-        assertFalse(Cards.of(null, off, sha256Of(off)))
-        assertTrue(Cards.of(null, old, sha256Of(old)), "an older push left module_cards out: the launcher shows cards")
-        assertTrue(Cards.of(null, null, sha256Of(off)), "a push this phone cannot read back: kept on as before")
-        assertFalse(Cards.of(false, old, sha256Of(old)), "a kept choice wins")
-        assertTrue(Cards.of(true, null, null))
+        val dock = listOf(PackageName("com.netflix.ninja"))
+        val noKey = LauncherConfigCodec.encode(LauncherConfigDoc(dockApps = dock))      // an older build's push, the owner's TV
+        val otherOff = LauncherConfigCodec.encode(LauncherConfigDoc(dockApps = dock, moduleCards = false))
+        val otherOn = LauncherConfigCodec.encode(LauncherConfigDoc(dockApps = dock, moduleCards = true))
+        val garbage = "not json".encodeToByteArray()
+        for ((name, default) in listOf("setup" to Cards.SETUP_DEFAULT, "manage" to Cards.MANAGE_DEFAULT)) {
+            // A TV set up before RFC-DOCK-1, or never given a look: no overlay, the caller's default.
+            assertEquals(default, Cards.of(null, null, default), "$name, no overlay")
+            // Another phone's overlay with an explicit value, whatever the digest this phone remembers.
+            assertFalse(Cards.of(null, otherOff, default), "$name, another phone's overlay with false")
+            assertTrue(Cards.of(null, otherOn, default), "$name, another phone's overlay with true")
+            // The owner's TV: the overlay Setup pushed before this change has no key, so the default.
+            assertEquals(default, Cards.of(null, noKey, default), "$name, an overlay without the key")
+            assertEquals(default, Cards.of(null, garbage, default), "$name, an unreadable overlay")
+            // A kept choice wins over the overlay.
+            assertFalse(Cards.of(false, otherOn, default), "$name, kept off")
+            assertTrue(Cards.of(true, otherOff, default), "$name, kept on")
+        }
+        assertFalse(Cards.SETUP_DEFAULT, "a re-run Setup on the owner's TV stays off")
+        assertTrue(Cards.MANAGE_DEFAULT, "a Manage look change never takes away a card the launcher shows")
     }
 
     @Test fun renameTrimsTheTypedName() = runTest(timeout = 30.seconds) {
