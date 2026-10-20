@@ -112,7 +112,11 @@ private val homeSwitchGroup = GroupSummary("home", "Needed for the new home scre
     row("com.google.android.tvlauncher", "Android TV home", "The old home screen. Switched off only after the new one works.",
         protectedRow = true, why = "part of the home screen switch; it comes back on if the switch is undone"),
 ))
+// The Setup plan sends the dock and the look before the switch (RFC-DOCK-1), so its config.json
+// push is on the list as the sync line planHash uses.
+private const val CONFIG_SYNC = "sync:/sdcard/Android/data/com.gathin.tvhome/files/config.json 44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
 private val homeSwitchCommands = listOf(
+    CONFIG_SYNC,
     "pm disable-user --user 0 com.google.android.tvlauncher",
     "cmd package set-home-activity com.gathin.tvhome/.MainActivity",
 )
@@ -138,6 +142,7 @@ private val themes = listOf(
 private val commands = listOf(
     "pm disable-user --user 0 com.mitv.tvhome.atv",
     "pm disable-user --user 0 com.glance.tv",
+    CONFIG_SYNC,
     "cmd package set-home-activity tv.cleanyour.launcher/.Home",
 )
 

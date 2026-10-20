@@ -28,6 +28,10 @@ import tv.cleanyour.core.model.Op
 import tv.cleanyour.core.model.SnapshotReason
 import tv.cleanyour.core.planner.PlanKind
 import tv.cleanyour.core.planner.PlanRequest
+import tv.cleanyour.core.planner.PlanResult
+import tv.cleanyour.core.spec.DockLayers
+import tv.cleanyour.core.spec.LauncherConfigCodec
+import tv.cleanyour.core.spec.LauncherConfigDoc
 import tv.cleanyour.core.engine.SectionState
 import tv.cleanyour.core.model.ConnectionState
 import tv.cleanyour.core.model.RunToken
@@ -571,6 +575,50 @@ class SetupMachineTest {
         m.dispatch(SetupIntent.MakeItClean); settle()
         assertIs<SetupState.Done>(m.state.value)
         assertEquals(digest, h.tvs.tvs.value.single().launcher?.ourOverlayDigest)
+    }
+
+    // RFC-DOCK-1: replan encodes the dock (with its rows) and the look into the BlobStore, exactly as
+    // Manage's ApplyTheme does, and hands both blobs to the Setup request; Done then finds the run's
+    // config.json push and remembers its digest (D15).
+    @Test fun replanSendsTheDockAndTheLookAsOneConfigJson() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+        val config = RemotePath(RemoteDir.OVERLAY, listOf("config.json"))
+        h.planner.respond = { request, _ ->
+            val r = request as PlanRequest.Setup
+            val push = r.config?.let { Op.PushAsset(it, config, it.sha256) }
+            PlanResult.Ok(h.plan(listOfNotNull(Op.Disable(adPkg), push), takeover = true))
+        }
+        val m = h.setup(backgroundScope)
+        toFound(h, m)
+        fun last() = h.planner.requests.filterIsInstance<PlanRequest.Setup>().last()
+        fun expected(doc: LauncherConfigDoc, dock: List<PackageName>) = LauncherConfigCodec.encode(DockLayers.applyTo(doc, dock))
+        // The first plan: the picked dock on the launcher's own look.
+        val first = expected(LauncherConfigDoc(), listOf(PackageName("com.netflix.ninja")))
+        assertTrue(first.contentEquals(h.blobs.bytes(assertNotNull(last().config))))
+        assertNull(last().wallpaper)
+        // A look and a dock with a row under it: one config.json with both.
+        val apps = List(6) { PackageName("com.example.app$it") }
+        m.dispatch(SetupIntent.SetTheme("aurora")); settle()
+        m.dispatch(SetupIntent.SetDock(apps)); settle()
+        val aurora = h.themes.bundled().single { it.id == "aurora" }
+        val bytes = expected(aurora.doc, apps)
+        val sent = assertNotNull(last().config)
+        assertTrue(bytes.contentEquals(h.blobs.bytes(sent)), "the blob is DockLayers' bytes for the dock and the look")
+        assertEquals(sha256Of(bytes), sent.sha256)
+        assertEquals(aurora.wallpaper, last().wallpaper)
+        assertEquals(1, assertIs<tv.cleanyour.core.spec.DecodeResult.Ok>(LauncherConfigCodec.decode(bytes)).doc.rowsBelowDock)
+        // The run pushes it; Done remembers what it pushed.
+        h.engine.onStart = { p ->
+            val i = p.steps.indexOfFirst { it.op is Op.PushAsset }
+            h.journal.append(JournalRecord.Begin(p.id, i, p.steps[i].op, listOf("fake"), null, 1))
+            h.journal.append(JournalRecord.Done(p.id, i, 0, true, 5))
+            finish(p, RunStatus.COMPLETED, HomeOutcome.CONFIRMED)
+        }
+        m.dispatch(SetupIntent.MakeItClean); settle()
+        assertIs<SetupState.Done>(m.state.value)
+        assertEquals(sha256Of(bytes), h.tvs.tvs.value.single().launcher?.ourOverlayDigest)
+        assertEquals(sha256Of(bytes), h.tvs.tvs.value.single().launcher?.overlayDigest)
     }
 
     @Test fun startDestinationFollowsTheDisk() = runTest(timeout = 30.seconds) {

@@ -62,6 +62,7 @@ import tv.cleanyour.core.spec.FactsTable
 import tv.cleanyour.core.spec.ProfileResolution
 import tv.cleanyour.core.spec.ProfileSource
 import tv.cleanyour.core.spec.ThemeSource
+import tv.cleanyour.core.store.BlobStore
 import tv.cleanyour.core.store.Clock
 import tv.cleanyour.core.store.GatePass
 import tv.cleanyour.core.ops.Transfer
@@ -134,6 +135,9 @@ class SetupDeps(
     val access: TvAccess,
     val clock: Clock,
     val copy: FlowCopy,
+    // RFC-DOCK-1: the Setup plan's config.json (the dock, its rows and the look), stored like Manage's.
+    val blobs: BlobStore,
+    val encoder: ConfigEncoder = ConfigEncoder.Codec,
     val dock: DockPicker = DockPicker.Ranking,
     val screenLock: ScreenLock = ScreenLock { true },
     val diagnostics: Diagnostics = Diagnostics { "" },
@@ -614,7 +618,13 @@ class SetupMachine(
             replaceLauncherSigner = installed?.signer?.let { it != launcher.signer } ?: false,
             keepDebuggingOn = draft.keepDebuggingOn,
         )
-        when (val r = deps.runner.plan(record, PlanRequest.Setup(res, choices, launcher, draft.level), snap)) {
+        // RFC-DOCK-1: the same config.json Manage's ApplyTheme would push for this dock and look, so
+        // the plan, its hash and "Show commands" carry it. Only when the switch is possible: without
+        // the new home screen there is nothing to read it. If it cannot be made, the plan goes without
+        // it and the launcher keeps its own dock.
+        val look = if (!possible) null else attempt { Look.encode(deps.encoder, deps.blobs, theme, dock) }
+            .onFailure { deps.log.line("setup: the look could not be encoded, planned without it") }.getOrNull()
+        when (val r = deps.runner.plan(record, PlanRequest.Setup(res, choices, launcher, draft.level, look?.config, look?.wallpaper), snap)) {
             is PlanResult.Ok -> {
                 setupPlan = r.plan
                 val label = { p: PackageName -> AppNames.of(p, deps.facts, snap.packages[p]?.label) }

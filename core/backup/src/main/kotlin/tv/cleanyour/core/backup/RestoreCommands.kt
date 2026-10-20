@@ -59,6 +59,9 @@ class RestoreCommands(private val renderer: OpRenderer) {
                 is UndoOrder.Target.File -> when {
                     ownerOf(t.path)?.let { it in gone } == true -> null          // its folder went with the app
                     latest.getValue(t).op is Op.RemoveFile && first.prior?.present == false -> null   // written and deleted again
+                    // Absent before us (the Setup's wallpaper removal on a fresh launcher, RFC-DOCK-1) and
+                    // written since: deleting it is the way back, as for a push of a new file.
+                    first.op is Op.RemoveFile && first.prior?.present == false -> step(latest.getValue(t).copy(prior = first.prior), gone)
                     else -> step(first, gone)
                 }
                 else -> step(first, gone)

@@ -1,5 +1,6 @@
 package tv.cleanyour.core.flows
 
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import tv.cleanyour.core.model.Component
 import tv.cleanyour.core.model.EnabledState
@@ -7,9 +8,11 @@ import tv.cleanyour.core.model.BlobRef
 import tv.cleanyour.core.model.Level
 import tv.cleanyour.core.model.Op
 import tv.cleanyour.core.model.PackageName
+import tv.cleanyour.core.model.Prior
 import tv.cleanyour.core.model.RemoteDir
 import tv.cleanyour.core.model.Snapshot
 import tv.cleanyour.core.model.SnapshotReason
+import tv.cleanyour.core.ops.FailurePolicy
 import tv.cleanyour.core.ops.ShellRenderer
 import tv.cleanyour.core.planner.Choices
 import tv.cleanyour.core.planner.DefaultPlanner
@@ -31,10 +34,10 @@ import tv.cleanyour.core.spec.LauncherConfigCodec
 import tv.cleanyour.core.spec.LauncherConfigDoc
 import tv.cleanyour.core.spec.ProfileResolution
 import tv.cleanyour.testing.fixtures.FakeClock
-import tv.cleanyour.testing.fixtures.FakeConfigTransport
 import tv.cleanyour.testing.fixtures.FakeIdGen
 import tv.cleanyour.testing.fixtures.FakeProber
 import tv.cleanyour.testing.fixtures.Fixtures
+import tv.cleanyour.testing.fixtures.MemoryBlobStore
 import tv.cleanyour.testing.fixtures.Samples
 import tv.cleanyour.testing.fixtures.sha256Of
 import kotlin.test.Test
@@ -51,18 +54,51 @@ import kotlin.test.assertTrue
 class WhatWeFoundMatchesThePlanTest {
     private val facts = BundledFactsTable()
     private val profiles = BundledProfileSource()
-    private val planner = DefaultPlanner(FakeClock(), FakeIdGen(), ShellRenderer(), FakeConfigTransport(), "0.1.0")
+    // The transport the app wires (D15), so the Setup plan's config.json steps are the real ones.
+    private val planner = DefaultPlanner(FakeClock(), FakeIdGen(), ShellRenderer(), FileOverlayTransport(FakeProber()), "0.1.0")
     private val launcher = Samples.launcherArtifact()
+    private val blobs = MemoryBlobStore()
 
     // The Setup request SetupMachine.replan sends for a first visit in Simple: nothing kept, nothing
-    // extra, the auto-picked dock, the launcher and the switch when the TV allows them.
-    private fun plan(snapshot: Snapshot): Pair<Plan, ProfileResolution> {
+    // extra, the auto-picked dock (or the one given), the launcher and the switch when the TV allows
+    // them, and (RFC-DOCK-1) the dock and look encoded by the same helper replan uses.
+    private fun plan(snapshot: Snapshot, chosenDock: List<PackageName>? = null): Pair<Plan, ProfileResolution> {
         val res = profiles.resolveNow(snapshot.facts)
         val profile = (res as? ProfileResolution.Exact)?.profile
-        val dock = DockRanking.pick(profile, snapshot.packages.keys, snapshot.hdmi.isNotEmpty(), profile?.liveTv, "en")
+        val dock = chosenDock ?: DockRanking.pick(profile, snapshot.packages.keys, snapshot.hdmi.isNotEmpty(), profile?.liveTv, "en")
         val choices = Choices(emptySet(), emptySet(), dock, null, installLauncher = true, takeover = true, replaceLauncherSigner = false, keepDebuggingOn = false)
-        val r = planner.plan(PlanRequest.Setup(res, choices, launcher, Level.SIMPLE), snapshot, facts, emptyList())
+        val look = runBlocking { Look.encode(ConfigEncoder.Codec, blobs, null, dock) }
+        val r = planner.plan(PlanRequest.Setup(res, choices, launcher, Level.SIMPLE, look.config, look.wallpaper), snapshot, facts, emptyList())
         return assertIs<PlanResult.Ok>(r, r.toString()).plan to res
+    }
+
+    // RFC-DOCK-1: the Setup plan pushes exactly the config.json DockLayers makes for the dock and its
+    // rows (encoded here on its own, not through the helper), in group "theme", after the launcher
+    // install and before the guarded home screen switch, and "Show commands" names the push.
+    private fun assertTheLookIsPushed(plan: Plan, dock: List<PackageName>, rowsBelowDock: Int) {
+        val expected = LauncherConfigCodec.encode(DockLayers.applyTo(LauncherConfigDoc(), dock))
+        val pushes = plan.steps.filter { (it.op as? Op.PushAsset)?.dest == FileOverlayTransport.CONFIG }
+        val push = pushes.single().op as Op.PushAsset
+        assertEquals(sha256Of(expected), push.sha256)
+        assertEquals(sha256Of(expected), push.src.sha256)
+        assertTrue(expected.contentEquals(blobs.bytes(push.src)), "the blob holds exactly DockLayers' bytes")
+        val back = assertIs<DecodeResult.Ok>(LauncherConfigCodec.decode(expected)).doc
+        // An empty dock leaves dock_apps (and the rows) out, so the launcher keeps its own dock.
+        val trimmed = DockLayers.trim(dock, DockLayers.DEFAULT_COLUMNS)
+        assertEquals(trimmed.ifEmpty { null }, back.dockApps)
+        assertEquals(if (trimmed.isEmpty()) null else rowsBelowDock, back.rowsBelowDock)
+        val theme = plan.steps.filter { it.group == DefaultPlanner.GROUP_THEME }
+        assertEquals(listOf("StartActivity", "Mkdir", "PushAsset", "RemoveFile", "RestartHome"), theme.map { it.op::class.simpleName })
+        assertEquals((theme.first().index..theme.last().index).toList(), theme.map { it.index }, "one run of steps")
+        val install = plan.steps.indexOfFirst { it.op is Op.InstallStream || it.op is Op.Install }
+        assertTrue(install in 0 until theme.first().index, "the launcher's first start comes after its install")
+        val section = plan.sections.single()
+        assertTrue(theme.last().index < section.from, "the look is sent before the watchdog is armed")
+        assertTrue(theme.all { it.onFailure == FailurePolicy.CONTINUE }, "a failed push never stops the setup")
+        assertEquals(Prior(present = false), pushes.single().prior, "a fresh launcher has no config.json before us")
+        val commands = SetupMachine.commandsOf(plan)
+        assertTrue("sync:${FileOverlayTransport.CONFIG.absolute} ${push.sha256.hex}" in commands, "Show commands names the push: $commands")
+        assertEquals(plan.hash, ShellRenderer().planHash(plan.steps.map { it.rendered }), "the plan hash covers the push")
     }
 
     // Every rule the screen and the plan share, in one place.
@@ -93,13 +129,35 @@ class WhatWeFoundMatchesThePlanTest {
     }
 
     @Test fun referenceMiTv() {
-        val (plan, res) = plan(Samples.snapshot(packages = Samples.miTvPackages(emptySet())))
+        val snapshot = Samples.snapshot(packages = Samples.miTvPackages(emptySet()))
+        val (plan, res) = plan(snapshot)
         assertIs<ProfileResolution.Exact>(res)
         assertS3AgreesWithThePlan(plan)
+        val dock = DockRanking.pick(res.profile, snapshot.packages.keys, snapshot.hdmi.isNotEmpty(), res.profile.liveTv, "en")
+        assertTrue(dock.isNotEmpty())
+        assertTheLookIsPushed(plan, dock, DockLayers.rowsBelowDock(dock.size, DockLayers.DEFAULT_COLUMNS))
+        assertEquals(plan.summary.dock.size, dock.size, "S3 and the check screen name the dock the plan pushes")
         // The debloat and the TV's own home screen, inside the switch.
         val home = plan.summary.groups.single { it.id == DefaultPlanner.GROUP_HOME }
         assertTrue(home.rows.any { it.pkg == Samples.stockLauncher.pkg && it.off && it.protected })
         assertTrue(plan.summary.switchOffCount > 1)
+    }
+
+    // The dock sheet's rows in the wizard (S3b): six apps are the dock and one row under it, and the
+    // Setup plan pushes them as one config.json, the step order as on the reference TV.
+    @Test fun referenceMiTvWithADockAndARowUnderIt() {
+        val apps = listOf("com.netflix.ninja", "com.google.android.youtube.tv", "com.amazon.amazonvideo.livingroom", "in.startv.hotstar",
+            "com.spotify.tv.android", "com.plexapp.android").map(::PackageName)
+        val (plan, _) = plan(Samples.snapshot(packages = Samples.miTvPackages(emptySet())), apps)
+        assertS3AgreesWithThePlan(plan)
+        assertTheLookIsPushed(plan, apps, rowsBelowDock = 1)
+        val tail = plan.steps.drop(plan.steps.indexOfFirst { it.op is Op.Settle })
+        assertEquals(
+            listOf("Settle", "InstallStream", "StartActivity", "Mkdir", "PushAsset", "RemoveFile", "RestartHome",
+                "StartActivity", "Mkdir", "ArmHomeWatchdog", "Disable", "SetHome", "VerifyHome", "ConfirmHome", "KillWatchdog"),
+            tail.map { it.op::class.simpleName },
+        )
+        assertTrue(plan.steps.take(plan.steps.size - tail.size).all { it.op is Op.Disable }, "the debloat comes first")
     }
 
     @Test fun referenceMiTvAfterItsHandDebloat() {
@@ -138,13 +196,17 @@ class WhatWeFoundMatchesThePlanTest {
         assertTrue(res !is ProfileResolution.Exact, "the emulator is an unknown model")
         assertS3AgreesWithThePlan(plan)
 
-        // The plan log's "9 steps, 1 to switch off": the streamed launcher install, then the eight
-        // steps of the home screen switch, whose one switch-off is the TV's own home screen.
-        assertEquals(9, plan.steps.size)
+        // The plan log's "9 steps, 1 to switch off" of round 3, now 14 (RFC-DOCK-1): the streamed
+        // launcher install, the five steps that send the dock and look, then the eight steps of the
+        // home screen switch, whose one switch-off is the TV's own home screen.
+        assertEquals(14, plan.steps.size)
         assertEquals(
-            listOf("InstallStream", "StartActivity", "Mkdir", "ArmHomeWatchdog", "Disable", "SetHome", "VerifyHome", "ConfirmHome", "KillWatchdog"),
+            listOf("InstallStream", "StartActivity", "Mkdir", "PushAsset", "RemoveFile", "RestartHome",
+                "StartActivity", "Mkdir", "ArmHomeWatchdog", "Disable", "SetHome", "VerifyHome", "ConfirmHome", "KillWatchdog"),
             plan.steps.map { it.op::class.simpleName },
         )
+        val dock = DockRanking.pick(null, snapshot.packages.keys, snapshot.hdmi.isNotEmpty(), null, "en")
+        assertTheLookIsPushed(plan, dock, DockLayers.rowsBelowDock(dock.size, DockLayers.DEFAULT_COLUMNS))
         assertEquals(listOf(PackageName("com.google.android.tvlauncher")), plan.disabledPackages)
         assertTrue(plan.steps.none { it.op is Op.Settle }, "no debloat, so no settle")
         // S3 now says one thing to switch off, under "Needed for the new home screen", by its name.

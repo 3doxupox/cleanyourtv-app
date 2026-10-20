@@ -17,7 +17,8 @@ data class Choices(val kept: Set<PackageName>, val extraOff: Set<PackageName>, v
 enum class PlanKind { SETUP, PUT_BACK, SWITCH_OFF, LEFTOVERS, THEME, ADD_MODULE, REMOVE_MODULE, USE_STOCK_HOME,
     UNDO_EVERYTHING, BEFORE_FACTORY_RESET, DEBUG_OFF, WRITE_RESTORE_POINT, REBOOT }   // R0: 11 (was kind: String); REBOOT: RFC-W8-5
 sealed interface PlanRequest {
-    data class Setup(val resolution: ProfileResolution, val choices: Choices, val launcher: LauncherArtifact, val level: Level) : PlanRequest
+    data class Setup(val resolution: ProfileResolution, val choices: Choices, val launcher: LauncherArtifact, val level: Level,
+        val config: BlobRef? = null, val wallpaper: BlobRef? = null) : PlanRequest   // RFC-DOCK-1: config = encode(DockLayers.applyTo(theme doc, dock)) in the BlobStore
     data class PutBack(val pkg: PackageName) : PlanRequest
     data class SwitchOff(val pkgs: Set<PackageName>) : PlanRequest
     data class Leftovers(val expectedDisabled: Set<PackageName>) : PlanRequest
