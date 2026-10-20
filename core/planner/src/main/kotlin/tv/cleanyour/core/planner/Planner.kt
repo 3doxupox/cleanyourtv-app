@@ -13,12 +13,14 @@ import tv.cleanyour.core.spec.ProfileResolution
 import tv.cleanyour.core.spec.Theme
 
 data class Choices(val kept: Set<PackageName>, val extraOff: Set<PackageName>, val dock: List<PackageName>?, val theme: Theme?,
-    val installLauncher: Boolean, val takeover: Boolean, val replaceLauncherSigner: Boolean, val keepDebuggingOn: Boolean)
+    val installLauncher: Boolean, val takeover: Boolean, val replaceLauncherSigner: Boolean, val keepDebuggingOn: Boolean,
+    val curtain: Boolean = true)   // RFC-CURTAIN-1: show the progress on the TV
 enum class PlanKind { SETUP, PUT_BACK, SWITCH_OFF, LEFTOVERS, THEME, ADD_MODULE, REMOVE_MODULE, USE_STOCK_HOME,
     UNDO_EVERYTHING, BEFORE_FACTORY_RESET, DEBUG_OFF, WRITE_RESTORE_POINT, REBOOT }   // R0: 11 (was kind: String); REBOOT: RFC-W8-5
 sealed interface PlanRequest {
     data class Setup(val resolution: ProfileResolution, val choices: Choices, val launcher: LauncherArtifact, val level: Level,
-        val config: BlobRef? = null, val wallpaper: BlobRef? = null) : PlanRequest   // RFC-DOCK-1: config = encode(DockLayers.applyTo(theme doc, dock)) in the BlobStore
+        val config: BlobRef? = null, val wallpaper: BlobRef? = null,   // RFC-DOCK-1: config = encode(DockLayers.applyTo(theme doc, dock)) in the BlobStore
+        val curtain: LauncherArtifact? = null) : PlanRequest           // RFC-CURTAIN-1: the bundled TV curtain, from CurtainPin
     data class PutBack(val pkg: PackageName) : PlanRequest
     data class SwitchOff(val pkgs: Set<PackageName>) : PlanRequest
     data class Leftovers(val expectedDisabled: Set<PackageName>) : PlanRequest

@@ -79,3 +79,14 @@ the TV. (2) The switch "Show the progress on the TV" is in Custom only, default 
 Signed with the launcher key K1. One tightening beyond the plan: the renderer refuses a cue whose
 receiver package is not `tv.cleanyour.curtain`, so a cue can never be aimed at another app.
 
+Two choices the plan left open, for review: (a) `DebugOff` does NOT gain the leftover uninstall of
+section 4 (b). An `Uninstall` is a PROFILE_STEP, so it would make the Finish plan need a credential
+pass; a cancelled prompt would then leave debugging on (D7). A leftover is still finished on the TV
+by the curtain itself (four minutes, Back, or covered), removed by Leftovers, and replaced or reused
+by the next Setup. (b) The probe reports no signer for any package (`PackageState.signer` is null),
+so "the pin is already installed with our signer" is read as: the package is present, its
+versionCode is the pin's, and no other signer is known; a package under our name with a known other
+signer gets no curtain steps and is never uninstalled. The planner takes the pinned signer as
+`curtainSigner` (AppGraph passes `PinnedCurtain.SIGNER_SHA256`). A Setup with no steps shows no
+curtain.
+

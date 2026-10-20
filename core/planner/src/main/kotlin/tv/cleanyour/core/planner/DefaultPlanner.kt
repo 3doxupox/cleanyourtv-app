@@ -3,6 +3,8 @@ package tv.cleanyour.core.planner
 import tv.cleanyour.core.model.BlobRef
 import tv.cleanyour.core.model.ChangeRecord
 import tv.cleanyour.core.model.Component
+import tv.cleanyour.core.model.CurtainGroup
+import tv.cleanyour.core.model.CurtainStage
 import tv.cleanyour.core.model.EnabledState
 import tv.cleanyour.core.model.GroupDefault
 import tv.cleanyour.core.model.InstallFlag
@@ -51,6 +53,10 @@ import tv.cleanyour.core.store.IdGen
 // `watchdogSeconds` (R1 R-1, DECISIONS-W3 D-W3-1): 150, the phone's longest confirm window (120 s
 // without a thumbnail, D23) plus 30 s for the section's steps between arming and the check screen,
 // so the TV-side layer never fires while the phone still waits for an answer.
+//
+// The TV curtain (RFC-CURTAIN-1): `curtainActivity` and `curtainReceiver` name the bundled curtain
+// app; `curtainSigner` is its pinned signer (null: unknown, then only a package whose signer the
+// snapshot reports as different is taken for someone else's). All defaulted, after `profiles`.
 class DefaultPlanner(
     private val clock: Clock,
     private val idGen: IdGen,
@@ -62,6 +68,9 @@ class DefaultPlanner(
     private val watchdogSeconds: Int = WATCHDOG_SECONDS,
     private val settleSeconds: Int = 15,
     private val profiles: ProfileSource? = null,
+    private val curtainActivity: Component = Component(PackageName(CURTAIN_PACKAGE), ".CurtainActivity"),
+    private val curtainReceiver: Component = Component(PackageName(CURTAIN_PACKAGE), ".CueReceiver"),
+    private val curtainSigner: Sha256? = null,
 ) : Planner {
 
     override fun plan(request: PlanRequest, snapshot: Snapshot, facts: FactsTable, journals: List<ChangeRecord>): PlanResult {
@@ -234,6 +243,104 @@ class DefaultPlanner(
             }
             if (choices.takeover) takeover(req.launcher, profile, stockLaunchers, launcherSteps)
             homeSwitchRows()
+            val curtain = req.curtain
+            if (curtain != null && choices.curtain && !snapshot.facts.installRefusal && reasons.isEmpty()) weaveCurtain(curtain)
+        }
+
+        // ---- The TV curtain (RFC-CURTAIN-1) ---------------------------------------------------------
+
+        val curtainPkg: PackageName get() = curtainActivity.pkg
+
+        // The curtain on the TV is ours unless the snapshot names another signer for its package.
+        fun curtainIsOurs(signer: Sha256?): Boolean {
+            val s = state(curtainPkg) ?: return false
+            return s.signer == null || signer == null || s.signer == signer
+        }
+
+        // A curtain left on the TV by an interrupted run: removed first by Leftovers (and by Setup's
+        // own last step). The TV app finishes itself; this takes the package away.
+        fun curtainLeftover() {
+            if (!curtainIsOurs(curtainSigner)) return
+            step(Op.Uninstall(curtainPkg), Prior(present = true), GROUP_CURTAIN, "Removing the progress screen from the TV", FailurePolicy.CONTINUE)
+        }
+
+        fun curtainGroup(groupId: String?): CurtainGroup = when (groupId?.removeSuffix("-optional")) {
+            "ads" -> CurtainGroup.ADVERTS
+            "tracking" -> CurtainGroup.TRACKING
+            "preloads" -> CurtainGroup.NOBODY_ASKED
+            "brand" -> CurtainGroup.BRAND_EXTRAS
+            "demo" -> CurtainGroup.SHOP_DEMO
+            else -> CurtainGroup.OTHER
+        }
+
+        // Weaves the curtain into the finished Setup plan, so every count is known when the first cue
+        // is rendered. The curtain goes in first (after the engine's PRE_PLAN restore point, which
+        // always runs before step 0, so the restore point never contains it): its install, its start
+        // and the SCAN and RESTORE_SAVED cues. The SCAN on the TV is a presentation of the read that
+        // has just happened, not a live one. Then one OFF cue after each switch-off outside the home
+        // screen switch (and GROUP_DONE after a group's last), INSTALL and INSTALLED around the
+        // launcher's install, FINALE and a short settle right before the first start of the launcher
+        // (or at the end when nothing starts it), and the curtain's removal as the last step. Every
+        // curtain step CONTINUEs: the curtain can never stop, pause or roll back the setup. Indices of
+        // the body's steps and of its guarded section shift; nothing else about them changes.
+        fun weaveCurtain(artifact: LauncherArtifact) {
+            if (artifact.pkg != curtainPkg) return   // not the curtain: no curtain steps, the setup is unchanged
+            if (steps.isEmpty()) return               // nothing to do on the TV, nothing to show
+            val current = state(curtainPkg)
+            if (current != null && !curtainIsOurs(artifact.signer)) return   // another app under our name: never touched
+            val body = steps.toList()
+            val bodySections = sections.toList()
+            steps.clear(); sections.clear()
+            val token = idGen.runToken()
+            fun inSection(i: Int) = bodySections.any { i in it.from..it.to }
+            val counted = body.filter { it.op is Op.Disable && it.group != GROUP_HOME && !inSection(it.index) }
+            val countedIdx = counted.map { it.index }.toSet()
+            val offTotal = counted.size
+            val groupTotal = counted.groupingBy { it.group }.eachCount()
+            val lastOfGroup = counted.groupBy { it.group }.mapValues { (_, v) -> v.last().index }.values.toSet()
+            val installAt = body.firstOrNull { it.group == GROUP_LAUNCHER && it.op !is Op.Settle }?.index
+            val installedAt = body.firstOrNull { packageOf(it.op) == launcher.pkg && (it.op is Op.Install || it.op is Op.InstallStream) }?.index
+            val finaleAt = body.firstOrNull { it.op == Op.StartActivity(launcher, wait = true) }?.index
+
+            fun n(x: Int) = x.coerceIn(0, tv.cleanyour.core.ops.ShellRenderer.CUE_MAX)
+            fun cue(stage: CurtainStage, count: Int = 0, total: Int = 0, group: CurtainGroup = CurtainGroup.NONE, groupCount: Int = 0, groupTotal: Int = 0) =
+                step(Op.CurtainCue(curtainReceiver, token, stage, n(count), n(total), group, n(groupCount), n(groupTotal)), null, GROUP_CURTAIN, "", FailurePolicy.CONTINUE)
+            fun finale() {
+                cue(CurtainStage.FINALE)
+                step(Op.Settle(CURTAIN_SETTLE_SECONDS), null, GROUP_CURTAIN, NARRATION_CURTAIN_SETTLE, FailurePolicy.CONTINUE)
+            }
+
+            val pinned = current != null && current.versionCode == artifact.versionCode
+            if (!pinned) {
+                installApk(artifact.blob, artifact.sha256, artifact.pkg, artifact.versionCode, artifact.signer,
+                    present = current != null, group = GROUP_CURTAIN, narration = NARRATION_CURTAIN, quiet = true)
+            }
+            step(Op.StartActivity(curtainActivity, wait = false), null, GROUP_CURTAIN, "", FailurePolicy.CONTINUE)
+            cue(CurtainStage.SCAN, 0, offTotal)
+            cue(CurtainStage.RESTORE_SAVED)
+
+            val moved = IntArray(body.size)
+            var k = 0
+            val inGroup = mutableMapOf<String?, Int>()
+            var finaled = false
+            for (s in body) {
+                if (s.index == finaleAt) { finale(); finaled = true }
+                if (s.index == installAt) cue(CurtainStage.INSTALL)
+                moved[s.index] = steps.size
+                steps += s.copy(index = steps.size)
+                if (s.index == installedAt) cue(CurtainStage.INSTALLED)
+                if (s.index in countedIdx) {
+                    k++
+                    val g = (inGroup[s.group] ?: 0) + 1
+                    inGroup[s.group] = g
+                    val words = curtainGroup(s.group)
+                    cue(CurtainStage.OFF, k, offTotal, words, g, groupTotal.getValue(s.group))
+                    if (s.index in lastOfGroup) cue(CurtainStage.GROUP_DONE, k, offTotal, words, g, g)
+                }
+            }
+            if (!finaled) finale()
+            sections += bodySections.map { it.copy(from = moved[it.from], to = moved[it.to]) }
+            step(Op.Uninstall(curtainPkg), Prior(present = true), GROUP_CURTAIN, "", FailurePolicy.CONTINUE)
         }
 
         // The home screen switch switches off the TV's own home screen (and the wizard on the
@@ -285,17 +392,20 @@ class DefaultPlanner(
             return true
         }
 
-        fun installApk(blob: BlobRef, sha256: Sha256, pkg: PackageName, versionCode: Long, signer: Sha256, present: Boolean, group: String, narration: String) {
+        // `quiet` (RFC-CURTAIN-1): the helper steps around the install carry a blank narration, so
+        // only the install itself is a line on the Working screen.
+        fun installApk(blob: BlobRef, sha256: Sha256, pkg: PackageName, versionCode: Long, signer: Sha256, present: Boolean, group: String, narration: String, quiet: Boolean = false) {
             val prior = Prior(present = present)
+            fun helper(text: String) = if (quiet) "" else text
             if ("cmd" in snapshot.facts.adbFeatures) {
                 step(Op.InstallStream(blob, sha256, pkg, versionCode, signer), prior, group, narration, FailurePolicy.CONTINUE)
             } else {
                 val apk = RemotePath(RemoteDir.TMP, listOf(sha256.hex.take(APK_NAME_HEX) + ".apk"))   // a FileName is at most 64 characters
-                step(Op.Mkdir(RemoteDir.TMP), null, group, "Preparing the TV", FailurePolicy.CONTINUE)
-                step(Op.PushAsset(blob, apk, sha256), Prior(present = false), group, "Copying the app to the TV", FailurePolicy.CONTINUE)
+                step(Op.Mkdir(RemoteDir.TMP), null, group, helper("Preparing the TV"), FailurePolicy.CONTINUE)
+                step(Op.PushAsset(blob, apk, sha256), Prior(present = false), group, helper("Copying the app to the TV"), FailurePolicy.CONTINUE)
                 val flags = if (present) setOf(InstallFlag.REPLACE) else emptySet()
                 step(Op.Install(apk, sha256, pkg, versionCode, signer, flags), prior, group, narration, FailurePolicy.CONTINUE)
-                step(Op.RemoveFile(apk), null, group, "Tidying up", FailurePolicy.CONTINUE)
+                step(Op.RemoveFile(apk), null, group, helper("Tidying up"), FailurePolicy.CONTINUE)
             }
         }
 
@@ -382,6 +492,7 @@ class DefaultPlanner(
         }
 
         fun leftovers(expectedDisabled: Set<PackageName>) {
+            curtainLeftover()   // RFC-CURTAIN-1
             for (pkg in expectedDisabled.sortedBy { it.value }) {
                 if (!installed(pkg) || isOff(pkg)) continue
                 // After a TV update the stock launcher may be enabled and HOME again (R1): a leftover
@@ -571,6 +682,12 @@ class DefaultPlanner(
         const val GROUP_SESSION_END = "session_end"
         const val GROUP_RESTORE = "restore"
         const val GROUP_REBOOT = "reboot"
+        // RFC-CURTAIN-1
+        const val GROUP_CURTAIN = "curtain"
+        const val CURTAIN_PACKAGE = "tv.cleanyour.curtain"
+        const val CURTAIN_SETTLE_SECONDS = 3
+        const val NARRATION_CURTAIN = "Showing the progress on the TV"
+        const val NARRATION_CURTAIN_SETTLE = "Giving the TV a moment"
         const val WATCHDOG_SECONDS = 150
         const val REASON_WIZARD_WHILE_OURS = "on this TV the first-run setup wizard takes the Home button back; use the TV's own home screen first"
         const val REASON_HOME_SCREEN = "it is the TV's own home screen; only the home screen switch changes it"

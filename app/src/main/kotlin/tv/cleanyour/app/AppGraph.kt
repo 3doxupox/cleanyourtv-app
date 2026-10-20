@@ -113,7 +113,8 @@ class AppGraph(context: Context, val appVersion: String = "0.1.0") {
     val configTransport: ConfigTransport = FileOverlayTransport(prober)
     // D23: the engine itself widens the confirm window to 120 s when there is no recent thumbnail,
     // so the planner keeps its 90 s default.
-    val planner = DefaultPlanner(clock, idGen, renderer, configTransport, appVersion, profiles = profiles)
+    val planner = DefaultPlanner(clock, idGen, renderer, configTransport, appVersion, profiles = profiles,
+        curtainSigner = tv.cleanyour.core.model.Sha256(tv.cleanyour.core.trust.PinnedCurtain.SIGNER_SHA256))   // RFC-CURTAIN-1
     val snapshots = DocumentSnapshotStore(documents)       // W6
     val journal = FileJournal(dataDir)                     // tvs/<tvId>/journal/<planId>.jsonl
     val plans = DocumentPlanStore(documents)
