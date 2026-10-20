@@ -75,15 +75,23 @@ class S09CurtainSetup : E2eScenario() {
     private val switchOff = listOf("com.lego.android.tvleanback", "com.android.traceur")
     private val out: File get() = cfg.outDir.also { it.mkdirs() }
 
-    private fun bundled(name: String): ByteArray = File(Fixtures.repoRoot, "android/platform/src/main/assets/bundled/$name").readBytes()
+    // The session streams a blob from its path on disk, so every blob here is a real file.
+    private fun fileBlob(f: File): tv.cleanyour.core.model.BlobRef {
+        val bytes = f.readBytes()
+        val sha = Sha256(java.security.MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) })
+        return tv.cleanyour.core.model.BlobRef(sha, bytes.size.toLong(), f.absolutePath)
+    }
+
+    private fun bundled(name: String) = fileBlob(File(Fixtures.repoRoot, "android/platform/src/main/assets/bundled/$name"))
 
     private fun launcher() = LauncherArtifact(PackageName(PinnedLauncher.PACKAGE), PinnedLauncher.VERSION_CODE, PinnedLauncher.VERSION_NAME,
-        Sha256(PinnedLauncher.SHA256), Sha256(PinnedLauncher.SIGNER_SHA256), blobs.add(bundled(PinnedLauncher.ASSET_NAME)))
+        Sha256(PinnedLauncher.SHA256), Sha256(PinnedLauncher.SIGNER_SHA256), bundled(PinnedLauncher.ASSET_NAME))
 
     private fun curtain() = LauncherArtifact(PackageName(PinnedCurtain.PACKAGE), PinnedCurtain.VERSION_CODE, PinnedCurtain.VERSION_NAME,
-        Sha256(PinnedCurtain.SHA256), Sha256(PinnedCurtain.SIGNER_SHA256), blobs.add(bundled(PinnedCurtain.ASSET_NAME)))
+        Sha256(PinnedCurtain.SHA256), Sha256(PinnedCurtain.SIGNER_SHA256), bundled(PinnedCurtain.ASSET_NAME))
 
     @After fun putTheTvBack() {
+        oracle.shell("settings put global animator_duration_scale 0")   // as scripts/emulator-session.sh leaves it
         oracle.uninstall(curtainPkg)
         oracle.uninstall(LAUNCHER_PKG)
         for (p in switchOff) oracle.enable(p)
@@ -105,12 +113,19 @@ class S09CurtainSetup : E2eScenario() {
         return f.takeIf { it.isFile && it.length() > 0 }
     }
 
+    // CYT_E2E_CURTAIN_RECORD=1: one 30 s screen recording from the curtain's start. Off by default:
+    // on the API 28 emulator with software graphics, screenrecord running while the launcher starts
+    // has taken surfaceflinger down (and the adb connection with it), the emulator's fault, not the
+    // plan's; CYT_E2E_CURTAIN_RECORD=2 adds a second one from the INSTALL cue.
+    private val recording = System.getenv("CYT_E2E_CURTAIN_RECORD") ?: "0"
+
     // A 30 s screen recording on the TV, in the background; pulled by `pullRecording`.
-    private fun record(name: String): Process =
+    private fun record(name: String): Process? = if (recording == "0") null else
         ProcessBuilder(cfg.adb.path, "-s", cfg.serial, "shell", "screenrecord", "--time-limit", "30", "--size", "1280x720",
             "--bit-rate", "2000000", "/sdcard/$name.mp4").redirectErrorStream(true).start()
 
-    private fun pullRecording(p: Process, name: String) {
+    private fun pullRecording(p: Process?, name: String) {
+        if (p == null) return
         p.waitFor(45, TimeUnit.SECONDS)
         Thread.sleep(1_500)   // the file is finalised a moment after screenrecord exits
         oracle.run("pull", "/sdcard/$name.mp4", File(out, "$name.mp4").path, timeoutS = 120)
@@ -138,7 +153,7 @@ class S09CurtainSetup : E2eScenario() {
         val off = switchOff.map(::PackageName).filter { it in base.packages }.toSet()
         assertTrue("the emulator image lacks $switchOff", off.isNotEmpty())
         val dock = DockRanking.pick(null, base.packages.keys, base.hdmi.isNotEmpty(), null, "en")
-        val config = blobs.add(LauncherConfigCodec.encode(DockLayers.applyTo(LauncherConfigDoc(), dock)))
+        val config = fileBlob(File(out, "curtain-config.json").also { it.writeBytes(LauncherConfigCodec.encode(DockLayers.applyTo(LauncherConfigDoc(), dock))) })
         val choices = Choices(kept = emptySet(), extraOff = off, dock = dock, theme = null, installLauncher = true, takeover = true,
             replaceLauncherSigner = false, keepDebuggingOn = true, curtain = true)
         val request = PlanRequest.Setup(resolution, choices, launcher(), Level.CUSTOM, config, null, curtain())
@@ -149,6 +164,9 @@ class S09CurtainSetup : E2eScenario() {
     }
 
     @Test fun setupWithTheCurtain() = e2e(timeoutMs = 900_000) {
+        // The session turns animations off; CYT_E2E_CURTAIN_MOTION=1 shows the Lantern in full motion
+        // (otherwise the curtain runs its reduced motion path, the same stages without movement).
+        if (System.getenv("CYT_E2E_CURTAIN_MOTION") == "1") oracle.shell("settings put global animator_duration_scale 1")
         oracle.uninstall(curtainPkg)
         assertFalse("the curtain is on the TV before the run", oracle.isInstalled(curtainPkg))
         oracle.pressHome()
@@ -181,8 +199,28 @@ class S09CurtainSetup : E2eScenario() {
                     if (firstCurtainAt == 0L) firstCurtainAt = now
                     if (shots.isEmpty() && now - firstCurtainAt > 4_000) screencap("curtain-1-scan")?.let { shots += it; metrics += oracle.shell("dumpsys meminfo $curtainPkg").stdout }
                     if (shots.size == 1 && now - firstCurtainAt > 12_000) screencap("curtain-2-cleaning")?.let { shots += it; metrics += oracle.shell("dumpsys gfxinfo $curtainPkg").stdout }
+                    if (shots.size == 2 && now - firstCurtainAt > 29_000) screencap("curtain-3-installing")?.let { shots += it }
                 }
                 delay(400)
+            }
+        }
+        // CYT_E2E_CURTAIN_BURST=1: screenshots back to back for up to 30 s from the curtain's start, with
+        // their times, for a recording put together off the TV (screenrecord takes the emulator down).
+        val burstTimes = CopyOnWriteArrayList<String>()
+        val burst = if (System.getenv("CYT_E2E_CURTAIN_BURST") != "1") null else launch(Dispatchers.IO) {
+            val dir = File(out, "burst").also { it.mkdirs() }
+            while (isActive && samples.none { "CurtainActivity" in it.resumed }) delay(100)
+            val t0 = System.currentTimeMillis()
+            var n = 0
+            // Only while the curtain is in front, straight to the host (exec-out), about 3 a second.
+            while (isActive && System.currentTimeMillis() - t0 < 30_000 && "CurtainActivity" in (samples.lastOrNull()?.resumed ?: "")) {
+                val at = System.currentTimeMillis() - t0
+                val f = File(dir, "%03d.png".format(n))
+                ProcessBuilder(cfg.adb.path, "-s", cfg.serial, "exec-out", "screencap", "-p").redirectOutput(f).redirectErrorStream(false)
+                    .start().waitFor(10, TimeUnit.SECONDS)
+                burstTimes += "%03d %d".format(n, at)
+                n++
+                delay(150)
             }
         }
         val first = record("curtain-run-1")
@@ -192,12 +230,14 @@ class S09CurtainSetup : E2eScenario() {
         val installCue = plan.steps.first { (it.op as? Op.CurtainCue)?.stage == CurtainStage.INSTALL }.index
         var second: Process? = null
         val end = engine.runState(tvId).first { s ->
-            if (second == null && s is RunState.Running && s.step >= installCue) second = record("curtain-run-2")
+            if (second == null && recording == "2" && s is RunState.Running && s.step >= installCue) second = record("curtain-run-2")
             if (s is RunState.AwaitingConfirm) engine.confirmHome(tvId)   // the person says "Yes" on the check screen
             s is RunState.Finished || s is RunState.Paused
         }
         delay(2_000)
         watcher.cancel()
+        burst?.join()
+        if (burst != null) File(out, "burst/times.txt").writeText(burstTimes.joinToString("\n") + "\n")
         withContext(Dispatchers.IO) {
             pullRecording(first, "curtain-run-1")
             second?.let { pullRecording(it, "curtain-run-2") }
