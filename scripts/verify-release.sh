@@ -22,7 +22,8 @@ mkdir -p "$OUT"
 printf '%s' "$EXPECT" | grep -Eq '^[0-9a-f]{64}$' || { echo "expected signer is not a SHA-256 in lower-case hex" >&2; exit 2; }
 
 echo "==> 1. apksigner verify"
-apksigner verify --verbose --print-certs --min-sdk-version 28 "$SIGNED" > "$OUT/apksigner-full.txt"
+# --min-sdk-version 24 so apksigner checks v2 as well (for 28 and up it reports only v3).
+apksigner verify --verbose --print-certs --min-sdk-version 24 "$SIGNED" > "$OUT/apksigner-full.txt"
 grep -E "^Verifie|Verified using|Number of signers|Signer #1 certificate (DN|SHA-256)" "$OUT/apksigner-full.txt" | tee "$OUT/apksigner-verify.txt"
 grep -q "Verified using v2 scheme (APK Signature Scheme v2): true" "$OUT/apksigner-full.txt" || { echo "FAIL: no v2 signature" >&2; exit 1; }
 grep -q "Verified using v3 scheme (APK Signature Scheme v3): true" "$OUT/apksigner-full.txt" || { echo "FAIL: no v3 signature" >&2; exit 1; }

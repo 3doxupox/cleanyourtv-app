@@ -16,7 +16,7 @@ Fill in before the session:
 | Phone model and Android version | __________ (not known yet) |
 | Phone has a screen lock (PIN, pattern, fingerprint) | yes / no |
 | TV | Mi TV 4A, model AXSO0, Android 9, 1 GB |
-| TV address on the LAN | from the router, not written into any file that leaves jarvis |
+| TV address on the LAN | from the router, not written into any file that leaves the maintainer's machine |
 | APK file and its SHA-256 | from `dist/internal/<tag>/RELEASE-NOTES.md` |
 | Signer certificate SHA-256 | from the same file |
 | Tag and commit | |
@@ -42,7 +42,7 @@ Fill in before the session:
 
 ## B. The user's phone (security checks before and during the session) [7.3.6]
 
-Setup on the host (jarvis): `adb` connected to the phone over USB or wireless debugging, by the
+Setup on the host (the maintainer's machine): `adb` connected to the phone over USB or wireless debugging, by the
 user. The app is installed from the APK above: `adb install -r <apk>`.
 
 - [ ] After install: `scripts/check-installed.sh` (or by hand: `adb shell dumpsys package tv.cleanyour.app`) shows the D16 permissions only, no `DEBUGGABLE`, no `ALLOW_BACKUP` flag.
@@ -176,7 +176,7 @@ Gradle home, run `./gradlew help --offline`: the build must fail with a verifica
 
 | Key | Where it lives | Who can use it | Backup |
 | :- | :- | :- | :- |
-| App release key (`cleanyourtv-app`) | `/Users/dev/jarvis/secrets/cleanyourtv-app/release.p12` and `release.pass` on jarvis; GitHub `release` environment secrets when releases move to CI | the user; `scripts/build-internal-apk.sh` streams it into a tmpfs in the signing container on forge, never onto forge's disk | offline copy chosen by the user |
+| App release key (`cleanyourtv-release`) | the maintainer's offline key store only; never in CI (superseded 2026-10-20: see the note below) | the maintainer; `scripts/release-on-forge.sh` signs on the maintainer's machine, the key never reaches the build host | offline copy chosen by the user |
 | Launcher signing key (Q1) | W5 records it | | |
 | Index root and signing keys (minisign) | W5 records them | | |
 | `SHA256SUMS` minisign key | GitHub `release` environment secret | release.yml | offline copy |
@@ -188,8 +188,14 @@ keytool -genkeypair -keystore release.p12 -storetype PKCS12 -alias cleanyourtv \
   -keyalg RSA -keysize 4096 -validity 10000 -dname "CN=Clean Your TV"
 ```
 
-and keeps the password in `release.pass` (one line), both under
-`/Users/dev/jarvis/secrets/cleanyourtv-app/` with mode 600.
+and keeps the password in a one line file next to it, both in the maintainer's key store with
+mode 600.
+
+Note (2026-10-20, release prep for 0.1.0): the key was generated as above; CI never signs.
+`scripts/release-on-forge.sh` replaced `scripts/build-internal-apk.sh` and `sign-and-compare.sh`:
+it builds twice on the build host, signs on the maintainer's machine and checks the result with
+`scripts/verify-release.sh`; the expected signer lives in `docs/release-signer.sha256`. The
+`SHA256SUMS` minisign key and the `release` environment secrets below are not used.
 
 - [ ] The certificate digest (`keytool -list -v -keystore release.p12` prompts for the password;
   take the SHA256 line without colons) is exported as `CYT_RELEASE_CERT_SHA256` for

@@ -120,7 +120,8 @@ fi
 rm -f "$SIGNED.idsig"
 
 echo "==> verify here"
-"${APKSIGNER[@]}" verify --verbose --print-certs --min-sdk-version 28 "$SIGNED" \
+# --min-sdk-version 24 so apksigner checks v2 as well (for 28 and up it reports only v3).
+"${APKSIGNER[@]}" verify --verbose --print-certs --min-sdk-version 24 "$SIGNED" \
   | grep -E "^Verifie|Verified using|Number of signers|Signer #1 certificate (DN|SHA-256)" | tee "$DEST/apksigner-verify.txt"
 grep -q "Verified using v2 scheme (APK Signature Scheme v2): true" "$DEST/apksigner-verify.txt" || { echo "no v2 signature" >&2; exit 1; }
 grep -q "Verified using v3 scheme (APK Signature Scheme v3): true" "$DEST/apksigner-verify.txt" || { echo "no v3 signature" >&2; exit 1; }

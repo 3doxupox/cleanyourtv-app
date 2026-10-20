@@ -169,7 +169,7 @@ val artifacts = ResumableArtifactFetcher(http, blobs, blobs, inspector)
   416, hosts, offline, resume across calls, signer), `DiskBlobStoreTest`, `UrlConnectionFetcherTest`.
 - `:android:platform`: `SignerDigestsTest`.
 
-MITM proof: mitmproxy is not installed on jarvis or forge, so `UrlConnectionFetcherTest` shows the
+MITM proof: mitmproxy is not installed on the maintainer's machine or the build host, so `UrlConnectionFetcherTest` shows the
 same property on the JVM: a local HTTPS server whose certificate comes from a freshly made user CA
 serves a client that trusts that CA (control), and the fetcher as shipped (platform trust only)
 fails the handshake with no request reaching the server. The on-device mitmproxy check stays in the

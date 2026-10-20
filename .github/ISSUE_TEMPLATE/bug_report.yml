@@ -1,0 +1,58 @@
+name: Bug report
+description: Something in the app went wrong or behaved unexpectedly.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Security problems go through SECURITY.md (a private advisory), not here.
+        Please never paste your TV's serial number, your network addresses or a pairing code.
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: The app settings screen shows it, for example "Version 0.1.0".
+    validations:
+      required: true
+  - type: input
+    id: phone
+    attributes:
+      label: Phone
+      description: Model and Android version, for example "Pixel 7, Android 15".
+    validations:
+      required: true
+  - type: input
+    id: tv
+    attributes:
+      label: TV
+      description: Brand, model and Android version, for example "Xiaomi Mi TV 4A, Android 9".
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead. Which screen were you on?
+    validations:
+      required: true
+  - type: dropdown
+    id: tv-state
+    attributes:
+      label: How is the TV now?
+      options:
+        - Fine, nothing changed
+        - Changed, and working
+        - Something on the TV stopped working
+        - The TV's home screen is wrong or missing
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: Optional. Settings, "Share diagnostics" makes a redacted zip (you see a preview first); attach it here.
+  - type: markdown
+    attributes:
+      value: |
+        If the TV needs fixing right now: Manage, "Restore point", "Undo everything" puts it back. Without the
+        phone, the restore copy ("Save a copy") contains scripts that run from any computer with adb.

@@ -30,8 +30,8 @@ import javax.net.ssl.TrustManagerFactory
 
 // The real HttpURLConnection client against a local HTTPS server.
 //
-// MITM proof (W5 definition of done, SECURITY 2.4 T-S1): mitmproxy is not installed on jarvis or
-// forge, so the same property is shown on the JVM. The server's certificate is issued by a fresh
+// MITM proof (W5 definition of done, SECURITY 2.4 T-S1): mitmproxy is not installed on the
+// build machines, so the same property is shown on the JVM. The server's certificate is issued by a fresh
 // "user CA" (made with keytool for this run, like the CA a proxy asks the user to install). A
 // client that trusts that CA gets the file (control). The fetcher as the app builds it, with the
 // platform's trust store only, refuses the handshake and no request reaches the server. On the
