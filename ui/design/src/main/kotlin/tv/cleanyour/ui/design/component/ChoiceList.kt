@@ -1,6 +1,7 @@
 package tv.cleanyour.ui.design.component
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.tween
@@ -23,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,6 +35,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.positionInParent
@@ -52,6 +55,9 @@ import tv.cleanyour.ui.design.theme.glass
 // DESIGN-SYSTEM 5.1 "Glass highlight": one glass shape that slides between the options of a
 // single-choice list on spring(0.58, 260), drawn behind the rows' content and only on the
 // selected option, with the 3-ring outer glow. Under reduced motion it snaps.
+// The unselected rows' plates (surface.1 with the outline) are drawn here too, in a layer under
+// the glass, so the glass slides over every row on its way instead of passing behind the plate
+// the row it left gets back (device test 2026-10-20). Rows themselves draw no background.
 @Composable
 fun HighlightColumn(
     count: Int,
@@ -80,7 +86,21 @@ fun HighlightColumn(
         }
     }
     val density = LocalDensity.current
+    val c = CytTheme.colors
+    val shape = CytTheme.shapes.row
     Box(modifier.fillMaxWidth()) {
+        for (i in 0 until count) key(i) {
+            val plate by animateFloatAsState(if (i == selectedIndex) 0f else 1f, tween(if (reduced) 0 else 200), label = "plate")
+            val b = bounds[i]
+            if (b != null) {
+                Box(
+                    Modifier.offset { IntOffset(0, b.first.roundToInt()) }.fillMaxWidth()
+                        .height(with(density) { b.second.toDp() })
+                        .graphicsLayer { alpha = plate }
+                        .background(c.surface1, shape).border(1.dp, c.outline, shape),
+                )
+            }
+        }
         if (placed && selectedIndex in 0 until count) {
             Box(
                 Modifier.offset { IntOffset(0, pos.value.y.roundToInt()) }.fillMaxWidth()
@@ -120,7 +140,6 @@ private fun ChoiceRow(option: ChoiceOption, selected: Boolean, onClick: () -> Un
     val titleColor by animateColorAsState(if (selected) c.textPrimary else c.textSecondary, tween(if (reduced) 0 else 200), label = "choiceTitle")
     Row(
         Modifier.fillMaxWidth().heightIn(min = 68.dp).clip(shape)
-            .then(if (selected) Modifier else Modifier.background(c.surface1, shape).border(1.dp, c.outline, shape))
             .selectable(selected, role = Role.RadioButton, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -164,7 +183,6 @@ fun ThemePicker(options: List<ThemeOption>, selectedId: String?, onSelect: (Them
             val shape = CytTheme.shapes.row
             Row(
                 Modifier.fillMaxWidth().heightIn(min = 72.dp).clip(shape)
-                    .then(if (isSelected) Modifier else Modifier.background(c.surface1, shape).border(1.dp, c.outline, shape))
                     .selectable(isSelected, role = Role.RadioButton) { onSelect(o) }
                     .then(guard)
                     .padding(horizontal = 14.dp, vertical = 12.dp),

@@ -26,6 +26,9 @@ SDK_PACKAGES='"platform-tools"'
 SSH=(ssh -i "$SSH_KEY" -o ConnectTimeout=10 -o BatchMode=yes "$FORGE")
 
 TASKS="${*:-check assembleDebug}"
+# A fixed debug signing key kept outside git, so every debug APK updates in place on test phones
+# (AGP would make a new one in each throwaway container). Absent: AGP's own throwaway key.
+DEBUG_KEYSTORE="${DEBUG_KEYSTORE:-$HOME/jarvis/secrets/cleanyourtv-debug/debug.keystore}"
 
 [ -f third_party/cleanyourtv/README.md ] || {
   echo "upstream submodule is empty; run: git submodule update --init third_party/cleanyourtv" >&2
@@ -44,10 +47,15 @@ rsync -az --delete -e "ssh -i $SSH_KEY -o BatchMode=yes" \
   --exclude dist/ --exclude .idea/ \
   ./ "$FORGE:$REMOTE_DIR/"
 
+if [ -f "$DEBUG_KEYSTORE" ]; then
+  "${SSH[@]}" "mkdir -p '$REMOTE_DIR/.android-user'" </dev/null
+  scp -q -i "$SSH_KEY" -o BatchMode=yes "$DEBUG_KEYSTORE" "$FORGE:$REMOTE_DIR/.android-user/debug.keystore"
+fi
+
 echo "==> ./gradlew $TASKS in $IMAGE"
 set +e
 "${SSH[@]}" "mkdir -p /home/builder/build && flock -w 3600 /home/builder/build/.cyt-forge.lock docker run --rm --name '$CONTAINER' --memory 3g --cpus 4 \
-  -e HOME=/cache/home -e OWNER=\$(id -u):\$(id -g) \
+  -e HOME=/cache/home -e ANDROID_USER_HOME=/src/.android-user -e OWNER=\$(id -u):\$(id -g) \
   -v $VOLUME:/cache -v '$REMOTE_DIR':/src -w /src $IMAGE bash -euc '
     export ANDROID_HOME=/cache/sdk GRADLE_USER_HOME=/cache/gradle
     trap \"chown -R \$OWNER /src\" EXIT

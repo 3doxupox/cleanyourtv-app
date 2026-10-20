@@ -71,16 +71,18 @@ private fun Modifier.fade(alpha: () -> Float) = graphicsLayer { this.alpha = alp
 private fun tvType(size: Float, weight: FontWeight = FontWeight.Normal, tracking: Float = 0f) =
     TextStyle(fontFamily = Outfit, fontSize = size.sp, lineHeight = (size * 1.15f).sp, fontWeight = weight, letterSpacing = tracking.sp)
 
-// The clean launcher home screen (mockup 01): amber glow, greeting, clock, pills, hero name, dock.
+// The clean launcher home screen (mockup 01): a glow in the focused app's colour, greeting, clock,
+// pills, hero name, dock. Everyday apps (YouTube focused, then Prime Video) so a first-time user
+// sees their own TV, not a module (device test 2026-10-20).
 @Composable
 private fun CleanHome(u: Dp, modifier: Modifier) {
-    Box(modifier.fillMaxSize().ambientGlow(Color(0xFFE8A33D), coreAlpha = 0.34f, midAlpha = 0.10f)) {
+    Box(modifier.fillMaxSize().ambientGlow(Color(0xFFE8343D), coreAlpha = 0.30f, midAlpha = 0.09f)) {
         Text("GOOD AFTERNOON", Modifier.offset(u * 18, u * 14), color = Color.White.copy(alpha = 0.55f), style = tvType(5 * u.value, tracking = 1.2f * u.value))
         Text("2:17", Modifier.offset(u * 16, u * 20), color = Color(0xFFF5F5F7), style = tvType(22 * u.value, FontWeight.ExtraLight))
         Row(Modifier.align(Alignment.TopEnd).padding(top = u * 22, end = u * 14), horizontalArrangement = Arrangement.spacedBy(u * 5)) {
             repeat(3) { MiniPill(u) }
         }
-        Text("Retro", Modifier.offset(u * 18, u * 86), color = Color(0xFFF5F5F7), style = tvType(20 * u.value, FontWeight.Light))
+        Text("YouTube", Modifier.offset(u * 18, u * 86), color = Color(0xFFF5F5F7), style = tvType(20 * u.value, FontWeight.Light))
         Dock(u, Modifier.align(Alignment.BottomCenter))
     }
 }
@@ -101,10 +103,13 @@ private fun Dock(u: Dp, modifier: Modifier) {
         val tile = Modifier.weight(1f).fillMaxSize()
         Box(
             tile.border(1.dp, Color.White.copy(alpha = 0.85f), RoundedCornerShape(u * 8))
-                .background(Brush.radialGradient(listOf(Color(0xFF7A2B2B), Color(0xFF2A1414))), RoundedCornerShape(u * 8)),
+                .background(Brush.radialGradient(listOf(Color(0xFFE8343D), Color(0xFF8E1218))), RoundedCornerShape(u * 8)),
             contentAlignment = Alignment.Center,
-        ) { Text("Retro", color = Color.White, style = tvType(10 * u.value)) }
-        Box(tile.background(Brush.linearGradient(listOf(Color(0xFF1D4FBF), Color(0xFF3A86E8))), RoundedCornerShape(u * 8)))
+        ) { Text("YouTube", color = Color.White, style = tvType(9 * u.value, FontWeight.Medium)) }
+        Box(
+            tile.background(Brush.linearGradient(listOf(Color(0xFF0F2A4A), Color(0xFF1A98FF))), RoundedCornerShape(u * 8)),
+            contentAlignment = Alignment.Center,
+        ) { Text("prime video", color = Color.White, style = tvType(7 * u.value, FontWeight.Medium)) }
         Box(tile.background(Brush.linearGradient(listOf(Color(0xFF3B3B40), Color(0xFF76767D))), RoundedCornerShape(u * 8)))
         Box(tile.background(Brush.linearGradient(listOf(Color(0xFF0B5E57), Color(0xFF1FA597))), RoundedCornerShape(u * 8)))
     }
