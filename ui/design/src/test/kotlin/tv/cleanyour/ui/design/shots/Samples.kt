@@ -37,6 +37,9 @@ import tv.cleanyour.ui.design.component.CytIconButton
 import tv.cleanyour.ui.design.component.DestructiveButton
 import tv.cleanyour.ui.design.component.DiffGroupSection
 import tv.cleanyour.ui.design.component.DiscoveryChip
+import tv.cleanyour.ui.design.component.DockApp
+import tv.cleanyour.ui.design.component.DockEditor
+import tv.cleanyour.ui.design.component.DockEditorState
 import tv.cleanyour.ui.design.component.GlassCheckMark
 import tv.cleanyour.ui.design.component.GlassChip
 import tv.cleanyour.ui.design.component.GroupTone
@@ -341,6 +344,23 @@ object Samples {
                 )
             }
         },
+        // The dock editor (S3b): the dock alone, the dock with a row under it, a row just added,
+        // and an app lifted mid-drag (with motion and under reduced motion).
+        Sample("c32_dock_editor") { DockEditor(androidx.compose.runtime.remember { DockEditorState(dockApps.take(4), 4) }, dockApps) },
+        Sample("c33_dock_editor_rows") { DockEditor(androidx.compose.runtime.remember { DockEditorState(dockApps.take(6), 4) }, dockApps) },
+        Sample("c34_dock_editor_new_row") { DockEditor(androidx.compose.runtime.remember { DockEditorState(dockApps.take(4), 4).apply { addRow() } }, dockApps) },
+        Sample("c35_dock_editor_drag") {
+            DockEditor(androidx.compose.runtime.remember { DockEditorState(dockApps.take(6), 4).apply { previewDrag(from = 1, to = 2, nudgePx = 36f) } }, dockApps)
+        },
+        Sample("c36_dock_editor_drag_reduced", reducedMotion = true) {
+            DockEditor(androidx.compose.runtime.remember { DockEditorState(dockApps.take(6), 4).apply { previewDrag(from = 4, to = 3, nudgePx = -36f) } }, dockApps)
+        },
+    )
+
+    private val dockApps = listOf(
+        DockApp("com.netflix.ninja", "Netflix"), DockApp("com.google.android.youtube.tv", "YouTube"),
+        DockApp("com.amazon.amazonvideo.livingroom", "Prime Video"), DockApp("com.droidlogic.tvinput", "Live TV"),
+        DockApp("com.spotify.tv.android", "Spotify"), DockApp("com.plexapp.android", "Plex"), DockApp("org.videolan.vlc", "VLC"),
     )
 
     val all: List<Sample> get() = components + Screens.all
