@@ -196,6 +196,26 @@ class SectionTest {
         assertEquals(h.stock, h.tv.home)
     }
 
+    // Launcher v2.4.0's precondition (RF-LAUNCHER-240 F3): `am start -W` must say "Status: ok"
+    // before anything of the switch happens; when it does not, the run ends with the switch skipped
+    // and the TV's own home screen in charge, as for a launcher that is not installed.
+    @Test fun aLauncherThatDoesNotStartSkipsTheSwitch() = runTest(timeout = TEST_TIMEOUT) {
+        val h = Harness(this)
+        h.tv.startFails = true
+        val engine = h.engine()
+        val plan = h.setupPlan()
+        engine.start(plan, h.tv, plan.hash, h.pass())
+        h.settle(engine)
+        val fin = engine.runState(h.tv.tvId).value as RunState.Finished
+        assertEquals(RunStatus.COMPLETED_WITH_SKIPS, fin.status)
+        assertEquals(HomeOutcome.VERIFY_FAILED, fin.home)
+        val start = plan.steps.first { it.op == Op.StartActivity(h.launcher, wait = true) }
+        assertTrue(start in fin.skipped && fin.skipped.any { it.op is Op.ArmHomeWatchdog })
+        assertTrue(h.tv.watchdogs.isEmpty() && h.tv.home == h.stock && h.tv.state(h.stock.pkg) == EnabledState.ENABLED)
+        assertTrue(h.types(plan).none { it.startsWith("section") })
+        for (p in h.debloat) assertEquals(EnabledState.DISABLED_USER, h.tv.state(p))
+    }
+
     @Test fun aFailedInstallSkipsTheSectionWithoutArmingAnything() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
         h.tv.installOutcome = InstallOutcome.Failed("INSTALL_FAILED_INSUFFICIENT_STORAGE", "no space")
@@ -209,6 +229,7 @@ class SectionTest {
         assertTrue(h.tv.watchdogs.isEmpty() && h.tv.home == h.stock && h.tv.state(h.stock.pkg) == EnabledState.ENABLED)
         assertTrue(h.types(plan).none { it.startsWith("section") })
         assertTrue(fin.skipped.any { it.op is Op.InstallStream } && fin.skipped.any { it.op is Op.ArmHomeWatchdog })
+        assertTrue(fin.skipped.any { it.op == Op.StartActivity(h.launcher, wait = true) }, "a launcher that is not there does not start")
         for (p in h.debloat) assertEquals(EnabledState.DISABLED_USER, h.tv.state(p))
     }
 

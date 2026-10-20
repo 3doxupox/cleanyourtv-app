@@ -121,6 +121,16 @@ refuses an asset whose bytes are not the pinned ones at run time.
 The submodule moved from `7205769` to `1bbf0c9` with it, so W1's fixture count of upstream examples
 went from 26 to 30 (FixturesLoadTest) and W4's profile conversion sees four more examples.
 
+Launcher 2.4 (2026-10-20, branch launcher240, LAUNCHER-240-PLAN): upstream tag v2.4.0, commit
+`69c93b66a75c70a9e386adff327b6a51c12addc5`. `scripts/build-launcher-on-forge.sh` now builds twice in
+fresh copies and fresh containers, re-signs both with K1 and requires the two signed APKs to be byte
+for byte identical (upstream's raw release APKs differ only in AGP's own signing block). Result:
+`com.gathin.tvhome` versionCode 5, versionName 2.4, 386,581 bytes, sha256
+`0e46460e9fb69ace2e19c89cd87f01907b8b98f0949e6de410a9dbfe2a407936`, signer unchanged (K1). A TV with
+our 2.0 is updated in place (same signer, `pm install -r`), by a Setup run or by "Update the home
+screen" in Manage (D4). The submodule's examples went from 30 to 93; the 63 without curated metadata
+are listed in `core/spec/upstream-feedback/unconverted.txt` and skipped (D2).
+
 ## Wiring notes for W8 (AppGraph)
 
 ```kotlin

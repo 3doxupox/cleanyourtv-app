@@ -46,10 +46,21 @@ private val themes = listOf(
 
 private fun home(
     themeId: String? = null, drift: Boolean = false, busy: Busy? = null, stock: Boolean = true, ours: Boolean = true, dock: List<AppChoice> = defaultDock,
+    updateTo: String? = null,
 ) = HomeScreenState(
     tvName = "Mi TV 4A", dock = dock, apps = apps, themeId = themeId, themes = themes, drift = drift,
-    stock = if (stock) Samples.stockLauncher else null, busy = busy, homeScreenOurs = ours,
+    stock = if (stock) Samples.stockLauncher else null, busy = busy, homeScreenOurs = ours, updateTo = updateTo,
+    tvSideSettings = updateTo == null,   // a TV still on launcher 2.0 (an update offered) has no Launcher settings
 )
+
+// D4 "Update the home screen": the plan's narration lines are the preview's list.
+private val updatePlan = Samples.plan(
+    listOf(Op.InstallStream(Samples.launcherArtifact().blob, Samples.zeroHash, Samples.launcherArtifact().pkg, 5, Samples.zeroHash),
+        Op.StartActivity(Samples.launcherComponent, wait = true)),
+).let { p ->
+    val lines = listOf("Updating the home screen to version 2.4", "Starting the updated home screen")
+    p.copy(steps = p.steps.mapIndexed { i, s -> s.copy(narration = lines[i]) })
+}
 
 // "Use the TV's own home screen": the plan's narration lines are the preview's list.
 private val stockPlan = Samples.plan(
@@ -71,6 +82,7 @@ object LauncherShots {
         Shot("home_stock_already_in_use") { HomeScreen(home(ours = false), {}, {}) },
         Shot("home_empty_dock") { HomeScreen(home(dock = emptyList()), {}, {}) },
         Shot("home_dock_rows") { HomeScreen(home(dock = rowsDock), {}, {}) },
+        Shot("home_update_available") { HomeScreen(home(updateTo = "2.4"), {}, {}) },
 
         // Look (theme picker), the dock sheet (S3b on Manage) and the stock home screen preview
         Shot("home_look_sheet") { SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(home(themeId = "aurora")) {} } },
@@ -80,6 +92,7 @@ object LauncherShots {
         Shot("home_dock_sheet_rows", 1200.dp) { SheetOver({ HomeScreen(home(dock = rowsDock), {}, {}) }) { DockContent(dockState(rowsDock), apps, {}) } },
         Shot("home_dock_sheet_new_row", 1200.dp) { SheetOver({ HomeScreen(home(), {}, {}) }) { DockContent(dockState(defaultDock, addRow = true), apps, {}) } },
         Shot("home_stock_preview") { SheetOver({ HomeScreen(home(), {}, {}) }) { StockPreviewContent(stockPlan) {} } },
+        Shot("home_update_preview") { SheetOver({ HomeScreen(home(updateTo = "2.4"), {}, {}) }) { UpdatePreviewContent(updatePlan, "2.4") {} } },
     )
 }
 

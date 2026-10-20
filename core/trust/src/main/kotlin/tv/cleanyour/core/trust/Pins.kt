@@ -21,17 +21,17 @@ object TrustRoots {
 }
 
 // The launcher APK bundled in the phone app (D13, Q1): upstream github.com/Gathin23/cleanyourtv at
-// commit 1bbf0c9 (third_party/cleanyourtv), `assembleRelease`, re-signed with the dedicated
-// launcher release key by scripts/build-launcher-on-forge.sh. The verifyLauncherPin task (part of
+// tag v2.4.0, commit 69c93b6 (third_party/cleanyourtv), `assembleRelease` twice, both re-signed with
+// the dedicated launcher release key and compared by scripts/build-launcher-on-forge.sh. The verifyLauncherPin task (part of
 // :core:trust check and of :android:platform preBuild) fails the build when the asset differs.
 object PinnedLauncher {
     const val ASSET_NAME = "cleanyourtv-launcher.apk"
-    const val UPSTREAM_COMMIT = "1bbf0c939fa7d1c0ed91c5fec37ddb57e749a3fd"
+    const val UPSTREAM_COMMIT = "69c93b66a75c70a9e386adff327b6a51c12addc5"
     const val PACKAGE = "com.gathin.tvhome"
-    const val VERSION_CODE = 2L
-    const val VERSION_NAME = "2.0"
-    const val SIZE = 270_885L
-    const val SHA256 = "26461a1fd802e6f2f3ec2200171dd9bac2cfafe069cc07754464d903216a6897"
+    const val VERSION_CODE = 5L
+    const val VERSION_NAME = "2.4"
+    const val SIZE = 386_581L
+    const val SHA256 = "0e46460e9fb69ace2e19c89cd87f01907b8b98f0949e6de410a9dbfe2a407936"
     // SHA-256 of the signing certificate (DER), "O=cleanyourtv, CN=Clean Your TV launcher", v2 and v3.
     const val SIGNER_SHA256 = "576418154bec6505bfc709ccaa6ae85b6e09d98eb89f4a25147ca1b4b0505132"
 }

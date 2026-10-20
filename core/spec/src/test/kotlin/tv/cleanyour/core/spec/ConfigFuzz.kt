@@ -10,10 +10,17 @@ class ConfigFuzz(seed: Long) {
     private val r = Random(seed)
 
     private val listKeys = listOf("dock_apps", "hidden_apps")
-    private val stringKeys = listOf("live_tv_package", "live_tv_action", "source_panel_service", "source_panel_action", "vpn_app", "input_action")
+    private val stringKeys = listOf("live_tv_package", "live_tv_action", "source_panel_service", "source_panel_action", "vpn_app", "input_action", "greeting_name")
     private val intKeys = listOf("columns", "rows_below_dock")
-    private val boolKeys = listOf("shamsi_date", "show_home_settings_shortcut", "module_cards", "wallpaper")
-    private val knownKeys = listKeys + stringKeys + intKeys + boolKeys + "background_color"
+    private val boolKeys = listOf(
+        "shamsi_date", "show_home_settings_shortcut", "module_cards", "wallpaper",
+        // launcher v2.4.0 (RFC-W4-2)
+        "fill_dock", "animations", "advanced_effects", "reduced_motion", "dock_title", "dock_row", "reorder_button",
+        "show_stats", "app_library", "settings_key_panel",
+    )
+    private val festivalKeys = listOf("festival", "festival_until", "greeting", "accent_color")
+    private val knownKeys = listKeys + stringKeys + intKeys + boolKeys + festivalKeys +
+        listOf("background_color", "sky_intensity", "settings_key_keycodes")
     private val packages = listOf(
         "com.netflix.ninja", "com.google.android.youtube.tv", "com.amazon.amazonvideo.livingroom", "in.startv.hotstar",
         "com.mediatek.wwtv.tvcenter", "com.android.tv", "a.b", "com.x_y.z9", "android",
@@ -138,9 +145,28 @@ class ConfigFuzz(seed: Long) {
                 }
                 "[" + items.joinToString(if (lenient && r.nextBoolean()) ";" else ", ") + (if (lenient && r.nextInt(5) == 0) "," else "") + "]"
             }
-            in stringKeys -> lenientStr(pick("com.android.tv", "  padded.value  ", "", " ", "\u0001ctl", "a\\b", "quote\"in", "line\nbreak", "ünïcode", "com.xgimi.action.hdmiPlayer", " nbsp "), lenient)
+            in stringKeys -> lenientStr(pick("Mr. Trịnh", "com.android.tv", "  padded.value  ", "", " ", "\u0001ctl", "a\\b", "quote\"in", "line\nbreak", "ünïcode", "com.xgimi.action.hdmiPlayer", " nbsp "), lenient)
             in intKeys -> number()
             in boolKeys -> pick("true", "false", "true", "false", "TRUE", "\"true\"", "1", "0", "null", "\"false\"")
+            "sky_intensity" -> pick("0", "1", "60", "100", "101", "-1", "99.9", "100.5", "1e2", "4294967356", "NaN", "\"60\"", "true")
+            "settings_key_keycodes" -> {
+                val items = (0 until r.nextInt(0, 5)).map {
+                    when (r.nextInt(12)) {
+                        in 0..4 -> pick("83", "384", "176", "1", "2147483647")
+                        5 -> pick("0", "-1", "-83")
+                        6 -> pick("4", "19", "20", "21", "22", "23", "66", "82")
+                        7 -> pick("4.9", "0.5", "1e400", "-1e400", "NaN", "4294967379", "9223372036854775807")
+                        8 -> pick("\"83\"", "null", "true", "[83]", "{}")
+                        9 -> if (lenient) "" else "83"
+                        else -> pick("83", "384")
+                    }
+                }
+                "[" + items.joinToString(if (lenient && r.nextBoolean()) ";" else ", ") + (if (lenient && r.nextInt(5) == 0) "," else "") + "]"
+            }
+            "festival" -> lenientStr(pick("dussehra", "Diwali", " DIWALI ", "", " ", "x".repeat(40), "x".repeat(41), "İ".repeat(20), "İ".repeat(21), "holi\u0000"), lenient)
+            "festival_until" -> lenientStr(pick("2026-10-21", "2026-02-30", "2026-1-1", "+12026-01-01", "", " 2026-10-21 ", "tomorrow", "2026-10-21T00:00", "9999-12-31"), lenient)
+            "greeting" -> lenientStr(pick("Happy Dussehra", "  spaced  out  ", "‮bidi", "g".repeat(39) + "😀", "g".repeat(60), "", "​", "tab\there"), lenient)
+            "accent_color" -> lenientStr(pick("#FFB23C", "#ffb23c", "#FFF", "FFB23C", "#FFB23CFF", " #123456 ", "", "#GGGGGG", "navy"), lenient)
             "background_color" -> lenientStr(
                 pick(
                     "#070A14", "#000000", "#ffffff", "#80FF0000", "#FFF", "#", "#12345", "#1234567", "#-12345", "#+12345", "#0x1234",

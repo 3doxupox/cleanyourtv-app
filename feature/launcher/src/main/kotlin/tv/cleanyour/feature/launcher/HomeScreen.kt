@@ -84,6 +84,16 @@ fun HomeScreen(state: HomeScreenState, onIntent: (HomeScreenIntent) -> Unit, onB
             val theme = state.themes.firstOrNull { it.id == state.themeId }?.name ?: stringResource(R.string.theme_default)
             ListRow(stringResource(R.string.home_row_look), subtitle = theme, onClick = if (busy == null) ({ lookOpen = true }) else null)
         }
+        // Launcher 2.4: Launcher settings on the TV can override what the phone sent; the phone
+        // cannot read them, so the rows above show what config.json says.
+        // Only for a launcher that has those settings (2.4 and later; RF-LAUNCHER-240 F16).
+        if (state.tvSideSettings) Body(stringResource(R.string.home_tv_changes_note), Modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp))
+        state.updateTo?.let { version ->
+            ListGroup(Modifier.padding(top = 12.dp)) {
+                ListRow(stringResource(R.string.home_row_update), subtitle = msg(R.string.home_row_update_note, "version" to version),
+                    onClick = if (busy == null) ({ onIntent(HomeScreenIntent.PreviewUpdate) }) else null)
+            }
+        }
         if (state.stock != null && state.homeScreenOurs) {
             ListGroup(Modifier.padding(top = 12.dp)) {
                 ListRow(stringResource(R.string.home_row_stock), subtitle = stringResource(R.string.home_row_stock_note),
@@ -97,6 +107,9 @@ fun HomeScreen(state: HomeScreenState, onIntent: (HomeScreenIntent) -> Unit, onB
     }
     state.stockPreview?.let { plan ->
         CytBottomSheet({ onIntent(HomeScreenIntent.CancelPreview) }) { StockPreviewContent(plan, onIntent) }
+    }
+    state.updatePreview?.let { plan ->
+        CytBottomSheet({ onIntent(HomeScreenIntent.CancelPreview) }) { UpdatePreviewContent(plan, state.updateTo.orEmpty(), onIntent) }
     }
 }
 
@@ -127,6 +140,21 @@ internal fun ColumnScope.StockPreviewContent(plan: Plan, onIntent: (HomeScreenIn
     }
     ActionColumn(Modifier.padding(top = 20.dp)) {
         PrimaryButton(stringResource(R.string.home_stock_confirm), { onIntent(HomeScreenIntent.UseStock) })
+        TertiaryButton(stringResource(R.string.action_cancel), { onIntent(HomeScreenIntent.CancelPreview) }, quiet = true)
+    }
+}
+
+// D4: "Update the home screen?", the plan's steps as the list, like the stock preview. Update is a
+// guarded primary (R4-W8): a tap through another app's overlay is dropped.
+@Composable
+internal fun ColumnScope.UpdatePreviewContent(plan: Plan, version: String, onIntent: (HomeScreenIntent) -> Unit) {
+    SheetHeader(stringResource(R.string.home_update_preview_title))
+    Body(msg(R.string.home_update_preview_body, "version" to version), Modifier.padding(top = 8.dp))
+    Column(Modifier.padding(top = 16.dp, start = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        plan.steps.map { it.narration }.filter { it.isNotBlank() }.distinct().forEach { CheckLine(it, state = CheckState.NONE) }
+    }
+    ActionColumn(Modifier.padding(top = 20.dp)) {
+        PrimaryButton(stringResource(R.string.home_update_confirm), { onIntent(HomeScreenIntent.UpdateHomeScreen) })
         TertiaryButton(stringResource(R.string.action_cancel), { onIntent(HomeScreenIntent.CancelPreview) }, quiet = true)
     }
 }

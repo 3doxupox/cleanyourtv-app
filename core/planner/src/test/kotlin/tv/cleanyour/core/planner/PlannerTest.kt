@@ -186,7 +186,8 @@ class PlannerTest {
         val tail = ops(p).dropWhile { it is Op.Disable }
         assertEquals(listOf("Settle", "Uninstall", "InstallStream"), tail.take(3).map { it::class.simpleName })
         assertTrue(p.summary.replacesLauncher)
-        assertEquals("Replace the home screen app (its card answers on the TV are reset)", p.steps.first { it.op is Op.Uninstall }.narration)
+        // Launcher v2.4.0 plan, finding 4: the uninstall erases the other launcher's look, order, app list and settings too.
+        assertEquals("Replace the home screen app (its look, order, app list, settings and card answers on the TV are reset)", p.steps.first { it.op is Op.Uninstall }.narration)
         // Not while our launcher is HOME.
         val ours = snapshot(home = launcher, claimants = listOf(launcher, stock), extra = mapOf(installedLauncher(signer = other)))
         assertTrue(refused(setup(choices = choices(replaceSigner = true)), snapshot = ours).any { it.contains("D36") })

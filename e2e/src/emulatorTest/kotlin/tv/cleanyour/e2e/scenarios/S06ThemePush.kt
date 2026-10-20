@@ -17,10 +17,13 @@ import tv.cleanyour.testing.fixtures.Fixtures
 
 // D15 on a real adbd: the Aurora theme from the pinned upstream themes goes through the config
 // codec, the planner and FileOverlayTransport; the overlay on the TV then holds exactly the
-// bytes the phone pushed and the launcher was restarted to read them.
+// bytes the phone pushed and the launcher was restarted to read them. Launcher 2.4: the restart's
+// force-stop drops the launcher's accessibility service, and the plan puts it back (tools/theme.sh).
 class S06ThemePush : E2eScenario() {
 
     @After fun tidy() {
+        oracle.shell("settings delete secure enabled_accessibility_services")
+        oracle.shell("settings put secure accessibility_enabled 0")
         oracle.uninstall(LAUNCHER_PKG)
     }
 
@@ -29,6 +32,9 @@ class S06ThemePush : E2eScenario() {
         val apk = need(cfg.launcherApk, "launcher APK (CYT_E2E_LAUNCHER_APK)")
         assertTrue(oracle.install(apk).ok)
         oracle.shell("am start -W -n $LAUNCHER_PKG/.MainActivity")
+        val service = "$LAUNCHER_PKG/$LAUNCHER_PKG.InputKeyService"
+        oracle.shell("settings put secure enabled_accessibility_services $service")
+        oracle.shell("settings put secure accessibility_enabled 1")
         val pidBefore = oracle.shell("pidof $LAUNCHER_PKG").stdout.trim()
 
         val aurora = Fixtures.upstreamThemes().first { it.name == "aurora" }
@@ -51,6 +57,8 @@ class S06ThemePush : E2eScenario() {
             val pidAfter = oracle.shell("pidof $LAUNCHER_PKG").stdout.trim()
             assertTrue("launcher not running after the push", pidAfter.isNotEmpty())
             assertNotEquals("launcher was not restarted", pidBefore, pidAfter)
+            assertEquals(service, oracle.shell("settings get secure enabled_accessibility_services").stdout.trim())
+            assertEquals("1", oracle.shell("settings get secure accessibility_enabled").stdout.trim())
         } finally {
             session.close()
         }

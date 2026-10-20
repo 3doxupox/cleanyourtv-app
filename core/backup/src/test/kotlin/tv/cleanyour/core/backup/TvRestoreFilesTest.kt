@@ -78,25 +78,59 @@ class TvRestoreFilesTest {
         profile.groups.filter { g -> g.packages.any { it.name in Scenario.expectedOff() } }.forEach { g -> assertTrue(txt.contains("# ${g.title}"), g.title) }
     }
 
-    // D44: upstream tools/restore.sh reads our restore.txt unchanged. Runs the pinned upstream
-    // script itself (bash, GNU grep and sed) with tools/venv/bin/python replaced by a capture.
+    // D44: upstream tools/restore.sh reads our restore.txt unchanged. Since v2.4.0 restore.sh hands
+    // the list to tools/recovery.py, which validates it and, with no record of the TV's state from
+    // upstream's own disable.sh (always the case for a TV cleaned by this app), prints a batch that
+    // enables the whole list; tools/tv.py runs that batch. The test runs the pinned restore.sh and
+    // recovery.py for real (bash and python3, HOME a temp dir so no record is found) and captures
+    // only tv.py. Without python3 on the PATH (the forge build image has none) the list is checked
+    // against recovery.py's own package grammar instead; CI has python3 and must run it for real.
     @Test fun upstreamRestoreShReadsIt() {
         val bash = Shells.which("bash") ?: fail("bash is needed to run upstream tools/restore.sh")
+        val list = File(tmp.root, "restore.txt").also { it.writeBytes(files.restoreTxt(tv, changes, upstreamProfile("xiaomi-mitv-axso0"))) }
+        val expected = (Scenario.expectedOff().map { it.value } + "com.google.android.tvlauncher").sorted()
+        val recovery = File(Fixtures.upstreamDir, "tools/recovery.py")
+        val python = Shells.which("python3")
+        if (python == null) {
+            if (System.getenv("CI") != null) fail("python3 is needed to run upstream tools/recovery.py")
+            assertEquals(expected, recoveryReadList(recovery.readText(), list.readText()).plus("com.google.android.tvlauncher").sorted())
+            return
+        }
         val repo = tmp.newFolder("upstream")
         File(repo, "tools").mkdirs()
         File(Fixtures.upstreamDir, "tools/restore.sh").copyTo(File(repo, "tools/restore.sh"))
+        recovery.copyTo(File(repo, "tools/recovery.py"))
+        val home = tmp.newFolder("home")
+        // tools/venv/bin/python: the real interpreter for recovery.py, a capture for tv.py.
         val py = File(repo, "tools/venv/bin/python").also { it.parentFile.mkdirs() }
         val captured = File(repo, "captured.txt")
-        py.writeText("#!/bin/sh\ncat > '${captured.absolutePath}'\n")
+        py.writeText(
+            "#!/bin/sh\n" +
+                "for a in \"$@\"; do case \"\$a\" in tools/tv.py) cat > '${captured.absolutePath}'; exit 0;; esac; done\n" +
+                "exec '${python.absolutePath}' \"$@\"\n",
+        )
         check(py.setExecutable(true))
-        val list = File(tmp.root, "restore.txt").also { it.writeBytes(files.restoreTxt(tv, changes, upstreamProfile("xiaomi-mitv-axso0"))) }
-        val p = ProcessBuilder(bash.absolutePath, File(repo, "tools/restore.sh").absolutePath, list.absolutePath, "com.google.android.tvlauncher")
-            .redirectErrorStream(true).start()
+        val pb = ProcessBuilder(bash.absolutePath, File(repo, "tools/restore.sh").absolutePath, list.absolutePath, "com.google.android.tvlauncher")
+            .redirectErrorStream(true)
+        pb.environment()["HOME"] = home.absolutePath
+        pb.environment()["TV_HOST"] = "192.0.2.10"
+        val p = pb.start()
         val out = p.inputStream.readBytes().decodeToString()
         assertTrue(p.waitFor(60, TimeUnit.SECONDS))
         assertEquals(0, p.exitValue(), out)
+        assertTrue("no recovery record" in out, out)
         val enabled = captured.readLines().filter { it.startsWith("pm enable ") }.map { it.removePrefix("pm enable ") }
-        assertEquals((Scenario.expectedOff().map { it.value } + "com.google.android.tvlauncher").sorted(), enabled.sorted())
+        assertEquals(expected, enabled.sorted())
+    }
+
+    // recovery.py's read_list, with its PACKAGE_RE read from the pinned file: a trailing # note and
+    // blank lines dropped, the first word of each line a package name, anything else refused.
+    private fun recoveryReadList(source: String, list: String): List<String> {
+        val pattern = Regex("""PACKAGE_RE = re\.compile\(r"([^"]+)"\)""").find(source)?.groupValues?.get(1) ?: fail("PACKAGE_RE not found in recovery.py")
+        val re = Regex(pattern)
+        return list.removePrefix("\uFEFF").lines().map { it.substringBefore('#').trim() }.filter { it.isNotEmpty() }.map { line ->
+            line.split(Regex("\\s+")).first().also { assertTrue(re.matches(it), "recovery.py would refuse $it") }
+        }
     }
 
     @Test fun restorePointJsonSchema1() {

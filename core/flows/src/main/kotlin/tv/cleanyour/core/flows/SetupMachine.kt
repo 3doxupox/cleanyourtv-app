@@ -51,6 +51,9 @@ import tv.cleanyour.core.planner.PlanKind
 import tv.cleanyour.core.planner.PlanRequest
 import tv.cleanyour.core.planner.PlanResult
 import tv.cleanyour.core.probe.LaunchableApps
+import tv.cleanyour.core.probe.SavedWifiOwners
+import tv.cleanyour.core.probe.SavedWifi
+import tv.cleanyour.core.planner.WizardWifi
 import tv.cleanyour.core.probe.ProbeStage
 import tv.cleanyour.core.probe.Prober
 import tv.cleanyour.core.session.BootOutcome
@@ -153,6 +156,9 @@ class SetupDeps(
     val homePrefs: HomePrefs? = null,
     // RFC-CURTAIN-1: the bundled TV curtain; null plans without it.
     val curtainPin: CurtainPin? = null,
+    // RFC-LAUNCHER-1 (D3): who saved the TV's Wi-Fi networks; the app's AdbProber answers it. Null,
+    // or no answer, keeps the setup wizard on.
+    val savedWifi: SavedWifiOwners? = prober as? SavedWifiOwners,
 )
 
 // The first-run wizard, screens S1 to S5 (PRODUCT-SPEC 4, UX 2 and 4). One machine per wizard run,
@@ -187,6 +193,11 @@ class SetupMachine(
     private var abandonJob: Job? = null   // R1 R-11: an abandon waiting for the TV to come back
     private var heldTv: TvId? = null      // T7 item 1: the TV whose session this wizard holds (TvAccess.keep)
     private var launchable: Set<PackageName>? = null   // finding 3: null when the TV could not say
+    // D3: whether the setup wizard saved the TV's Wi-Fi, read once per snapshot (wifiOf), and whether
+    // the stop card on screen is the Wi-Fi one (its primary tries the switch again).
+    private var wifiOf: Snapshot? = null
+    private var wizardWifi: WizardWifi = WizardWifi.UNKNOWN
+    private var wifiCard = false
     private val rejected = HashSet<String>()           // hosts answered "No" on the identity line, this run
     private var lastRunLog: String? = null
 
@@ -626,6 +637,7 @@ class SetupMachine(
             installLauncher = possible, takeover = possible,
             replaceLauncherSigner = installed?.signer?.let { it != launcher.signer } ?: false,
             keepDebuggingOn = draft.keepDebuggingOn,
+            wizardWifi = wizardWifi(s, snap),
         )
         // RFC-DOCK-1: the same config.json Manage's ApplyTheme would push for this dock and look, so
         // the plan, its hash and "Show commands" carry it. Only when the switch is possible: without
@@ -663,6 +675,30 @@ class SetupMachine(
                 send(Ev.Stop(record.id, card(StopCase.PROBE_FAILED, null)))
             }
         }
+    }
+
+    // D3 (launcher v2.4.0's guard): the setup wizard deletes a Wi-Fi network it saved when it is
+    // switched off, so the takeover may switch it off only when it owns none: others saved the TV's
+    // networks, or nothing is saved (a cable). When the TV cannot tell, it stays on (RF-LAUNCHER-240
+    // F6, F14). Asked only when a setup wizard is on the TV, once per snapshot; no answer is UNKNOWN.
+    // Only the verdict is logged, never an owner or a network.
+    private suspend fun wizardWifi(s: TvSession, snap: Snapshot): WizardWifi {
+        if (wifiOf === snap) return wizardWifi
+        val wizard = profile()?.setupWraith?.takeIf { it in snap.packages }
+            ?: snap.packages.keys.firstOrNull { "setupwraith" in it.value.lowercase() }
+        var verdict: SavedWifi.Verdict? = null
+        val answer = if (wizard == null) WizardWifi.UNKNOWN else {
+            verdict = deps.savedWifi?.let { q -> attempt { q.savedWifi(s) }.getOrNull() }?.verdict(wizard.value) ?: SavedWifi.Verdict.CANNOT_TELL
+            when (verdict) {
+                SavedWifi.Verdict.WIZARD_OWNS -> WizardWifi.OWNER
+                SavedWifi.Verdict.OTHERS_OWN, SavedWifi.Verdict.NOTHING_SAVED -> WizardWifi.NOT_OWNER
+                SavedWifi.Verdict.CANNOT_TELL -> WizardWifi.UNKNOWN
+            }
+        }
+        if (verdict != null) deps.log.line("setup: setup wizard and saved Wi-Fi: ${verdict.name.lowercase()}")
+        wifiOf = snap
+        wizardWifi = answer
+        return answer
     }
 
     private fun editDraft(change: (WizardDraft) -> WizardDraft) {
@@ -916,7 +952,13 @@ class SetupMachine(
     private fun onStopAction(s: SetupState, action: StopAction) {
         val case = (s as? SetupState.Stopped)?.card?.case ?: mutableExtras.value.card?.case ?: return
         when (case) {
-            StopCase.HOME_SETUPWRAITH -> send(if (action == StopAction.PRIMARY) SetupIntent.TryWithWizardOff else SetupIntent.LeaveOldHome)
+            // D3: on the Wi-Fi card the primary tries the switch again (Wi-Fi asked afresh), never
+            // with the wizard off.
+            StopCase.HOME_SETUPWRAITH -> when {
+                action != StopAction.PRIMARY -> send(SetupIntent.LeaveOldHome)
+                wifiCard -> scope.launch { tv?.let { retakeover(it) } }
+                else -> send(SetupIntent.TryWithWizardOff)
+            }
             StopCase.HOME_OTHER_LAUNCHER -> if (action == StopAction.PRIMARY) scope.launch { tv?.let { retakeover(it) } } else send(SetupIntent.LeaveOldHome)
             StopCase.HOME_UNKNOWN -> if (action == StopAction.PRIMARY) shareDiagnostics() else send(SetupIntent.LeaveOldHome)
             StopCase.HOME_USER_SAID_NO -> if (action == StopAction.PRIMARY) scope.launch { tv?.let { retakeover(it) } } else shareDiagnostics()
@@ -1149,6 +1191,15 @@ class SetupMachine(
             }
         }
         if (case == StopCase.HOME_PUT_BACK) return homePutBackCard(f.plan.id)
+        // D3: the wizard holds Home, but it may have saved the TV's Wi-Fi, so switching it off is not
+        // offered; the card says why and what to do instead.
+        wifiCard = case == StopCase.HOME_SETUPWRAITH && wizardWifi != WizardWifi.NOT_OWNER
+        if (wifiCard) {
+            // The owner's sentence only when the TV said the wizard saved the Wi-Fi; never a claim the
+            // app could not check (RF-LAUNCHER-240 F6).
+            val body = if (wizardWifi == WizardWifi.OWNER) CopyKey.STOP_HOME_SETUPWRAITH_WIFI_BODY else CopyKey.STOP_HOME_SETUPWRAITH_WIFI_UNKNOWN_BODY
+            return card(case, f.plan.id, body = body, primary = CopyKey.STOP_HOME_SETUPWRAITH_WIFI_PRIMARY)
+        }
         return card(case, f.plan.id, args = mapOf("launcher" to (other ?: "")))
     }
 
@@ -1184,10 +1235,10 @@ class SetupMachine(
 
     private fun counts(plan: Plan, done: Int): Map<String, Any> = mapOf("done" to done, "total" to plan.steps.count { it.op is Op.Disable })
 
-    private fun card(case: StopCase, planId: PlanId?, args: Map<String, Any> = emptyMap(), body: CopyKey? = null): StopCard {
+    private fun card(case: StopCase, planId: PlanId?, args: Map<String, Any> = emptyMap(), body: CopyKey? = null, primary: CopyKey? = null): StopCard {
         val k = stopKeys(case)
         val c = deps.copy
-        return StopCard(case, c.text(k.title, args), c.text(body ?: k.body, args), c.text(k.primary, args),
+        return StopCard(case, c.text(k.title, args), c.text(body ?: k.body, args), c.text(primary ?: k.primary, args),
             k.secondary?.let { c.text(it, args) }, planId, k.tertiary?.let { c.text(it, args) })
     }
 

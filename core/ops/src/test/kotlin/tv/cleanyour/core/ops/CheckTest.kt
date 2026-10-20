@@ -98,8 +98,20 @@ class CheckTest {
         bad(r.check(Op.PushAsset(blob, path, sha), "", null))
         ok(r.check(Op.RemoveFile(path), "sha256sum: ${path.absolute}: No such file or directory\n", null))
         bad(r.check(Op.RemoveFile(path), "${sha.hex}  ${path.absolute}\n", null))
-        for (op in listOf(Op.Mkdir(RemoteDir.TMP), Op.PressHome, Op.Reboot, Op.DebugOff, Op.Settle(1), GoldenCases.cue(tv.cleanyour.core.model.CurtainStage.FINALE), Op.RestartHome(launcher), Op.StartActivity(launcher, true), Op.Read(tv.cleanyour.core.model.ProbeKind.PROPS))) {
+        for (op in listOf(Op.Mkdir(RemoteDir.TMP), Op.PressHome, Op.Reboot, Op.DebugOff, Op.Settle(1), GoldenCases.cue(tv.cleanyour.core.model.CurtainStage.FINALE), Op.RestartHome(launcher), Op.StartActivity(launcher, false), Op.Read(tv.cleanyour.core.model.ProbeKind.PROPS))) {
             ok(r.check(op, "anything", Prior()))
         }
+    }
+
+    // Launcher v2.4.0's precondition for the home screen switch: `am start -W` must say
+    // "Status: ok" and print no Error line, or the TV's own home screen is left alone.
+    @Test fun startAndWaitNeedsStatusOk() {
+        val start = Op.StartActivity(launcher, wait = true)
+        ok(r.check(start, "Starting: Intent { cmp=com.gathin.tvhome/.MainActivity }\nStatus: ok\nLaunchState: COLD\nComplete\n", null))
+        ok(r.check(start, "Warning: Activity not started, its current task has been brought to the front\nStatus: ok\nComplete\n", null))
+        bad(r.check(start, "Starting: Intent { cmp=com.gathin.tvhome/.MainActivity }\n", null))
+        bad(r.check(start, "Starting: Intent { cmp=com.gathin.tvhome/.MainActivity }\nError type 3\nError: Activity class {com.gathin.tvhome/com.gathin.tvhome.MainActivity} does not exist.\n", null))
+        bad(r.check(start, "Status: ok\nError: Activity not started, unable to resolve Intent\n", null))
+        bad(r.check(start, "", null))
     }
 }

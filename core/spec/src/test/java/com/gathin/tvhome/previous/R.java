@@ -1,6 +1,6 @@
-package com.gathin.tvhome;
+package com.gathin.tvhome.previous;
 
-// Test stub: the resource ids upstream Config.java reads (values come from config.xml in the test).
+// Test stub: the resource ids the 1bbf0c9 Config.java reads (values come from config.xml in the test).
 public final class R {
     private R() {}
     public static final class array {

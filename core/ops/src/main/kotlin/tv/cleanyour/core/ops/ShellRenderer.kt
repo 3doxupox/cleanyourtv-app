@@ -240,7 +240,12 @@ class ShellRenderer(private val watchdogVariant: WatchdogVariant = WatchdogVaria
             is Op.ConfirmHome -> if (lines.any { it.startsWith(EMPTY_FILE_SHA256) }) VerifyResult.Ok else mismatch("$EMPTY_FILE_SHA256 (empty token file)")
             is Op.PushAsset -> if (lines.any { it.substringBefore(' ') == op.sha256.hex }) VerifyResult.Ok else mismatch(op.sha256.hex)
             is Op.RemoveFile -> if (lines.none { SHA256_RE.matches(it.substringBefore(' ')) }) VerifyResult.Ok else mismatch("no hash (file removed)")
-            is Op.Mkdir, is Op.RestartHome, is Op.StartActivity, is Op.Read, is Op.Settle,
+            // `am start -W` (launcher v2.4.0's precondition, build-and-install.sh): the activity came
+            // up only when it says "Status: ok" and no line starts with Error; some builds answer
+            // "Status: ok" for a task merely brought to the front, so both halves count.
+            is Op.StartActivity -> if (!op.wait || ("Status: ok" in lines && lines.none { it.startsWith("Error") })) VerifyResult.Ok
+                else mismatch("Status: ok and no Error from am start -W")
+            is Op.Mkdir, is Op.RestartHome, is Op.Read, is Op.Settle,
             Op.PressHome, Op.Reboot, Op.DebugOff, is Op.CurtainCue -> VerifyResult.Ok
         }
     }

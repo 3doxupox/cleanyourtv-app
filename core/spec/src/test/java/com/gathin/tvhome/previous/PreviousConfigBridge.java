@@ -1,4 +1,4 @@
-package com.gathin.tvhome;
+package com.gathin.tvhome.previous;
 
 import android.content.Context;
 import android.content.res.Resources;
@@ -7,16 +7,17 @@ import java.util.HashMap;
 import java.util.Map;
 import tv.cleanyour.core.spec.upstream.UpstreamConfig;
 
-// Runs upstream Config.load (main 1bbf0c9, vendored next to this file) against a folder that
-// stands in for the launcher's external files dir. `values` is keyed by resource name.
-public final class LatestConfigBridge {
-    private LatestConfigBridge() {}
+// Runs upstream Config.load of launcher 2.0 (main 1bbf0c9, vendored next to this file) against a
+// folder that stands in for the launcher's external files dir. `values` is keyed by resource name.
+// The keys v2.4.0 added are not read by 2.0, so they come back null.
+public final class PreviousConfigBridge {
+    private PreviousConfigBridge() {}
 
     public static UpstreamConfig load(File dir, Map<String, Object> values) {
-        Config c = Config.load(new Context(dir, resources(values)));
+        Config c = Config.load(new Context(dir, resources(values), null));
         return new UpstreamConfig(c.dockApps, c.hiddenApps, c.liveTvPackage, c.liveTvAction, c.sourcePanelService,
                 c.sourcePanelAction, c.inputAction, c.columns, c.rowsBelowDock, c.shamsiDate, c.moduleCards, c.vpnApp,
-                c.showHomeSettingsShortcut, c.backgroundColor, c.wallpaper != null, c.overlayApplied);
+                c.showHomeSettingsShortcut, c.backgroundColor, c.wallpaper != null, c.overlayApplied, null);
     }
 
     static Resources resources(Map<String, Object> v) {

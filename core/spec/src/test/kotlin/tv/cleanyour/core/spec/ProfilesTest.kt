@@ -15,11 +15,16 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class ProfilesTest {
-    private val examples = Fixtures.upstreamExamples()
+    // D2: the upstream folders without a curated entry are skipped on purpose; the rest ship.
+    private val unconvertedFile = File(Fixtures.repoRoot, "core/spec/upstream-feedback/unconverted.txt")
+    private val unconverted = ProfileConverter.readUnconverted(unconvertedFile)
+    private val upstream = Fixtures.upstreamExamples()
+    private val examples = upstream.filter { it.folder !in unconverted }
     private fun p(s: String) = PackageName(s)
     private fun profile(folder: String) = DebloatTxtParser.parse(examples.first { it.folder == folder }.debloatTxt, folder)
 
-    @Test fun everyPinnedUpstreamExampleParsesWithCuratedMetadata() {
+    @Test fun everyConvertedUpstreamExampleParsesWithCuratedMetadata() {
+        assertEquals(93, upstream.size)
         assertEquals(30, examples.size)
         for (e in examples) {
             val profile = DebloatTxtParser.parse(e.debloatTxt, e.folder)
@@ -40,23 +45,52 @@ class ProfilesTest {
     }
 
     @Test fun converterSeesEveryGroupTitleInTheMetadata() {
-        val (_, problems) = ProfileConverter.convert(
+        val (bundle, problems) = ProfileConverter.convert(
             File(Fixtures.upstreamDir, "examples"),
             File(Fixtures.repoRoot, "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json"),
-            "1bbf0c9",
+            "69c93b6",
+            unconverted,
         )
         assertEquals(emptyList(), problems)
+        assertEquals(examples.map { it.folder }, bundle.profiles.map { it.id })
     }
 
-    // The four examples upstream main 1bbf0c9 added after the pin parse by header keywords alone.
-    @Test fun newerUpstreamExamplesParseWithoutMetadata() {
-        val dir = File(javaClass.getResource("/upstream/examples-1bbf0c9")!!.toURI())
-        val folders = dir.listFiles()!!.filter { it.isDirectory }.sortedBy { it.name }
-        assertEquals(listOf("stellamore-t950s", "tcl-q10g-pro", "xgimi-horizon-s-pro", "xiaomi-mitv-mssp3"), folders.map { it.name })
-        for (f in folders) {
-            val profile = DebloatTxt.parse(File(f, "debloat.txt").readText(), f.name, null)
-            assertTrue(profile.groups.sumOf { it.packages.size } > 5, f.name)
+    // D2: unconverted.txt is exactly the upstream folders without a profile-meta.json entry, so a
+    // new upstream folder fails here (and in the build) until it gets an entry or a line there.
+    @Test fun theUnconvertedListIsPinnedToTheSubmodule() {
+        val meta = ProfileMeta.decode(File(Fixtures.repoRoot, "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json").readText())
+        assertEquals(upstream.map { it.folder }.filter { it !in meta.profiles }.toSet(), unconverted)
+        assertEquals(63, unconverted.size)
+        val listed = unconvertedFile.readLines().filter { it.isNotBlank() && !it.startsWith("#") }
+        assertEquals(listed.sorted(), listed, "one folder per line, sorted")
+        assertTrue('\u2014' !in unconvertedFile.readText() && "-".repeat(2) !in unconvertedFile.readText())
+        // A folder nobody lists or curates is a problem, and so is a stale or doubled line.
+        val (_, missing) = ProfileConverter.convert(File(Fixtures.upstreamDir, "examples"),
+            File(Fixtures.repoRoot, "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json"), "x", unconverted - unconverted.first())
+        assertEquals(listOf("${unconverted.first()}: no entry in profile-meta.json"), missing)
+        val (_, stale) = ProfileConverter.convert(File(Fixtures.upstreamDir, "examples"),
+            File(Fixtures.repoRoot, "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json"), "x", unconverted + "gone-tv" + "xiaomi-mitv-axso0")
+        assertEquals(setOf("gone-tv: in unconverted.txt but not upstream", "xiaomi-mitv-axso0: in both unconverted.txt and profile-meta.json"), stale.toSet())
+    }
+
+    // The unconverted folders still parse by header keywords alone, so curating one is a
+    // metadata change only.
+    @Test fun unconvertedUpstreamExamplesParseWithoutMetadata() {
+        for (e in upstream.filter { it.folder in unconverted }) {
+            val profile = DebloatTxt.parse(e.debloatTxt, e.folder, null)
+            assertTrue(profile.groups.sumOf { it.packages.size } > 0, e.folder)
         }
+    }
+
+    // v2.4.0 changed two of the converted folders (tcl-g10-google-tv, xiaomi-mitv-mooq0) in their
+    // header comments only; their package lines are those of 1bbf0c9. tcl-g10-google-tv's new note
+    // says the setup wizard claims Home there too once launcherx is off, so its entry names the
+    // wizard: the takeover switches it off, with the Wi-Fi guard (D3).
+    @Test fun theG10TakeoverIncludesTheWizard() {
+        val g10 = profile("tcl-g10-google-tv")
+        assertEquals(KnownLaunchers.SETUPWRAITH, g10.setupWraith)
+        assertTrue(Quirk.HOME_TAKEOVER_SETUPWRAITH in g10.quirks)
+        assertTrue(g10.groups.none { g -> g.packages.any { it.name == KnownLaunchers.SETUPWRAITH } })
     }
 
     @Test fun theReferenceTvProfile() {
@@ -130,7 +164,7 @@ class ProfilesTest {
 
     @Test fun bundledProfilesEqualAFreshParse() {
         val bundle = BundledProfileSource.bundled
-        assertEquals("1bbf0c9", bundle.upstreamCommit)
+        assertEquals("69c93b6", bundle.upstreamCommit)
         assertEquals(examples.map { it.folder }, bundle.profiles.map { it.id })
         for (e in examples) assertEquals(DebloatTxtParser.parse(e.debloatTxt, e.folder), bundle.profiles.first { it.id == e.folder }, e.folder)
         assertEquals(SureSetGenerator.generate(bundle.profiles), bundle.sureSets)

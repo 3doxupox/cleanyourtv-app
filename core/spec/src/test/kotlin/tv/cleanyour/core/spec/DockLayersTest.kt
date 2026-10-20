@@ -59,6 +59,22 @@ class DockLayersTest {
         assertEquals(0, wide.rowsBelowDock)
     }
 
+    // Owner decision D1: three rows (the dock and two under it) write dock_title false, so launcher
+    // 2.4 fits all three on the screen; one or two rows leave the theme's dock_title as it is.
+    @Test fun threeRowsTurnTheDockTitleOff() {
+        assertEquals(false, DockLayers.applyTo(LauncherConfigDoc(), apps(9)).dockTitle)
+        assertEquals(false, DockLayers.applyTo(LauncherConfigDoc(dockTitle = true), apps(12)).dockTitle)
+        assertNull(DockLayers.applyTo(LauncherConfigDoc(), apps(8)).dockTitle)
+        assertNull(DockLayers.applyTo(LauncherConfigDoc(), apps(1)).dockTitle)
+        assertEquals(true, DockLayers.applyTo(LauncherConfigDoc(dockTitle = true), apps(5)).dockTitle)
+        assertEquals(false, DockLayers.applyTo(LauncherConfigDoc(dockTitle = false), apps(4)).dockTitle)
+        assertNull(DockLayers.applyTo(LauncherConfigDoc(), emptyList()).dockTitle)
+        assertEquals(false, DockLayers.applyTo(LauncherConfigDoc(columns = 6), apps(13)).dockTitle)
+        assertNull(DockLayers.applyTo(LauncherConfigDoc(columns = 6), apps(12)).dockTitle)
+        val text = LauncherConfigCodec.encode(DockLayers.applyTo(LauncherConfigDoc(), apps(9))).decodeToString()
+        assertEquals(true, "\"rows_below_dock\": 2," in text && "\"dock_title\": false" in text, text)
+    }
+
     // An empty dock writes no dock_apps (the launcher keeps its own) and leaves the theme's rows.
     @Test fun anEmptyDockLeavesTheLauncherItsOwn() {
         val doc = DockLayers.applyTo(LauncherConfigDoc(dockApps = apps(2), rowsBelowDock = 1), emptyList())

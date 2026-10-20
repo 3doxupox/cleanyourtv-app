@@ -29,6 +29,8 @@ import tv.cleanyour.core.model.SnapshotReason
 import tv.cleanyour.core.planner.PlanKind
 import tv.cleanyour.core.planner.PlanRequest
 import tv.cleanyour.core.planner.PlanResult
+import tv.cleanyour.core.planner.WizardWifi
+import tv.cleanyour.core.probe.SavedWifi
 import tv.cleanyour.core.spec.DockLayers
 import tv.cleanyour.core.spec.LauncherConfigCodec
 import tv.cleanyour.core.spec.LauncherConfigDoc
@@ -925,5 +927,76 @@ class SetupMachineTest {
         }
         val serial = Samples.miTvFacts().serialLast4
         for (secret in listOf(HOST, serial, adPkg.value, promoPkg.value, "com.netflix.ninja", Samples.miTvId().value)) assertTrue(secret !in log, "$secret logged")
+    }
+
+    // D3 (launcher v2.4.0's guard) with RF-LAUNCHER-240 F6 and F14: the wizard stays on when it
+    // saved the Wi-Fi (the owner's card) or when the TV could not tell (its own card); with the Wi-Fi
+    // saved by others, or nothing saved at all (a cable), the takeover may switch it off as before.
+    @Test fun theSetupWizardStaysOnWhileItMayOwnTheWifi() = runTest(timeout = 30.seconds) {
+        val wizard = PackageName("com.google.android.tungsten.setupwraith")
+        data class Case(val wifi: SavedWifi?, val expected: WizardWifi, val verdict: String, val body: String?)
+        val cases = listOf(
+            Case(SavedWifi(true, 1, setOf("${wizard.value}:10031")), WizardWifi.OWNER, "wizard_owns", "STOP_HOME_SETUPWRAITH_WIFI_BODY"),
+            Case(SavedWifi(false, 0, emptySet()), WizardWifi.UNKNOWN, "cannot_tell", "STOP_HOME_SETUPWRAITH_WIFI_UNKNOWN_BODY"),
+            Case(null, WizardWifi.UNKNOWN, "cannot_tell", "STOP_HOME_SETUPWRAITH_WIFI_UNKNOWN_BODY"),   // the read failed
+            Case(SavedWifi(true, 1, setOf("android.uid.system:1000")), WizardWifi.NOT_OWNER, "others_own", null),
+            Case(SavedWifi(true, 0, emptySet()), WizardWifi.NOT_OWNER, "nothing_saved", null),
+        )
+        for (c in cases) {
+            val h = Harness()
+            h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+            h.prober.snapshotFor = { r ->
+                Samples.miTvSnapshot(reason = r).let { s ->
+                    s.copy(packages = s.packages + (wizard to tv.cleanyour.core.model.PackageState(tv.cleanyour.core.model.EnabledState.ENABLED, true, 1, null, false, false, null, false)),
+                        home = s.home.copy(claimants = s.home.claimants + tv.cleanyour.core.model.HomeClaimant(tv.cleanyour.core.model.Component(wizard, ".RecoveryActivity"), 1)))
+                }
+            }
+            h.profiles.resolver = { _, _ -> tv.cleanyour.core.spec.ProfileResolution.Exact(miProfile.copy(setupWraith = wizard, quirks = setOf(tv.cleanyour.core.model.Quirk.HOME_TAKEOVER_SETUPWRAITH))) }
+            h.setupPlan = h.plan(listOf(Op.Disable(adPkg)), takeover = true)
+            h.engine.onStart = { p -> finish(p, RunStatus.COMPLETED_WITH_SKIPS, HomeOutcome.VERIFY_FAILED) }
+            var asked = 0
+            val m = SetupMachine(h.setupDeps(savedWifi = { asked++; c.wifi ?: throw tv.cleanyour.core.probe.ProbeException(tv.cleanyour.core.probe.ProbeStage.LAUNCHER, "no answer") }),
+                backgroundScope, SetupStart.Fresh)
+            toFound(h, m)
+            val setups = h.planner.requests.filterIsInstance<PlanRequest.Setup>()
+            assertEquals(c.expected, setups.last().choices.wizardWifi, "$c")
+            assertEquals(1, asked, "asked once per snapshot, however often the draft replans")
+            m.dispatch(SetupIntent.MakeItClean); settle()
+            val s = assertIs<SetupState.Stopped>(m.state.value)
+            assertEquals(StopCase.HOME_SETUPWRAITH, s.card.case)
+            if (c.body == null) {
+                assertTrue(s.card.body.startsWith("STOP_HOME_SETUPWRAITH_BODY"), s.card.body)
+                assertTrue(s.card.primary.startsWith("STOP_HOME_SETUPWRAITH_PRIMARY"))
+            } else {
+                assertEquals(c.body, s.card.body, "$c")
+                assertTrue(s.card.primary.startsWith("STOP_HOME_SETUPWRAITH_WIFI_PRIMARY"))
+                // "Try again" asks the TV afresh and plans again, never with the wizard switched off.
+                m.dispatch(SetupIntent.StopAction(StopAction.PRIMARY)); settle()
+                assertEquals(2, h.engine.calls.count { it is FakeEngine.Call.Start })
+                assertEquals(2, asked)
+                assertTrue(h.planner.requests.filterIsInstance<PlanRequest.Setup>().none { wizard in it.choices.extraOff })
+            }
+            // Only the verdict is logged.
+            assertTrue(h.logLines.any { it == "setup: setup wizard and saved Wi-Fi: ${c.verdict}" }, h.logLines.toString())
+            assertTrue(h.logLines.none { "10031" in it || "android.uid" in it })
+        }
+    }
+
+    // D36 (RF-LAUNCHER-240 F1): a home screen app under another key is replaced, and only then; the
+    // plan's summary then carries replacesLauncher, which S3 shows above the button.
+    @Test fun onlyALauncherUnderAnotherKeyIsReplaced() = runTest(timeout = 30.seconds) {
+        val launcher = PackageName("com.gathin.tvhome")
+        for ((signer, replace) in listOf(Sha256("e".repeat(64)) to true, Samples.zeroHash to false, null to false)) {
+            val h = Harness()
+            h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+            h.prober.snapshotFor = { r ->
+                Samples.miTvSnapshot(reason = r).let { s ->
+                    s.copy(packages = s.packages + (launcher to tv.cleanyour.core.model.PackageState(tv.cleanyour.core.model.EnabledState.ENABLED, false, 2, signer, false, false, null, false)))
+                }
+            }
+            val m = h.setup(backgroundScope)
+            toFound(h, m)
+            assertEquals(replace, h.planner.requests.filterIsInstance<PlanRequest.Setup>().last().choices.replaceLauncherSigner, "signer $signer")
+        }
     }
 }

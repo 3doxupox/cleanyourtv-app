@@ -1,0 +1,69 @@
+# Upstream examples (commit 69c93b6, v2.4.0) that the app does not ship as profiles yet, because
+# they have no curated entry in profile-meta.json (owner decision D2). The profile build skips
+# exactly these folders and fails on any other folder without an entry, and ProfilesTest pins this
+# list to the submodule, so a new upstream folder can never slip in silently: give it an entry in
+# profile-meta.json, or add it here. A TV that matches none of the shipped profiles still gets its
+# brand's sure set or the generic plan.
+aipro2k
+amazon-fire-tv-stick-4k-2018
+benq-e55-750
+chiq-gtvu65
+haier-android-tv-dvb2k
+haier-h32s80efx
+hisense-hg9
+hisense-hismarttv-a4
+hisense-hismarttv-a4-android11
+hisense-u75-hengshan
+hitachi-65qledsm20
+hitachi-cdh-le32smart21
+jmgo-n1s-holan
+kalley-r10g
+nvidia-shield-tv-2019
+onn-4k-streaming-box-2023
+panasonic-4ktv-jup
+panasonic-th-40hs550k
+philips-50pus8517
+philips-55oled707
+philips-55pus7503
+philips-65pus8102
+philips-r8g-google-tv
+portronics-beem-470
+prismplus-q65-ultra-r10g
+redmi-mitv-antl0
+skyworth-swtv-21ae
+skyworth-swtv-24na-4k-nf
+sony-bravia-4k-gb
+sony-bravia-4k-gb-us
+sony-bravia-4k-vh2
+sony-bravia-4k-vh21
+sony-bravia-9-ii
+sony-bravia-ae2
+sony-bravia-bf1
+sony-bravia-tl2
+sony-bravia-vu31
+sony-kd-55x8509c
+sony-kd-55x85j
+sony-kd-65x80j
+sony-kd-65x9300d
+sony-xbr-65x900f
+tcl-40s5400a
+tcl-43c645
+tcl-43ep660
+tcl-50ep680
+tcl-55s470g
+tcl-65c735
+tcl-beyondtv-rt2851
+tcl-beyondtv2-latin-america
+tcl-c755-google-tv
+tcl-g07-google-tv
+tcl-uniontv-latin-america
+thomson-32he5800
+vu-4k-lushan
+wanbo-x5-pro
+xiaomi-mi-box-s-2nd-gen
+xiaomi-mitv-afmu0
+xiaomi-mitv-astp1
+xiaomi-mitv-axfr1
+xiaomi-mitv-axso2
+xiaomi-mitv-mosr4
+xiaomi-mitv-mssp3-android9

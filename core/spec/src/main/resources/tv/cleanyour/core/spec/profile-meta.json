@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "upstreamCommit": "1bbf0c9",
+  "upstreamCommit": "69c93b6",
   "profiles": {
     "benq-e55-735": {
       "match": { "models": ["AI PONT"], "devices": [], "brand": "BenQ", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
@@ -465,7 +465,7 @@
       "platform": "GOOGLE_TV",
       "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
       "liveTv": "com.tcl.tv",
-      "setupWraith": null,
+      "setupWraith": "com.google.android.tungsten.setupwraith",
       "quirks": [],
       "neverDisable": ["com.tcl.tvinput", "com.tcl.dashboard", "com.tcl.suspension", "com.tcl.autopair", "com.tcl.systemserver", "com.tcl.tv"],
       "suggestedDock": [],
