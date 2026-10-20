@@ -171,7 +171,7 @@ object Screens {
                     ListRow("Restart the TV to check it all sticks", subtitle = "Optional", trailing = { SmallGlassButton("Restart", {}) })
                 }
                 ListGroup(Modifier.padding(top = 10.dp)) {
-                    ListRow("Add a card to the home screen", subtitle = "Retro games, a Stremio shelf...", onClick = {})
+                    ListRow("Add a card to the home screen", subtitle = "Optional. You can add cards later in Manage.", onClick = {})
                     ListDivider()
                     ListRow("Save a restore note for the family", onClick = {})
                 }

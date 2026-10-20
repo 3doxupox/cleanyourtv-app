@@ -90,6 +90,8 @@ object ModulesShots {
     val all: List<Shot> = listOf(
         // M3 Cards and modules
         Shot("modules_installed_list") { InstalledScreen(state(installed = installedRows), {}, {}, {}) },
+        // RFC-CARDS-1: cards off on the TV (a module installed before any card was asked for).
+        Shot("modules_cards_off") { InstalledScreen(state(installed = listOf(retroRow.copy(installed = true))).copy(cardsOff = true), {}, {}, {}) },
         Shot("modules_removing") { InstalledScreen(state(installed = installedRows).copy(removing = "retro"), {}, {}, {}) },
         Shot("modules_empty") { InstalledScreen(state(installed = emptyList()), {}, {}, {}) },
         Shot("modules_remove_sheet") { SheetOver({ InstalledScreen(state(installed = installedRows), {}, {}, {}) }) { RemoveContent("Retro", "Mi TV 4A", {}, {}) } },
@@ -108,6 +110,7 @@ object ModulesShots {
 
         // M3b Module: Retro (mockup 07)
         Shot("module_detail_retro", tall) { DetailScreen(detail(), "Mi TV 4A", {}, {}) },
+        Shot("module_detail_retro_cards_off", tall) { DetailScreen(detail(), "Mi TV 4A", {}, {}, cardsOff = true) },   // RFC-CARDS-1
         Shot("module_detail_retro_installed", tall) { DetailScreen(detail(installed = true), "Mi TV 4A", {}, {}) },
         Shot("module_detail_service", tall) { DetailScreen(detail(airplay), "Mi TV 4A", {}, {}) },
         Shot("module_detail_paused_installed", tall) { DetailScreen(detail(pausedModule, installed = true), "Mi TV 4A", {}, {}) },

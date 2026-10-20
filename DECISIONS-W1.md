@@ -97,8 +97,12 @@ owning stream supplies bodies):
   parameters and marked `// RFC-W4-1` (accepted 2026-10-19; PRODUCT-SPEC 5.7 carries the RFC).
 - `core.planner.PlanRequest.Setup` gains `config: BlobRef? = null, wallpaper: BlobRef? = null`, after
   the existing parameters and defaulted so every caller compiles, marked `// RFC-DOCK-1` (applied on
-  setupcfg 2026-10-20, pending Fable review; RFCS.md carries the RFC). PRODUCT-SPEC 5.8 still shows
-  the four parameter form.
+  setupcfg 2026-10-20, pending Fable review; RFCS.md carries the RFC). PRODUCT-SPEC 5.8 shows the
+  two fields since cardsoptin (RF-CARDS-1 F5).
+- `core.planner.PlanRequest.AddModule` gains `config: BlobRef? = null, wallpaper: BlobRef? = null`,
+  after the existing parameters and defaulted so every caller compiles, marked `// RFC-CARDS-1`
+  (applied on cardsoptin 2026-10-20, Fable approved in RF-CARDS-1; RFCS.md carries the RFC). PRODUCT-SPEC
+  5.8 shows the two fields (RF-CARDS-1 F5).
 - `core.model.Op` gains `CurtainCue(receiver, token, stage, count, total, group, groupCount,
   groupTotal)` and the enums `CurtainStage` and `CurtainGroup`, marked `// RFC-CURTAIN-1` (applied on
   curtain 2026-10-20; RFCS.md carries the RFC and the owner's amendment for the group words).

@@ -38,6 +38,7 @@ import tv.cleanyour.core.model.Platform
 import tv.cleanyour.core.model.Profile
 import tv.cleanyour.core.model.Quirk
 import tv.cleanyour.core.model.RemoteDir
+import tv.cleanyour.core.model.Sha256
 import tv.cleanyour.core.model.Snapshot
 import tv.cleanyour.core.model.SnapshotReason
 import tv.cleanyour.core.model.TrustRecord
@@ -147,6 +148,9 @@ class SetupDeps(
     // Finding 3: the dock sheet's launchable apps; the app's AdbProber answers it.
     val launchable: LaunchableApps? = prober as? LaunchableApps,
     val log: FlowLog = FlowLog.None,
+    // RFC-CARDS-1: where Manage keeps this TV's dock, theme and cards choice. Setup reads the cards
+    // choice an earlier session kept (module_cards stays off otherwise) and keeps what it pushed.
+    val homePrefs: HomePrefs? = null,
     // RFC-CURTAIN-1: the bundled TV curtain; null plans without it.
     val curtainPin: CurtainPin? = null,
 )
@@ -176,6 +180,7 @@ class SetupMachine(
     private var blocked = false         // wrong TV, no shell v2 or a refusal: no retry until the person asks
     private var currentPlanId: PlanId? = null
     private var setupPlan: Plan? = null
+    private var setupHome: Pair<Sha256, HomeChoice>? = null   // the look the current plan pushes, by its digest
     private var undoRequested = false
     private var askedNotifications = false
     private var lastFinished: RunState.Finished? = null
@@ -626,8 +631,13 @@ class SetupMachine(
         // the plan, its hash and "Show commands" carry it. Only when the switch is possible: without
         // the new home screen there is nothing to read it. If it cannot be made, the plan goes without
         // it and the launcher keeps its own dock.
-        val look = if (!possible) null else attempt { Look.encode(deps.encoder, deps.blobs, theme, dock) }
+        // RFC-CARDS-1: module_cards off, so the new home screen never asks about cards the person did
+        // not ask for; on only when they turned cards on for this TV in an earlier session (kept, or
+        // said outright by the TV's overlay).
+        val cards = Cards.of(deps.homePrefs?.let { attempt { it.load(record.id) }.getOrNull() }?.cards, snap.launcherOverlay, Cards.SETUP_DEFAULT)
+        val look = if (!possible) null else attempt { Look.encode(deps.encoder, deps.blobs, theme, dock, cards) }
             .onFailure { deps.log.line("setup: the look could not be encoded, planned without it") }.getOrNull()
+        setupHome = look?.let { it.digest to HomeChoice(it.doc.dockApps.orEmpty(), draft.themeId, cards) }
         // RFC-CURTAIN-1: the TV shows the progress unless Custom switched it off (Simple never shows
         // the switch). An asset that does not match its pin is never offered; the plan goes without it.
         val showOnTv = draft.level == Level.SIMPLE || draft.curtain
@@ -834,6 +844,10 @@ class SetupMachine(
         )
         tv = done
         deps.tvs.upsert(done)
+        // RFC-CARDS-1: what the run pushed is what Manage starts from (dock, theme, cards).
+        setupHome?.takeIf { (pushedDigest, _) -> pushedDigest == digest }?.let { (_, choice) ->
+            deps.homePrefs?.let { prefs -> attempt { prefs.save(tvId, choice) } }
+        }
         mutableExtras.update { it.copy(doneLines = skippedNames) }
         send(Ev.ShowDone(tvId, DoneSummary(off, homeOn, restorePointAt, skippedNames, recommended)))
         session?.let { s -> mutableExtras.update { it.copy(restorePointPushed = deps.restorePoint.write(done, s, p)) } }

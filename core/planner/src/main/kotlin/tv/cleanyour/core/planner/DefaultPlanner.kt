@@ -548,6 +548,12 @@ class DefaultPlanner(
             // postInstall is parsed and ignored in 0.1 (R0: no VERIFIED module exists yet).
             installApk(apk, version.artifact.sha256, module.pkg, version.versionCode, version.artifact.signer,
                 present = current != null, group = GROUP_MODULE, narration = "Adding ${module.name} to the TV")
+            // RFC-CARDS-1: the look with module_cards on, when the person's add is what turns cards on
+            // for this TV. After the install, so the launcher's restart finds the new card and asks on
+            // the TV; the same steps, priors and failure policy as ApplyTheme. Without the new home
+            // screen on the TV there is nothing to read it, so the add goes without it.
+            val config = req.config
+            if (config != null && installed(launcher.pkg)) look(config, req.wallpaper, overlayGone = false, pushPolicy = FailurePolicy.STOP_AND_ROLLBACK)
             step(Op.PressHome, null, GROUP_MODULE, "Showing the home screen", FailurePolicy.CONTINUE)
         }
 

@@ -120,6 +120,7 @@ class Harness(val clock: FakeClock = FakeClock(Samples.NOW_MS)) {
         blobs = blobs, dock = dock, screenLock = { true }, diagnostics = { "diagnostics" },
         launchable = tv.cleanyour.core.probe.LaunchableApps { launchable ?: throw tv.cleanyour.core.probe.ProbeException(tv.cleanyour.core.probe.ProbeStage.LAUNCHER, "no answer") },
         log = FlowLog { logLines += it },
+        homePrefs = HomePrefs(documents),
         curtainPin = curtainPin,
     )
 

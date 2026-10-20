@@ -29,6 +29,8 @@
     <string name="modules_state_over_limit">Over the limit</string>
     <string name="modules_over_limit_note">The home screen shows up to eight cards.</string>
     <string name="modules_remove">Remove from TV</string>
+    <string name="modules_show_card">Show its card</string>
+    <string name="modules_cards_off_note">Cards are off on this TV\'s home screen. Show one and the TV asks you to confirm.</string>
     <string name="modules_update">Update</string>
     <string name="modules_add">Add</string>
     <string name="modules_update_available">{version} is available</string>
@@ -79,6 +81,7 @@
     <string name="module_report">Report a problem</string>
     <string name="module_hero_badge">Its card on your TV</string>
     <string name="module_add">Add to {tv}</string>
+    <string name="module_add_turns_cards_on">Adding it turns cards on for this TV\'s home screen; the TV asks before the card shows.</string>
     <string name="module_paused_reason">Paused by the maintainers: {reason}</string>
     <string name="module_install_adding">Adding {name}...</string>
     <string name="module_install_downloading">{size, plural, other {Downloading (# MB)...}}</string>
