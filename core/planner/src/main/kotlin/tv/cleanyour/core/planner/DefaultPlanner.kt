@@ -90,6 +90,7 @@ class DefaultPlanner(
             PlanRequest.DebugOff -> { d.debugOff(); PlanKind.DEBUG_OFF }
             is PlanRequest.WriteRestorePoint -> { d.writeRestorePoint(request.restorePointJson, request.restoreTxt); PlanKind.WRITE_RESTORE_POINT }
             PlanRequest.Reboot -> { d.reboot(); PlanKind.REBOOT }
+            is PlanRequest.UpdateLauncher -> { d.updateLauncher(request.launcher); PlanKind.UPDATE_LAUNCHER }
         }
         if (d.reasons.isNotEmpty()) return PlanResult.Refused(d.reasons.toList())
         val steps = d.steps.toList()
@@ -241,7 +242,7 @@ class DefaultPlanner(
                 val overlayGone = !installed(launcher.pkg) || replacesLauncher   // a fresh install, or the uninstall took its files
                 look(config, req.wallpaper, overlayGone, FailurePolicy.CONTINUE)
             }
-            if (choices.takeover) takeover(req.launcher, profile, stockLaunchers, launcherSteps)
+            if (choices.takeover) takeover(req.launcher, profile, stockLaunchers, launcherSteps, choices.wizardWifi)
             homeSwitchRows()
             val curtain = req.curtain
             if (curtain != null && choices.curtain && !snapshot.facts.installRefusal && reasons.isEmpty()) weaveCurtain(curtain)
@@ -372,9 +373,11 @@ class DefaultPlanner(
             else groups += GroupSummary(GROUP_HOME, TITLE_HOME, rows.size, rows.size, rows)
         }
 
+        // The pin, or a newer build of ours, is on the TV (launcher v2.4.0 plan: a higher versionCode
+        // with our signer is never downgraded; one with another signer goes through the signer check).
         fun pinInstalled(artifact: LauncherArtifact): Boolean {
             val current = state(artifact.pkg) ?: return false
-            return current.versionCode == artifact.versionCode && current.signer == artifact.signer
+            return current.versionCode >= artifact.versionCode && current.signer == artifact.signer
         }
 
         // D39 ladder: streaming install when the TV advertises `cmd`, else push to tmp and pm install.
@@ -388,10 +391,9 @@ class DefaultPlanner(
                 val homeNow = snapshot.home.resolved
                 if (homeNow == null || stockLaunchers.none { it.pkg == homeNow.pkg }) { refuse("the home screen app can only be replaced while the TV's own home screen is in charge (D36)"); return false }
                 replacesLauncher = true
-                step(Op.Uninstall(artifact.pkg), Prior(present = true), GROUP_LAUNCHER,
-                    "Replace the home screen app (its card answers on the TV are reset)", FailurePolicy.STOP_AND_ROLLBACK)
-            } else if (current != null && current.versionCode == artifact.versionCode && current.signer == artifact.signer) {
-                return false   // the pin is already installed
+                step(Op.Uninstall(artifact.pkg), Prior(present = true), GROUP_LAUNCHER, NARRATION_REPLACE_LAUNCHER, FailurePolicy.STOP_AND_ROLLBACK)
+            } else if (current != null && current.versionCode >= artifact.versionCode && current.signer == artifact.signer) {
+                return false   // the pin (or a newer build of ours) is already installed
             }
             installApk(artifact.blob, artifact.sha256, artifact.pkg, artifact.versionCode, artifact.signer,
                 present = present && !replacesLauncher, group = GROUP_LAUNCHER, narration = "Installing the new home screen")
@@ -416,7 +418,7 @@ class DefaultPlanner(
         }
 
         // Section 3.4: the guarded HOME takeover.
-        fun takeover(artifact: LauncherArtifact, profile: Profile?, stockLaunchers: List<Component>, launcherInstalledByPlan: Boolean) {
+        fun takeover(artifact: LauncherArtifact, profile: Profile?, stockLaunchers: List<Component>, launcherInstalledByPlan: Boolean, wizardWifi: WizardWifi) {
             if (snapshot.home.resolved == launcher) { homeScreenPossible = true; return }   // already ours
             if (snapshot.facts.installRefusal) { refuse("this TV refuses app installs, so the home screen switch is not possible"); return }
             val current = state(launcher.pkg)
@@ -434,12 +436,20 @@ class DefaultPlanner(
                 ?: claimants.firstOrNull { it == resolved && stockPkg(it) }
                 ?: claimants.firstOrNull { stockPkg(it) }
             if (stock == null) { refuse("the TV's home screen is not one of the known ones for this model (issue #85)"); return }
-            val wizard = profile?.setupWraith?.takeIf { Denylist.isWizardAllowed(it, profile) && installed(it) && Denylist.reason(it, snapshot, profile) == null }
+            // D3: never the wizard while it may own the saved Wi-Fi network (switching it off deletes
+            // that network and takes the TV, and this connection, off Wi-Fi). Without it the switch may
+            // not hold on this TV; the HOME_SETUPWRAITH stop then says why.
+            val wizard = profile?.setupWraith?.takeIf {
+                Denylist.isWizardAllowed(it, profile) && installed(it) && Denylist.reason(it, snapshot, profile) == null && wizardWifi == WizardWifi.NOT_OWNER
+            }
             // D25: the stock launcher is disabled unless the profile keeps it enabled (quirk or never_disable).
             val keepStockEnabled = profile != null && (Quirk.STOCK_LAUNCHER_KEEP_ENABLED in profile.quirks || Denylist.reason(stock.pkg, snapshot, profile) != null)
             val token = idGen.runToken()
 
-            step(Op.StartActivity(launcher, wait = true), null, GROUP_HOME, "Starting the new home screen", FailurePolicy.CONTINUE)
+            // Launcher v2.4.0's precondition: the TV's own home screen is left alone unless the new one
+            // really starts ("Status: ok" from am start -W, ShellRenderer.check). A start that fails
+            // stops the run here, before anything of the switch has happened.
+            step(Op.StartActivity(launcher, wait = true), null, GROUP_HOME, "Starting the new home screen", FailurePolicy.STOP_AND_ROLLBACK)
             step(Op.Mkdir(RemoteDir.TMP), null, GROUP_HOME, "Preparing the safety timer", FailurePolicy.CONTINUE)
             val from = step(Op.ArmHomeWatchdog(stock, watchdogSeconds, token), null, GROUP_HOME, "Arming the safety timer", FailurePolicy.STOP_AND_ROLLBACK)
             if (!keepStockEnabled) disable(stock.pkg, GROUP_HOME, FailurePolicy.STOP_AND_ROLLBACK, "Switching off the TV's own home screen")
@@ -537,6 +547,25 @@ class DefaultPlanner(
                 }
                 step(op, prior, GROUP_THEME, narration, policy)
             }
+            if (ops.any { it is Op.RestartHome }) restoreAccessibility(GROUP_THEME)
+        }
+
+        // Launcher v2.4.0 plan (tools/theme.sh): the force-stop of RestartHome drops the launcher's
+        // accessibility services (InputKeyService, HomeKeyService) from the enabled list and turns
+        // accessibility off, so a remote button the launcher handled stops working. When the TV had
+        // one of ours on, wait a second (Android drops them while the launcher restarts), clear the
+        // list, write it back and switch accessibility on, so they bind again. Typed, allowlisted
+        // settings steps (SECURITY 3.3) with the probed values, shown in Show commands.
+        fun restoreAccessibility(group: String) {
+            val list = snapshot.settings[SettingKey.ENABLED_ACCESSIBILITY] ?: return
+            if (list.split(':').none { it.startsWith(launcher.pkg.value + "/") }) return
+            if (!SettingKey.ENABLED_ACCESSIBILITY.valueShape.matches(list)) return   // a list the renderer would refuse is left as the TV has it
+            val narration = "Switching the home screen's remote buttons back on"
+            step(Op.Settle(1), null, group, narration, FailurePolicy.CONTINUE)
+            step(Op.SettingsPut(SettingKey.ENABLED_ACCESSIBILITY, null), Prior(settingValue = list), group, narration, FailurePolicy.CONTINUE)
+            step(Op.SettingsPut(SettingKey.ENABLED_ACCESSIBILITY, list), Prior(settingValue = list), group, narration, FailurePolicy.CONTINUE)
+            step(Op.SettingsPut(SettingKey.ACCESSIBILITY_ENABLED, "1"), Prior(settingValue = snapshot.settings[SettingKey.ACCESSIBILITY_ENABLED]),
+                group, narration, FailurePolicy.CONTINUE)
         }
 
         fun addModule(req: PlanRequest.AddModule) {
@@ -641,7 +670,10 @@ class DefaultPlanner(
                     null -> {}
                 }
             }
-            if (clearedLook) step(Op.RestartHome(launcher), null, GROUP_UNDO, "Restarting the home screen", FailurePolicy.CONTINUE)
+            if (clearedLook) {
+                step(Op.RestartHome(launcher), null, GROUP_UNDO, "Restarting the home screen", FailurePolicy.CONTINUE)
+                restoreAccessibility(GROUP_UNDO)
+            }
         }
 
         fun beforeFactoryReset() {
@@ -666,6 +698,27 @@ class DefaultPlanner(
             step(Op.Mkdir(RemoteDir.RESTORE), null, GROUP_RESTORE, "Preparing the restore point folder", FailurePolicy.CONTINUE)
             step(Op.PushAsset(json, RemotePath(RemoteDir.RESTORE, listOf("restore-point.json")), json.sha256), Prior(present = null), GROUP_RESTORE, "Saving the restore point on the TV", FailurePolicy.CONTINUE)
             step(Op.PushAsset(txt, RemotePath(RemoteDir.RESTORE, listOf("restore.txt")), txt.sha256), Prior(present = null), GROUP_RESTORE, "Saving the restore list on the TV", FailurePolicy.CONTINUE)
+        }
+
+        // RFC-LAUNCHER-1 (D4): "Update the home screen". The pin installed over our older launcher in
+        // place (same package and signer, newer versionCode): the launcher's files, the dock and the
+        // look in config.json, its card answers and its Launcher settings all stay, since only an
+        // uninstall removes them. Anything else is not an update and is refused: another key is
+        // Setup's replace (D36), an unknown key is never guessed, a newer one is never downgraded.
+        fun updateLauncher(artifact: LauncherArtifact) {
+            if (artifact.pkg != launcher.pkg) { refuse("the launcher artifact is ${artifact.pkg.value}, not ${launcher.pkg.value}"); return }
+            val current = state(artifact.pkg) ?: run { refuse("the new home screen is not on this TV"); return }
+            if (current.signer == null) { refuse("the key of the home screen app on the TV cannot be read, so it is not updated"); return }
+            if (current.signer != artifact.signer) { refuse("the home screen app on the TV was installed with a different key; set the TV up again to replace it (D36)"); return }
+            if (current.versionCode >= artifact.versionCode) return   // already this version or newer: nothing to do
+            if (snapshot.facts.installRefusal) { refuse("this TV refuses app installs"); return }
+            installApk(artifact.blob, artifact.sha256, artifact.pkg, artifact.versionCode, artifact.signer,
+                present = true, group = GROUP_LAUNCHER, narration = "Updating the home screen to version ${artifact.versionName}")
+            // The update stops the old version; when it is the TV's home screen, start the new one at
+            // once and check that it comes up.
+            if (snapshot.home.resolved == launcher) {
+                step(Op.StartActivity(launcher, wait = true), null, GROUP_LAUNCHER, "Starting the updated home screen", FailurePolicy.CONTINUE)
+            }
         }
 
         // RFC-W8-5: the D24 restart test as a plan, so the reboot is journaled like any other write.
@@ -705,6 +758,8 @@ class DefaultPlanner(
         const val REASON_HOME_SCREEN = "it is the TV's own home screen; only the home screen switch changes it"
         const val REASON_WIZARD_SECTION_ONLY = "the first-run setup wizard is only switched off as part of the home screen switch"
         const val NARRATION_WIZARD = "Switch off the first-run setup wizard so the new home screen can take over"
+        // Launcher v2.4.0 plan, finding 4: the uninstall erases everything the other launcher kept.
+        const val NARRATION_REPLACE_LAUNCHER = "Replace the home screen app (its look, order, app list, settings and card answers on the TV are reset)"
         // UX 2, the preview sheet's "Needed for the new home screen" group.
         const val TITLE_HOME = "Needed for the new home screen"
         const val DESCRIPTION_OLD_HOME = "The old home screen. Switched off only after the new one works."

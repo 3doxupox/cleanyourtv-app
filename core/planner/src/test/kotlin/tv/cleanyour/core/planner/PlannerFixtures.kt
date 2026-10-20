@@ -78,7 +78,8 @@ object PlannerFixtures {
     fun choices(
         kept: Set<PackageName> = emptySet(), extraOff: Set<PackageName> = emptySet(), installLauncher: Boolean = true,
         takeover: Boolean = true, replaceSigner: Boolean = false, dock: List<PackageName>? = null,
-    ) = Choices(kept, extraOff, dock, null, installLauncher, takeover, replaceSigner, keepDebuggingOn = false)
+        wizardWifi: WizardWifi = WizardWifi.NOT_OWNER,   // D3: the TV's Wi-Fi was not saved by its setup wizard
+    ) = Choices(kept, extraOff, dock, null, installLauncher, takeover, replaceSigner, keepDebuggingOn = false, wizardWifi = wizardWifi)
 
     fun setup(profile: Profile? = profile(), choices: Choices = choices(), artifact: LauncherArtifact = artifact()) =
         PlanRequest.Setup(profile?.let { ProfileResolution.Exact(it) } ?: ProfileResolution.None(listOf(stock)), choices, artifact, tv.cleanyour.core.model.Level.SIMPLE)

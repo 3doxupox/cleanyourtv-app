@@ -66,6 +66,7 @@ class ScriptedTv(initial: Snapshot = Samples.miTvSnapshot()) : TvSession {
     var dropOnLine: ((String) -> Boolean)? = null
     var installOutcome: InstallOutcome = InstallOutcome.Installed
     var persistentOverride: Set<PackageName> = emptySet()
+    var startFails = false
 
     override val tvId: TvId = initial.tvId
     override val identity: TvIdentity = TvIdentity(tvId, facts.serialLast4, facts.device, facts.model, facts.sdk, facts.adbSecure, facts.adbFeatures, 1024 * 1024)
@@ -133,6 +134,9 @@ class ScriptedTv(initial: Snapshot = Samples.miTvSnapshot()) : TvSession {
             line.startsWith("sha256sum ") -> files[tokens[1]]?.let { ok("${sha256Of(it).hex}  ${tokens[1]}\n") } ?: fail("sha256sum: ${tokens[1]}: No such file or directory")
             line.startsWith("rm -f ") -> { files.remove(tokens[2]); ok() }
             line.startsWith("mkdir -p ") -> ok()
+            // am start -W reports "Status: ok" when the activity came up (launcher v2.4.0's check);
+            // startFails makes it fail the way a missing or crashing activity does.
+            line.startsWith("am start -W ") -> if (startFails) ok("Starting: Intent\nError type 3\nError: Activity class does not exist.\n") else ok("Starting: Intent\nStatus: ok\nComplete\n")
             line.startsWith("am start ") || line.startsWith("am force-stop ") -> ok("Starting: Intent\n")
             line.startsWith("am broadcast ") -> ok("Broadcasting: Intent { act=${tokens[4]} }\nBroadcast completed: result=0\n")
             line == "input keyevent 3" -> ok()

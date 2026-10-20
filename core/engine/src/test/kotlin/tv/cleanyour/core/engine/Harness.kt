@@ -20,6 +20,7 @@ import tv.cleanyour.core.model.Sha256
 import tv.cleanyour.core.model.SnapshotReason
 import tv.cleanyour.core.ops.ShellRenderer
 import tv.cleanyour.core.planner.Choices
+import tv.cleanyour.core.planner.WizardWifi
 import tv.cleanyour.core.planner.DefaultPlanner
 import tv.cleanyour.core.planner.Plan
 import tv.cleanyour.core.planner.PlanRequest
@@ -82,7 +83,9 @@ class Harness(val scope: TestScope, val tv: ScriptedTv = ScriptedTv(Samples.snap
     }
 
     fun setupPlan(takeover: Boolean = true, installLauncher: Boolean = true, profile: Profile = profile(), planner: DefaultPlanner = this.planner): Plan = plan(
-        PlanRequest.Setup(ProfileResolution.Exact(profile), Choices(emptySet(), emptySet(), null, null, installLauncher, takeover, false, false), artifact, Level.SIMPLE),
+        // The TV's Wi-Fi was not saved by its setup wizard (D3), so a wizard quirk profile switches it off.
+        PlanRequest.Setup(ProfileResolution.Exact(profile), Choices(emptySet(), emptySet(), null, null, installLauncher, takeover, false, false,
+            wizardWifi = WizardWifi.NOT_OWNER), artifact, Level.SIMPLE),
         planner,
     )
 
