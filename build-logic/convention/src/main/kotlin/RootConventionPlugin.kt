@@ -38,7 +38,7 @@ class RootConventionPlugin : Plugin<Project> {
 
     private val pluginIds = listOf(
         "cleanyourtv.jvm", "cleanyourtv.serialization", "cleanyourtv.android.lib", "cleanyourtv.android.compose",
-        "cleanyourtv.android.feature", "cleanyourtv.android.app",
+        "cleanyourtv.android.feature", "cleanyourtv.android.app", "cleanyourtv.tv.app",
         "com.android.library", "com.android.application", "com.android.test",
         "org.jetbrains.kotlin.jvm", "org.jetbrains.kotlin.android",
     )

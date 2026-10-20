@@ -51,6 +51,10 @@ gradlePlugin {
             id = "cleanyourtv.android.app"
             implementationClass = "AndroidAppConventionPlugin"
         }
+        register("tvApp") {
+            id = "cleanyourtv.tv.app"
+            implementationClass = "TvAppConventionPlugin"
+        }
         register("androidBenchmark") {
             id = "cleanyourtv.android.benchmark"
             implementationClass = "AndroidBenchmarkConventionPlugin"
