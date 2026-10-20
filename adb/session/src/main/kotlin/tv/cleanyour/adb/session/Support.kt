@@ -129,11 +129,11 @@ object PmGuard {
     private val CLS = CLASS_RE.pattern.removePrefix("^").removeSuffix("$")
     private const val DIR = "/data/local/tmp/cleanyourtv"
 
-    // sleep N; token file check; pm enable; set-home-activity of a component in that same package;
+    // sleep N & wait; token file check; pm enable; set-home-activity of a component in that same package;
     // start HOME. The seconds, the token (equal in all three places) and the package are the only
     // variable parts; every other byte is fixed.
     private fun body(v: String): String =
-        """sleep [0-9]{2,3}; \[ -f $DIR/home-ok-(?<t$v>[0-9a-f]{16}) \] && exit 0; """ +
+        """sleep [0-9]{2,3} & wait; \[ -f $DIR/home-ok-(?<t$v>[0-9a-f]{16}) \] && exit 0; """ +
             """pm enable --user 0 (?<p$v>$PKG); cmd package set-home-activity --user 0 \k<p$v>/$CLS; """ +
             """am start -W -a android\.intent\.action\.MAIN -c android\.intent\.category\.HOME"""
 
