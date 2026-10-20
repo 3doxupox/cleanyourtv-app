@@ -12,7 +12,9 @@ debugging from the phone. Private repository; not announced.
 - `android/*`, `ui/design`, `feature/*`, `app`: Android modules.
 - `testing/fixtures`: a fake for every core interface, fixture loaders and shared samples.
 - `fixtures/`: the reference TV capture (redacted) and the module card test app sources.
-- `third_party/cleanyourtv`: the launcher repository as a submodule, pinned to `1bbf0c9` (bumped by W5 for the bundled launcher).
+- `third_party/cleanyourtv`: the launcher repository as a submodule, pinned to upstream v2.4.0 (`69c93b6`) for the
+  bundled launcher. `scripts/build-launcher-on-forge.sh` builds it twice, signs both with the launcher key and compares
+  them, then places it in `android/platform` assets; update `PinnedLauncher` with the printed size and sha256.
 - `tv/curtain`: the TV curtain (`tv.cleanyour.curtain`, RFC-CURTAIN-1), a small Java app the Setup plan
   shows on the TV while the phone works. `scripts/build-curtain-on-forge.sh` builds it twice, compares
   the builds, signs it with the launcher key and places it in `android/platform` assets; update

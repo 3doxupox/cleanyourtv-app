@@ -114,6 +114,22 @@ owning stream supplies bodies):
 - `core.flows.SetupIntent` gains `ShowOnTv(on: Boolean)` (the Customise switch "Show the progress on
   the TV") and `core.model.WizardDraft` (growable) gains `curtain: Boolean = true`, both marked
   `// RFC-CURTAIN-1`.
+- `core.spec.LauncherConfigDoc` gains `fillDock, animations, advancedEffects, greetingName,
+  reducedMotion, dockTitle, dockRow, reorderButton, showStats, appLibrary, skyIntensity,
+  settingsKeyKeycodes, settingsKeyPanel, festival, festivalUntil, greeting, accentColor` (nullable,
+  defaulted null) and `EffectiveConfig` the same seventeen non-null, defaulted to launcher v2.4.0's
+  `config.xml` values (`accentColor` is `accentColorArgb: Int` there, like `backgroundColorArgb`),
+  after the RFC-W4-1 fields and marked `// RFC-W4-2` (applied on launcher240 2026-10-20, for Opus
+  review; RFCS.md carries the RFC).
+- `core.planner.Choices` gains `wizardWifi: WizardWifi = WizardWifi.UNKNOWN` after `curtain`, with
+  the new `enum class WizardWifi { NOT_OWNER, OWNER, UNKNOWN }`; `core.planner.PlanRequest` gains
+  `UpdateLauncher(launcher: LauncherArtifact)` and `PlanKind` gains `UPDATE_LAUNCHER`, all marked
+  `// RFC-LAUNCHER-1` (applied on launcher240 2026-10-20, for Opus review; RFCS.md carries the RFC).
+  Not frozen, listed for the merge: `core.probe.SavedWifiOwners` (beside `LaunchableApps`),
+  `AdbProber(clock, signed = SIGNED_PACKAGES)`, `SetupDeps.savedWifi`, `HomeScreenIntent.PreviewUpdate`
+  and `UpdateHomeScreen`, `HomeScreenState.updateTo` and `updatePreview`, `SnackKind.HOME_UPDATED`,
+  `CopyKey.STOP_HOME_SETUPWRAITH_WIFI_BODY` and `_PRIMARY`, `TvWriter.write(..., fresh)` and
+  `preview(..., fresh)`.
 
 Added because the section 5 prose names it: `core.probe.ProbeException(stage, detail)` (R0: 7).
 
