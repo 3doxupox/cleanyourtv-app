@@ -1,30 +1,30 @@
-# Release (ARCHITECTURE 6.8, PRODUCT-SPEC 7.3 items 1 to 4, SECURITY 6.5 G4). Runs on a `v*` tag in
-# the protected `release` environment, whose required reviewer is the release gate (R6): nothing
-# here runs, and no secret is readable, until that review approves the deployment.
+# Release builds. CI never signs and holds no key: the release key stays offline with the
+# maintainer, who signs the same reproducible build locally (scripts/release-on-forge.sh) and
+# attaches it to the GitHub Release. What CI adds is an independent build to check that APK against.
 #
-# Two clean builds of the tag in the pinned container (docker/repro), byte compared; build A is
-# signed (v2 and v3, rotation lineage when one exists, v1 off for minSdk 28) and compared with
-# build B by apksigcopier; APK assertions; SHA256SUMS and its minisign signature; a CycloneDX SBOM;
-# a build provenance attestation; a draft GitHub Release. Linux only (private-repo minutes).
+# On a `v*` tag (or by hand, workflow_dispatch):
+#   build   two clean builds of the commit in the pinned container (docker/repro), each in a fresh
+#           container with an empty Gradle home, byte compared; the unsigned APK, its sha256, the R8
+#           mapping and a CycloneDX SBOM are uploaded as workflow artifacts.
+#   verify  run by hand with `release_tag` once the Release exists: downloads the maintainer's
+#           signed APK from that Release and checks it against this run's unsigned build with
+#           scripts/verify-release.sh (apksigner: v2 and v3, one signer, the certificate in
+#           docs/release-signer.sha256; apksigcopier compare: the signed APK is exactly this
+#           unsigned build plus a signature; scripts/check-apk.py). Run it on the tag:
+#             gh workflow run release.yml --ref v0.1.0 -f release_tag=v0.1.0
 #
-# Secrets of the `release` environment:
-#   RELEASE_KEYSTORE_B64   PKCS#12 keystore, base64
-#   RELEASE_KEY_ALIAS      key alias
-#   RELEASE_KEY_PASSWORD   store and key password
-#   RELEASE_LINEAGE_B64    optional apksigner rotation lineage, base64
-#   MINISIGN_KEY_B64       minisign secret key file, base64
-#   MINISIGN_PASSWORD      its password
-# Variables: RELEASE_CERT_SHA256 (the expected signer certificate digest, required).
-#
-# Repository settings this workflow relies on (R5): the `release` environment has a required
-# reviewer with "prevent self-review" on and deployment tags limited to `v*`, and a tag ruleset
-# lets only the maintainer create or move `v*` tags. Actions are pinned by commit; bump them by
-# a reviewed change.
+# Every action is pinned by commit; bump them by a reviewed change.
 name: release
 
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Verify the signed APK of this GitHub Release (for example v0.1.0) against this run's build"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -34,44 +34,49 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
+  build:
     runs-on: ubuntu-latest
-    environment: release
     timeout-minutes: 120
-    permissions:
-      contents: write        # the draft release
-      id-token: write        # provenance attestation
-      attestations: write
-    env:
-      VERSION: ${{ github.ref_name }}
+    outputs:
+      name: ${{ steps.facts.outputs.name }}
+      sha256: ${{ steps.compare.outputs.sha256 }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           submodules: true
           fetch-depth: 0
-          persist-credentials: false   # gh gets the token from GH_TOKEN; nothing else needs it
+          persist-credentials: false
 
       - uses: gradle/actions/wrapper-validation@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3
 
-      - name: Tag facts
+      - name: Facts
         id: facts
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          # The tag name reaches shell commands and file names: only plain versions get further.
-          if ! printf '%s' "$VERSION" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)\.?[0-9]+)?$'; then
-            echo "::error::tag $VERSION is not vMAJOR.MINOR.PATCH with an optional -alpha/-beta/-rc suffix"; exit 1
+          version=$(sed -n 's/.*versionName = "\([0-9][0-9A-Za-z.-]*\)".*/\1/p' build-logic/convention/src/main/kotlin/AndroidConventionPlugins.kt | head -1)
+          if [ "$REF_TYPE" = tag ]; then
+            # The tag name reaches file names: only plain versions get further, and it must match the app.
+            printf '%s' "$REF_NAME" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)\.?[0-9]+)?$' \
+              || { echo "::error::tag $REF_NAME is not vMAJOR.MINOR.PATCH with an optional -alpha/-beta/-rc suffix"; exit 1; }
+            [ "${REF_NAME#v}" = "$version" ] || { echo "::error::tag $REF_NAME but versionName $version"; exit 1; }
+            name="cleanyourtv-$version"
+          else
+            name="cleanyourtv-$version-$(git rev-parse --short=12 HEAD)"
           fi
           {
             echo "epoch=$(git log -1 --format=%ct)"
-            echo "version=${VERSION#v}"
+            echo "version=$version"
+            echo "name=$name"
             echo "commit=$(git rev-parse HEAD)"
             echo "submodule=$(git -C third_party/cleanyourtv rev-parse HEAD)"
-            case "$VERSION" in *alpha*|*beta*|*rc*) echo "prerelease=true";; *) echo "prerelease=false";; esac
           } >> "$GITHUB_OUTPUT"
 
       - name: Reproducible-build image
         run: docker build -t cyt-build -f docker/repro/Dockerfile docker/repro
 
-      - name: Source archive (no .git, no working files; the same input forge builds from)
+      - name: Source archive (no .git, no working files; the same input the maintainer builds from)
         run: |
           mkdir -p "$RUNNER_TEMP/in"
           git archive --format=tar --prefix=src/ HEAD > "$RUNNER_TEMP/in/src.tar"
@@ -89,40 +94,21 @@ jobs:
           done
           sudo chown -R "$(id -u):$(id -g)" "$RUNNER_TEMP/a" "$RUNNER_TEMP/b"
 
-      - name: Sign build A, compare with build B, APK assertions
+      - name: Compare the two builds, APK assertions on the unsigned build
+        id: compare
         env:
-          KS_B64: ${{ secrets.RELEASE_KEYSTORE_B64 }}
-          KS_PASS: ${{ secrets.RELEASE_KEY_PASSWORD }}
-          KS_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          LINEAGE_B64: ${{ secrets.RELEASE_LINEAGE_B64 }}
-          EXPECT_CERT: ${{ vars.RELEASE_CERT_SHA256 }}
-          NAME: cleanyourtv-${{ steps.facts.outputs.version }}
+          NAME: ${{ steps.facts.outputs.name }}
         run: |
-          [ -n "$EXPECT_CERT" ] || { echo "::error::set the RELEASE_CERT_SHA256 variable of the release environment"; exit 1; }
-          keys=$(mktemp -d /dev/shm/keys.XXXXXX)
-          trap 'rm -rf "$keys"' EXIT
-          echo "$KS_B64" | base64 -d > "$keys/release.ks"
-          printf '%s\n' "$KS_PASS" > "$keys/release.pass"
-          lineage_env=""
-          if [ -n "$LINEAGE_B64" ]; then echo "$LINEAGE_B64" | base64 -d > "$keys/lineage"; lineage_env="-e LINEAGE=/keys/lineage"; fi
-          mkdir -p "$RUNNER_TEMP/out"
-          # shellcheck disable=SC2086 # lineage_env is empty or one -e pair on purpose
-          docker run --rm -e KS=/keys/release.ks -e KS_ALIAS="$KS_ALIAS" -e KS_PASS_FILE=/keys/release.pass \
-            -e EXPECT_CERT $lineage_env -v "$keys:/keys:ro" -v "$RUNNER_TEMP:/in:ro" -v "$RUNNER_TEMP/out:/out" \
-            cyt-build bash -euc 'tar -xf /in/in/src.tar -C / && cd /src && scripts/sign-and-compare.sh /in/a /in/b /out "'"$NAME"'"'
-          sudo chown -R "$(id -u):$(id -g)" "$RUNNER_TEMP/out"
-
-      - name: SHA256SUMS.minisig
-        env:
-          MINISIGN_KEY_B64: ${{ secrets.MINISIGN_KEY_B64 }}
-          MINISIGN_PASSWORD: ${{ secrets.MINISIGN_PASSWORD }}
-        run: |
-          sudo apt-get update -q && sudo apt-get install -y -q minisign
-          key=$(mktemp /dev/shm/minisign.XXXXXX); trap 'rm -f "$key"' EXIT
-          echo "$MINISIGN_KEY_B64" | base64 -d > "$key"
-          cd "$RUNNER_TEMP/out"
-          printf '%s\n' "$MINISIGN_PASSWORD" | minisign -S -s "$key" -m SHA256SUMS -x SHA256SUMS.minisig \
-            -t "Clean Your TV $VERSION, commit ${{ steps.facts.outputs.commit }}"
+          cd "$RUNNER_TEMP"
+          sha256sum a/app-release-unsigned.apk b/app-release-unsigned.apk
+          cmp a/app-release-unsigned.apk b/app-release-unsigned.apk || { echo "::error::the two clean builds differ"; exit 1; }
+          mkdir -p out
+          cp a/app-release-unsigned.apk "out/$NAME-unsigned.apk"
+          (cd out && sha256sum "$NAME-unsigned.apk" > "$NAME-unsigned.apk.sha256")
+          echo "sha256=$(cut -d' ' -f1 "out/$NAME-unsigned.apk.sha256")" >> "$GITHUB_OUTPUT"
+          docker run --rm -v "$RUNNER_TEMP/in:/in:ro" -v "$RUNNER_TEMP/out:/out" cyt-build bash -euc \
+            'tar -xf /in/src.tar -C / && cd /src && python3 scripts/check-apk.py /out/'"$NAME"'-unsigned.apk --unsigned --json /out/check-apk-unsigned.json'
+          sudo chown -R "$(id -u):$(id -g)" out
 
       - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with:
@@ -132,47 +118,76 @@ jobs:
       - name: CycloneDX SBOM of the release runtime classpath
         env:
           SOURCE_DATE_EPOCH: ${{ steps.facts.outputs.epoch }}
+          NAME: ${{ steps.facts.outputs.name }}
+          VERSION: ${{ steps.facts.outputs.version }}
         run: |
           ./gradlew :app:dependencies --configuration releaseRuntimeClasspath --console=plain > "$RUNNER_TEMP/deps.txt"
-          apk=$(ls "$RUNNER_TEMP"/out/*.apk)
-          python3 scripts/sbom.py "$RUNNER_TEMP/deps.txt" --version "${{ steps.facts.outputs.version }}" \
-            --apk-sha256 "$(sha256sum "$apk" | cut -d' ' -f1)" -o "$RUNNER_TEMP/out/$(basename "$apk" .apk).cdx.json"
+          python3 scripts/sbom.py "$RUNNER_TEMP/deps.txt" --version "$VERSION" \
+            --apk-sha256 "$(cut -d' ' -f1 "$RUNNER_TEMP/out/$NAME-unsigned.apk.sha256")" -o "$RUNNER_TEMP/out/$NAME.cdx.json"
 
-      - name: Build provenance
-        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
-        with:
-          subject-path: ${{ runner.temp }}/out/*.apk
-
-      - name: Draft release
+      - name: Summary
         env:
-          GH_TOKEN: ${{ github.token }}
+          NAME: ${{ steps.facts.outputs.name }}
+          COMMIT: ${{ steps.facts.outputs.commit }}
+          SUBMODULE: ${{ steps.facts.outputs.submodule }}
+          SHA: ${{ steps.compare.outputs.sha256 }}
         run: |
-          cd "$RUNNER_TEMP/out"
-          apk=$(basename "$(ls ./*.apk)")
           {
-            echo "Internal build. Not for distribution until the announcement."
+            echo "### $NAME (unsigned, reproducible)"
             echo
-            echo "- Commit: ${{ steps.facts.outputs.commit }}"
-            echo "- Upstream launcher submodule: ${{ steps.facts.outputs.submodule }}"
-            echo "- SHA-256: $(cut -d' ' -f1 SHA256SUMS)  $apk"
-            echo "- $(cat signer.txt)"
-            echo "- Reproducible: two clean container builds byte identical; apksigcopier compare matched"
-            echo "- Checks: $(tail -1 check-apk.txt)"
+            echo "- Commit: \`$COMMIT\`, upstream launcher submodule \`$SUBMODULE\`"
+            echo "- Two clean container builds byte identical, SHA-256 \`$SHA\`"
+            echo "- Release signer (docs/release-signer.sha256): \`$(cat docs/release-signer.sha256)\`"
             echo
-            echo "Verify: \`minisign -Vm SHA256SUMS -p cleanyourtv.pub\`, then \`sha256sum -c SHA256SUMS\`."
-          } > notes.md
-          prerelease=""; [ "${{ steps.facts.outputs.prerelease }}" = true ] && prerelease="--prerelease"
-          gh release create "$VERSION" --draft $prerelease --title "Clean Your TV ${VERSION#v}" --notes-file notes.md \
-            "$apk" SHA256SUMS SHA256SUMS.minisig ./*.cdx.json check-apk.json apksigner-verify.txt
+            echo "Check a signed APK against this build: \`scripts/verify-release.sh signed.apk $NAME-unsigned.apk\`"
+            echo "in the docker/repro image, or run this workflow on the tag with \`release_tag\` set."
+          } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Release evidence (mapping, logs)
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: release-evidence-${{ github.ref_name }}
+          name: ${{ steps.facts.outputs.name }}-unsigned
           path: |
             ${{ runner.temp }}/out/
             ${{ runner.temp }}/a/mapping/
-            ${{ runner.temp }}/a/*.sha256
-            ${{ runner.temp }}/b/*.sha256
           retention-days: 90
+
+  verify:
+    needs: build
+    if: github.event_name == 'workflow_dispatch' && inputs.release_tag != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ${{ needs.build.outputs.name }}-unsigned
+          path: ${{ runner.temp }}/ci
+
+      - name: The maintainer's signed APK from the Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.release_tag }}
+        run: |
+          printf '%s' "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)\.?[0-9]+)?$' || { echo "::error::release_tag $TAG is not a version tag"; exit 1; }
+          mkdir -p "$RUNNER_TEMP/rel"
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern 'cleanyourtv-*.apk' --dir "$RUNNER_TEMP/rel"
+          ls -l "$RUNNER_TEMP/rel"
+
+      - name: Signature, signer and apksigcopier compare against this run's unsigned build
+        env:
+          NAME: ${{ needs.build.outputs.name }}
+        run: |
+          docker build -t cyt-build -f docker/repro/Dockerfile docker/repro
+          signed=$(ls "$RUNNER_TEMP"/rel/cleanyourtv-*.apk | grep -v unsigned | head -1)
+          docker run --rm -v "$PWD:/repo:ro" -v "$RUNNER_TEMP:/w" cyt-build bash -euc \
+            "cp -r /repo /src2 && cd /src2 && scripts/verify-release.sh /w/rel/$(basename "$signed") /w/ci/out/$NAME-unsigned.apk '' /w/verify"
+          {
+            echo "### Release verified"
+            echo
+            echo "- \`$(basename "$signed")\`: SHA-256 \`$(sha256sum "$signed" | cut -d' ' -f1)\`"
+            echo "- Signed by \`$(cat docs/release-signer.sha256)\`, v2 and v3"
+            echo "- apksigcopier compare: the signed APK is this run's unsigned build plus a signature"
+          } >> "$GITHUB_STEP_SUMMARY"
