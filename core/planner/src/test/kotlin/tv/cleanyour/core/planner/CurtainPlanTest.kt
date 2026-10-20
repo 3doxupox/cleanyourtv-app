@@ -38,6 +38,8 @@ class CurtainPlanTest {
     private val curtain = LauncherArtifact(curtainPkg, 1, "0.1", curtainSha, Samples.launcherArtifact().signer, BlobRef(curtainSha, 49_571, "bundled:cleanyourtv-curtain.apk"))
     private val config = BlobRef(Sha256("c".repeat(64)), 100, "blobs/config")
     private val installed = debloatList.filter { it in snapshot().packages }
+    // Our own earlier run's install of the curtain, as the change records keep it.
+    private val ourInstall = listOf(PlannerFixtures.change(0, Op.InstallStream(curtain.blob, curtain.sha256, curtainPkg, 1, curtain.signer), Prior(present = false)))
 
     // A fresh planner per plan, so plans with and without the curtain draw the same watchdog token.
     private fun planner() = PlannerFixtures.planner(OverlayTransport())
@@ -80,7 +82,7 @@ class CurtainPlanTest {
         assertEquals(Op.Settle(3), curtainSteps(p).first { it.op is Op.Settle }.op)
         assertEquals(Prior(present = false), p.steps.first().prior)
         assertEquals(null, p.steps.last().prior, "the curtain is not on the TV when the run starts")
-        assertEquals(Prior(present = true), plan(withCurtain(), snapshot = withPackage(curtainState()), planner = planner()).steps.last().prior)
+        assertEquals(Prior(present = true), plan(withCurtain(), snapshot = withPackage(curtainState()), journals = ourInstall, planner = planner()).steps.last().prior)
     }
 
     // RFC-DOCK-1 applies: the look's first step starts the launcher, so FINALE goes before it.
@@ -97,16 +99,16 @@ class CurtainPlanTest {
     // The curtain is already on the TV with the pinned version (a leftover): no install, just start it.
     @Test fun pinAlreadyInstalledIsStartedOnly() {
         val snap = withPackage(curtainState(versionCode = 1))
-        val p = plan(withCurtain(), snapshot = snap, planner = planner())
+        val p = plan(withCurtain(), snapshot = snap, journals = ourInstall, planner = planner())
         assertEquals(listOf("start tv.cleanyour.curtain/.CurtainActivity", "cue SCAN 0/18"), p.steps.take(2).map(::label))
         assertEquals("Uninstall tv.cleanyour.curtain", label(p.steps.last()))
         // An older version is replaced (D39 ladder with the package present).
-        val older = plan(withCurtain(), snapshot = withPackage(curtainState(versionCode = 0)), planner = planner())
+        val older = plan(withCurtain(), snapshot = withPackage(curtainState(versionCode = 0)), journals = ourInstall, planner = planner())
         assertEquals("InstallStream tv.cleanyour.curtain", label(older.steps.first()))
         assertEquals(Prior(present = true), older.steps.first().prior)
         // Without cmd: push, install with -r, tidy up; only the install speaks.
         val noCmd = snap.copy(facts = snap.facts.copy(adbFeatures = snap.facts.adbFeatures - "cmd")).let { it.copy(contentHash = SnapshotCodec.hash(it)) }
-        val pushed = plan(withCurtain(), snapshot = withPackage(curtainState(versionCode = 0), noCmd), planner = planner())
+        val pushed = plan(withCurtain(), snapshot = withPackage(curtainState(versionCode = 0), noCmd), journals = ourInstall, planner = planner())
         assertEquals(listOf("Mkdir", "PushAsset", "Install tv.cleanyour.curtain", "RemoveFile"), pushed.steps.take(4).map(::label))
         assertEquals(setOf(tv.cleanyour.core.model.InstallFlag.REPLACE), (pushed.steps[2].op as Op.Install).flags)
         assertEquals(listOf("", "", "Showing the progress on the TV", ""), pushed.steps.take(4).map { it.narration })
@@ -117,6 +119,29 @@ class CurtainPlanTest {
         val p = plan(withCurtain(), snapshot = withPackage(curtainState(signer = Sha256("9".repeat(64)))), planner = planner())
         assertTrue(curtainSteps(p).isEmpty())
         assertEquals(plan(setup(), planner = planner()).steps.map { it.op }, p.steps.map { it.op })
+    }
+
+    // RF-CURTAIN-1 F2: "ours" is the journal rule of removeModule. A curtain package with no install
+    // of ours on record (a squatter, or ours after the phone app lost its records) is never started,
+    // cued or removed: Setup plans no curtain at all and Leftovers leaves it. Our own leftover (an
+    // install in the records, or installedByUs) is reused by Setup and removed by Leftovers.
+    @Test fun onlyACurtainWeInstalledIsTouched() {
+        val squat = withPackage(curtainState())
+        val setupSquat = plan(withCurtain(), snapshot = squat, planner = planner())
+        assertTrue(curtainSteps(setupSquat).isEmpty(), setupSquat.steps.map(::label).toString())
+        assertEquals(plan(setup(), snapshot = squat, planner = planner()).steps.map { it.op }, setupSquat.steps.map { it.op })
+        assertTrue(plan(PlanRequest.Leftovers(emptySet()), snapshot = squat).steps.isEmpty())
+        // Our own interrupted run left it: the install is in the records.
+        val reused = plan(withCurtain(), snapshot = squat, journals = ourInstall, planner = planner())
+        assertEquals("start tv.cleanyour.curtain/.CurtainActivity", label(reused.steps.first()))
+        assertEquals(listOf("Uninstall tv.cleanyour.curtain"), plan(PlanRequest.Leftovers(emptySet()), snapshot = squat, journals = ourInstall).steps.map(::label))
+        // Marked installed by us in the snapshot does too.
+        val marked = withPackage(curtainState().copy(installedByUs = true))
+        assertEquals(listOf("Uninstall tv.cleanyour.curtain"), plan(PlanRequest.Leftovers(emptySet()), snapshot = marked).steps.map(::label))
+        // Our own run on a clean TV: installed, used and removed by the plan itself.
+        val own = plan(withCurtain(), planner = planner())
+        assertEquals("InstallStream tv.cleanyour.curtain", label(own.steps.first()))
+        assertEquals("Uninstall tv.cleanyour.curtain", label(own.steps.last()))
     }
 
     @Test fun installRefusalToggleOffAndNoPinGiveTodaysPlan() {
@@ -166,15 +191,15 @@ class CurtainPlanTest {
     // must not need a pass), so the curtain is removed by Leftovers or by the next Setup.
     @Test fun leftoverIsRemovedFirstByLeftovers() {
         val snap = withPackage(curtainState())
-        val p = plan(PlanRequest.Leftovers(setOf(installed.first())), snapshot = snap)
+        val p = plan(PlanRequest.Leftovers(setOf(installed.first())), snapshot = snap, journals = ourInstall)
         assertEquals(listOf("Uninstall tv.cleanyour.curtain", "Disable ${installed.first().value}"), p.steps.map(::label))
         assertEquals("Removing the progress screen from the TV", p.steps.first().narration)
         assertEquals(FailurePolicy.CONTINUE, p.steps.first().onFailure)
         assertEquals(listOf("Disable ${installed.first().value}"), plan(PlanRequest.Leftovers(setOf(installed.first()))).steps.map(::label))
-        val off = plan(PlanRequest.DebugOff, snapshot = snap)
+        val off = plan(PlanRequest.DebugOff, snapshot = snap, journals = ourInstall)
         assertTrue(off.steps.none { it.op is Op.Uninstall }, "debug_off never needs a pass")
         // Someone else's app under our name is not a leftover.
-        val theirs = plan(PlanRequest.Leftovers(emptySet()), snapshot = withPackage(curtainState(signer = Sha256("9".repeat(64)))),
+        val theirs = plan(PlanRequest.Leftovers(emptySet()), snapshot = withPackage(curtainState(signer = Sha256("9".repeat(64)))), journals = ourInstall,
             planner = DefaultPlanner(PlannerFixtures.clock, tv.cleanyour.testing.fixtures.FakeIdGen(), tv.cleanyour.core.ops.ShellRenderer(), OverlayTransport(), "0.1.0", curtainSigner = curtain.signer))
         assertTrue(theirs.steps.isEmpty())
     }

@@ -251,10 +251,14 @@ class DefaultPlanner(
 
         val curtainPkg: PackageName get() = curtainActivity.pkg
 
-        // The curtain on the TV is ours unless the snapshot names another signer for its package.
+        // The curtain on the TV is ours only when we installed it (SECURITY 3.2 and threat C6, the
+        // rule removeModule uses: installed by us, or an install of it in this TV's change records)
+        // and the snapshot names no other signer for it (RF-CURTAIN-1 F2). Anything else under our
+        // name is never started, cued or removed.
         fun curtainIsOurs(signer: Sha256?): Boolean {
             val s = state(curtainPkg) ?: return false
-            return s.signer == null || signer == null || s.signer == signer
+            if (s.signer != null && signer != null && s.signer != signer) return false
+            return s.installedByUs || journals.any { (it.op as? Op.Install)?.pkg == curtainPkg || (it.op as? Op.InstallStream)?.pkg == curtainPkg }
         }
 
         // A curtain left on the TV by an interrupted run: removed first by Leftovers (and by Setup's
@@ -287,7 +291,7 @@ class DefaultPlanner(
             if (artifact.pkg != curtainPkg) return   // not the curtain: no curtain steps, the setup is unchanged
             if (steps.isEmpty()) return               // nothing to do on the TV, nothing to show
             val current = state(curtainPkg)
-            if (current != null && !curtainIsOurs(artifact.signer)) return   // another app under our name: never touched
+            if (current != null && !curtainIsOurs(artifact.signer)) return   // not ours (another signer, or no install of ours): never touched
             val body = steps.toList()
             val bodySections = sections.toList()
             steps.clear(); sections.clear()

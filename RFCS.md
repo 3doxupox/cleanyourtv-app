@@ -94,6 +94,25 @@ curtain.
 Custom only; replan hands the pin's artifact in when the level is Simple or the draft's `curtain` is
 on, and plans without it when the asset does not match its pin.
 
+Review (RF-CURTAIN-1, APPROVE WITH FOLLOW-UPS): F1 applied (a silent step never forces a
+thumbnail; the engine compares a voiced step's group with the last voiced step's, test
+`silentStepsForceNoThumbnail`). F2 applied: "ours" is the journal rule of `removeModule` (installed
+by us, or an install of the curtain in this TV's change records), replacing (b) above; a curtain
+package without such a record gets no Setup steps and no Leftovers step
+(`onlyACurtainWeInstalledIsTouched`). F3 main merged. F5: SECURITY 3.2 has the `curtain_cue` row,
+PRODUCT-SPEC 5.8 and DECISIONS-W1 list `PlanRequest.Setup.curtain` and `Choices.curtain`. F6 in part:
+the cue line ends with `--receiver-foreground` (goldens 53 to 59); the lead reads the cue steps' ms
+from the Mi TV journal. F7 applied: CueBus keeps early cues for any curtain that attaches, only
+those of the newest run's token. F11 applied: the key frames go to build/curtain-frames, and to
+src/test/frames only with -PcurtainFrames. Follow-ups, open:
+- F6 rest: if Mi TV cue steps come near seconds, give cues a short timeout and count a cue's
+  timeout as Failed (CONTINUE), not Lost.
+- F8 (W8): after a rolled-back section the final uninstall is skipped; SetupMachine could run a
+  one-step Leftovers with the run's own pass before Done or Undone.
+- F9 (W4): read the curtain's signer the way the launcher's is read, so the signer test is real.
+- F10 (W9): build-curtain-on-forge.sh builds the working tree but stamps the commit time; refuse a
+  dirty tree or build from `git archive HEAD`.
+
 ## RFC-CARDS-1: module cards stay off until the person asks for a card (applied on cardsoptin; Fable APPROVE WITH FOLLOW-UPS, reviews/RF-CARDS-1.md)
 
 What: the owner's first real Setup ended with the new home screen asking "New card from Retro ...

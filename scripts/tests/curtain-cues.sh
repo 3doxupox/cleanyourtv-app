@@ -16,7 +16,7 @@ RECEIVER="tv.cleanyour.curtain/.CueReceiver"
 cue() {   # stage count total group gcount gtotal
   $ADB shell am broadcast -n "$RECEIVER" -a tv.cleanyour.curtain.CUE \
     --es token "$TOKEN" --es stage "$1" --es group "${4:-NONE}" \
-    --ei count "${2:-0}" --ei total "${3:-0}" --ei gcount "${5:-0}" --ei gtotal "${6:-0}" >/dev/null
+    --ei count "${2:-0}" --ei total "${3:-0}" --ei gcount "${5:-0}" --ei gtotal "${6:-0}" --receiver-foreground >/dev/null
 }
 
 $ADB shell am start -n tv.cleanyour.curtain/.CurtainActivity >/dev/null

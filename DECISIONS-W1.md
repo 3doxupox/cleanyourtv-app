@@ -108,6 +108,9 @@ owning stream supplies bodies):
   curtain 2026-10-20; RFCS.md carries the RFC and the owner's amendment for the group words).
 - `core.trust` gains `interface CurtainPin { fun bundled(): LauncherArtifact }` next to `LauncherPin`,
   marked `// RFC-CURTAIN-1`.
+- `core.planner.PlanRequest.Setup` gains `curtain: LauncherArtifact? = null` after `wallpaper`, and
+  `core.planner.Choices` gains `curtain: Boolean = true` after `keepDebuggingOn`, both defaulted so
+  every caller compiles and marked `// RFC-CURTAIN-1`; PRODUCT-SPEC 5.8 shows both (RF-CURTAIN-1 F5).
 - `core.flows.SetupIntent` gains `ShowOnTv(on: Boolean)` (the Customise switch "Show the progress on
   the TV") and `core.model.WizardDraft` (growable) gains `curtain: Boolean = true`, both marked
   `// RFC-CURTAIN-1`.

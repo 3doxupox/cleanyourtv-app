@@ -20,7 +20,8 @@ import java.io.FileOutputStream;
 // The Lantern's key frames, drawn on the JVM (Robolectric native graphics) at the moments of the
 // approved mockup's frames (app-design/mockups/tv-curtain/frames l1 to l5), for a side by side look.
 // The cues are applied straight to the view at the mockup's script times (SCRIPT_L), as the queue
-// would release them. Each frame is written to src/test/frames at half size; the test checks
+// would release them. Each frame is written at half size (build/curtain-frames, or src/test/frames
+// with -PcurtainFrames); the test checks
 // that the frames are not empty and that the stages differ where they must.
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 35, qualifiers = "w1920dp-h1080dp-land-mdpi")

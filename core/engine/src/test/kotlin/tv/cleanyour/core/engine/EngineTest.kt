@@ -140,6 +140,37 @@ class EngineTest {
         assertEquals(expected, h.types(plan))
     }
 
+    // RF-CURTAIN-1 F1: a new group forces a thumbnail, but silent steps (the curtain's cues woven
+    // after every switch-off) never force one and do not end a group, so the cues add no screenshots.
+    @Test fun silentStepsForceNoThumbnail() {
+        val receiver = tv.cleanyour.core.model.Component(PackageName("tv.cleanyour.curtain"), ".CueReceiver")
+        val token = tv.cleanyour.core.model.RunToken("fedcba9876543210")
+        fun cue(k: Int) = Op.CurtainCue(receiver, token, tv.cleanyour.core.model.CurtainStage.OFF, k, 3)
+        fun forced(woven: Boolean): Int {
+            var count = 0
+            runTest(timeout = TEST_TIMEOUT) {
+                val h = Harness(this)
+                val engine = h.engine(thumbnailEveryMs = 3_600_000)   // only forced screenshots
+                val groups = listOf("ads", "ads", "tracking")
+                val ops = h.debloat.take(3).flatMapIndexed { k, p -> listOf<Op>(Op.Disable(p)) + if (woven) listOf(cue(k + 1)) else emptyList() }
+                val base = h.opsPlan(*ops.toTypedArray())
+                var g = 0
+                val plan = base.copy(steps = base.steps.map { s ->
+                    if (s.op is Op.CurtainCue) s.copy(group = "curtain", narration = "", onFailure = FailurePolicy.CONTINUE)
+                    else s.copy(group = groups[g++], narration = "Switching off")
+                })
+                assertEquals(StartResult.Started, engine.start(plan, h.tv, plan.hash, h.pass()))
+                h.settle(engine)
+                assertEquals(RunStatus.COMPLETED, (engine.runState(h.tv.tvId).value as RunState.Finished).status)
+                count = h.prober.calls.count { it == "screenshot" }
+            }
+            return count
+        }
+        val plain = forced(woven = false)
+        assertEquals(2, plain, "the first step and the change from ads to tracking")
+        assertEquals(plain, forced(woven = true))
+    }
+
     @Test fun debloatRunJournalsVerifiesAndSavesTheRestorePoint() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
         val engine = h.engine()

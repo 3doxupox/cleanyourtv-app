@@ -24,6 +24,9 @@ tasks.withType<Test>().configureEach {
     maxParallelForks = 1
     maxHeapSize = "1280m"
     systemProperty("robolectric.graphicsMode", "NATIVE")
-    // The key frames land next to the tests, for review beside the mockup's (not compared).
-    systemProperty("curtain.frames", layout.projectDirectory.dir("src/test/frames").asFile.absolutePath)
+    // The key frames, for review beside the mockup's (not compared): build/curtain-frames, or next
+    // to the tests in src/test/frames with -PcurtainFrames (RF-CURTAIN-1 F11).
+    val frames = if (providers.gradleProperty("curtainFrames").isPresent) layout.projectDirectory.dir("src/test/frames").asFile
+        else layout.buildDirectory.dir("curtain-frames").get().asFile
+    systemProperty("curtain.frames", frames.absolutePath)
 }

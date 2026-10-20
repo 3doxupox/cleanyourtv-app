@@ -142,7 +142,10 @@ class ShellRenderer(private val watchdogVariant: WatchdogVariant = WatchdogVaria
         val argv = listOf(AM, "broadcast", "-n", receiver, "-a", CUE_ACTION,
             ES, "token", token(op.token).value, ES, "stage", stage, ES, "group", group,
             EI, "count", op.count.toString(), EI, "total", op.total.toString(),
-            EI, "gcount", op.groupCount.toString(), EI, "gtotal", op.groupTotal.toString())
+            EI, "gcount", op.groupCount.toString(), EI, "gtotal", op.groupTotal.toString(),
+            // The receiver runs in the foreground queue, not behind the package broadcasts the
+            // switch-offs just sent, so a cue returns quickly (RF-CURTAIN-1 F6).
+            RECEIVER_FOREGROUND)
         return Rendered(op, lines(line(*argv.toTypedArray())), null, Privilege.PROFILE_STEP, null, T_DEFAULT, CAP_DEFAULT)
     }
 
@@ -315,6 +318,7 @@ class ShellRenderer(private val watchdogVariant: WatchdogVariant = WatchdogVaria
         const val CUE_MAX = 999
         private const val ES = "--es"
         private const val EI = "--ei"
+        private const val RECEIVER_FOREGROUND = "--receiver-foreground"
         private val CUE_WORD_RE = Regex("^[A-Z_]{1,16}$")
         const val EMPTY_FILE_SHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 

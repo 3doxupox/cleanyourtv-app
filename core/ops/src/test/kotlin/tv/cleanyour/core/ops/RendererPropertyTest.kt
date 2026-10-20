@@ -146,7 +146,7 @@ class RendererPropertyTest {
             val argv = ShellTokens.tokenize(r.lines.single().text)
             assertEquals(listOf("am", "broadcast", "-n", "tv.cleanyour.curtain/.CueReceiver", "-a", "tv.cleanyour.curtain.CUE",
                 "--es", "token", op.token.value, "--es", "stage", op.stage.name, "--es", "group", op.group.name,
-                "--ei", "count", "${op.count}", "--ei", "total", "${op.total}", "--ei", "gcount", "${op.groupCount}", "--ei", "gtotal", "${op.groupTotal}"), argv)
+                "--ei", "count", "${op.count}", "--ei", "total", "${op.total}", "--ei", "gcount", "${op.groupCount}", "--ei", "gtotal", "${op.groupTotal}", "--receiver-foreground"), argv)
             assertEquals(Privilege.PROFILE_STEP, r.privilege)
             assertEquals(null, r.verify)
             assertEquals(null, r.transfer)

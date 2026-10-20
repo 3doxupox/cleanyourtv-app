@@ -237,7 +237,12 @@ class DefaultEngine(
                 if (!openSection(run, section)) { finishWithSkips(run, HomeOutcome.VERIFY_FAILED, i); return }
             }
             val section = plan.sections.firstOrNull { it.name in run.openSections && i in it.from..it.to }
-            if (i == 0 || plan.steps[i - 1].group != step.group) thumbnail(run, force = true) else thumbnail(run, force = false)
+            // A new group forces a fresh thumbnail. Silent steps (RFC-CURTAIN-1: the curtain's start
+            // and cues, woven between the switch-offs) never force one and do not end a group: the
+            // group of a voiced step is compared with the last voiced step's (RF-CURTAIN-1 F1).
+            val voiced = step.narration.isNotBlank()
+            val lastVoiced = plan.steps.subList(0, i).lastOrNull { it.narration.isNotBlank() }
+            if (i == 0 || (voiced && lastVoiced?.group != step.group)) thumbnail(run, force = true) else thumbnail(run, force = false)
             run.states[i] = NarrationState.DOING
             publishRunning(run, i)
 

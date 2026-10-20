@@ -124,7 +124,7 @@ private val homeSwitchOnlyPlan = plan(summary(listOf(homeSwitchGroup)).copy(dock
 // RFC-CURTAIN-1: the same plan with the TV curtain, as "Show commands" lists it: the curtain's install,
 // its start, one am broadcast per cue, and its removal last.
 private fun cue(stage: String, count: Int = 0, total: Int = 0) =
-    "am broadcast -n tv.cleanyour.curtain/.CueReceiver -a tv.cleanyour.curtain.CUE --es token 3f9c0a17d2e4b856 --es stage $stage --es group NONE --ei count $count --ei total $total --ei gcount 0 --ei gtotal 0"
+    "am broadcast -n tv.cleanyour.curtain/.CueReceiver -a tv.cleanyour.curtain.CUE --es token 3f9c0a17d2e4b856 --es stage $stage --es group NONE --ei count $count --ei total $total --ei gcount 0 --ei gtotal 0 --receiver-foreground"
 private val curtainCommands = listOf(
     "sync:bundled:cleanyourtv-curtain.apk 49571",
     "am start -n tv.cleanyour.curtain/.CurtainActivity",
