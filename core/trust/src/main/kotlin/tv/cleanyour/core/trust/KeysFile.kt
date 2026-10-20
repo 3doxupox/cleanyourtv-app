@@ -10,7 +10,7 @@ import tv.cleanyour.core.trust.IndexJson.str
 // index.json and the keys that no longer may:
 //
 //   {"schema": 1, "sequence": 1, "generated": "2026-10-19T12:00:00Z",
-//    "keys": [{"id": "B63EB88CF5C83556", "public_key": "RWRWNcj1...", "status": "active"},
+//    "keys": [{"id": "0190B42669E69FB0", "public_key": "RWSwn+Zp...", "status": "active"},
 //             {"id": "...", "public_key": "...", "status": "revoked"}]}
 //
 // `id` is the minisign key id as minisign prints it and must equal the id inside `public_key`.

@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "sequence": 1,
-  "generated": "2026-10-19T12:24:52Z",
-  "expires": "2026-11-02T12:24:52Z",
+  "sequence": 2,
+  "generated": "2026-10-20T16:44:56Z",
+  "expires": "2027-01-18T16:44:56Z",
   "modules": [
     {
       "id": "retro",

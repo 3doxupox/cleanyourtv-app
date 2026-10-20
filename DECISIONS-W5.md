@@ -80,21 +80,27 @@ frozen signature changed; no RFC was needed.
 ## Keys and custody
 
 - K1 Launcher release key (Q1). RSA 4096, self-signed, `O=cleanyourtv, CN=Clean Your TV launcher`,
-  valid to 2056-10-11, PKCS12, generated 2026-10-19 on jarvis with OpenSSL, random 33-byte password.
+  valid to 2056-10-11, PKCS12, generated 2026-10-19 on the maintainer's machine with OpenSSL, random 33-byte password.
   Signer certificate sha256 `576418154bec6505bfc709ccaa6ae85b6e09d98eb89f4a25147ca1b4b0505132`.
-  Keystore and password only in `/Users/dev/jarvis/secrets/cleanyourtv-launcher/` (directory 700,
-  files 600); never in the repo. Signing happens in a throwaway container on forge: the keystore and
-  password travel over ssh stdin into the container's `/dev/shm` and are removed after signing, so
-  they never touch forge's disk. The user should keep an offline copy (password manager plus a
+  Keystore and password only in the maintainer's offline key store (directory 700,
+  files 600); never in the repo. Signing happens in a throwaway container on the build host: the keystore
+  and password travel over ssh stdin into the container's `/dev/shm` and are removed after signing,
+  so they never touch the build host's disk. The user should keep an offline copy (password manager plus a
   backup); losing the key means the next launcher build needs another guarded reinstall (D36).
-- K2 Module index keys, DEVELOPMENT ONLY. minisign 0.12 keys generated 2026-10-19 on jarvis, each
+- K2 Module index keys, DEVELOPMENT ONLY (retired by K2R). minisign 0.12 keys generated 2026-10-19, each
   encrypted with its own random password: root `EE792DBF95AA99A9` (signs `keys.json`; its public key
   is compiled in `TrustRoots.INDEX_ROOT_PUBLIC_KEY`) and index key `B63EB88CF5C83556` (signs
-  `index.json`; listed active in `keys.json` sequence 1). Secret keys and passwords only in
-  `/Users/dev/jarvis/secrets/cleanyourtv-index/`. These keys must be rotated before any public
+  `index.json`; listed active in `keys.json` sequence 1). Secret keys and passwords only in the
+  maintainer's key store. These keys must be rotated before any public
   release: a new root generated offline by the owner, a new index key held where the published index
   is built, a new `keys.json`, a new compiled root and an app update (a root change always needs one).
-- K3 The seed index expires 14 days after it is signed (S2). A build more than 14 days after the
+- K2R Release module index keys (2026-10-20, before 0.1.0 went public). A new minisign root
+  `692E33AEFDE19BC1` (compiled in `TrustRoots.INDEX_ROOT_PUBLIC_KEY`) and a new index key
+  `0190B42669E69FB0` (active in `keys.json` sequence 1, signed by the new root), each encrypted with
+  its own random password and kept offline with the maintainer, never in CI. The K2 development keys
+  never signed anything a public build trusts. The seed was re-signed at sequence 2 with a 90 day
+  expiry (K3 as amended).
+- K3 The seed index expires 14 days (90 days since K2R, `--days` to change) after it is signed (S2). A build more than 14 days after the
   last signing ships a stale seed (shown, not installable until a refresh succeeds). Re-date and
   re-sign with `scripts/sign-seed-index.py index` before an internal build; it raises the sequence.
 - K4 Retro facts in the seed were read from the published release, not copied: release v0.1.0
