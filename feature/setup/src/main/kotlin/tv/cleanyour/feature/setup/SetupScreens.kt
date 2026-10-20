@@ -18,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -253,19 +254,27 @@ internal fun ColumnScope.CustomiseContent(
     // the home screen switch and stays in its group, shown Off with nothing to flip.
     val protectedRows = summary.groups.flatMap { g -> g.rows.filter { it.kept() } }
     val groups = summary.groups.map { g -> g.copy(rows = g.rows.filterNot { it.kept() }) }.filter { it.rows.isNotEmpty() }
-    // The first group opens; the others wait in one collapsed card until tapped (DESIGN-SYSTEM 8.4,
-    // mockup 08).
+    // The first group opens; the others wait collapsed until tapped (DESIGN-SYSTEM 8.4, mockup 08).
+    // Groups keep their order: an opened group expands where it was tapped, and the closed groups
+    // around it stay in cards above and below it (device test 2026-10-20: it jumped to the top).
     var open by rememberSaveable { mutableStateOf(initiallyOpen ?: listOfNotNull(groups.firstOrNull()?.id)) }
-    groups.filter { it.id in open }.forEach { g ->
-        GroupSection(g, custom, onCollapse = { open = open - g.id }) { row ->
-            actions.intent(SetupIntent.Keep(row.pkg, keep = row.off))
-            val text = android.icu.text.MessageFormat(if (row.off) keptText else offText, locale).format(mapOf("name" to row.friendlyName))
-            undo.show(text) { actions.intent(SetupIntent.Keep(row.pkg, keep = !row.off)) }
-        }
+    // Runs of closed groups between the open ones, in list order.
+    val segments = mutableListOf<List<GroupSummary>>()
+    for (g in groups) {
+        val last = segments.lastOrNull()
+        if (g.id !in open && last != null && last.first().id !in open) segments[segments.lastIndex] = last + g else segments += listOf(g)
     }
-    val closed = groups.filter { it.id !in open }
-    if (closed.isNotEmpty()) {
-        CollapsedGroupsCard(closed.map { g -> DiffGroup(g.id, g.title, g.rows.map { it.toItem() }) }, { open = open + it.key }, Modifier.padding(top = 10.dp))
+    for (seg in segments) key(seg.first().id) {
+        val g = seg.first()
+        if (g.id in open) {
+            GroupSection(g, custom, onCollapse = { open = open - g.id }) { row ->
+                actions.intent(SetupIntent.Keep(row.pkg, keep = row.off))
+                val text = android.icu.text.MessageFormat(if (row.off) keptText else offText, locale).format(mapOf("name" to row.friendlyName))
+                undo.show(text) { actions.intent(SetupIntent.Keep(row.pkg, keep = !row.off)) }
+            }
+        } else {
+            CollapsedGroupsCard(seg.map { c -> DiffGroup(c.id, c.title, c.rows.map { it.toItem() }) }, { open = open + it.key }, Modifier.padding(top = 10.dp))
+        }
     }
     if (protectedRows.isNotEmpty()) {
         ProtectedGroupSection(stringResource(R.string.customise_protected_title), protectedRows.map { it.toItem() }, onWhy, Modifier.padding(top = 16.dp), showPackageNames = custom)
