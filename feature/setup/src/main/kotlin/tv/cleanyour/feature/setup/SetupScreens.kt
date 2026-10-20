@@ -60,13 +60,13 @@ import tv.cleanyour.ui.design.component.CheckState
 import tv.cleanyour.ui.design.component.CollapsedGroupsCard
 import tv.cleanyour.ui.design.component.CountdownConfirm
 import tv.cleanyour.ui.design.component.CytBottomSheet
-import tv.cleanyour.ui.design.component.CytIcon
-import tv.cleanyour.ui.design.component.CytIconButton
 import tv.cleanyour.ui.design.component.CytTopBar
 import tv.cleanyour.ui.design.component.DiffGroup
 import tv.cleanyour.ui.design.component.DiffGroupSection
 import tv.cleanyour.ui.design.component.DiffItem
-import tv.cleanyour.ui.design.component.DockRow
+import tv.cleanyour.ui.design.component.DockApp
+import tv.cleanyour.ui.design.component.DockEditor
+import tv.cleanyour.ui.design.component.DockEditorState
 import tv.cleanyour.ui.design.component.Gap
 import tv.cleanyour.ui.design.component.GlassCheckMark
 import tv.cleanyour.ui.design.component.GroupTone
@@ -105,7 +105,6 @@ import tv.cleanyour.ui.design.component.UndoSnackbarHost
 import tv.cleanyour.ui.design.component.UndoSnackbarState
 import tv.cleanyour.ui.design.component.rememberEmphasis
 import tv.cleanyour.ui.design.component.rememberUndoSnackbarState
-import tv.cleanyour.ui.design.icon.CytIcons
 import tv.cleanyour.ui.design.theme.CytTheme
 import tv.cleanyour.ui.design.theme.Glow
 import tv.cleanyour.core.engine.NarrationState as EngineNarration
@@ -191,9 +190,16 @@ fun FoundScreen(state: SetupState.Found, extras: SetupExtras, actions: SetupActi
             color = CytTheme.colors.textSecondary, style = CytTheme.type.bodyMedium,
         )
         if (extras.homePossible && summary.homeScreenPossible) {
-            val dock = summary.dock.ifEmpty { extras.dock.map { it.name } }.joinToString(", ")
+            // The dock's apps by name, and how many more sit in the rows under it.
+            val all = summary.dock.ifEmpty { extras.dock.map { it.name } }
+            val dock = all.take(extras.dockColumns).joinToString(", ")
+            val below = (all.size - extras.dockColumns).coerceAtLeast(0)
             // An empty dock never shows "Home screen:" with nothing after it.
-            val row = if (dock.isEmpty()) stringResource(R.string.found_home_row_empty) else msg(R.string.found_home_row, "dock" to dock)
+            val row = when {
+                dock.isEmpty() -> stringResource(R.string.found_home_row_empty)
+                below > 0 -> msg(R.string.found_home_row_rows, "dock" to dock, "count" to below)
+                else -> msg(R.string.found_home_row, "dock" to dock)
+            }
             TextActionRow(row, stringResource(R.string.found_home_change), { actions.intent(SetupIntent.Open(Sheet.DOCK)) }, Modifier.padding(top = 8.dp))
         } else {
             Banner(msg(R.string.stop_tv_refuses_home_body, "brand" to (extras.tvName ?: "")), BannerTone.INFO, Modifier.padding(top = 16.dp))
@@ -203,7 +209,7 @@ fun FoundScreen(state: SetupState.Found, extras: SetupExtras, actions: SetupActi
     }
     when (state.sheet) {
         Sheet.LIST, Sheet.CUSTOMISE -> CustomiseSheet(state, extras, actions, onCopyCommands)
-        Sheet.DOCK -> DockSheet(extras.dock, extras.apps, onDone = { actions.intent(SetupIntent.SetDock(it)); actions.intent(SetupIntent.Open(null)) },
+        Sheet.DOCK -> DockSheet(extras.dock, extras.apps, extras.dockColumns, onDone = { actions.intent(SetupIntent.SetDock(it)); actions.intent(SetupIntent.Open(null)) },
             onDismiss = { actions.intent(SetupIntent.Open(null)) })
         Sheet.THEME -> CytBottomSheet({ actions.intent(SetupIntent.Open(null)) }) { ThemeContent(extras, actions) }
         else -> {}
@@ -272,8 +278,14 @@ internal fun ColumnScope.CustomiseContent(
     }
     Overline(stringResource(R.string.customise_group_home), Modifier.padding(start = 4.dp, top = 16.dp, bottom = 8.dp))
     ListGroup {
-        val dockRow = if (extras.dock.isEmpty()) stringResource(R.string.customise_dock_row_empty)
-            else msg(R.string.customise_dock_row, "names" to extras.dock.joinToString(", ") { it.name })
+        val inDock = extras.dock.take(extras.dockColumns).joinToString(", ") { it.name }
+        val below = (extras.dock.size - extras.dockColumns).coerceAtLeast(0)
+        val dockRow = when {
+            extras.dock.isEmpty() -> stringResource(R.string.customise_dock_row_empty)
+            below > 0 -> msg(R.string.customise_dock_row_rows, "names" to inDock, "count" to below,
+                "rows" to (below + extras.dockColumns - 1) / extras.dockColumns.coerceAtLeast(1))
+            else -> msg(R.string.customise_dock_row, "names" to inDock)
+        }
         ListRow(dockRow, onClick = { actions.intent(SetupIntent.Open(Sheet.DOCK)) })
         ListDivider()
         val theme = extras.themes.firstOrNull { it.id == extras.draft?.themeId }?.name ?: stringResource(R.string.theme_default)
@@ -322,57 +334,26 @@ internal fun WhyContent(state: SetupState.Found) {
     }
 }
 
-// S3b Your dock: up to four, with up and down buttons for motor access (UX 7.1).
+// S3b Your dock: the dock and the rows under it (DockEditor). Hold and drag to reorder; the up and
+// down buttons stay for motor access (UX 7.1). Done hands back the one ordered list.
 @Composable
-fun DockSheet(current: List<AppChoice>, apps: List<AppChoice>, onDone: (List<PackageName>) -> Unit, onDismiss: () -> Unit) {
-    var dock by remember(current) { mutableStateOf(current) }
+fun DockSheet(current: List<AppChoice>, apps: List<AppChoice>, columns: Int, onDone: (List<PackageName>) -> Unit, onDismiss: () -> Unit) {
+    val state = remember(current, columns) { DockEditorState(current.map { it.toDockApp() }, columns) }
     CytBottomSheet(onDismiss) {
         Column(Modifier.verticalScroll(rememberScrollState())) {
-            DockContent(dock, apps, { dock = it }, onDone = { onDone(dock.map { it.pkg }) })
+            DockContent(state, apps, onDone = { onDone(state.apps.map { PackageName(it.key) }) })
         }
     }
 }
 
 @Composable
-internal fun DockContent(dock: List<AppChoice>, apps: List<AppChoice>, onChange: (List<AppChoice>) -> Unit, onDone: () -> Unit) {
-    SheetHeader(stringResource(R.string.dock_title), subtitle = stringResource(R.string.dock_body))
-    // An empty dock has no "In the dock" heading over nothing (round 3); the apps to add follow.
-    if (dock.isNotEmpty()) Overline(stringResource(R.string.dock_section_in), Modifier.padding(start = 4.dp, top = 16.dp, bottom = 8.dp))
-    if (dock.isNotEmpty()) ListGroup {
-        dock.forEachIndexed { i, app ->
-            if (i > 0) ListDivider()
-            val inCd = msg(R.string.dock_item_in_cd, "name" to app.name, "position" to i + 1)
-            DockRow(
-                app.name, Modifier.semantics { contentDescription = inCd },
-                controls = {
-                    Row {
-                        if (i > 0) CytIconButton(CytIcons.ArrowUp, msg(R.string.dock_move_up_cd, "name" to app.name), { onChange(dock.toMutableList().apply { add(i - 1, removeAt(i)) }) })
-                        if (i < dock.size - 1) CytIconButton(CytIcons.ArrowDown, msg(R.string.dock_move_down_cd, "name" to app.name), { onChange(dock.toMutableList().apply { add(i + 1, removeAt(i)) }) })
-                        CytIconButton(CytIcons.Minus, msg(R.string.dock_remove_cd, "name" to app.name), { onChange(dock - app) })
-                    }
-                },
-            )
-        }
-    }
-    if (dock.size >= 4) Body(stringResource(R.string.dock_full_note), Modifier.padding(start = 4.dp, top = 8.dp))
-    val others = apps.filter { a -> dock.none { it.pkg == a.pkg } }
-    if (others.isNotEmpty()) {
-        Overline(stringResource(R.string.dock_section_other), Modifier.padding(start = 4.dp, top = 16.dp, bottom = 8.dp))
-        ListGroup {
-            others.forEachIndexed { i, app ->
-                if (i > 0) ListDivider()
-                val room = dock.size < 4
-                val cd = msg(if (room) R.string.dock_add_cd else R.string.dock_item_out_cd, "name" to app.name)
-                DockRow(
-                    app.name, Modifier.semantics { contentDescription = cd },
-                    controls = if (room) ({ CytIcon(CytIcons.Plus, null, tint = CytTheme.colors.accent) }) else null,
-                    onClick = if (room) ({ onChange(dock + app) }) else null,
-                )
-            }
-        }
-    }
+internal fun DockContent(state: DockEditorState, apps: List<AppChoice>, onDone: () -> Unit) {
+    SheetHeader(stringResource(R.string.dock_title), subtitle = msg(R.string.dock_body, "count" to state.columns))
+    DockEditor(state, remember(apps) { apps.map { it.toDockApp() } })
     PrimaryButton(stringResource(R.string.action_done), onDone, Modifier.padding(top = 20.dp))
 }
+
+internal fun AppChoice.toDockApp() = DockApp(pkg.value, name)
 
 // The look picker (S3a "Look: Default >"): Default, Aurora, Six columns.
 @Composable
@@ -451,16 +432,18 @@ fun CheckScreen(state: SetupState.Check, extras: SetupExtras, actions: SetupActi
     val total = run.section.confirmWindowMs.coerceAtLeast(1)
     val shot = rememberPng(state.thumbnail ?: run.thumbnail)
     val locale = LocalConfiguration.current.locales[0]
-    // "Netflix, YouTube, Prime Video and Live TV" in the person's language.
-    val names = remember(state.dockNames, locale) { android.icu.text.ListFormatter.getInstance(locale).format(state.dockNames) }
-    val dock = if (state.dockNames.isEmpty()) stringResource(R.string.check_dock_sentence_empty)
+    // "Netflix, YouTube, Prime Video and Live TV" in the person's language: the dock's own apps,
+    // the ones along the bottom (the rows under it are not in the sentence).
+    val inDock = state.dockNames.take(extras.dockColumns)
+    val names = remember(inDock, locale) { android.icu.text.ListFormatter.getInstance(locale).format(inDock) }
+    val dock = if (inDock.isEmpty()) stringResource(R.string.check_dock_sentence_empty)
     else msg(R.string.check_dock_sentence, "dock" to names)
     ScreenScaffold(Glow.Tv, modifier, scrollable = false, topBar = { TopBar(extras) }) {
         CountdownConfirm(
             overline = stringResource(R.string.check_overline),
             title = stringResource(R.string.check_title),
             thumbnail = shot,
-            thumbnailDescription = msg(R.string.check_thumbnail_cd, "count" to state.dockNames.size),
+            thumbnailDescription = msg(R.string.check_thumbnail_cd, "count" to inDock.size),
             sentence = dock + " " + stringResource(R.string.check_thumbnail_note),
             instruction = stringResource(R.string.check_press_home),
             liveCheck = stringResource(R.string.check_live_ok),

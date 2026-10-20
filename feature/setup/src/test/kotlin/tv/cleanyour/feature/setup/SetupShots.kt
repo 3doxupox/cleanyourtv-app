@@ -149,6 +149,13 @@ private val customising = connected.copy(
     draft = WizardDraft(3, Level.SIMPLE, emptySet(), emptySet(), null, null, false, null, NOW),
 )
 
+// The dock sheet's state as DockSheet makes it (remembered, so it survives recomposition).
+@Composable
+private fun dockState(apps: List<AppChoice>, addRow: Boolean = false) =
+    remember { tv.cleanyour.ui.design.component.DockEditorState(apps.map { it.toDockApp() }, 4).apply { if (addRow) addRow() } }
+
+private val rowsPlan = plan(summary(listOf(adsGroup, trackingGroup, nobodyGroup, extrasGroup)).copy(dock = dock + listOf("Spotify", "Plex")))
+
 private fun found(plan: Plan = fullPlan, level: Level = Level.SIMPLE) = SetupState.Found(tvId, plan, level, sheet = null)
 
 private fun running(lines: List<NarrationLine>, percent: Int, thumbnail: ByteArray?) =
@@ -233,6 +240,12 @@ object SetupShots {
         Shot("customise_sheet") {
             SheetFrame({ Setup(found()) }) { CustomiseContent(found(), customising, NoSetupActions, rememberUndoSnackbarState(), {}, {}) }
         },
+        // A dock with a row under it: "Dock: Netflix, ... plus 2 apps in the row below", the groups closed.
+        Shot("customise_sheet_dock_rows") {
+            SheetFrame({ Setup(found(rowsPlan)) }) {
+                CustomiseContent(found(rowsPlan), customising.copy(dock = dockApps + otherApps.take(2)), NoSetupActions, rememberUndoSnackbarState(), {}, {}, initiallyOpen = emptyList())
+            }
+        },
         Shot("customise_sheet_custom") {
             Box(Modifier.fillMaxSize()) {
                 SheetFrame({ Setup(found(level = Level.CUSTOM)) }) {
@@ -253,10 +266,13 @@ object SetupShots {
         Shot("customise_why_sheet") { SheetFrame({ Setup(found()) }, maxHeight = 360.dp) { WhyContent(found()) } },
 
         // S3b Your dock, with room and full; the look picker
-        Shot("dock_sheet") { SheetFrame({ Setup(found()) }) { DockContent(dockApps.take(3), dockApps + otherApps, {}, {}) } },
-        Shot("dock_sheet_full") { SheetFrame({ Setup(found()) }) { DockContent(dockApps, dockApps + otherApps, {}, {}) } },
-        // An empty dock: no "In the dock" heading over nothing, the apps to add straight away.
-        Shot("dock_sheet_empty") { SheetFrame({ Setup(found(homeSwitchOnlyPlan)) }) { DockContent(emptyList(), otherApps, {}, {}) } },
+        Shot("dock_sheet") { SheetFrame({ Setup(found()) }) { DockContent(dockState(dockApps.take(3)), dockApps + otherApps, {}) } },
+        Shot("dock_sheet_full") { SheetFrame({ Setup(found()) }) { DockContent(dockState(dockApps), dockApps + otherApps, {}) } },
+        // An empty dock: no "Dock" heading over nothing, the apps to add straight away.
+        Shot("dock_sheet_empty") { SheetFrame({ Setup(found(homeSwitchOnlyPlan)) }) { DockContent(dockState(emptyList()), otherApps, {}) } },
+        // The dock with a row under it, and a row just added and still empty.
+        Shot("dock_sheet_rows") { SheetFrame({ Setup(found()) }) { DockContent(dockState(dockApps + otherApps.take(2)), dockApps + otherApps, {}) } },
+        Shot("dock_sheet_new_row") { SheetFrame({ Setup(found()) }) { DockContent(dockState(dockApps, addRow = true), dockApps + otherApps, {}) } },
         Shot("theme_sheet") { SheetFrame({ Setup(found()) }, maxHeight = 480.dp) { ThemeContent(customising, NoSetupActions) } },
 
         // S4a Making it clean

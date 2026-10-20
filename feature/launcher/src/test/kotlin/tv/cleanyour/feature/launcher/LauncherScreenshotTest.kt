@@ -1,5 +1,7 @@
 package tv.cleanyour.feature.launcher
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.dp
 import java.util.TimeZone
@@ -17,6 +19,7 @@ import tv.cleanyour.core.flows.ThemeOption
 import tv.cleanyour.core.model.Op
 import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.testing.fixtures.Samples
+import tv.cleanyour.ui.design.component.DockEditorState
 
 // Every section 4 state of :feature:launcher (PRODUCT-SPEC 4: M2 with the drift banner, the
 // Look and dock sheets and the stock home screen preview), each in dark, light, 200% font and
@@ -28,7 +31,13 @@ private val defaultDock = listOf(
     app("com.netflix.ninja", "Netflix"), app("com.google.android.youtube.tv", "YouTube"),
     app("com.amazon.amazonvideo.livingroom", "Prime Video"), app("com.droidlogic.tvinput", "Live TV"),
 )
-private val apps = defaultDock + listOf(app("com.spotify.tv.android", "Spotify"), app("org.videolan.vlc", "VLC"))
+private val apps = defaultDock + listOf(app("com.spotify.tv.android", "Spotify"), app("com.plexapp.android", "Plex"), app("org.videolan.vlc", "VLC"))
+private val rowsDock = defaultDock + apps.drop(4).take(2)
+
+// The dock sheet's state as DockSheet makes it (remembered, so it survives recomposition).
+@Composable
+private fun dockState(dock: List<AppChoice>, addRow: Boolean = false) =
+    remember { DockEditorState(dock.map { it.toDockApp() }, 4).apply { if (addRow) addRow() } }
 private val themes = listOf(
     ThemeOption("default", "Default", "A black background with four apps along the bottom."),
     ThemeOption("aurora", "Aurora", "A deep blue background with a soft glow behind the apps."),
@@ -61,12 +70,15 @@ object LauncherShots {
         Shot("home_no_stock_launcher") { HomeScreen(home(stock = false), {}, {}) },
         Shot("home_stock_already_in_use") { HomeScreen(home(ours = false), {}, {}) },
         Shot("home_empty_dock") { HomeScreen(home(dock = emptyList()), {}, {}) },
+        Shot("home_dock_rows") { HomeScreen(home(dock = rowsDock), {}, {}) },
 
         // Look (theme picker), the dock sheet (S3b on Manage) and the stock home screen preview
         Shot("home_look_sheet") { SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(home(themeId = "aurora")) {} } },
-        Shot("home_dock_sheet", 1000.dp) { SheetOver({ HomeScreen(home(), {}, {}) }) { DockContent(defaultDock.take(3), apps, {}, {}) } },
-        Shot("home_dock_sheet_full", 1000.dp) { SheetOver({ HomeScreen(home(), {}, {}) }) { DockContent(defaultDock, apps, {}, {}) } },
-        Shot("home_dock_sheet_empty") { SheetOver({ HomeScreen(home(), {}, {}) }) { DockContent(emptyList(), apps, {}, {}) } },
+        Shot("home_dock_sheet", 1000.dp) { SheetOver({ HomeScreen(home(), {}, {}) }) { DockContent(dockState(defaultDock.take(3)), apps, {}) } },
+        Shot("home_dock_sheet_full", 1000.dp) { SheetOver({ HomeScreen(home(), {}, {}) }) { DockContent(dockState(defaultDock), apps, {}) } },
+        Shot("home_dock_sheet_empty") { SheetOver({ HomeScreen(home(), {}, {}) }) { DockContent(dockState(emptyList()), apps, {}) } },
+        Shot("home_dock_sheet_rows", 1200.dp) { SheetOver({ HomeScreen(home(dock = rowsDock), {}, {}) }) { DockContent(dockState(rowsDock), apps, {}) } },
+        Shot("home_dock_sheet_new_row", 1200.dp) { SheetOver({ HomeScreen(home(), {}, {}) }) { DockContent(dockState(defaultDock, addRow = true), apps, {}) } },
         Shot("home_stock_preview") { SheetOver({ HomeScreen(home(), {}, {}) }) { StockPreviewContent(stockPlan) {} } },
     )
 }
