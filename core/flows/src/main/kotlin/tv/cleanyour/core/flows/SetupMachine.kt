@@ -57,6 +57,7 @@ import tv.cleanyour.core.session.OpenResult
 import tv.cleanyour.core.session.SessionManager
 import tv.cleanyour.core.session.TvSession
 import tv.cleanyour.core.spec.AppNames
+import tv.cleanyour.core.spec.DockLayers
 import tv.cleanyour.core.spec.FactsTable
 import tv.cleanyour.core.spec.ProfileResolution
 import tv.cleanyour.core.spec.ProfileSource
@@ -108,8 +109,9 @@ data class SetupExtras(
     val restartReenabled: Int = 0,               // "2 things came back on after the restart; switched off again."
     val doneLines: List<String> = emptyList(),   // refused ops named on Done (UX 4.14)
     val restorePointPushed: Boolean = false,     // D44
-    val dock: List<AppChoice> = emptyList(),     // D4 row and the dock sheet (S3b)
+    val dock: List<AppChoice> = emptyList(),     // D4 row and the dock sheet (S3b): the dock, then Row 2 and Row 3
     val apps: List<AppChoice> = emptyList(),     // installed apps for the dock sheet
+    val dockColumns: Int = DockLayers.DEFAULT_COLUMNS,   // apps per row for the chosen look (DockLayers)
 )
 
 class SetupDeps(
@@ -354,7 +356,7 @@ class SetupMachine(
                 if (event.keep) d.copy(kept = d.kept + event.pkg, extraOff = d.extraOff - event.pkg)
                 else if (event.pkg in d.kept) d.copy(kept = d.kept - event.pkg) else d.copy(extraOff = d.extraOff + event.pkg)
             }
-            is SetupIntent.SetDock -> editDraft { it.copy(dock = event.dock.take(8)) }
+            is SetupIntent.SetDock -> editDraft { it.copy(dock = DockLayers.trim(event.dock, dockColumns(it.themeId))) }
             is SetupIntent.SetTheme -> editDraft { it.copy(themeId = event.id) }
             is SetupIntent.KeepDebuggingOn -> editDraft { it.copy(keepDebuggingOn = event.on) }
             SetupIntent.MakeItClean -> if (after is SetupState.Found && !mutableExtras.value.starting) {
@@ -600,11 +602,14 @@ class SetupMachine(
         val draft = record.wizard ?: return
         val launcher = deps.launcherPin.bundled()
         val installed = snap.packages[launcher.pkg]
-        val dock = draft.dock ?: deps.dock.pick(profile(), snap.packages.keys, snap.hdmi.isNotEmpty(), profile()?.liveTv, deps.locale())
+        // The dock and the rows under it, cut to what the chosen look holds (DockLayers).
+        val theme = draft.themeId?.let { id -> deps.themes.bundled().firstOrNull { it.id == id } }
+        val columns = DockLayers.columnsOf(theme?.doc)
+        val dock = DockLayers.trim(draft.dock ?: deps.dock.pick(profile(), snap.packages.keys, snap.hdmi.isNotEmpty(), profile()?.liveTv, deps.locale()), columns)
         val possible = homePossible()
         val choices = Choices(
             kept = draft.kept, extraOff = draft.extraOff, dock = dock,
-            theme = draft.themeId?.let { id -> deps.themes.bundled().firstOrNull { it.id == id } },
+            theme = theme,
             installLauncher = possible, takeover = possible,
             replaceLauncherSigner = installed?.signer?.let { it != launcher.signer } ?: false,
             keepDebuggingOn = draft.keepDebuggingOn,
@@ -619,7 +624,8 @@ class SetupMachine(
                     "level ${draft.level}, dock ${dock.size}, ${apps.size} dock candidates")
                 mutableExtras.update {
                     it.copy(commands = commandsOf(r.plan), unknownModel = res !is ProfileResolution.Exact, homePossible = possible,
-                        noScreenLock = !deps.screenLock.available(), draft = draft, dock = dock.map { p -> AppChoice(p, label(p)) }, apps = apps)
+                        noScreenLock = !deps.screenLock.available(), draft = draft, dock = dock.map { p -> AppChoice(p, label(p)) }, apps = apps,
+                        dockColumns = columns)
                 }
                 send(Ev.PlanReady(record.id, r.plan, draft.level))
             }
@@ -644,6 +650,9 @@ class SetupMachine(
     }
 
     private fun setLevel(level: Level) = editDraft { it.copy(level = level) }
+
+    private fun dockColumns(themeId: String?): Int =
+        DockLayers.columnsOf(themeId?.let { id -> deps.themes.bundled().firstOrNull { it.id == id } }?.doc)
 
     // the run (S3 to S4)
 

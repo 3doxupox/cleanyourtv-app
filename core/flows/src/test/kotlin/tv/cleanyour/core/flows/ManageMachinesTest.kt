@@ -8,6 +8,8 @@ import tv.cleanyour.core.engine.JournalRecord
 import tv.cleanyour.core.engine.PauseReason
 import tv.cleanyour.core.engine.RunState
 import tv.cleanyour.core.model.AdbError
+import tv.cleanyour.core.model.EnabledState
+import tv.cleanyour.core.model.PackageState
 import tv.cleanyour.core.engine.RunStatus
 import tv.cleanyour.core.model.ArtifactRef
 import tv.cleanyour.core.model.ApkInfo
@@ -25,6 +27,9 @@ import tv.cleanyour.core.planner.PlanKind
 import tv.cleanyour.core.planner.PlanRequest
 import tv.cleanyour.core.planner.PlanResult
 import tv.cleanyour.core.registry.FetchFailure
+import tv.cleanyour.core.spec.DecodeResult
+import tv.cleanyour.core.spec.LauncherConfigCodec
+import tv.cleanyour.core.spec.LauncherConfigDoc
 import tv.cleanyour.core.registry.IndexState
 import tv.cleanyour.core.trust.VerifiedIndex
 import tv.cleanyour.testing.fixtures.FakeApkInspector
@@ -433,6 +438,35 @@ class ManageMachinesTest {
     }
 
     // W3 R-12: the typed name is trimmed before it is kept.
+    // The dock sheet with a row under the dock: the config.json Manage pushes carries the six apps
+    // in order (the dock, then Row 2) and rows_below_dock 1, nothing else of ours; Manage reads the
+    // choice back the way the TV shows it, so an app switched off since then is skipped.
+    @Test fun dockRowsGoToTheTvAsOneListAndComeBackAsTheTvShowsThem() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val tv = h.knownTv()
+        val six = List(6) { PackageName("com.example.app$it") }
+        fun state(on: Boolean) = PackageState(if (on) EnabledState.ENABLED else EnabledState.DISABLED_USER, false, 0, null, false, false, null, false)
+        h.snapshots.save(Samples.snapshot(packages = Samples.miTvPackages() + six.associateWith { state(true) }, takenAtMs = Samples.NOW_MS + 1))
+        val m = HomeScreenMachine(h.manageDeps(encoder = ConfigEncoder.Codec), backgroundScope, tv.id)
+        settle()
+        assertEquals(4, m.state.value.columns)
+        m.dispatch(HomeScreenIntent.SetDock(six + six.first())); settle()
+        val apply = h.planner.requests.filterIsInstance<PlanRequest.ApplyTheme>().single()
+        assertEquals(six, apply.doc.dockApps)
+        assertEquals(1, apply.doc.rowsBelowDock)
+        // The blob the plan pushes is exactly these bytes, and the launcher reads them back the same.
+        val bytes = LauncherConfigCodec.encode(apply.doc)
+        assertEquals(sha256Of(bytes), apply.config.sha256)
+        val back = assertIs<DecodeResult.Ok>(LauncherConfigCodec.decode(bytes)).doc
+        assertEquals(LauncherConfigDoc(dockApps = six, rowsBelowDock = 1), back)
+        assertEquals(six, m.state.value.dock.map { it.pkg })
+        // Later the second app is switched off on the TV: the rest move up a slot, as on the TV.
+        h.snapshots.save(Samples.snapshot(packages = Samples.miTvPackages() + six.associateWith { state(it != six[1]) }, takenAtMs = Samples.NOW_MS + 2))
+        val again = HomeScreenMachine(h.manageDeps(encoder = ConfigEncoder.Codec), backgroundScope, tv.id)
+        settle()
+        assertEquals(six - six[1], again.state.value.dock.map { it.pkg })
+    }
+
     @Test fun renameTrimsTheTypedName() = runTest(timeout = 30.seconds) {
         val h = Harness()
         val tv = h.knownTv()

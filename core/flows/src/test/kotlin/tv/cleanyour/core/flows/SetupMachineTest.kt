@@ -8,6 +8,7 @@ import tv.cleanyour.core.discovery.FoundTv
 import tv.cleanyour.core.discovery.ServiceRef
 import tv.cleanyour.core.engine.JournalRecord
 import tv.cleanyour.core.engine.StartResult
+import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.model.TvId
 import tv.cleanyour.core.model.WizardDraft
 import tv.cleanyour.core.engine.HomeOutcome
@@ -146,6 +147,23 @@ class SetupMachineTest {
         val setup = h.planner.requests.filterIsInstance<PlanRequest.Setup>().last()
         assertTrue(setup.choices.installLauncher)
         assertEquals("com.netflix.ninja", setup.choices.dock?.single()?.value)
+    }
+
+    // The dock sheet's rows (S3b): the draft keeps one ordered list, the dock then Row 2 and Row 3,
+    // cut at three rows of the look's columns; the plan and the sheet get the same list.
+    @Test fun aDockWithRowsIsOneListCutAtThreeRows() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+        val m = h.setup(backgroundScope)
+        toFound(h, m)
+        val apps = List(14) { PackageName("com.example.app$it") }
+        m.dispatch(SetupIntent.SetDock(apps + apps.first()))
+        settle()
+        val last = h.planner.requests.filterIsInstance<PlanRequest.Setup>().last()
+        assertEquals(apps.take(12), last.choices.dock)
+        assertEquals(apps.take(12), h.tvs.tvs.value.single().wizard?.dock)
+        assertEquals(apps.take(12), m.extras.value.dock.map { it.pkg })
+        assertEquals(4, m.extras.value.dockColumns)
     }
 
     @Test fun keepingAPackageReplansAndPersistsTheDraft() = runTest(timeout = 30.seconds) {

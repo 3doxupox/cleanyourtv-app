@@ -138,14 +138,14 @@ class Harness(val clock: FakeClock = FakeClock(Samples.NOW_MS)) {
         override suspend fun reset() { resets++ }
     }
 
-    fun manageDeps(fetcherSources: tv.cleanyour.core.registry.ArtifactFetcher = fetcher) = ManageDeps(
+    fun manageDeps(fetcherSources: tv.cleanyour.core.registry.ArtifactFetcher = fetcher, encoder: ConfigEncoder = ConfigEncoder { "{}".encodeToByteArray() }) = ManageDeps(
         tvs = tvs, sessions = sessions, discovery = discovery, access = access, gate = gate, runner = runner, engine = engine,
         ledger = ledger, prober = prober, profiles = profiles, facts = facts, snapshots = snapshots, documents = documents,
         blobs = blobs, themes = themes, launcherPin = FakeLauncherPin(Samples.launcherArtifact()), configTransport = configTransport,
         restorePoint = restorePoint, bundleWriter = bundleWriter, registry = registry, fetcher = fetcherSources, inspector = inspector,
         cardDetector = CardAnswerDetector { _, _ -> cardAnswer }, sessionEnd = sessionEnd, homePrefs = HomePrefs(documents),
         appPrefs = AppPrefs(documents), keyInfo = keyInfo, updates = UpdateChecker { "0.2.0" }, diagnostics = Diagnostics { "redacted" },
-        clock = clock, copy = KeyCopy, encoder = ConfigEncoder { "{}".encodeToByteArray() },
+        clock = clock, copy = KeyCopy, encoder = encoder,
     )
 
     // A TV this phone already set up, connected, with a stored snapshot.

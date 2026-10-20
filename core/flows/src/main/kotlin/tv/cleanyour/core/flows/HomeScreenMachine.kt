@@ -3,12 +3,14 @@ package tv.cleanyour.core.flows
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import tv.cleanyour.core.model.Component
+import tv.cleanyour.core.model.EnabledState
 import tv.cleanyour.core.model.LauncherState
 import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.model.Sha256
 import tv.cleanyour.core.model.TvId
 import tv.cleanyour.core.planner.Plan
 import tv.cleanyour.core.planner.PlanRequest
+import tv.cleanyour.core.spec.DockLayers
 import tv.cleanyour.core.spec.LauncherConfigDoc
 
 // M2 Home screen: the dock (S3b sheet), the look (theme picker), "Use the TV's own home screen"
@@ -18,7 +20,7 @@ data class AppChoice(val pkg: PackageName, val name: String)
 
 data class HomeScreenState(
     val tvName: String = "",
-    val dock: List<AppChoice> = emptyList(),
+    val dock: List<AppChoice> = emptyList(),           // the dock, then Row 2 and Row 3 (DockLayers)
     val apps: List<AppChoice> = emptyList(),           // installed apps for the dock sheet
     val themeId: String? = null,
     val themes: List<ThemeOption> = emptyList(),
@@ -27,6 +29,7 @@ data class HomeScreenState(
     val stockPreview: Plan? = null,
     val busy: Busy? = null,
     val homeScreenOurs: Boolean = true,
+    val columns: Int = DockLayers.DEFAULT_COLUMNS,     // apps per dock row for the look on the TV
 )
 
 sealed interface HomeScreenIntent {
@@ -83,9 +86,13 @@ class HomeScreenMachine(
         // answer applies: never a home screen, a provider or a system-only package.
         val apps = (snap?.let { DockCandidates.of(it, null, profile, d.facts) } ?: emptySet())
             .map { AppChoice(it, d.nameOf(it, packages[it]?.label)) }.sortedBy { it.name.lowercase() }
-        val dock = choice?.dock.orEmpty().map { AppChoice(it, d.nameOf(it, packages[it]?.label)) }
+        // The dock as the TV shows it: an app no longer there (gone, switched off) is skipped and the
+        // later ones move up a slot, as the launcher does.
+        val columns = DockLayers.columnsOf(theme(choice?.themeId)?.doc)
+        val shown = { p: PackageName -> snap == null || packages[p]?.enabled.let { it != null && it != EnabledState.DISABLED && it != EnabledState.DISABLED_USER } }
+        val dock = DockLayers.decode(choice?.dock.orEmpty(), shown, columns).map { AppChoice(it, d.nameOf(it, packages[it]?.label)) }
         send(Loaded(HomeScreenState(tv.nickname, dock, apps, choice?.themeId, state.value.themes, stock = profile?.stockLaunchers?.firstOrNull(),
-            homeScreenOurs = tv.launcher != null)))
+            homeScreenOurs = tv.launcher != null, columns = columns)))
     }
 
     private suspend fun checkDrift() {
@@ -96,17 +103,22 @@ class HomeScreenMachine(
         send(Drift(now != null && now != ours))
     }
 
+    private fun theme(id: String?) = id?.let { d.themes.bundled().firstOrNull { t -> t.id == it } }
+
     // Dock and look go to the TV as one config.json (LauncherConfigCodec), pushed by an ApplyTheme
-    // plan; the digest we wrote is remembered so the next connect can warn on drift.
+    // plan; the digest we wrote is remembered so the next connect can warn on drift. dock_apps is
+    // the dock and the rows under it in order, rows_below_dock the rows under the dock that hold an
+    // app (DockLayers), so the TV shows the rows the sheet showed.
     private suspend fun apply(dock: List<PackageName>, themeId: String?) {
-        val theme = themeId?.let { id -> d.themes.bundled().firstOrNull { it.id == id } }
-        val doc = (theme?.doc ?: LauncherConfigDoc()).copy(dockApps = dock.ifEmpty { null })
+        val theme = theme(themeId)
+        val doc = DockLayers.applyTo(theme?.doc ?: LauncherConfigDoc(), dock)
+        val kept = doc.dockApps.orEmpty()
         val bytes = attempt { d.encoder.encode(doc) }.getOrNull() ?: return effect(ManageEffect.Snackbar(SnackKind.FAILED, "", false))
         val config = d.blobs.putBytes(bytes)
         val r = writer.write(tvId, PlanRequest.ApplyTheme(doc, config, theme?.wallpaper)) { send(BusyNow(it)) }
         send(BusyNow(null))
         if (r is WriteResult.Done) {
-            d.homePrefs.save(tvId, HomeChoice(dock, themeId))
+            d.homePrefs.save(tvId, HomeChoice(kept, themeId))
             remember(sha256Of(bytes))
             send(Drift(false))
             effect(ManageEffect.Snackbar(SnackKind.HOME_SAVED, "", false))
