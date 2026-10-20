@@ -46,7 +46,7 @@ class PmGuardWatchdogTest {
             val mutations = listOf(
                 "extra ; at the end" to "$line;",
                 "extra ; inside the body" to line.replaceFirst("&& exit 0;", "&& exit 0;;"),
-                "extra ; after sleep" to line.replaceFirst("sleep 120;", "sleep 120;;"),
+                "extra ; after sleep" to line.replaceFirst("sleep 120 & wait;", "sleep 120 & wait;;"),
                 "a quote in the body" to line.replaceFirst("sleep 120", "sleep 12'0"),
                 "a quote before the name" to line.replaceFirst(" cleanyourtv-rollback-", " 'cleanyourtv-rollback-"),
                 "changed token file path" to line.replaceFirst("/data/local/tmp/cleanyourtv/home-ok-", "/data/local/tmp/cleanyourtw/home-ok-"),

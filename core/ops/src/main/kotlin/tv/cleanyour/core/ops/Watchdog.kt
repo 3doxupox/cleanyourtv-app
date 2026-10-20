@@ -24,7 +24,10 @@ object Watchdog {
 
     // The body every variant runs: sleep, exit if the phone wrote the token file, else put the
     // stock launcher back and start HOME. Placeholders are upper case words that no grammar admits.
-    const val BODY = "sleep SECONDS; [ -f $DIR/${TOKEN_FILE_PREFIX}TOKEN ] && exit 0; " +
+    // `sleep & wait`, not a foreground sleep: the TV's sh puts off SIGTERM until a foreground child
+    // ends, so KillWatchdog's pkill left the watchdog running for the whole sleep (Mi TV, Android 9,
+    // device test 2026-10-20); a sh in `wait` takes the signal at once. Only SIGHUP is ignored (nohup).
+    const val BODY = "sleep SECONDS & wait; [ -f $DIR/${TOKEN_FILE_PREFIX}TOKEN ] && exit 0; " +
         "pm enable --user 0 STOCKPKG; cmd package set-home-activity --user 0 STOCKCOMP; " +
         "am start -W -a android.intent.action.MAIN -c android.intent.category.HOME"
 

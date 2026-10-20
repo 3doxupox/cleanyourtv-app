@@ -27,13 +27,13 @@ class WatchdogTest {
     // The two constants, pinned (PRODUCT-SPEC 3.4 step 1, D14).
     @Test fun templatesArePinned() {
         assertEquals(
-            "nohup setsid sh -c 'sleep SECONDS; [ -f /data/local/tmp/cleanyourtv/home-ok-TOKEN ] && exit 0; pm enable --user 0 STOCKPKG; " +
+            "nohup setsid sh -c 'sleep SECONDS & wait; [ -f /data/local/tmp/cleanyourtv/home-ok-TOKEN ] && exit 0; pm enable --user 0 STOCKPKG; " +
                 "cmd package set-home-activity --user 0 STOCKCOMP; am start -W -a android.intent.action.MAIN -c android.intent.category.HOME' " +
                 "cleanyourtv-rollback-TOKEN >/data/local/tmp/cleanyourtv/watchdog-TOKEN.log 2>&1 &",
             Watchdog.TEMPLATE_NOHUP_SETSID,
         )
         assertEquals(
-            "( sh -c 'sleep SECONDS; [ -f /data/local/tmp/cleanyourtv/home-ok-TOKEN ] && exit 0; pm enable --user 0 STOCKPKG; " +
+            "( sh -c 'sleep SECONDS & wait; [ -f /data/local/tmp/cleanyourtv/home-ok-TOKEN ] && exit 0; pm enable --user 0 STOCKPKG; " +
                 "cmd package set-home-activity --user 0 STOCKCOMP; am start -W -a android.intent.action.MAIN -c android.intent.category.HOME' " +
                 "cleanyourtv-rollback-TOKEN >/data/local/tmp/cleanyourtv/watchdog-TOKEN.log 2>&1 & )",
             Watchdog.TEMPLATE_SUBSHELL,
@@ -52,7 +52,7 @@ class WatchdogTest {
         val b = Watchdog.render(WatchdogVariant.SUBSHELL, odd, 30, token)
         assertTrue(b.contains("pm enable --user 0 com.TOKEN.STOCKCOMP;"), b)
         assertTrue(b.contains("set-home-activity --user 0 com.TOKEN.STOCKCOMP/.SECONDS;"), b)
-        assertTrue(b.contains("sleep 30;"), b)
+        assertTrue(b.contains("sleep 30 & wait;"), b)
     }
 
     @Test fun boundsAreEnforced() {
