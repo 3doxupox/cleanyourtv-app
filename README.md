@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/hero-banner.png" width="800" alt="Community app for Clean Your TV. Clean your TV from your phone. No laptop. No coding agent. Open the app on your Android phone, tap Start, and the ads and bloat are gone in about five minutes.">
+  <img src="docs/images/banner-3-steps.png" width="800" alt="Community app for Clean Your TV. Clean your TV from your phone. No laptop. No coding agent. Open the app on your Android phone, tap Start, and the ads and bloat are gone in about five minutes. Three steps: connect, analyse, clean.">
 </p>
 
 <p align="center">
@@ -19,8 +19,23 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/demo.gif" width="800" alt="The phone and the TV side by side. The phone shows what it found and then Making it clean, while the TV shows a small lantern scanning the old home screen's cards and drawing them into a soft black hole. The phone ends on Your TV is ready and the TV on All clean.">
+  <img src="docs/images/connect-analyse-clean.gif" width="800" alt="Three steps, phone and TV side by side. 1 Connect: the app finds the TV and the TV asks to allow the phone. 2 Analyse: the phone reads the TV and shows 22 things to switch off while the TV is untouched. 3 Clean: the phone shows Making it clean while the TV shows a lantern scanning the old cards and drawing them into a soft black hole, and the TV ends on its new home screen.">
 </p>
+
+## How it works
+
+| 1. Connect | 2. Analyse | 3. Clean |
+| :-: | :-: | :-: |
+| <img src="docs/images/phone-connect.png" width="220" alt="Look at the TV: the TV asks whether to trust this phone; tick Always allow, then choose OK"> | <img src="docs/images/phone-what-we-found.png" width="220" alt="We found 22 things to switch off, grouped into adverts, tracking, apps nobody asked for and brand extras, with everything it keeps listed below"> | <img src="docs/images/phone-done.png" width="220" alt="Your TV is ready: 23 things switched off, new home screen on, everything can be put back"> |
+| The app finds your TV on the Wi-Fi and shows you how to let the phone in with the remote. | It reads what is on the TV and shows the plan: what goes off and what stays. Nothing changes yet. | Tap "Make it clean". A restore point first, then the clutter goes and the new home screen comes on. |
+
+**You need** an Android phone (Android 9 or newer, with a screen lock) on the same Wi-Fi as the TV.
+[Download the APK](https://github.com/udhaykumarbala/cleanyourtv-app/releases/latest) and open it to
+install. Connecting takes about a minute (you switch on network debugging with the remote; the app
+shows you how), and the whole clean-up about five minutes.
+
+Come back any time to put an app back, check for leftovers after a TV update, change the dock or
+the look, or undo everything.
 
 ## Two ways to clean your TV
 
@@ -37,27 +52,6 @@ from your phone.
 
 Both give you the same Clean Your TV home screen and the same community TV lists, switch apps off
 without uninstalling them, and keep a way back for every change.
-
-## How it works
-
-| 1. Find your TV | 2. Check the plan | 3. Make it clean | 4. Done |
-| :-: | :-: | :-: | :-: |
-| <img src="docs/images/phone-welcome.png" width="180" alt="Welcome screen: Your TV, tidied up. Found Mi TV 4A, Start"> | <img src="docs/images/phone-what-we-found.png" width="180" alt="We found 22 things to switch off, grouped into adverts, tracking, apps nobody asked for and brand extras, with everything it keeps listed below"> | <img src="docs/images/phone-making-it-clean.png" width="180" alt="Making it clean, 58 percent: restore point saved, adverts switched off, tracking 4 of 7, with a live picture from the TV"> | <img src="docs/images/phone-done.png" width="180" alt="Your TV is ready: 23 things switched off, new home screen on, everything can be put back"> |
-
-1. **Install the app.** Download `cleanyourtv-<version>.apk` from the
-   [latest release](https://github.com/udhaykumarbala/cleanyourtv-app/releases/latest) on an
-   Android phone (Android 9 or newer, with a screen lock) and open it to install.
-2. **Find your TV.** Open the app on the same Wi-Fi as the TV. It finds the TV and shows you how to
-   switch on network debugging with the remote. That takes about a minute and is the only fiddly part.
-3. **Check the plan.** The app reads what is on the TV and shows what it would switch off (adverts,
-   tracking, apps nobody asked for) and what it keeps: your streaming apps, Live TV and HDMI, the
-   remote, the keyboard, Chromecast, voice and updates. Change anything under Customise.
-4. **Make it clean.** A restore point is saved first, the clutter is switched off, and the Clean
-   Your TV home screen goes on with a dock of your apps. Your TV shows a calm animation while it
-   works, and about five minutes later it is done.
-
-Come back any time to put an app back, check for leftovers after a TV update, change the dock or
-the look, or undo everything.
 
 ## Safe by design
 
