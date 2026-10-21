@@ -2669,6 +2669,7 @@
         "Voice, casting and assistants (owner's choice; comment out what you use)": { "category": "voice", "ask": true }
       },
       "packages": {
+        "com.tcl.channelplus": { "category": "ads", "ask": true },
         "com.tcl.usercenter": { "category": "brand", "ask": false },
         "com.tcl.suspension": { "category": "brand", "ask": true },
         "android.autoinstalls.config.google.gtvpai": { "category": "ads", "ask": false },
@@ -2772,6 +2773,7 @@
         "Preloaded apps and services": { "category": "preloads", "ask": false }
       },
       "packages": {
+        "com.tcl.channelplus": { "category": "ads", "ask": true },
         "com.tcl.interactive": { "category": "brand", "ask": false },
         "com.tcl.UpdatePeripheral": { "category": "updates", "ask": false },
         "android.autoinstalls.config.google.gtvpai": { "category": "ads", "ask": false },
@@ -2831,6 +2833,7 @@
         "Needed for the custom launcher: see quirks above. Disable only AFTER launcher/ is installed.": { "category": "home", "ask": false }
       },
       "packages": {
+        "com.tcl.channelplus": { "category": "ads", "ask": true },
         "com.tcl.usercenter": { "category": "brand", "ask": false },
         "com.tcl.interactive": { "category": "brand", "ask": false },
         "com.tcl.smartalexa": { "category": "voice", "ask": false },

@@ -302,6 +302,21 @@ class ProfilesTest {
         println("sure sets: " + sets.joinToString { s -> "${s.brand}=" + s.groups.flatMap { it.packages }.joinToString("/") { it.name.value } })
     }
 
+    // RF-SAFETY-250 (d): TCL Live registers a TV input, and TV inputs are never default-off, so every
+    // list that names it asks first and the TCL sure set leaves it out.
+    @Test fun tclLiveIsAlwaysAnAskRow() {
+        val live = p("com.tcl.channelplus")
+        val profiles = BundledProfileSource.bundled.profiles
+        val listing = profiles.filter { pr -> pr.groups.any { g -> g.packages.any { it.name == live } } }
+        assertTrue(listing.map { it.id }.containsAll(listOf("tcl-g05-google-tv", "tcl-g10-google-tv", "tcl-qm6k-google-tv")), listing.map { it.id }.toString())
+        for (pr in listing) {
+            val groups = pr.groups.filter { g -> g.packages.any { it.name == live } }
+            assertTrue(groups.none { it.default == GroupDefault.DISABLE }, "${pr.id}: ${groups.map { it.id }}")
+        }
+        val tcl = SureSetGenerator.generate(profiles).single { it.brand.equals("TCL", ignoreCase = true) }
+        assertTrue(tcl.groups.flatMap { it.packages }.none { it.name == live })
+    }
+
     @Test fun resolveExactThenBrandThenNone() = runBlocking<Unit> {
         val source = BundledProfileSource()
         val mi = Fixtures.miTv().facts()

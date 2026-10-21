@@ -392,6 +392,7 @@ tcl-g03-google-tv	com.tcl.partnercustomizer	ask row: the header tested the Input
 tcl-g03-google-tv	com.tcl.usercenter	the TCL account; ask row as on the other TCL lists
 tcl-g03-google-tv	com.tcl.versionUpdateApp	not listed: the header keeps TCL's firmware updater on; never-disable
 tcl-g03-google-tv	com.tcl.xian.StartandroidService	filed as a reporting service here, but tcl-55c715, tcl-beyondtv-rt2851 and tcl-55c725 (same build) keep it as device authentication; ask row
+tcl-g05-google-tv	com.tcl.channelplus	TCL Live registers a TV input (tcl-g07 header); TV inputs are never default-off, so it is an ask row here too and leaves the TCL sure set (0.2.0 safety review)
 tcl-g07-google-tv	(match)	device G07 alone: the model Smart TV names a family and otherwise beat tcl-40s5400a on its own C06 sets (RF-PROFILES-63 P8)
 tcl-g07-google-tv	com.google.android.tungsten.setupwraith	v2.5.0 notes (upstream #415): on a second unit (AR17) the Wi-Fi saved at setup belonged to the wizard; the takeover's Wi-Fi guard (D3) keeps it on then
 tcl-g07-google-tv	com.tcl.channelplus	TCL Live registers a TV input (the header says so); ask row
@@ -409,6 +410,8 @@ tcl-g09-google-tv	com.tcl.gamebar	console game mode overlay; ask row as on tcl-5
 tcl-g09-google-tv	com.tcl.partnercustomizer	ask row: the header tested the Input button but not the remote's T key (RF-PROFILES-63 P5)
 tcl-g09-google-tv	com.tcl.ttvs	the header says updates come through Play Services on this set, but tcl-55s470g on the same G10 firmware family says ttvs hosts the updater; tracking ask row as on tcl-c755
 tcl-g09-google-tv	com.tcl.usercenter	the TCL account; ask row as on the other TCL lists
+tcl-g10-google-tv	com.tcl.channelplus	TCL Live registers a TV input (tcl-g07 header); TV inputs are never default-off, so it is an ask row here too and leaves the TCL sure set (0.2.0 safety review)
+tcl-qm6k-google-tv	com.tcl.channelplus	TCL Live registers a TV input (tcl-g07 header); TV inputs are never default-off, so it is an ask row here too and leaves the TCL sure set (0.2.0 safety review)
 tcl-uniontv-latin-america	com.tcl.appmarket2	TCL's app store, carries a package installer service (tcl-beyondtv-rt2851 header); ask row
 tcl-uniontv-latin-america	com.tcl.common.terminalmanagerplus	device management that watches installs; tcl-beyondtv2 and the Thomson list keep it; ask row
 tcl-uniontv-latin-america	com.tcl.copydatatotv	tcl-beyondtv2 and the Thomson list keep it; ask row
