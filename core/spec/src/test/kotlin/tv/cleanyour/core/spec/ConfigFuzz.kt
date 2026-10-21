@@ -17,10 +17,14 @@ class ConfigFuzz(seed: Long) {
         // launcher v2.4.0 (RFC-W4-2)
         "fill_dock", "animations", "advanced_effects", "reduced_motion", "dock_title", "dock_row", "reorder_button",
         "show_stats", "app_library", "settings_key_panel",
+        // launcher v2.5.0 (RFC-W4-3)
+        "cinematic_home",
     )
+    private val textListKeys = listOf("launch_actions", "app_labels", "app_banners", "app_keys")
     private val festivalKeys = listOf("festival", "festival_until", "greeting", "accent_color")
     private val knownKeys = listKeys + stringKeys + intKeys + boolKeys + festivalKeys +
-        listOf("background_color", "sky_intensity", "settings_key_keycodes")
+        listOf("background_color", "sky_intensity", "settings_key_keycodes") + textListKeys +
+        listOf("input_key_keycodes", "wallpaper_rotation_minutes", "wallpaper_dim", "race_calendar")
     private val packages = listOf(
         "com.netflix.ninja", "com.google.android.youtube.tv", "com.amazon.amazonvideo.livingroom", "in.startv.hotstar",
         "com.mediatek.wwtv.tvcenter", "com.android.tv", "a.b", "com.x_y.z9", "android",
@@ -130,6 +134,37 @@ class ConfigFuzz(seed: Long) {
         "NaN", "Infinity", "-Infinity", "2147483648", "0.5", ".5", "5.", "1f", "2d", "0x1p2", "+3", "00", "0x",
     )
 
+    // Launcher v2.5.0's race_calendar: races and sessions with right and wrong shapes, and the
+    // values optString and optInt coerce (numbers, null, booleans, lists and objects as names).
+    private fun raceCalendar(): String {
+        if (r.nextInt(8) == 0) return pick("{}", "\"x\"", "null", "3")
+        fun text(fallback: String) = pick(str(fallback), str(" $fallback "), str(""), "5", "5.0", "-0.0", "1e400", "null", "true", "[1, \"a/b\", null, 2.0]", "{\"k\": \"v\\n\"}", "[NaN]", str("tab\there"))
+        fun session(): String = when (r.nextInt(8)) {
+            0 -> pick("7", "null", "\"FP1\"", "[]")
+            else -> {
+                val fields = mutableListOf<String>()
+                if (r.nextInt(6) != 0) fields += "\"name\": " + text(pick("FP1", "fp2", "Sprint Quali", "RACE", "straße"))
+                if (r.nextInt(6) != 0) fields += "\"start\": " + pick(
+                    str("2026-10-23T17:30:00Z"), str("2026-10-25T19:00:00Z"), str("2026-10-24T21:00:00.5Z"), str("2026-10-23T17:30Z"),
+                    str("2026-10-23T18:30:00+01:00"), str(" 2026-10-23T17:30:00Z"), str("2026-02-30T00:00:00Z"), str("tomorrow"), str(""), "1761240600", "null")
+                "{" + fields.shuffled(r).joinToString(", ") + "}"
+            }
+        }
+        fun race(): String = when (r.nextInt(10)) {
+            0 -> pick("1", "null", "\"race\"", "[]")
+            else -> {
+                val fields = mutableListOf<String>()
+                if (r.nextInt(4) != 0) fields += "\"round\": " + pick("18", "\"18\"", "\"18.9\"", "\" 7 \"", "18.9", "4294967302", "null", "true", "\"x\"", "-1")
+                if (r.nextInt(4) != 0) fields += "\"name\": " + text("United States Grand Prix")
+                if (r.nextInt(4) != 0) fields += "\"place\": " + text("Austin")
+                if (r.nextInt(8) != 0) fields += "\"sessions\": " + if (r.nextInt(10) == 0) pick("{}", "null", "\"FP1\"") else
+                    "[" + (0 until r.nextInt(0, 5)).joinToString(", ") { session() } + "]"
+                "{" + fields.shuffled(r).joinToString(", ") + "}"
+            }
+        }
+        return "[" + (0 until r.nextInt(0, 4)).joinToString(", ") { race() } + "]"
+    }
+
     private fun value(key: String, lenient: Boolean): String {
         if (r.nextInt(4) == 0) return anyValue(lenient)
         return when (key) {
@@ -149,7 +184,22 @@ class ConfigFuzz(seed: Long) {
             in intKeys -> number()
             in boolKeys -> pick("true", "false", "true", "false", "TRUE", "\"true\"", "1", "0", "null", "\"false\"")
             "sky_intensity" -> pick("0", "1", "60", "100", "101", "-1", "99.9", "100.5", "1e2", "4294967356", "NaN", "\"60\"", "true")
-            "settings_key_keycodes" -> {
+            in textListKeys -> {
+                val items = (0 until r.nextInt(0, 5)).map {
+                    when (r.nextInt(10)) {
+                        in 0..3 -> str(pick("com.telekom.onetv.tv.pl=TV", "com.android.tv=banner_tv", "a.b=banner_none", " a.b = x ", "a.b=x=y", "=x", "a.b=", "no equals", "😀=x"))
+                        in 4..6 -> str(pick("190:com.google.android.youtube.tv", "KEYCODE_BUTTON_3:a.b", " 191 : a.b ", "0:a.b", "000000:a.b", "1234567:a.b", "23:a.b", "KEYCODE_DPAD_CENTER:a.b", "KEYCODE_back:a.b", "x:a.b", "190:", ":a.b", "190"))
+                        7 -> pick("1", "null", "true", "{}", "[\"a=b\"]")
+                        8 -> if (lenient) "" else str("a.b=c")
+                        else -> str(pick("", "   "))
+                    }
+                }
+                "[" + items.joinToString(if (lenient && r.nextBoolean()) ";" else ", ") + "]"
+            }
+            "wallpaper_rotation_minutes" -> pick("0", "1", "30", "1440", "1441", "-1", "30.9", "\"30\"", "4294967326", "true")
+            "wallpaper_dim" -> pick("0", "40", "90", "91", "-1", "89.9", "\"40\"", "null")
+            "race_calendar" -> raceCalendar()
+            "input_key_keycodes", "settings_key_keycodes" -> {
                 val items = (0 until r.nextInt(0, 5)).map {
                     when (r.nextInt(12)) {
                         in 0..4 -> pick("83", "384", "176", "1", "2147483647")

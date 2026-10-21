@@ -8,37 +8,51 @@ import kotlinx.serialization.json.JsonPrimitive
 import tv.cleanyour.core.model.PackageName
 
 // The body of LauncherConfigCodec: the launcher's Config.java read path, key by key, as of
-// upstream v2.4.0 (69c93b6), the launcher this app bundles. 1bbf0c9 added input_action and
-// module_cards (RFC-W4-1); v2.4.0 adds seventeen more keys (RFC-W4-2), which a TV still on the
-// 2.0 launcher ignores. Decoding answers "what will the TV show for these bytes"; a key the
+// upstream v2.5.0 (9071ec8), the launcher this app bundles. 1bbf0c9 added input_action and
+// module_cards (RFC-W4-1); v2.4.0 added seventeen more keys (RFC-W4-2) and v2.5.0 nine more
+// (RFC-W4-3), which a TV still on an older launcher ignores. Decoding answers "what will the TV show for these bytes"; a key the
 // launcher would ignore is left null in the doc with a warning, so effective() of the decoded doc
 // equals what Config.load computes. ConfigDifferentialTest holds this to the real Config.java of
 // both launchers on the theme fixtures and on generated files.
 //
 // Not modelled, because the phone cannot read it: the choices made on the TV in Launcher settings
-// (columns 4 to 7, animations, advanced effects), which override config.json until the next push
-// changes the file, the TV-side reorder (until dock_apps changes) and apps taken off Home there.
+// (columns 4 to 7, rows below the dock 0 to 3, animations, advanced effects, a wallpaper pick),
+// which override config.json until the next push changes the file; the dock and tile order set on
+// the TV (Edit dock and Reorder, files/order.txt, kept while dock_apps stays the same); apps taken
+// off Home there; and a theme's wallpapers/ collection, which this app never pushes.
 internal object ConfigCodecImpl {
     const val MAX_BYTES = 64 * 1024
 
     // Config.java's keys in the order it reads them; encode writes this order.
     val KEY_ORDER: List<String> = listOf(
-        "dock_apps", "fill_dock", "hidden_apps", "live_tv_package", "live_tv_action", "source_panel_service",
-        "source_panel_action", "input_action", "columns", "rows_below_dock", "animations", "advanced_effects",
-        "shamsi_date", "greeting_name", "module_cards", "reduced_motion", "dock_title", "dock_row",
-        "reorder_button", "vpn_app", "show_home_settings_shortcut", "show_stats", "app_library",
-        "background_color", "sky_intensity", "settings_key_keycodes", "settings_key_panel", "wallpaper",
-        "festival", "festival_until", "greeting", "accent_color",
+        "dock_apps", "fill_dock", "hidden_apps", "live_tv_package", "live_tv_action", "launch_actions",
+        "app_labels", "app_banners", "source_panel_service", "source_panel_action", "input_action", "columns",
+        "rows_below_dock", "animations", "advanced_effects", "shamsi_date", "greeting_name", "module_cards",
+        "reduced_motion", "dock_title", "dock_row", "reorder_button", "vpn_app", "show_home_settings_shortcut",
+        "show_stats", "app_library", "background_color", "sky_intensity", "settings_key_keycodes",
+        "settings_key_panel", "input_key_keycodes", "app_keys", "cinematic_home", "wallpaper",
+        "wallpaper_rotation_minutes", "wallpaper_dim", "festival", "festival_until", "greeting", "accent_color",
+        "race_calendar",
     )
     // Remote buttons Home needs to move and choose: Back, the four arrows and centre, Enter, Menu.
     // MainActivity opens Settings on any key in settings_key_keycodes, HomeKeyService or not, so a
     // list with one of these takes that button away from the home screen (SECURITY.md V1).
+    // Launcher 2.5's InputKeyService and HomeKeyService are accessibility services: with one on, a
+    // key in input_key_keycodes or app_keys is taken in every app, not only on Home.
     val NAVIGATION_KEYCODES: Set<Int> = setOf(4, 19, 20, 21, 22, 23, 66, 82)
+    // The same buttons by the names app_keys may use (KeyEvent.keyCodeFromString).
+    val NAVIGATION_KEY_NAMES: Map<String, Int> = mapOf(
+        "KEYCODE_BACK" to 4, "KEYCODE_DPAD_UP" to 19, "KEYCODE_DPAD_DOWN" to 20, "KEYCODE_DPAD_LEFT" to 21,
+        "KEYCODE_DPAD_RIGHT" to 22, "KEYCODE_DPAD_CENTER" to 23, "KEYCODE_ENTER" to 66, "KEYCODE_MENU" to 82,
+    )
+    // The banner_* drawables launcher v2.5.0 bundles (res/drawable), the names app_banners can use.
+    val BUNDLED_BANNERS: Set<String> = setOf("banner_tv")
     // Keys with a LauncherConfigDoc field: all of Config.java's keys.
     val MODELLED: Set<String> = KEY_ORDER.toSet()
 
-    // res/values/config.xml of the launcher at v2.4.0 (the keys 1bbf0c9 has keep their values).
-    // config.xml has no festival: a festive skin only ever comes from config.json.
+    // res/values/config.xml of the launcher at v2.5.0 (the keys of older launchers keep their values).
+    // config.xml has no festival, wallpaper rotation, dim or race calendar: those only ever come
+    // from config.json.
     val BUILT_IN = EffectiveConfig(
         dockApps = listOf("com.netflix.ninja", "com.amazon.amazonvideo.livingroom", "com.google.android.youtube.tv", "in.startv.hotstar"),
         hiddenApps = listOf("com.mediatek.wwtv.tvcenter", "com.mitv.gallery"),
@@ -49,6 +63,8 @@ internal object ConfigCodecImpl {
         dockTitle = true, dockRow = true, reorderButton = false, showStats = false, appLibrary = false,
         skyIntensity = 0, settingsKeyKeycodes = emptyList(), settingsKeyPanel = false,
         festival = "", festivalUntil = "", greeting = "", accentColorArgb = 0,
+        launchActions = emptyMap(), appLabels = emptyMap(), appBanners = emptyMap(), inputKeyKeycodes = emptyList(),
+        appKeys = emptyList(), cinematicHome = false, wallpaperRotationMinutes = 0, wallpaperDim = 0, raceCalendar = emptyList(),
     )
 
     fun isPackageName(s: String): Boolean = runCatching { PackageName(s) }.isSuccess
@@ -127,11 +143,51 @@ internal object ConfigCodecImpl {
             return out
         }
 
+        // Config.stringList as the launcher keeps it: the trimmed, non-blank strings; `check` warns
+        // about an entry the launcher keeps but cannot use.
+        fun textList(key: String, check: (Int, String) -> Unit = { _, _ -> }): List<String>? {
+            val v = o[key] ?: return null
+            if (v !is AValue.Arr) { w += "$key is not a list; the launcher keeps its default"; return null }
+            val out = ArrayList<String>()
+            v.items.forEachIndexed { i, item ->
+                if (item is AValue.Str) {
+                    val t = item.v.javaTrim()
+                    if (t.isEmpty()) w += "$key[$i] is blank; the launcher skips it" else { out += t; check(i, t) }
+                } else {
+                    w += "$key[$i] is not a string; the launcher skips it"
+                }
+            }
+            return out
+        }
+        // Config.packageMap's "package=value" entries (launch_actions, app_labels, app_banners).
+        fun packageEntry(key: String, what: String): (Int, String) -> Unit = { i, t ->
+            val entry = packageMapEntry(t)
+            when {
+                entry == null -> w += "$key[$i] is not package=$what; the launcher skips it"
+                !isPackageName(entry.first) -> w += "$key[$i] names ${entry.first}, which is not a package name; it can never match an app"
+                key == "app_banners" && entry.second !in BUNDLED_BANNERS ->
+                    w += "$key[$i] names ${entry.second}, which is not a banner the launcher bundles (${BUNDLED_BANNERS.joinToString()}); the tile keeps its own art"
+            }
+        }
+        val navigationApps = ArrayList<Int>()
+        fun appKey(i: Int, t: String) {
+            when (val k = appKeyEntry(t)) {
+                null -> w += "app_keys[$i] is not keycode:package (190:com.google.android.youtube.tv); the launcher skips it"
+                else -> {
+                    if (!isPackageName(k.second)) w += "app_keys[$i] names ${k.second}, which is not a package name; that button would do nothing"
+                    if (k.first in NAVIGATION_KEYCODES) navigationApps += k.first
+                }
+            }
+        }
+
         val dock = stringList("dock_apps")
         val fillDock = bool("fill_dock")
         val hidden = stringList("hidden_apps")
         val liveTv = string("live_tv_package")
         val liveTvAction = string("live_tv_action")
+        val launchActions = textList("launch_actions", packageEntry("launch_actions", "action"))
+        val appLabels = textList("app_labels", packageEntry("app_labels", "name"))
+        val appBanners = textList("app_banners", packageEntry("app_banners", "banner_name"))
         val panelService = string("source_panel_service")
         val panelAction = string("source_panel_action")
         val inputAction = string("input_action")
@@ -167,11 +223,24 @@ internal object ConfigCodecImpl {
                 "on Home they would open Settings instead of moving or choosing"
         }
         val keyPanel = bool("settings_key_panel")
+        val inputKeycodes = intList("input_key_keycodes")
+        inputKeycodes?.filter { it in NAVIGATION_KEYCODES }?.distinct()?.takeIf { it.isNotEmpty() }?.let { nav ->
+            w += "input_key_keycodes takes remote buttons every app needs (keycode ${nav.joinToString(", ")}): with the " +
+                "launcher's input key service on, they would open the input switcher in any app"
+        }
+        val appKeys = textList("app_keys", ::appKey)
+        navigationApps.distinct().takeIf { it.isNotEmpty() }?.let { nav ->
+            w += "app_keys takes remote buttons every app needs (keycode ${nav.joinToString(", ")}): with the " +
+                "launcher's key services on, they would open an app in any app"
+        }
+        val cinematic = bool("cinematic_home")
         var wallpaper: Boolean? = null
         o["wallpaper"]?.let { v ->
             if (v is AValue.Bool) wallpaper = v.v
             else w += "wallpaper is not true or false; the launcher shows wallpaper.jpg if it is there"
         }
+        val rotation = integer("wallpaper_rotation_minutes", 0, 1440)
+        val dim = integer("wallpaper_dim", 0, 90)
         val festival = string("festival")
         val festivalUntil = string("festival_until")
         val greeting = string("greeting")
@@ -191,6 +260,8 @@ internal object ConfigCodecImpl {
             }
         }
 
+        val races = o["race_calendar"]?.let { readRaces(it, w) }
+
         val unknown = LinkedHashMap<String, JsonElement>()
         for ((k, v) in o) {
             if (k in MODELLED) continue
@@ -206,10 +277,82 @@ internal object ConfigCodecImpl {
             reducedMotion = reducedMotion, dockTitle = dockTitle, dockRow = dockRow, reorderButton = reorderButton,
             showStats = showStats, appLibrary = appLibrary, skyIntensity = sky, settingsKeyKeycodes = keycodes,
             settingsKeyPanel = keyPanel, festival = festival, festivalUntil = festivalUntil, greeting = greeting,
-            accentColor = accent,
+            accentColor = accent, launchActions = launchActions, appLabels = appLabels, appBanners = appBanners,
+            inputKeyKeycodes = inputKeycodes, appKeys = appKeys, cinematicHome = cinematic, wallpaperRotationMinutes = rotation,
+            wallpaperDim = dim, raceCalendar = races,
         )
         return DecodeResult.Ok(doc, w)
     }
+
+    // Config.packageMap's reading of one entry: "package=value", both halves trimmed and non-empty,
+    // the first '=' after at least one character; null when the launcher skips the entry.
+    fun packageMapEntry(entry: String): Pair<String, String>? {
+        val eq = entry.indexOf('=')
+        if (eq <= 0) return null
+        val pkg = entry.substring(0, eq).javaTrim()
+        val value = entry.substring(eq + 1).javaTrim()
+        return if (pkg.isEmpty() || value.isEmpty()) null else pkg to value
+    }
+
+    // RemoteKeys.parseAppKeys for one entry: "keycode:package" with a keycode of one to six digits
+    // or a KEYCODE_ name; null when the launcher skips it. A name is resolved only for the
+    // navigation buttons (Android knows the rest); another name gives keycode -1 here.
+    fun appKeyEntry(entry: String): Pair<Int, String>? {
+        val parts = entry.split(":", limit = 2)
+        if (parts.size != 2 || parts[1].javaTrim().isEmpty()) return null
+        val key = parts[0].javaTrim()
+        val code = when {
+            DIGITS.matches(key) -> key.toInt().takeIf { it > 0 } ?: return null
+            KEY_NAME.matches(key) -> NAVIGATION_KEY_NAMES[key] ?: -1
+            else -> return null
+        }
+        return code to parts[1].javaTrim()
+    }
+    private val DIGITS = Regex("[0-9]{1,6}")
+    private val KEY_NAME = Regex("KEYCODE_[A-Z0-9_]+")
+
+    // Config.raceCalendar (v2.5.0): a race needs to be an object with a sessions list holding at
+    // least one session with a name and a start Instant.parse reads; the rest is left out on its
+    // own. Values go through optString and optInt as the launcher reads them, and each race keeps
+    // what RaceWeekend keeps: the session names trimmed and upper-cased, sorted by start.
+    private fun readRaces(v: AValue, w: MutableList<String>): List<LauncherRace>? {
+        if (v !is AValue.Arr) { w += "race_calendar is not a list; the launcher shows no race weekends"; return null }
+        val out = ArrayList<LauncherRace>()
+        v.items.forEachIndexed { i, item ->
+            val race = item as? AValue.Obj
+            val sessions = race?.map?.get("sessions") as? AValue.Arr
+            if (race == null || sessions == null) { w += "race_calendar[$i] is not a race with a sessions list; the launcher leaves it out"; return@forEachIndexed }
+            val kept = ArrayList<Pair<java.time.Instant, LauncherRaceSession>>()
+            sessions.items.forEachIndexed { j, s ->
+                val session = s as? AValue.Obj
+                val name = session?.map?.get("name").androidOptString("").javaTrim()
+                val start = session?.map?.get("start").androidOptString("")
+                val at = if (session == null || name.isEmpty()) null else parseInstant(start)
+                if (at == null) w += "race_calendar[$i].sessions[$j] has no name or no start time the launcher reads; it is left out"
+                else kept += at to LauncherRaceSession(name.uppercase(), at.toString())
+            }
+            if (kept.isEmpty()) { w += "race_calendar[$i] has no session the launcher can count down to; it is left out"; return@forEachIndexed }
+            out += LauncherRace(race.map["round"].androidOptInt(0), race.map["name"].androidOptString("Grand Prix").javaTrim(),
+                race.map["place"].androidOptString("").javaTrim(), kept.sortedBy { it.first }.map { it.second })
+        }
+        return out
+    }
+
+    // java.time.Instant.parse, which Config.raceCalendar calls; null for what it refuses.
+    fun parseInstant(s: String): java.time.Instant? = try { java.time.Instant.parse(s) } catch (e: java.time.format.DateTimeParseException) { null }
+
+    // What RaceWeekend keeps of races built in code: sessions with a name and a readable start,
+    // upper-cased and sorted by start, races with at least one session.
+    private fun normalRaces(races: List<LauncherRace>): List<LauncherRace> = races.mapNotNull { r ->
+        val sessions = r.sessions.mapNotNull { s ->
+            val name = s.name.javaTrim()
+            parseInstant(s.start)?.takeIf { name.isNotEmpty() }?.let { it to LauncherRaceSession(name.uppercase(), it.toString()) }
+        }.sortedBy { it.first }.map { it.second }
+        if (sessions.isEmpty()) null else LauncherRace(r.round, r.name.javaTrim(), r.place.javaTrim(), sessions)
+    }
+
+    private fun packageMap(entries: List<String>): Map<String, String> =
+        entries.map { it.javaTrim() }.filter { it.isNotEmpty() }.mapNotNull(::packageMapEntry).toMap()
 
     // What Config.load would compute from this doc. Values the launcher would ignore (out of
     // range, a colour it cannot parse) fall back to `defaults` here too, so a doc built in code
@@ -218,6 +361,7 @@ internal object ConfigCodecImpl {
     fun effective(doc: LauncherConfigDoc?, defaults: EffectiveConfig): EffectiveConfig {
         if (doc == null) return defaults.copy(columns = maxOf(1, defaults.columns), rowsBelowDock = maxOf(0, defaults.rowsBelowDock),
             skyIntensity = defaults.skyIntensity.coerceIn(0, 100))
+        fun texts(l: List<String>) = l.map { it.javaTrim() }.filter { it.isNotEmpty() }
         val fest = LauncherFestival.parse(doc.festival.orEmpty(), doc.festivalUntil.orEmpty(), doc.greeting.orEmpty(), doc.accentColor.orEmpty())
         val bg = doc.backgroundColor?.let { (AndroidColor.parseColor(it.javaTrim()) as? AndroidColor.Parse.Ok)?.argb?.or(0xFF000000.toInt()) }
         return EffectiveConfig(
@@ -253,6 +397,16 @@ internal object ConfigCodecImpl {
             festivalUntil = fest?.until?.toString() ?: "",
             greeting = fest?.greeting ?: "",
             accentColorArgb = fest?.accent ?: 0,
+            launchActions = doc.launchActions?.let(::packageMap) ?: defaults.launchActions,
+            appLabels = doc.appLabels?.let(::packageMap) ?: defaults.appLabels,
+            appBanners = doc.appBanners?.let(::packageMap) ?: defaults.appBanners,
+            inputKeyKeycodes = doc.inputKeyKeycodes?.takeIf { l -> l.all { it >= 1 } } ?: defaults.inputKeyKeycodes,
+            appKeys = doc.appKeys?.let(::texts) ?: defaults.appKeys,
+            cinematicHome = doc.cinematicHome ?: defaults.cinematicHome,
+            // Read from config.json alone, like the festival: config.xml has none of these.
+            wallpaperRotationMinutes = doc.wallpaperRotationMinutes?.takeIf { it in 0..1440 } ?: 0,
+            wallpaperDim = doc.wallpaperDim?.takeIf { it in 0..90 } ?: 0,
+            raceCalendar = doc.raceCalendar?.let(::normalRaces) ?: emptyList(),
         )
     }
 
@@ -279,9 +433,25 @@ internal object ConfigCodecImpl {
         doc.backgroundColor?.let {
             require(it == it.javaTrim() && AndroidColor.parseColor(it) is AndroidColor.Parse.Ok) { "background_color '$it' is not a colour the launcher reads" }
         }
+        fun canonicalTexts(key: String, l: List<String>?) {
+            l?.forEach { require(it.isNotEmpty() && it == it.javaTrim()) { "$key holds '$it', which the launcher would trim or skip" } }
+        }
+        canonicalTexts("launch_actions", doc.launchActions)
+        canonicalTexts("app_labels", doc.appLabels)
+        canonicalTexts("app_banners", doc.appBanners)
+        canonicalTexts("app_keys", doc.appKeys)
+        doc.inputKeyKeycodes?.let { l -> require(l.all { it >= 1 }) { "input_key_keycodes holds a keycode below 1, so the launcher would ignore the list" } }
+        doc.wallpaperRotationMinutes?.let { require(it in 0..1440) { "wallpaper_rotation_minutes $it is outside 0 to 1440" } }
+        doc.wallpaperDim?.let { require(it in 0..90) { "wallpaper_dim $it is outside 0 to 90" } }
+        doc.raceCalendar?.let { races -> require(normalRaces(races) == races) { "race_calendar is not as the launcher keeps it (a race without sessions, a blank or lower-case session name, an unreadable or unsorted start)" } }
 
         val entries = ArrayList<Pair<String, String>>()
         fun list(v: List<PackageName>) = v.joinToString(", ", "[", "]") { quote(it.value) }
+        fun texts(v: List<String>) = v.joinToString(", ", "[", "]") { quote(it) }
+        fun raceList(v: List<LauncherRace>) = v.joinToString(", ", "[", "]") { r ->
+            "{\"round\": ${r.round}, \"name\": ${quote(r.name)}, \"place\": ${quote(r.place)}, \"sessions\": " +
+                r.sessions.joinToString(", ", "[", "]") { "{\"name\": ${quote(it.name)}, \"start\": ${quote(it.start)}}" } + "}"
+        }
         for (key in KEY_ORDER) {
             val value: String? = when (key) {
                 "dock_apps" -> doc.dockApps?.let(::list)
@@ -289,6 +459,9 @@ internal object ConfigCodecImpl {
                 "hidden_apps" -> doc.hiddenApps?.let(::list)
                 "live_tv_package" -> doc.liveTvPackage?.let(::quote)
                 "live_tv_action" -> doc.liveTvAction?.let(::quote)
+                "launch_actions" -> doc.launchActions?.let(::texts)
+                "app_labels" -> doc.appLabels?.let(::texts)
+                "app_banners" -> doc.appBanners?.let(::texts)
                 "source_panel_service" -> doc.sourcePanelService?.let(::quote)
                 "source_panel_action" -> doc.sourcePanelAction?.let(::quote)
                 "input_action" -> doc.inputAction?.let(::quote)
@@ -311,11 +484,17 @@ internal object ConfigCodecImpl {
                 "sky_intensity" -> doc.skyIntensity?.toString()
                 "settings_key_keycodes" -> doc.settingsKeyKeycodes?.joinToString(", ", "[", "]")
                 "settings_key_panel" -> doc.settingsKeyPanel?.toString()
+                "input_key_keycodes" -> doc.inputKeyKeycodes?.joinToString(", ", "[", "]")
+                "app_keys" -> doc.appKeys?.let(::texts)
+                "cinematic_home" -> doc.cinematicHome?.toString()
                 "wallpaper" -> doc.wallpaper?.toString()
+                "wallpaper_rotation_minutes" -> doc.wallpaperRotationMinutes?.toString()
+                "wallpaper_dim" -> doc.wallpaperDim?.toString()
                 "festival" -> doc.festival?.let(::quote)
                 "festival_until" -> doc.festivalUntil?.let(::quote)
                 "greeting" -> doc.greeting?.let(::quote)
                 "accent_color" -> doc.accentColor?.let(::quote)
+                "race_calendar" -> doc.raceCalendar?.let(::raceList)
                 else -> error("no field for $key")
             }
             if (value != null) entries += key to value

@@ -18,9 +18,10 @@ import kotlin.test.fail
 // 10,000 generated files, so the phone's preview can never disagree with the TV. Upstream runs
 // for real: its Config.java (and v2.4.0's Festival.java) compiled unchanged on the JVM against
 // AOSP's own org.json and Color.parseColor (test sources) and stubs for Context, Resources,
-// SharedPreferences, Log and Cards.cleanLabel. Two launchers: v2.4.0, the one the app bundles,
-// and 2.0 (1bbf0c9), which a TV set up before the update still runs; 2.0 ignores the keys v2.4.0
-// added, so only the keys both read are compared there.
+// SharedPreferences, Log and Cards.cleanLabel. Two launchers: v2.5.0, the one the app bundles,
+// and 2.0 (1bbf0c9), which a TV set up before the first update still runs; 2.0 ignores the keys
+// v2.4.0 and v2.5.0 added, so only the keys both read are compared there. (A TV on our 2.4 reads
+// v2.5.0's keys up to RFC-W4-2 the same way, since 2.5 changed none of them.)
 class ConfigDifferentialTest {
     @get:Rule val tmp = TemporaryFolder()
 
@@ -62,6 +63,8 @@ class ConfigDifferentialTest {
                     e.fillDock, e.animations, e.advancedEffects, e.greetingName, e.reducedMotion, e.dockTitle, e.dockRow,
                     e.reorderButton, e.showStats, e.appLibrary, e.skyIntensity, e.settingsKeyKeycodes, e.settingsKeyPanel,
                     e.festival, e.festivalUntil, e.greeting, e.accentColorArgb,
+                    e.launchActions, e.appLabels, e.appBanners, e.inputKeyKeycodes, e.appKeys, e.cinematicHome,
+                    e.wallpaperRotationMinutes, e.wallpaperDim, e.raceCalendar.map(::raceText),
                 ) else emptyList()
                 // Entries that are not package names can never match an app; the codec drops them.
                 val theirs = listOf(
@@ -72,11 +75,17 @@ class ConfigDifferentialTest {
                     v.fillDock, v.animations, v.advancedEffects, v.greetingName, v.reducedMotion, v.dockTitle, v.dockRow,
                     v.reorderButton, v.showStats, v.appLibrary, v.skyIntensity, v.settingsKeyKeycodes, v.settingsKeyPanel,
                     v.festival, v.festivalUntil, v.greeting, v.accent,
+                ) } + u.v25.let { v -> listOf(
+                    v.launchActions, v.appLabels, v.appBanners, v.inputKeyKeycodes, v.appKeys, v.cinematicHome,
+                    v.wallpaperRotationMinutes, v.wallpaperDim, v.raceCalendar,
                 ) } else emptyList()
                 if (mine != theirs) fail("effective config differs for ${ctx()}\n ours:     $mine\n upstream: $theirs")
             }
         }
     }
+
+    // A race as the bridge prints RaceWeekend's: "round|name|place|SESSION@start;...".
+    private fun raceText(r: LauncherRace) = "${r.round}|${r.name}|${r.place}|" + r.sessions.joinToString(";") { "${it.name}@${it.start}" }
 
     private fun bothLaunchers() = listOf(
         UpstreamLauncher(pinned = true, dir = tmp.newFolder("bundled")),
@@ -130,6 +139,18 @@ class ConfigDifferentialTest {
             "festival grows when lower-cased" to ("{\"festival\": \"" + "\u0130".repeat(21) + "\"}").encodeToByteArray(),
             "festival long greeting" to ("{\"festival\": \"x\", \"greeting\": \"" + "g".repeat(39) + "\uD83D\uDE00 tail\"}").encodeToByteArray(),
             "greeting without festival" to "{\"greeting\": \"hi\", \"accent_color\": \"#123456\"}".encodeToByteArray(),
+            "v2.5 keys" to ("{\"launch_actions\": [\" com.telekom.onetv.tv.pl = com.telekom.onetv.tv.pl.action.PROGRAM_GUIDE \", \"=x\", \"a.b=\", \"no equals\"], " +
+                "\"app_labels\": [\"com.telekom.onetv.tv.pl=TV\", \"com.telekom.onetv.tv.pl=Later wins\", 5], \"app_banners\": [\"com.android.tv=banner_tv\", \"a.b=banner_none\"], " +
+                "\"input_key_keycodes\": [192], \"app_keys\": [\"190:com.google.android.youtube.tv\", \"KEYCODE_BUTTON_3 : com.google.android.youtube.tv\", \"0:a.b\", \"x:a.b\", \"191:\", \"1234567:a.b\"], " +
+                "\"cinematic_home\": true, \"wallpaper_rotation_minutes\": 30, \"wallpaper_dim\": 40}").encodeToByteArray(),
+            "v2.5 keys wrong types" to "{\"launch_actions\": \"a=b\", \"input_key_keycodes\": [192, 0], \"cinematic_home\": 1, \"wallpaper_rotation_minutes\": 1441, \"wallpaper_dim\": 90.9}".encodeToByteArray(),
+            "v2.5 keys take the arrows" to "{\"input_key_keycodes\": [23], \"app_keys\": [\"KEYCODE_DPAD_CENTER:a.b\", \"4:a.b\"]}".encodeToByteArray(),
+            "race calendar" to ("{\"race_calendar\": [{\"round\": 18, \"name\": \" United States Grand Prix \", \"place\": \"Austin\", \"sessions\": [" +
+                "{\"name\": \"race\", \"start\": \"2026-10-25T19:00:00Z\"}, {\"name\": \" fp1 \", \"start\": \"2026-10-23T17:30:00Z\"}, " +
+                "{\"name\": \"\", \"start\": \"2026-10-23T17:30:00Z\"}, {\"name\": \"FP2\", \"start\": \"tomorrow\"}, 7]}, " +
+                "{\"round\": \"19.7\", \"sessions\": [{\"name\": 5, \"start\": \"2026-11-01T18:00:00Z\"}]}, {\"round\": 20, \"sessions\": []}, " +
+                "{\"name\": [1, \"a/b\", null, 2.0, -0.0], \"place\": {\"k\": \"v\"}, \"sessions\": [{\"name\": null, \"start\": \"2026-11-08T17:00:00Z\"}]}, \"not a race\"]}").encodeToByteArray(),
+            "race calendar not a list" to "{\"race_calendar\": {\"round\": 1}}".encodeToByteArray(),
             "invalid utf8" to byteArrayOf('{'.code.toByte(), '"'.code.toByte(), 0xC3.toByte(), '"'.code.toByte(), ':'.code.toByte(), '1'.code.toByte(), '}'.code.toByte()),
         )
         for (up in bothLaunchers()) {
@@ -139,12 +160,22 @@ class ConfigDifferentialTest {
         }
     }
 
+    // WallpaperRotation and RaceWeekend, which v2.5.0's Config.java calls, are vendored in the test
+    // sources; they must be the submodule's own files, with only the package line changed.
+    @Test fun vendoredLauncherClassesAreTheSubmodulesOwn() {
+        for (name in listOf("WallpaperRotation.java", "RaceWeekend.java")) {
+            val upstream = java.io.File(Fixtures.upstreamDir, "launcher/app/src/main/java/com/gathin/tvhome/$name").readText()
+            val vendored = java.io.File(Fixtures.repoRoot, "core/spec/src/test/java/com/gathin/tvhome/pinned/$name").readText()
+            assertEquals(upstream.replace("package com.gathin.tvhome;", "package com.gathin.tvhome.pinned;"), vendored, name)
+        }
+    }
+
     @Test fun tenThousandGeneratedFilesAgreeWithTheBundledLauncher() {
         val up = UpstreamLauncher(pinned = true, dir = tmp.newFolder("gen"))
         val fuzz = ConfigFuzz(seed = 0x5EED_0001)
         val t = Tally()
         repeat(10_000) { i -> agree(up, fuzz.next(), wallpaper = i % 3 != 0, label = "generated #$i", t = t) }
-        println("launcher v2.4.0: ${t.applied} applied (${t.withWarnings} with warnings), ${t.ignored} ignored, ${t.crashed} would crash")
+        println("launcher v2.5.0: ${t.applied} applied (${t.withWarnings} with warnings), ${t.ignored} ignored, ${t.crashed} would crash")
         assertTrue(t.applied > 4_000 && t.ignored > 1_000 && t.crashed > 10 && t.withWarnings > 1_000, "generator lost coverage: applied ${t.applied}, ignored ${t.ignored}, crashed ${t.crashed}")
     }
 
@@ -179,6 +210,24 @@ class ConfigDifferentialTest {
         assertEquals(e.columns to e.animations, again.columns to again.v24.animations)
     }
 
+    // Launcher 2.5 adds two choices on the TV: rows below the dock (0 to 3) and a wallpaper pick
+    // ("none" or a picture's name). Like the columns they win until a push changes config.json.
+    @Test fun launcher25ChoicesOnTheTvLastUntilTheNextPush() {
+        val up = UpstreamLauncher(pinned = true, dir = tmp.newFolder("choices25"))
+        val pushed = LauncherConfigCodec.encode(LauncherConfigDoc(rowsBelowDock = 1, wallpaper = true))
+        fun loaded(o: UpstreamLauncher.Outcome) = assertIs<UpstreamLauncher.Outcome.Loaded>(o).config
+        loaded(up.load(pushed, wallpaper = true)).let { assertEquals(1 to true, it.rowsBelowDock to it.wallpaperShown) }
+        up.choices.values["rows_below_dock"] = 3
+        up.choices.values["wallpaper_choice"] = "none"
+        loaded(up.restart()).let { assertEquals(3 to false, it.rowsBelowDock to it.wallpaperShown) }
+        up.choices.values["rows_below_dock"] = 4   // outside 0 to 3: ignored
+        assertEquals(1, loaded(up.restart()).rowsBelowDock)
+        up.choices.values["rows_below_dock"] = 2
+        loaded(up.load(pushed, wallpaper = true)).let { assertEquals(1 to true, it.rowsBelowDock to it.wallpaperShown, "a push clears both") }
+        assertEquals(null, up.choices.values["rows_below_dock"])
+        assertEquals(null, up.choices.values["wallpaper_choice"])
+    }
+
     // Our own encoder's output reads back to the same doc and the TV sees what effective() says.
     @Test fun encodedDocsReadBackIdenticallyOnBothSides() {
         val up = UpstreamLauncher(pinned = true, dir = tmp.newFolder("enc"))
@@ -208,6 +257,19 @@ class ConfigDifferentialTest {
                 showStats = maybe { r.nextBoolean() }, appLibrary = maybe { r.nextBoolean() }, skyIntensity = maybe { r.nextInt(0, 101) },
                 settingsKeyKeycodes = maybe { List(r.nextInt(4)) { listOf(83, 384, 176, 1, Int.MAX_VALUE).random(r) } },
                 settingsKeyPanel = maybe { r.nextBoolean() },
+            )
+            // RFC-W4-3: the keys v2.5.0 added.
+            val entries = listOf("com.android.tv=banner_tv", "a.b=Name with spaces", "a.b=x=y", "no equals", "=x", "😀=x", "with \"quotes\"=\\")
+            doc = doc.copy(
+                launchActions = maybe { List(r.nextInt(3)) { entries.random(r) } }, appLabels = maybe { List(r.nextInt(3)) { entries.random(r) } },
+                appBanners = maybe { List(r.nextInt(3)) { entries.random(r) } },
+                inputKeyKeycodes = maybe { List(r.nextInt(3)) { listOf(192, 170, 1, Int.MAX_VALUE).random(r) } },
+                appKeys = maybe { List(r.nextInt(3)) { listOf("190:com.google.android.youtube.tv", "KEYCODE_BUTTON_3:a.b", "x", "0:a.b").random(r) } },
+                cinematicHome = maybe { r.nextBoolean() }, wallpaperRotationMinutes = maybe { r.nextInt(0, 1441) }, wallpaperDim = maybe { r.nextInt(0, 91) },
+                raceCalendar = maybe { List(r.nextInt(3)) { k ->
+                    LauncherRace(r.nextInt(-1, 25), strings.random(r).javaTrim(), strings.random(r).javaTrim(),
+                        List(r.nextInt(1, 4)) { j -> LauncherRaceSession(listOf("FP1", "SPRINT QUALI", "RACE", "ÖSTERREICH").random(r), "2026-10-2${j}T1${k}:30:00Z") })
+                } },
             )
             if (r.nextInt(3) == 0) doc = doc.copy(
                 festival = listOf("dussehra", "Diwali", "", "x".repeat(41)).random(r),
@@ -300,7 +362,8 @@ class ConfigDifferentialTest {
         d.sourcePanelAction, d.columns, d.rowsBelowDock, d.shamsiDate, d.vpnApp, d.showHomeSettingsShortcut, d.backgroundColor, d.wallpaper,
         d.inputAction, d.moduleCards, d.fillDock, d.animations, d.advancedEffects, d.greetingName, d.reducedMotion, d.dockTitle,
         d.dockRow, d.reorderButton, d.showStats, d.appLibrary, d.skyIntensity, d.settingsKeyKeycodes, d.settingsKeyPanel,
-        d.festival, d.festivalUntil, d.greeting, d.accentColor).size + d.unknown.size
+        d.festival, d.festivalUntil, d.greeting, d.accentColor, d.launchActions, d.appLabels, d.appBanners, d.inputKeyKeycodes,
+        d.appKeys, d.cinematicHome, d.wallpaperRotationMinutes, d.wallpaperDim, d.raceCalendar).size + d.unknown.size
 
     // The lenient reader is a port of JSONTokener; check it value for value, including the
     // Integer, Long and Double split, null slots, duplicate keys and what is refused.
