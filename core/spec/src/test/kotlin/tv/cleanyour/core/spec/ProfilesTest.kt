@@ -25,7 +25,7 @@ class ProfilesTest {
 
     @Test fun everyConvertedUpstreamExampleParsesWithCuratedMetadata() {
         assertEquals(147, upstream.size)
-        assertEquals(89, examples.size)
+        assertEquals(97, examples.size)
         for (e in examples) {
             val profile = DebloatTxtParser.parse(e.debloatTxt, e.folder)
             assertEquals(e.folder, profile.id)
@@ -60,7 +60,7 @@ class ProfilesTest {
     @Test fun theUnconvertedListIsPinnedToTheSubmodule() {
         val meta = ProfileMeta.decode(File(Fixtures.repoRoot, "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json").readText())
         assertEquals(upstream.map { it.folder }.filter { it !in meta.profiles }.toSet(), unconverted)
-        assertEquals(58, unconverted.size)
+        assertEquals(50, unconverted.size)
         val listed = unconvertedFile.readLines().filter { it.isNotBlank() && !it.startsWith("#") }
         assertEquals(listed.sorted(), listed, "one folder per line, sorted")
         assertTrue('\u2014' !in unconvertedFile.readText() && "-".repeat(2) !in unconvertedFile.readText())
@@ -217,6 +217,16 @@ class ProfilesTest {
             facts("Smart TV", "C06", "TCL", 30, "TCL/C06_2K_GB/C06:11/AR2101/AR14:user/release-keys") to "hitachi-cdh-le32smart21",
             facts("Smart TV", "C06", "TCL", 30, "TCL/C06_2K_GB/C06:11/AR2101/AR20:user/release-keys") to "tcl-40s5400a",
             facts("Smart TV", "G07", "TCL", 30) to "tcl-g07-google-tv",
+            // v2.5.0 TCL lists: each build to its own list by the longer fingerprint prefix.
+            facts("BeyondTV2", "BeyondTV", "TCL", 28, "TCL/BeyondTV2/BeyondTV:9/PPR1.180610.011/AP06:user/release-keys") to "tcl-55c715",
+            facts("BeyondTV2", "BeyondTV", "TCL", 30, "TCL/BeyondTV2/BeyondTV:11/PPR1.180610.011/AR05:user/release-keys") to "tcl-55c815",
+            facts("Smart TV Pro", "BeyondTV4", "TCL", 30, "TCL/G03_4K_GB/BeyondTV4:11/RP1A.200622.001/AR09:user/release-keys") to "tcl-g03-google-tv",
+            facts("Smart TV Pro", "BeyondTV4", "TCL", 30, "TCL/G03_4K_GB/BeyondTV4:11/RP1A.200622.001/AR11:user/release-keys") to "tcl-55c725",
+            facts("unknown", "G10", "TCL", 31, "TCL/G10_4K_GB/G10:12/STT2.230203.001/x") to "tcl-55p7k",
+            // FFalcon and TCL China sets share device and firmware; the brand tells them apart, and an
+            // FFalcon set that reports TCL as its maker gets its own list by the id.
+            facts("unknown", "tcl_mt5879_cn", "FFALCON", 30, manufacturer = "TCL") to "ffalcon-65s585c-pro",
+            facts("unknown", "tcl_mt5879_cn", "TCL", 30) to "tcl-q10g-pro",
             facts("Smart TV", "unknown", "TCL", 30) to null,
             // The shipped tcl-65c725 and tcl-g05-google-tv still match the family name alone and tie;
             // the earlier id order stands until the resolver policy (ruling 1). tcl-43c645 is parked.

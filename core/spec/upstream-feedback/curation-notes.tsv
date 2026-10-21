@@ -18,6 +18,12 @@ amazon-fire-tv-stick-4k-2018	com.amazon.wifilocker	default-off as listed (it upl
 benq-e55-750	(match)	model AI PONT on Android 11; benq-e55-735 is the same model on Android 14, told apart by the SDK
 benq-e55-750	(match)	brand inferred, confirm with getprop: BenQ; a wrong guess fails closed (the profile never matches)
 chiq-gtvu65	(match)	brand inferred, confirm with getprop: CHiQ; a wrong guess fails closed (the profile never matches)
+ffalcon-65s585c-pro	(launcher)	TCL China firmware: the home screen is TCL's own (com.tcl.cyberui) and the firmware refuses other home screens and sideloading; the clean-up only
+ffalcon-65s585c-pro	(match)	device tcl_mt5879_cn, the same device and build as tcl-q10g-pro, told apart by the brand: a set that reports TCL gets tcl-q10g-pro, one that reports FFalcon (as brand or maker) gets this list; the tie is pinned in ProfilesTest
+ffalcon-65s585c-pro	(match)	brand inferred, confirm with getprop: FFalcon; a wrong guess fails closed (the set gets tcl-q10g-pro, the list for the same firmware)
+ffalcon-65s585c-pro	com.tcl.appreciate.art	art screensaver content; screensavers are ask rows
+ffalcon-65s585c-pro	com.tcl.useragreement	default-off as on tcl-q10g-pro, the same firmware, where the header checked a full reboot
+ffalcon-65s585c-pro	com.tcl.xian.StartandroidService	listed as a reporting service, but six TCL lists keep it as a needed system service; ask row as on tcl-q10g-pro
 google-chromecast-gtv-4k	com.google.android.tungsten.setupwraith	v2.5.0 header (upstream #361, #422): the Cast receiver reads its device credentials from the wizard, so with the wizard off casting from phones fails after the next reboot; the home screen switch here costs casting (owner decision open)
 haier-android-tv-dvb2k	(match)	brand inferred, confirm with getprop: Haier; a wrong guess fails closed (the profile never matches)
 haier-android-tv-dvb2k	com.cvte.haier.tv.appmanager	a boot receiver that manages Haier apps, purpose not clear; ask row
@@ -134,8 +140,47 @@ tcl-43ep660	com.google.android.tungsten.setupwraith	the header keeps it: it owns
 tcl-43ep660	com.tcl.appmarket2	TCL's app store, carries a package installer service; ask row
 tcl-43ep660	com.tcl.appstatecontroller	in the list's telemetry group, but tcl-beyondtv-rt2851 and tcl-beyondtv2 keep it (purpose unclear); ask row
 tcl-43ep660	com.tcl.tvweishi	carries a package installer service (tcl-beyondtv-rt2851 header); ask row
+tcl-43s5k	(launcher)	Live TV and HDMI are MediaTek's com.mediatek.wwtv.tvcenter here, not com.tcl.tv; the header also says the remote's gear button (keycode 83) only worked with launcherx, so it needs the launcher's settings_key_keycodes after the switch
+tcl-43s5k	(match)	device G13 alone: the model Smart TV names a family; no other profile uses G13
+tcl-43s5k	com.google.android.tungsten.setupwraith	the header says it claims Home once launcherx is off and owned the Wi-Fi saved at setup on this unit; it goes with the home screen switch, where the Wi-Fi guard skips it while it owns the network
+tcl-43s5k	com.tcl.messagebox	carries a ttvs receiver, and tcl-40s5400a and tcl-32s5k keep it to be safe while ttvs is the updater here; ask row
+tcl-43s5k	com.tcl.partnercustomizer	ask row: the header tested the Input key but not the remote's T key (RF-PROFILES-63 P5)
+tcl-43s5k	com.tcl.ttvs	commented out by the list: the header says it is TCL's analytics and also the firmware updater; never-disable
 tcl-50ep680	com.tcl.copydatatotv	tcl-beyondtv2 keeps it (boot hooks, role unclear); ask row
 tcl-50ep680	com.tcl.dashboard	other TCL lists keep it; ask row
+tcl-55c715	(match)	model BeyondTV2 on device BeyondTV, Android 9, AP06; the fingerprint prefix is inferred from the header's model, device and build and the product name in tcl-beyondtv2-latin-america's fingerprint, confirm with getprop; a wrong guess fails closed. On AP06 it ties tcl-beyondtv2-latin-america (tested on AP08) and wins by id, which is the intended result
+tcl-55c715	com.tcl.android.webview	a WebView build (Google's is the active provider here); ask row as on tcl-beyondtv-rt2851
+tcl-55c715	com.tcl.appmarket2	TCL's app store, carries a package installer service; ask row
+tcl-55c715	com.tcl.copydatatotv	tcl-beyondtv2 and the Thomson list keep it; ask row
+tcl-55c715	com.tcl.keyhelp	remote-key help; tcl-43ep660 and tcl-beyondtv2 keep it as load-bearing, so it is an ask row as on tcl-beyondtv-rt2851
+tcl-55c715	com.tcl.partnercustomizer	ask row: the header found it also supplies the stock home's Inputs icon, and tested the Source button but not the remote's T key (RF-PROFILES-63 P5)
+tcl-55c715	com.tcl.tvweishi	carries a package installer service and the header says re-enable it while installing a launcher; ask row
+tcl-55c715	com.tcl.useragreement	tcl-55s470g and tcl-c755 keep it (setup screens); ask row
+tcl-55c715	com.tcl.usercenter	the TCL account, re-enabled at every boot per the header; ask row as on the other TCL lists
+tcl-55c715	com.tcl.versionUpdateApp	TCL's firmware updater, filed under off by choice; Software updates ask row
+tcl-55c715	com.tcl.videoplayer	the header's Also kept paragraph (players for Live TV info and screen-off audio, UpdatePeripheral, rc.ota) is added to never-disable (RF-PROFILES-63 P19)
+tcl-55c725	(launcher)	the README says the remote's Netflix, YouTube, Prime Video, TV, gear and number keys only worked with launcherx; the launcher's HomeKeyService with app_keys brings them back, the Input key works without help
+tcl-55c725	(match)	model Smart TV Pro and device BeyondTV4 are shared with tcl-65c725 (tvlauncher, product not given); the G03_4K_GB product prefix from this header keeps the tvlauncher sets on tcl-65c725 unless they report the same product. On G03_4K_GB it ties tcl-65c725 and wins by id, which is the intended result
+tcl-55c725	com.google.android.tungsten.setupwraith	the header says it claims Home once launcherx is off; this unit ran on Ethernet, so Wi-Fi ownership was not checked; the takeover's Wi-Fi guard skips it while it owns the network
+tcl-55c725	com.google.android.videos	the Google TV app holds purchased films; ask row on a Google TV set (RF-PROFILES-63 P17)
+tcl-55c725	com.tcl.android.webview	the header says TV Settings and TCL apps still work without it, but a WebView build is an ask row as on tcl-beyondtv-rt2851 and tcl-g07
+tcl-55c725	com.tcl.channelplus	TCL Live registers a TV input (tcl-g07 header); ask row
+tcl-55c725	com.tcl.dashboard	the stock quick settings panel; newer TCL Google TVs keep it for inputs, the Input key here uses com.tcl.suspension; ask row
+tcl-55c725	com.tcl.keyhelp	remote virtual keys; tcl-65c725 disables it but most TCL lists keep it (tcl-g03 leaves it alone on this build); ask row
+tcl-55c725	com.tcl.partnercustomizer	ask row: the header does not say the remote's T key was tested (RF-PROFILES-63 P5)
+tcl-55c725	com.tcl.useragreement	tcl-55s470g and tcl-c755 keep it (setup screens), tcl-g03 leaves it alone on this build; ask row
+tcl-55c725	com.tcl.versionUpdateApp	the header's never-disable list and the README's kept on purpose updater and phone remote (it carries the mic on other TCL sets) are added to never-disable (RF-PROFILES-63 P19)
+tcl-55c815	(match)	model BeyondTV2 on device BeyondTV, Android 11; the SDK keeps it apart from tcl-beyondtv2-latin-america (Android 9) and the model from tcl-50ep680 (BeyondTV, Android 11); fingerprint prefix from the header
+tcl-55c815	com.google.android.tungsten.setupwraith	not listed: the header keeps it because it owns a saved Wi-Fi network on this unit (never-disable from the header)
+tcl-55c815	com.tcl.copydatatotv	tcl-beyondtv2 and the Thomson list keep it; ask row
+tcl-55c815	com.tcl.guard	the header's Deliberately NOT disabled paragraph (guard, partnercustomizer for the T key, useragreement, remote, setup and input services, usercenter, the updater) is added to never-disable (RF-PROFILES-63 P19)
+tcl-55p7k	(match)	device G10 with the product prefix G10_4K_GB (non-US G10, as the c755 and qm6k split does for G08); on that product it ties tcl-55s470g and tcl-g10-google-tv (US product) and wins by id, which is the intended result
+tcl-55p7k	com.google.android.tungsten.setupwraith	the header says it claims Home once launcherx is off, as on the other G10 sets; it goes with the home screen switch, where the Wi-Fi guard applies
+tcl-55p7k	com.tcl.channelplus	TCL Live registers a TV input (tcl-g07 header); ask row
+tcl-55p7k	com.tcl.partnercustomizer	ask row: the header does not say the remote's T key was tested (RF-PROFILES-63 P5)
+tcl-55p7k	com.tcl.t_solo	TV audio to Bluetooth headphones; tcl-c755 keeps it; ask row
+tcl-55p7k	com.tcl.ttvs	filed under tracking, but the header says re-enable it if firmware updates stop and tcl-55s470g (same G10 build) says it hosts the updater; Software updates row
+tcl-55p7k	com.tcl.usercenter	the TCL account; ask row as on the other TCL lists
 tcl-55s470g	(match)	same device, product and build as tcl-g10-google-tv; the app picks one profile per TV and the tie goes to this one (ids in order), so G10 sets now get this list, which covers the earlier one apart from TCL's two FAST channel apps
 tcl-55s470g	com.tcl.UpdatePeripheral	soundbar firmware updater; Software updates
 tcl-65c735	(match)	G05 sold in Europe (product G05_4K_GB); the fingerprint prefix leaves other G05 sets on tcl-g05-google-tv
@@ -151,6 +196,18 @@ tcl-beyondtv2-latin-america	(match)	the device is BeyondTV as on the other Beyon
 tcl-c755-google-tv	(match)	G08 sold outside the US (product G08_4K_GB); the fingerprint prefix leaves the US G08 on tcl-qm6k-google-tv
 tcl-c755-google-tv	com.tcl.channelplus	TCL Live registers a TV input (tcl-g07 header); TV inputs are never default-off, so it is an ask row
 tcl-c755-google-tv	com.tcl.ttvs	the header calls it tracking and says updates come through Play here, but tcl-qm6k-google-tv (same G08 board) keeps it and other TCL lists say it hosts the firmware updater; tracking ask row
+tcl-g03-google-tv	(launcher)	the remote's gear button (keycode 4077) only worked with launcherx; the header brings it back with the launcher's HomeKeyService and settings_key_keycodes, the Input key works without help
+tcl-g03-google-tv	(match)	model Smart TV Pro and device BeyondTV4 as tcl-55c725 and tcl-65c725, same product and software as tcl-55c725; the full AR09 fingerprint from the header wins AR09 sets over tcl-55c725 (prefix TCL/G03_4K_GB/) and tcl-65c725 (none) by the longer prefix
+tcl-g03-google-tv	com.google.android.tungsten.setupwraith	the header says it claims Home once launcherx is off and owned the Wi-Fi saved at setup on this unit until the network was joined again in Settings; it goes with the home screen switch, where the Wi-Fi guard skips it while it owns the network
+tcl-g03-google-tv	com.tcl.android.webview	a WebView build (Google's stays the provider); ask row as on tcl-beyondtv-rt2851 and tcl-g07
+tcl-g03-google-tv	com.tcl.channelplus	TCL Live registers a TV input (tcl-g07 header); ask row
+tcl-g03-google-tv	com.tcl.dashboard	newer TCL Google TVs keep it for inputs; the Input key here uses com.tcl.suspension, but most TCL lists keep it; ask row
+tcl-g03-google-tv	com.tcl.gallery	USB photo gallery (and TCL screensaver per tcl-85rm7l); USB media is an ask row
+tcl-g03-google-tv	com.tcl.gamebar	console game mode overlay; ask row as on tcl-55s470g and tcl-c755
+tcl-g03-google-tv	com.tcl.partnercustomizer	ask row: the header tested the Input key but not the remote's T key (RF-PROFILES-63 P5)
+tcl-g03-google-tv	com.tcl.usercenter	the TCL account; ask row as on the other TCL lists
+tcl-g03-google-tv	com.tcl.versionUpdateApp	not listed: the header keeps TCL's firmware updater on; never-disable
+tcl-g03-google-tv	com.tcl.xian.StartandroidService	filed as a reporting service here, but tcl-55c715, tcl-beyondtv-rt2851 and tcl-55c725 (same build) keep it as device authentication; ask row
 tcl-g07-google-tv	(match)	device G07 alone: the model Smart TV names a family and otherwise beat tcl-40s5400a on its own C06 sets (RF-PROFILES-63 P8)
 tcl-g07-google-tv	com.google.android.tungsten.setupwraith	v2.5.0 notes (upstream #415): on a second unit (AR17) the Wi-Fi saved at setup belonged to the wizard; the takeover's Wi-Fi guard (D3) keeps it on then
 tcl-g07-google-tv	com.tcl.channelplus	TCL Live registers a TV input (the header says so); ask row
@@ -158,6 +215,16 @@ tcl-g07-google-tv	com.tcl.dashboard	other TCL lists keep it; ask row
 tcl-g07-google-tv	com.tcl.notereminder	added in v2.5.0 (it was on on the AR17 unit); reminders fed by the message box, default-off as listed
 tcl-g07-google-tv	com.tcl.ttvs	the header itself says it is also TCL's firmware updater; Software updates row
 tcl-g07-google-tv	com.tcl.useragreement	tcl-55s470g and tcl-c755 keep it (setup screens); ask row
+tcl-g09-google-tv	(match)	device G09 alone: the model Smart TV Pro names a family; no other profile uses G09
+tcl-g09-google-tv	com.google.android.tungsten.setupwraith	the header says it claims Home once launcherx is off and the scripts check its Wi-Fi first; it goes with the home screen switch, where the Wi-Fi guard applies
+tcl-g09-google-tv	com.google.android.tv.remote.service	the phone remote; on tcl-c755 and tcl-85rm7l it carries the remote's mic button; casting ask row
+tcl-g09-google-tv	com.google.android.videos	the Google TV app holds purchased films; ask row on a Google TV set (RF-PROFILES-63 P17)
+tcl-g09-google-tv	com.tcl.UpdatePeripheral	soundbar firmware updater; Software updates
+tcl-g09-google-tv	com.tcl.channelplus	TCL Live registers a TV input (the note says it also removes the channels from Live TV); ask row
+tcl-g09-google-tv	com.tcl.gamebar	console game mode overlay; ask row as on tcl-55s470g and tcl-c755
+tcl-g09-google-tv	com.tcl.partnercustomizer	ask row: the header tested the Input button but not the remote's T key (RF-PROFILES-63 P5)
+tcl-g09-google-tv	com.tcl.ttvs	the header says updates come through Play Services on this set, but tcl-55s470g on the same G10 firmware family says ttvs hosts the updater; tracking ask row as on tcl-c755
+tcl-g09-google-tv	com.tcl.usercenter	the TCL account; ask row as on the other TCL lists
 tcl-uniontv-latin-america	com.tcl.appmarket2	TCL's app store, carries a package installer service (tcl-beyondtv-rt2851 header); ask row
 tcl-uniontv-latin-america	com.tcl.common.terminalmanagerplus	device management that watches installs; tcl-beyondtv2 and the Thomson list keep it; ask row
 tcl-uniontv-latin-america	com.tcl.copydatatotv	tcl-beyondtv2 and the Thomson list keep it; ask row

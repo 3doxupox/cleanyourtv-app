@@ -231,6 +231,7 @@ com.ddnational.prasarbharati	DD National	Indian TV channel app	streaming
 com.demo	Hisense demo	Retail demo app	demo
 com.discoveryplus.mitv	discovery+	Streaming app	streaming
 com.disney.disneyplus	Disney+	Streaming app	streaming
+com.disneyplus.mea	Disney+ (Middle East)	Disney's streaming app for the Middle East	streaming
 com.dolby.android.audio.service	Dolby audio service	Dolby audio processing	system
 com.duokan.factorytest	Xiaomi factory test	Factory test app that also claims Home	other
 com.duokan.videodaily	Video Daily	Daily promoted video picks	ads
@@ -301,6 +302,7 @@ com.haier.tvhousekeeper	Haier TV housekeeper	Cleaner app	brand
 com.haier.yudee.tv	Haier share	Shares phone media to the TV	casting
 com.haierubic.usmartdevice	Haier smart device	Haier smart device service	brand
 com.hbo.hbonow	HBO Max	Streaming app	streaming
+com.hbo_android_tv	HBO (old app)	Older HBO app, replaced by Max	streaming
 com.heytap.olink	OnePlus Connect	Links the TV to the OnePlus phone app	brand
 com.heytap.oprcupgradeservice	OnePlus remote updates	Updates the remote's firmware	system
 com.heytap.optvfactory	OnePlus factory app	Factory test app, left alone	system
@@ -450,6 +452,7 @@ com.onemainstream.sonyliv.android	SonyLIV	Streaming app	streaming
 com.oneplus.tv.factory	OnePlus TV factory app	Factory test app, left alone	system
 com.oneplus.tv.launcher	OnePlus launcher page	OnePlus content page	brand
 com.opera.sdk.example	Opera TV sample app	Opera TV SDK sample app	preloads
+com.osn.go	OSN+	Middle East series and film streaming app	streaming
 com.panasonic.demomode	Panasonic demo mode	Store demo mode	demo
 com.panasonic.ehelp	Panasonic eHelp	On-screen user manual	preloads
 com.panasonic.hotelmode	Panasonic hotel mode	Hotel mode settings	demo
@@ -493,6 +496,7 @@ com.smartdevice.leanbacklauncher.customizer	Skyworth home customizer	Adds rows t
 com.smartdevice.myapp	Skyworth My Apps	Skyworth apps screen	brand
 com.smartdevice.recommendation	Skyworth recommendations	Content recommendation rows	ads
 com.smartdevice.recordactivation	Skyworth activation record	Records first activation	tracking
+com.snm.upgrade	SNM updater	A second firmware updater (updateos)	updates
 com.sohu.inputmethod.sogou.tv	Sogou keyboard	The only on-screen keyboard	system
 com.sony.dtv.QuickSetupCustomizer	Sony setup customizer	Partner settings for first setup	other
 com.sony.dtv.airplayapp	AirPlay	Receives AirPlay from Apple devices	casting
@@ -646,14 +650,17 @@ com.tcl.tv.tclchannel	TCL Channel	TCL channel app with Google ads	ads
 com.tcl.tv.tclhome_passive	TCL home feed	Pushes TCL content at boot	ads
 com.tcl.tvhealthcheck	TCL health check	Diagnostics uploader	tracking
 com.tcl.tvinput	TCL TV input	Live TV tuner and HDMI inputs	system
+com.tcl.tvsmartalbum	TCL smart album	Photo album app	preloads
 com.tcl.tvweishi	TCL TV guard	Cleaner widget service	brand
 com.tcl.ui_mediaCenter	TCL media center	Plays media from USB	preloads
 com.tcl.useragreement	TCL user agreement	End-user agreement screen; some TCL Google TVs need it	other
 com.tcl.usercenter	TCL account	TCL account sign-in	brand
 com.tcl.versionUpdateApp	TCL updater	TCL firmware updates	updates
+com.tcl.videocall	TCL video calls	Video calling app	preloads
 com.tcl.videoplayer	TCL video player	Plays videos from USB	preloads
 com.tcl.walleve	TCL voice engine	Voice control for the remote's voice key	voice
 com.tcl.waterfall.overseas	TCL content feed	Web content feed	ads
+com.tcl.weixin	WeChat for TV	WeChat app for the TV	preloads
 com.tcl.wholenetsearch	TCL global search	Searches across TCL content	brand
 com.tcl.xian.StartandroidService	TCL start service	TCL system service, needed	system
 com.teamviewer.quicksupport.market	TeamViewer QuickSupport	Remote support app	preloads
@@ -743,6 +750,7 @@ net.froemling.bombsquad	BombSquad	Preloaded game	preloads
 net.hexage.ritual	Ritual	Preloaded game	preloads
 net.vidaatv.hisense.android.tv	VIDAA	Hisense VIDAA app preload	preloads
 oneplus.smarthome	OnePlus Smart Home	Smart home control	brand
+org.chromium.webview_shell	WebView test browser	AOSP test browser for the web view, not the web view itself	preloads
 org.droidtv.amazonalexa	Philips Alexa	Alexa bridge for the TV	voice
 org.droidtv.android.fitness	Fitness Buddy	Fitness app	preloads
 org.droidtv.candeebug	Philips DAC analytics	Uploads viewing and device data	tracking

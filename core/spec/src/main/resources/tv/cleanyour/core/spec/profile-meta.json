@@ -165,6 +165,36 @@
         "com.google.android.marvin.talkback": { "category": "accessibility", "ask": true }
       }
     },
+    "ffalcon-65s585c-pro": {
+      "match": { "models": [], "devices": ["tcl_mt5879_cn"], "brand": "FFalcon", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
+      "platform": "TCL_CN",
+      "stockLaunchers": [],
+      "liveTv": "com.tcl.tv",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.tcl.cyberui", "com.tcl.tv", "com.tcl.settings", "com.tcl.systemserver", "com.tcl.ttvs", "com.tcl.TFDS.service", "com.sohu.inputmethod.sogou.tv", "com.tcl.appmarket2", "com.tcl.guard", "com.tcl.ui_mediaCenter", "com.tcl.autopair", "com.tcl.tcl_bt_rcu_service", "com.tcl.providers.config", "com.tcl.initsetup", "com.android.packageinstaller"],
+      "suggestedDock": [],
+      "tested": { "by": "codertesla (PR #335)", "firmware": "RQ3A.210705.001/2026012200", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Ad and telemetry reporting (tested on tcl-q10g-pro, same firmware)": { "category": "tracking", "ask": false },
+        "Content apps with their own promo surfaces": { "category": "preloads", "ask": false },
+        "OPTIONAL: OTA. Re-enable when you want firmware updates.": { "category": "updates", "ask": true },
+        "OPTIONAL: account. Re-enable to sign in to a TCL / FFalcon account or VIP.": { "category": "other", "ask": true },
+        "OPTIONAL: voice. The remote's voice key does nothing afterwards.": { "category": "voice", "ask": true },
+        "OPTIONAL: small apps people often do not use (they stayed disabled; the apps themselves weren't tried)": { "category": "preloads", "ask": true }
+      },
+      "packages": {
+        "com.tcl.bootadservice": { "category": "ads", "ask": false },
+        "com.tcl.atomic.servicecenter": { "category": "ads", "ask": false },
+        "android.autoinstalls.config.tcl.device": { "category": "preloads", "ask": false },
+        "com.tcl.appreciate.art": { "category": "screensaver", "ask": true },
+        "com.tcl.wholenetsearch": { "category": "brand", "ask": false },
+        "com.tcl.playskill": { "category": "brand", "ask": false },
+        "com.tcl.repairguide": { "category": "brand", "ask": false },
+        "com.tcl.useragreement": { "category": "other", "ask": false },
+        "com.tcl.xian.StartandroidService": { "category": "other", "ask": true }
+      }
+    },
     "google-chromecast-gtv-4k": {
       "match": { "models": [], "devices": ["sabrina"], "brand": "google", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
       "platform": "GOOGLE_TV",
@@ -1500,6 +1530,31 @@
         "com.tcl.miracast": { "category": "casting", "ask": true }
       }
     },
+    "tcl-43s5k": {
+      "match": { "models": [], "devices": ["G13"], "brand": "TCL", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.mediatek.wwtv.tvcenter",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": ["com.tcl.ttvs"],
+      "suggestedDock": [],
+      "tested": { "by": "Manas Arora (PR #391)", "firmware": "UKN2.241110.001 AU10", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Batch 1: TCL tracking, ads and auto-installs": { "category": "tracking", "ask": false },
+        "Batch 2: preloaded apps and extras not used on this unit": { "category": "preloads", "ask": false },
+        "Batch 3: setup wizard. It claims HOME (RecoveryActivity, priority 1) once launcherx is gone.": { "category": "home", "ask": false },
+        "Batch 4: after launcher/ is Home and the screensaver is switched to the launcher's clock:": { "category": "screensaver", "ask": true }
+      },
+      "packages": {
+        "com.tcl.messagebox": { "category": "ads", "ask": true },
+        "com.tcl.partnercustomizer": { "category": "brand", "ask": true },
+        "android.autoinstalls.config.google.gtvpai": { "category": "ads", "ask": false },
+        "com.google.android.feedback": { "category": "tracking", "ask": false },
+        "com.android.tv.feedbackconsent": { "category": "tracking", "ask": false },
+        "com.google.android.katniss": { "category": "voice", "ask": true }
+      }
+    },
     "tcl-50ep680": {
       "match": { "models": ["BeyondTV"], "devices": ["BeyondTV"], "brand": "TCL", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
       "platform": "ANDROID_TV",
@@ -1531,6 +1586,132 @@
         "cm.aptoidetv.pt": { "category": "preloads", "ask": false },
         "com.teamviewer.quicksupport.market": { "category": "preloads", "ask": false },
         "jp.co.rarity.tvweb": { "category": "preloads", "ask": false }
+      }
+    },
+    "tcl-55c715": {
+      "match": { "models": ["BeyondTV2"], "devices": ["BeyondTV"], "brand": "TCL", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": "TCL/BeyondTV2/BeyondTV:9/PPR1.180610.011/AP06" },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.tcl.tv",
+      "setupWraith": null,
+      "quirks": ["REENABLED_AT_BOOT"],
+      "neverDisable": ["com.tcl.videoplayer", "com.tcl.audioplayer", "com.tcl.imageplayer", "com.tcl.UpdatePeripheral", "com.tcl.rc.ota"],
+      "suggestedDock": [],
+      "tested": { "by": "bendorneanu (PR #502)", "firmware": "PPR1.180610.011 AP06 (V8-R851T02-LF1V606)", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "1. Telemetry and analytics": { "category": "tracking", "ask": false },
+        "2. Content, recommendation rows and promos": { "category": "ads", "ask": false },
+        "3. Preloads and background extras": { "category": "other", "ask": true },
+        "4. USB media, off by choice (the players stay, see above)": { "category": "preloads", "ask": true },
+        "5. Off by choice": { "category": "casting", "ask": true },
+        "6. Voice, off by choice: the mic button and home-screen search go with it": { "category": "voice", "ask": true },
+        "7. After the launcher is installed": { "category": "brand", "ask": true },
+        "8. Extras nobody used here": { "category": "preloads", "ask": false }
+      },
+      "packages": {
+        "android.autoinstalls.config.tcl.device": { "category": "ads", "ask": false },
+        "com.google.android.onetimeinitializer": { "category": "other", "ask": false },
+        "com.tcl.partnercustomizer": { "category": "brand", "ask": true },
+        "com.tcl.esticker": { "category": "demo", "ask": false },
+        "com.tcl.keyhelp": { "category": "brand", "ask": true },
+        "com.tcl.copydatatotv": { "category": "brand", "ask": true },
+        "com.tcl.versionUpdateApp": { "category": "updates", "ask": true },
+        "com.tcl.usercenter": { "category": "other", "ask": true },
+        "com.google.android.marvin.talkback": { "category": "accessibility", "ask": true },
+        "com.google.android.syncadapters.calendar": { "category": "other", "ask": false },
+        "com.google.android.backdrop": { "category": "screensaver", "ask": true }
+      }
+    },
+    "tcl-55c725": {
+      "match": { "models": ["Smart TV Pro"], "devices": ["BeyondTV4"], "brand": "TCL", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": "TCL/G03_4K_GB/" },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.tcl.tv",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": ["com.tcl.providers.config", "com.tcl.initsetup", "com.tcl.system.server", "com.tcl.tcl_bt_rcu_service", "com.tcl.autopair", "com.tcl.tvinput", "com.tcl.tv", "com.tcl.settings", "com.tcl.inputmethod.international", "com.tcl.suspension", "com.tcl.micmanager", "com.google.android.tv.assistant", "com.tcl.xian.StartandroidService", "com.tcl.versionUpdateApp", "com.google.android.tv.remote.service"],
+      "suggestedDock": [],
+      "tested": { "by": "angelusgi (PR #504)", "firmware": "RP1A.200622.001 (V8-R51MT05-LF1V620)", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "TCL and Google content, ads and promos": { "category": "ads", "ask": false },
+        "Background services not needed": { "category": "other", "ask": false },
+        "Preloaded apps": { "category": "preloads", "ask": false },
+        "Google TV setup wizard: claims Home once launcherx is disabled. On Ethernet there is no Wi-Fi to lose.": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.tcl.channelplus": { "category": "ads", "ask": true },
+        "com.tcl.partnercustomizer": { "category": "brand", "ask": true },
+        "com.tcl.esticker": { "category": "demo", "ask": false },
+        "com.tcl.bi": { "category": "tracking", "ask": false },
+        "com.google.android.partnersetup": { "category": "tracking", "ask": false },
+        "com.google.android.feedback": { "category": "tracking", "ask": false },
+        "org.chromium.webview_shell": { "category": "preloads", "ask": false },
+        "com.tcl.android.webview": { "category": "other", "ask": true },
+        "com.tcl.guard": { "category": "tracking", "ask": false },
+        "com.tcl.keyhelp": { "category": "brand", "ask": true },
+        "com.tcl.useragreement": { "category": "other", "ask": true },
+        "com.google.android.videos": { "category": "streaming", "ask": true },
+        "com.google.android.marvin.talkback": { "category": "accessibility", "ask": true },
+        "com.tcl.ui_mediaCenter": { "category": "preloads", "ask": true },
+        "com.tcl.MultiScreenInteraction_TV": { "category": "casting", "ask": true },
+        "tv.wuaki.apptv": { "category": "streaming", "ask": true },
+        "com.tcl.dashboard": { "category": "brand", "ask": true },
+        "com.google.android.apps.tv.dreamx": { "category": "screensaver", "ask": true }
+      }
+    },
+    "tcl-55c815": {
+      "match": { "models": ["BeyondTV2"], "devices": ["BeyondTV"], "brand": "TCL", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": "TCL/BeyondTV2/BeyondTV:11/" },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.tcl.tv",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.tcl.guard", "com.tcl.partnercustomizer", "com.tcl.useragreement", "com.google.android.tungsten.setupwraith", "com.tcl.tv", "com.tcl.tvinput", "com.tcl.autopair", "com.tcl.keycustomfunctionservice", "com.tcl.settings", "com.tcl.inputmethod.international", "com.tcl.initsetup", "com.tcl.factory.view", "com.tcl.providers.config", "com.tcl.systemserver", "com.tcl.micmanager", "com.tcl.usercenter", "com.tcl.xian.StartandroidService", "com.tcl.versionUpdateApp"],
+      "suggestedDock": [],
+      "tested": { "by": "Johannesnc (PR #336)", "firmware": "PPR1.180610.011 AR05", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Batch 1: telemetry and attribution": { "category": "tracking", "ask": false },
+        "Batch 2: TCL content/promo feeds and recommendation rows": { "category": "ads", "ask": false },
+        "Batch 3: unused Google extras, superseded apps, setup leftovers": { "category": "preloads", "ask": false },
+        "Batch 4 (after the launcher is installed): Google ambient screensaver": { "category": "screensaver", "ask": true }
+      },
+      "packages": {
+        "android.autoinstalls.config.tcl.device": { "category": "ads", "ask": false },
+        "com.tcl.esticker": { "category": "demo", "ask": false },
+        "com.google.android.onetimeinitializer": { "category": "other", "ask": false },
+        "com.google.android.syncadapters.calendar": { "category": "other", "ask": false },
+        "com.tcl.copydatatotv": { "category": "brand", "ask": true },
+        "com.hbo_android_tv": { "category": "streaming", "ask": true },
+        "com.hbo.hbonow": { "category": "streaming", "ask": true }
+      }
+    },
+    "tcl-55p7k": {
+      "match": { "models": [], "devices": ["G10"], "brand": "TCL", "sdkMin": 31, "sdkMax": 31, "fingerprintPrefix": "TCL/G10_4K_GB/" },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.tcl.tv",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": [],
+      "suggestedDock": [],
+      "tested": { "by": "egyjs (PR #529)", "firmware": "STT2.230203.001 AS16", "daysLivedWith": 1, "rebootTested": true },
+      "groups": {
+        "TCL tracking and analytics": { "category": "tracking", "ask": false },
+        "TCL content, ads and promos": { "category": "ads", "ask": false },
+        "Retail demo / hotel mode": { "category": "demo", "ask": false },
+        "Preloaded apps and services": { "category": "preloads", "ask": false },
+        "Needed for a custom launcher. Disable only AFTER the new launcher is installed.": { "category": "home", "ask": false },
+        "Disabled by choice on this TV (unused streaming apps): comment out the ones you watch": { "category": "streaming", "ask": true }
+      },
+      "packages": {
+        "com.tcl.ttvs": { "category": "updates", "ask": true },
+        "com.tcl.usercenter": { "category": "other", "ask": true },
+        "com.tcl.channelplus": { "category": "ads", "ask": true },
+        "com.tcl.partnercustomizer": { "category": "brand", "ask": true },
+        "com.tcl.interactive": { "category": "brand", "ask": false },
+        "com.tcl.guard": { "category": "tracking", "ask": false },
+        "com.tcl.smartalexa": { "category": "voice", "ask": true },
+        "com.tcl.t_solo": { "category": "brand", "ask": true }
       }
     },
     "tcl-55s470g": {
@@ -1763,6 +1944,46 @@
         "com.google.android.apps.tv.dreamx": { "category": "screensaver", "ask": true }
       }
     },
+    "tcl-g03-google-tv": {
+      "match": { "models": ["Smart TV Pro"], "devices": ["BeyondTV4"], "brand": "TCL", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": "TCL/G03_4K_GB/BeyondTV4:11/RP1A.200622.001/AR09" },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.tcl.tv",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": ["com.tcl.versionUpdateApp"],
+      "suggestedDock": [],
+      "tested": { "by": "www-r3m1x (PR #423)", "firmware": "RP1A.200622.001 AR09 (V8-R51MT05-LF1V620)", "daysLivedWith": 1, "rebootTested": true },
+      "groups": {
+        "1. TCL and Google telemetry": { "category": "tracking", "ask": false },
+        "2. TCL and Google content, ads and recommendation rows": { "category": "ads", "ask": false },
+        "3. Background services and preloaded extras": { "category": "preloads", "ask": false },
+        "4. Off by choice: streaming apps and TCL extras (comment out what you use)": { "category": "streaming", "ask": true },
+        "5. Off by choice: voice, casting, mirroring (comment out what you use)": { "category": "voice", "ask": true },
+        "6. Google TV first-run wizard: claims HOME once launcherx is off (read the Wi-Fi note above)": { "category": "home", "ask": false },
+        "7. Google ambient screensaver (promos)": { "category": "screensaver", "ask": true }
+      },
+      "packages": {
+        "com.tcl.xian.StartandroidService": { "category": "other", "ask": true },
+        "com.tcl.dashboard": { "category": "brand", "ask": true },
+        "com.tcl.partnercustomizer": { "category": "brand", "ask": true },
+        "com.tcl.esticker": { "category": "demo", "ask": false },
+        "com.google.android.partnersetup": { "category": "tracking", "ask": false },
+        "com.google.android.onetimeinitializer": { "category": "other", "ask": false },
+        "com.tcl.guard": { "category": "tracking", "ask": false },
+        "com.tcl.usercenter": { "category": "other", "ask": true },
+        "com.tcl.android.webview": { "category": "other", "ask": true },
+        "com.google.android.syncadapters.calendar": { "category": "other", "ask": false },
+        "com.tcl.gallery": { "category": "preloads", "ask": true },
+        "com.tcl.ui_mediaCenter": { "category": "preloads", "ask": true },
+        "com.tcl.gamebar": { "category": "brand", "ask": true },
+        "com.tcl.channelplus": { "category": "ads", "ask": true },
+        "com.tcl.browser": { "category": "preloads", "ask": false },
+        "com.google.android.apps.mediashell": { "category": "casting", "ask": true },
+        "com.tcl.miracast": { "category": "casting", "ask": true },
+        "com.tcl.MultiScreenInteraction_TV": { "category": "casting", "ask": true }
+      }
+    },
     "tcl-g05-google-tv": {
       "match": { "models": ["Smart TV Pro"], "devices": ["G05"], "brand": "TCL", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
       "platform": "GOOGLE_TV",
@@ -1828,6 +2049,45 @@
         "com.tcl.ui_mediaCenter": { "category": "preloads", "ask": true },
         "com.tcl.gallery": { "category": "preloads", "ask": true },
         "com.google.android.apps.tv.dreamx": { "category": "screensaver", "ask": true }
+      }
+    },
+    "tcl-g09-google-tv": {
+      "match": { "models": [], "devices": ["G09"], "brand": "TCL", "sdkMin": 31, "sdkMax": 31, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.tcl.tv",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": [],
+      "suggestedDock": [],
+      "tested": { "by": "Mateus Zanes (PR #413)", "firmware": "STT2.230203.001 AS24", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "TCL telemetry and analytics": { "category": "tracking", "ask": false },
+        "TCL content, ads and promos": { "category": "ads", "ask": false },
+        "Background services": { "category": "brand", "ask": false },
+        "Preloaded apps": { "category": "preloads", "ask": false },
+        "Off by choice": { "category": "casting", "ask": true },
+        "Second Home claimant: disable it once the new launcher is Home (disable.sh checks the Wi-Fi owner first)": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.tcl.ttvs": { "category": "tracking", "ask": true },
+        "com.tcl.interactive": { "category": "brand", "ask": false },
+        "com.tcl.channelplus": { "category": "ads", "ask": true },
+        "com.tcl.partnercustomizer": { "category": "brand", "ask": true },
+        "com.tcl.guard": { "category": "tracking", "ask": false },
+        "com.tcl.usercenter": { "category": "other", "ask": true },
+        "com.tcl.exhibit": { "category": "demo", "ask": false },
+        "com.tcl.esticker": { "category": "demo", "ask": false },
+        "com.tcl.hotelmenu": { "category": "demo", "ask": false },
+        "com.google.android.tv.remote.service": { "category": "casting", "ask": true },
+        "com.tcl.gamebar": { "category": "brand", "ask": true },
+        "com.tcl.UpdatePeripheral": { "category": "updates", "ask": true },
+        "com.tcl.hearaid": { "category": "accessibility", "ask": true },
+        "com.google.android.marvin.talkback": { "category": "accessibility", "ask": true },
+        "com.google.android.videos": { "category": "streaming", "ask": true },
+        "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": true },
+        "com.google.android.apps.tv.dreamx": { "category": "screensaver", "ask": true },
+        "com.tcl.ui_mediaCenter": { "category": "preloads", "ask": true }
       }
     },
     "tcl-g10-google-tv": {
