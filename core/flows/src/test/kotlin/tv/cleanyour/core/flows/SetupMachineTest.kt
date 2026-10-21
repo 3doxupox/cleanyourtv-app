@@ -1024,6 +1024,32 @@ class SetupMachineTest {
         }
     }
 
+    // Upstream #435: a vendor's FallbackHome answers Home but is no launcher, so when the switch fails
+    // the card never names it as "another home screen app"; a real one is still named.
+    @Test fun aFallbackHomeIsNotAnotherLauncher() = runTest(timeout = 30.seconds) {
+        val cases = listOf(
+            tv.cleanyour.core.model.Component(PackageName("com.tcl.keycustomfunctionservice"), ".FallbackHome") to StopCase.HOME_UNKNOWN,
+            tv.cleanyour.core.model.Component(PackageName("com.android.provision"), ".DefaultActivity") to StopCase.HOME_UNKNOWN,
+            tv.cleanyour.core.model.Component(PackageName("com.example.otherhome"), ".Home") to StopCase.HOME_OTHER_LAUNCHER,
+        )
+        for ((claimant, expected) in cases) {
+            val h = Harness()
+            h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+            h.prober.snapshotFor = { r ->
+                Samples.miTvSnapshot(reason = r).let { s ->
+                    s.copy(home = s.home.copy(claimants = s.home.claimants + tv.cleanyour.core.model.HomeClaimant(claimant, 1)))
+                }
+            }
+            h.setupPlan = h.plan(listOf(Op.Disable(adPkg)), takeover = true)
+            h.engine.onStart = { p -> finish(p, RunStatus.COMPLETED_WITH_SKIPS, HomeOutcome.VERIFY_FAILED) }
+            val m = h.setup(backgroundScope)
+            toFound(h, m)
+            m.dispatch(SetupIntent.MakeItClean); settle()
+            val s = assertIs<SetupState.Stopped>(m.state.value)
+            assertEquals(expected, s.card.case, claimant.flat)
+        }
+    }
+
     // D36 (RF-LAUNCHER-240 F1): a home screen app under another key is replaced, and only then; the
     // plan's summary then carries replacesLauncher, which S3 shows above the button.
     @Test fun onlyALauncherUnderAnotherKeyIsReplaced() = runTest(timeout = 30.seconds) {

@@ -1226,11 +1226,18 @@ class SetupMachine(
         return (wraith != null && wraith in claimants) || claimants.any { "setupwraith" in it.value.lowercase() }
     }
 
+    // A launcher of someone else's that answers Home. Not one: the setup wizard, the settings apps,
+    // com.android.provision, and a vendor's FallbackHome (com.tcl.keycustomfunctionservice/.FallbackHome),
+    // a placeholder the firmware shows when no launcher is enabled (upstream #435).
     private fun otherLauncherName(): String? {
         val stock = profile()?.stockLaunchers?.map { it.pkg }.orEmpty().toSet()
         val wraith = profile()?.setupWraith
-        val other = snapshot?.home?.claimants?.map { it.component.pkg }
-            ?.firstOrNull { it != Launcher.pkg && it !in stock && it != wraith && "setupwraith" !in it.value.lowercase() && "settings" !in it.value.lowercase() }
+        val other = snapshot?.home?.claimants?.map { it.component }
+            ?.filter { !it.cls.endsWith("FallbackHome") }?.map { it.pkg }
+            ?.firstOrNull {
+                it != Launcher.pkg && it !in stock && it != wraith && it.value != "com.android.provision" &&
+                    "setupwraith" !in it.value.lowercase() && "settings" !in it.value.lowercase()
+            }
             ?: return null
         return nameOfPkg(other)
     }
