@@ -1,102 +1,122 @@
 <p align="center">
-  <img src="docs/images/banner.png" width="800" alt="Clean Your TV. Your TV, tidied up. From your phone. Ads and bloat off, over Wi-Fi. Every change can be undone.">
+  <img src="docs/images/banner.png" width="800" alt="Official app for Clean Your TV. Clean your TV from your phone. No laptop. No coding agent. Open the app on your Android phone, tap Start, and the ads and bloat are gone in about five minutes.">
 </p>
 
 <p align="center">
-  <a href="https://github.com/udhaykumarbala/cleanyourtv-app/releases/latest"><img src="https://img.shields.io/github/v/release/udhaykumarbala/cleanyourtv-app?style=flat&color=E8A84C&labelColor=15181e&label=download" alt="Latest release"></a>
-  <img src="https://img.shields.io/badge/TVs-131%20profiles%20%C2%B7%2046%20brands-E8A84C?style=flat&labelColor=15181e" alt="131 TV profiles from 46 brands">
+  <a href="https://github.com/udhaykumarbala/cleanyourtv-app/releases/latest"><img src="https://img.shields.io/github/v/release/udhaykumarbala/cleanyourtv-app?style=flat&color=E8A84C&labelColor=15181e&label=download%20APK" alt="Download the latest APK"></a>
+  <img src="https://img.shields.io/badge/TVs-131%20models%20%C2%B7%2046%20brands-E8A84C?style=flat&labelColor=15181e" alt="131 TV models from 46 brands">
   <img src="https://img.shields.io/badge/phone-Android%209%2B-E8A84C?style=flat&labelColor=15181e" alt="Android 9 or newer">
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-E8A84C?style=flat&labelColor=15181e" alt="MIT licence"></a>
 </p>
 
-**Clean Your TV** is a free, open source phone app that tidies up an Android TV, Google TV or Fire
-TV over your Wi-Fi. It switches off the adverts, tracking and preloaded apps nobody asked for,
-installs a calm home screen with the apps you use, and keeps a restore point so every change can
-be put back. No computer, no cables, no root.
+<h3 align="center">The official phone app for <a href="https://github.com/Gathin23/cleanyourtv">Clean Your TV</a>.<br>Anyone can clean up their TV: no laptop, no coding agent, no cables.</h3>
 
 <p align="center">
-  <img src="docs/images/tv-setup.gif" width="640" alt="The TV while the app works: a small lantern scans the old home screen's cards, a restore point is saved, the cards are drawn into a soft black hole one by one, and the screen ends on All clean.">
-  <br><sub>What your TV shows while the phone works.</sub>
+  <a href="https://github.com/udhaykumarbala/cleanyourtv-app/releases/latest"><b>Download</b></a> ·
+  <a href="#how-it-works"><b>How it works</b></a> ·
+  <a href="#safe-by-design"><b>Is it safe?</b></a> ·
+  <a href="#supported-tvs"><b>Supported TVs</b></a>
 </p>
-
-The home screen is [Clean Your TV](https://github.com/Gathin23/cleanyourtv), the open source
-launcher by Gathin, and the TV lists come from its community. This app is the friendly way to set
-it up from a phone.
-
-## Get started
-
-1. **Download** `cleanyourtv-<version>.apk` from the
-   [latest release](https://github.com/udhaykumarbala/cleanyourtv-app/releases/latest) on an Android
-   phone (Android 9 or newer, with a screen lock), and open it to install.
-2. **Open the app** on the same Wi-Fi as the TV. It finds the TV and walks you through switching
-   on network debugging with the remote. That takes about a minute and is the only fiddly part.
-3. **Check the plan and tap "Make it clean".** About five minutes later the TV has its new home
-   screen.
 
 <p align="center">
-  <img src="docs/images/phone-welcome.png" width="190" alt="Welcome screen: Your TV, tidied up. Found Mi TV 4A, Start">
-  <img src="docs/images/phone-what-we-found.png" width="190" alt="What we found: 22 things to switch off, grouped into adverts, tracking, preloaded apps and brand extras">
-  <img src="docs/images/phone-customise-show-commands.png" width="190" alt="Customise sheet with the dock, the look, the progress on the TV and every command listed in order">
-  <img src="docs/images/phone-manage.png" width="190" alt="Manage screen for a cleaned TV: home screen, switched off apps, check for leftovers, restore point">
+  <img src="docs/images/demo.gif" width="800" alt="The phone and the TV side by side. The phone shows what it found and then Making it clean, while the TV shows a small lantern scanning the old home screen's cards and drawing them into a soft black hole. The phone ends on Your TV is ready and the TV on All clean.">
 </p>
 
-## What it does
+## Two ways to clean your TV
 
-- **Looks first.** Reads what is installed, matches the TV against community tested profiles, and
-  shows what it would switch off and what it keeps, before anything happens.
-- **Keeps what matters.** Your streaming apps, Live TV and HDMI, the remote, the keyboard,
-  Chromecast, the voice assistant and software updates stay on.
-- **Cleans gently.** Apps are switched off, never uninstalled, and a restore point is saved before
-  the first change.
-- **Gives you a new home screen.** The Clean Your TV launcher with a dock of your apps, in up to
-  three rows you reorder by dragging.
-- **Stays useful.** Put any app back, check for leftovers after a TV update, change the dock or the
-  look, or undo everything.
+[Clean Your TV](https://github.com/Gathin23/cleanyourtv) gives any Android TV a calm, ad-free home
+screen and switches off the bloat, using lists tested by its community. On its own it needs a
+computer: you run its scripts, or hand its prompt to a coding agent. This app does the whole job
+from your phone.
 
-<p align="center">
-  <img src="docs/images/tv-home.png" width="640" alt="The new home screen on the TV: the time, Inputs, Wi-Fi and Settings, and a row of the apps you use">
-</p>
+| | Clean Your TV repo | **Clean Your TV app** (this repo) |
+| :- | :- | :- |
+| **You need** | A computer with ADB, or a coding agent such as Claude Code | **Just an Android phone** on the same Wi-Fi as the TV |
+| **You do** | Run the scripts, or give the prompt to the agent | **Tap Start, check the plan, tap "Make it clean"** |
+| **Made for** | Tinkerers, themes and new TV lists | **Everyone**: you, your parents, your friends |
+
+Both give you the same Clean Your TV home screen and the same community TV lists, switch apps off
+without uninstalling them, and keep a way back for every change.
+
+## How it works
+
+| 1. Find your TV | 2. Check the plan | 3. Make it clean | 4. Done |
+| :-: | :-: | :-: | :-: |
+| <img src="docs/images/phone-welcome.png" width="180" alt="Welcome screen: Your TV, tidied up. Found Mi TV 4A, Start"> | <img src="docs/images/phone-what-we-found.png" width="180" alt="We found 22 things to switch off, grouped into adverts, tracking, apps nobody asked for and brand extras, with everything it keeps listed below"> | <img src="docs/images/phone-making-it-clean.png" width="180" alt="Making it clean, 58 percent: restore point saved, adverts switched off, tracking 4 of 7, with a live picture from the TV"> | <img src="docs/images/phone-done.png" width="180" alt="Your TV is ready: 23 things switched off, new home screen on, everything can be put back"> |
+
+1. **Install the app.** Download `cleanyourtv-<version>.apk` from the
+   [latest release](https://github.com/udhaykumarbala/cleanyourtv-app/releases/latest) on an
+   Android phone (Android 9 or newer, with a screen lock) and open it to install.
+2. **Find your TV.** Open the app on the same Wi-Fi as the TV. It finds the TV and shows you how to
+   switch on network debugging with the remote. That takes about a minute and is the only fiddly part.
+3. **Check the plan.** The app reads what is on the TV and shows what it would switch off (adverts,
+   tracking, apps nobody asked for) and what it keeps: your streaming apps, Live TV and HDMI, the
+   remote, the keyboard, Chromecast, voice and updates. Change anything under Customise.
+4. **Make it clean.** A restore point is saved first, the clutter is switched off, and the Clean
+   Your TV home screen goes on with a dock of your apps. Your TV shows a calm animation while it
+   works, and about five minutes later it is done.
+
+Come back any time to put an app back, check for leftovers after a TV update, change the dock or
+the look, or undo everything.
 
 ## Safe by design
 
-- **You see every step.** Nothing runs until you have seen the plan. Customise shows every command
-  the app would send, in order.
-- **Nothing is deleted.** Apps are disabled for the main user, so each one can be put back. Wi-Fi,
-  the Play Store, the remote, the TV's inputs and the pieces Android needs are protected and never
+- **You see every step.** Nothing runs until you have seen the plan, and Customise shows every
+  command the app would send, in order.
+- **Nothing is deleted.** Apps are switched off for the main user, so each one can come back. Wi-Fi,
+  the Play Store, the remote, the TV's inputs and the parts Android needs are protected and never
   touched; accessibility, casting, voice and updates go off only if you choose.
 - **Undo anything.** Put back one app or everything from the restore point. "Save a copy" exports
-  plain restore scripts that work from any computer with adb, without this app.
+  plain restore scripts that work from any computer with adb, even without this app.
 - **A watchdog on the TV.** If the phone does not confirm the new home screen within 150 seconds
   (the Wi-Fi drops, the phone dies), the TV puts its own home screen back by itself.
 - **Careful where it counts.** On TVs where switching the home screen is known to cause trouble,
-  the app does the clean-up only and says why.
-- **Debugging off afterwards.** The app switches network debugging off at the end unless you keep it on.
+  the app does the clean-up only and tells you why.
+- **Private.** No accounts, no analytics, no ads. The app talks to your TV and, only when you ask,
+  to GitHub for updates. Network debugging is switched off again at the end unless you keep it on.
+
+## Supported TVs
+
+**131 TV models from 46 brands**, from the Clean Your TV community lists: TCL, Sony, Xiaomi,
+Hisense, Philips, Amazon Fire TV, Panasonic, XGIMI, BenQ, NVIDIA Shield, onn, Google and many more,
+on Android TV, Google TV and Fire OS. A model nobody has listed yet still gets a careful clean-up
+based on its brand.
 
 <details>
-<summary><b>Supported TVs</b></summary>
+<summary>The details</summary>
 
-- **131 TV profiles from 46 brands**, from the community lists in the upstream launcher repository
-  (v2.5.0): TCL (24 models), Sony (17), Xiaomi (17), Hisense, Philips, Amazon Fire TV, Panasonic,
-  XGIMI, BenQ, NVIDIA Shield, Skyworth, Haier, CHiQ, onn, Google, Vestel-made sets (JVC, Toshiba,
-  Cecotec), the Freebox Player and more, on Android TV, Google TV, Fire OS and TCL's China builds.
-  Each profile names who tested it.
-- **A brand fallback** for a model nobody has profiled yet: for Amazon, Hisense, Panasonic,
-  Philips, Sony, TCL, XGIMI and Xiaomi the app switches off only what every profile of that brand
-  agrees on, and says it is being careful. More can be switched off by hand under Customise.
+- **Profiles:** TCL (24 models), Sony (17), Xiaomi (17), Hisense, Philips, Amazon Fire TV,
+  Panasonic, XGIMI, BenQ, NVIDIA Shield, Skyworth, Haier, CHiQ, onn, Google, Vestel-made sets (JVC,
+  Toshiba, Cecotec), the Freebox Player and more, on Android TV, Google TV, Fire OS and TCL's China
+  builds. Each profile names who tested it.
+- **Brand fallback:** for Amazon, Hisense, Panasonic, Philips, Sony, TCL, XGIMI and Xiaomi models
+  without a profile, the app switches off only what every profile of that brand agrees on, and says
+  it is being careful. More can be switched off by hand under Customise.
 - **Other Android TVs** get the home screen, and the app suggests only what it is sure about.
 - **Clean-up only** (the TV keeps its own home screen, and the app says why): Fire TV, TCL's China
   builds, Android 7, vendor home screens the app does not know, Chromecast with Google TV and the
   Google TV Streamer (the switch would cost casting), the Kalley and PRISM+ sets whose setup wizard
   returns at every boot, and TVs whose setup wizard has to stay on.
-
-The TV needs network debugging (ADB on port 5555). On TVs that only offer Wireless debugging with
-a pairing code, pair once from a computer; the app shows the three commands.
-
-Your TV is not listed? See [CONTRIBUTING.md](CONTRIBUTING.md#propose-a-tv-profile).
+- **Network debugging:** the TV needs ADB over the network (port 5555). On TVs that only offer
+  Wireless debugging with a pairing code, pair once from a computer; the app shows the three commands.
 </details>
 
+**Your TV is not listed?** TV lists live in Clean Your TV, so they help everyone, with or without
+the app. Add yours there by following its
+[contributing guide](https://github.com/Gathin23/cleanyourtv/blob/main/CONTRIBUTING.md), and the app
+picks it up in its next release. See also [CONTRIBUTING.md](CONTRIBUTING.md#propose-a-tv-profile).
+
+## Part of Clean Your TV
+
+- The home screen is the [Clean Your TV launcher](https://github.com/Gathin23/cleanyourtv/tree/main/launcher)
+  by [Gathin](https://github.com/Gathin23). The app carries it inside, built from its source.
+- New TV lists and launcher versions from Clean Your TV reach the app in its updates. News about
+  both comes from [@gathint](https://x.com/gathint).
+- Something wrong in the app itself? [Open an issue here](https://github.com/udhaykumarbala/cleanyourtv-app/issues).
+  Security issues: see [SECURITY.md](SECURITY.md).
+
 <details>
-<summary><b>Privacy</b></summary>
+<summary><b>Privacy in detail</b></summary>
 
 - No accounts, no analytics, no advertising, no crash reporting service.
 - On your home network the app talks only to the TV you pick (ADB on port 5555) and listens for
@@ -134,7 +154,7 @@ the public source, and `scripts/verify-release.sh` checks that the published APK
 build plus a signature.
 </details>
 
-## Build from source
+## For developers
 
 ```bash
 git clone --recurse-submodules https://github.com/udhaykumarbala/cleanyourtv-app.git
@@ -142,21 +162,17 @@ cd cleanyourtv-app
 ./gradlew check assembleDebug        # JDK 21 and the Android SDK
 ```
 
+A Kotlin and Jetpack Compose app that speaks ADB to the TV itself, with no computer in between.
 [CONTRIBUTING.md](CONTRIBUTING.md) covers tests, screenshot goldens, the module rules and how
 releases are built and signed. How the app was designed and reviewed is in
-[docs/history](docs/history/README.md). What changed in each version: [CHANGELOG.md](CHANGELOG.md).
+[docs/history](docs/history/README.md), and what changed in each version in [CHANGELOG.md](CHANGELOG.md).
 
 ## Credits
 
-- [Clean Your TV](https://github.com/Gathin23/cleanyourtv), the TV launcher by
-  [Gathin](https://github.com/Gathin23), and its community contributors, whose clean-up lists and
-  test reports are the profiles this app uses.
+- [Clean Your TV](https://github.com/Gathin23/cleanyourtv) by [Gathin](https://github.com/Gathin23)
+  and its community contributors, whose launcher, clean-up lists and test reports this app is built on.
 - The ADB protocol code started from [dadb](https://github.com/mobile-dev-inc/dadb) by mobile.dev
   (Apache 2.0, see [adb/wire/NOTICE](adb/wire/NOTICE)).
 - The [Outfit](https://github.com/Outfitio/Outfit-Fonts) typeface (SIL Open Font License 1.1).
 
-Full list: [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES).
-
-## Licence
-
-[MIT](LICENSE), like the upstream launcher. Security issues: see [SECURITY.md](SECURITY.md).
+Full list: [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES). Licence: [MIT](LICENSE), like Clean Your TV.
