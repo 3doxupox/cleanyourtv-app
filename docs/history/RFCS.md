@@ -333,7 +333,16 @@ saved dock unchanged (`ManageMachinesTest.aNewLookPushesTheSavedDockUnchanged`, 
 longer claims a warning nobody sees, and its TV input bullet says what F1 and F2 do. F6: PRODUCT-SPEC
 5.7 (the RFC-W4-3 paragraph, "built from v2.5.0"), SECURITY V1 (the key services, ThemeProvider) and
 3.3 (the `0` step and F3), and LAUNCHER-250-PLAN sections 2 and 5. F7: the full check on the merged
-tree in verify mode, and S06 on API 28 (`:e2e:emulatorTestTheme`, new, runs it alone). Follow-ups,
+tree in verify mode (111 suites, 1792 tests, 0 failures, 1 skipped; the v2.5.0 differential tally
+"7313 applied (6287 with warnings), 2646 ignored, 41 would crash"), and S06 on API 28
+(`:e2e:emulatorTestTheme`, new, runs it alone). S06 was reported PENDING on this tree, since
+`E2eWiring` still returns null for every piece, so it now builds the real pieces itself as S09
+does. It pushes Aurora, checks the overlay bytes, the launcher's restart and the service list and
+`accessibility_enabled 1` after the new restore order, then pushes again, stops the run inside the
+restore (paused at step 7 of the restore's 6 to 10: list empty, accessibility 0) and gives it up
+with "Stop here", which put the list and `1` back. It passed in 9.6 s; of two earlier runs, one lost
+the emulator's adb connection during the second push (the API 28 image's graphics stack, as S09
+notes) and one could not reconnect for a second test method, hence the one method. Follow-ups,
 open:
 - F8: "Update the home screen" (`pm install -r`) replaces the running launcher without the
   accessibility restore; consider the same restore after an in-place update when the probed list
