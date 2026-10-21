@@ -81,7 +81,7 @@ import tv.cleanyour.core.trust.TrustRoots
 // Every section 5 seam is the real implementation (T7), built in the integration plan's order with
 // `profiles` before the planner and the engine. `seams` keeps the other streams' pieces together
 // for the app code that reads them (CytApplication, MainActivity).
-class AppGraph(context: Context, val appVersion: String = "0.1.0") {
+class AppGraph(context: Context, val appVersion: String = versionOf(context)) {
     private val app = context.applicationContext
 
     // UI-facing watchers run on the main thread. Sessions, the engine's runs and key creation run
@@ -222,6 +222,10 @@ class AppGraph(context: Context, val appVersion: String = "0.1.0") {
     }
 
     companion object {
+        // The app's own versionName (build-logic sets it), so the diagnostics, the plans and the update
+        // check never name an older release than the APK that runs.
+        fun versionOf(context: Context): String =
+            runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: "unknown"
         const val RELEASES_URL = "https://api.github.com/repos/udhaykumarbala/cleanyourtv-app/releases/latest"
     }
 }

@@ -2,7 +2,12 @@
 
 All notable changes to the app. Versions follow [semantic versioning](https://semver.org/).
 
-## 0.2.0 (unreleased)
+## 0.2.0 (2026-10-21)
+
+Launcher 2.5 and 42 more TV lists (131 in all), with stricter safety: the home screen switch is
+skipped up front on TVs where it could break casting, Wi-Fi or start-up, nothing that the TV
+inputs, accessibility or the remote need is switched off by default, and the app says why when a TV
+keeps its own home screen or an app stays on.
 
 ### Home screen launcher
 - Bundles the Clean Your TV launcher 2.5 (upstream v2.5.0), built from source and signed with this
@@ -42,10 +47,16 @@ All notable changes to the app. Versions follow [semantic versioning](https://se
 - On TVs whose home screen switch needs the setup wizard off, the switch is skipped up front when
   the wizard saved the TV's Wi-Fi or the TV cannot say who did: switching the wizard off would
   forget the Wi-Fi, and left on, it takes over the Home button and can crash the TV (upstream
-  #506). The same goes for a TV without a list whose wizard saved the Wi-Fi. Setup does the clean-up
-  and says how to get the new home screen later.
+  #506). Setup does the clean-up and says how to get the new home screen later. A TV without a list
+  gets the clean-up only whenever its setup wizard is on, since the switch would leave the wizard on
+  with the TV's own home screen off.
 - TCL Live, a TV input, is a choice on every TCL list instead of off by default, and the broadcast
   tuner inputs on the Sony BRAVIA AE2 and PRISM+ Q65 Ultra lists are always kept.
+- TalkBack, the phone remote service and the remote's usage logger are a choice on every list that
+  names them, never off by default, and a test keeps any accessibility, remote or pairing package
+  from being off by default again.
+- The app takes its version from the installed APK, so Settings, diagnostics and "Check for
+  updates" always name the version that runs.
 - Corrections from upstream: the onn 4K box keeps Google's ambient mode so the Google Photos
   screensaver works, the Philips 65PUS8102 also switches off its reboot logger, and the TCL G07 and
   Xiaomi MSSP3 lists gained notes from more units. Home screen customizers that a TV service or

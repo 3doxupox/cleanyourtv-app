@@ -59,8 +59,8 @@ eaf7af3867bb29ff4bb038854842c93f42ffe4198a087e611cb18f925201cd65
 On a computer with the Android build tools:
 
 ```bash
-sha256sum cleanyourtv-0.1.0.apk      # compare with the release notes
-apksigner verify --print-certs cleanyourtv-0.1.0.apk
+sha256sum cleanyourtv-0.2.0.apk      # compare with the release notes
+apksigner verify --print-certs cleanyourtv-0.2.0.apk
 # Signer #1 certificate SHA-256 digest: eaf7af3867bb29ff4bb038854842c93f42ffe4198a087e611cb18f925201cd65
 ```
 
@@ -78,8 +78,10 @@ workflow's verify job) checks that the published APK is exactly that build plus 
   Hisense, Philips, Amazon Fire TV, Panasonic, XGIMI, BenQ, NVIDIA Shield, Skyworth, Haier, CHiQ,
   onn, Google, Vestel-made sets (JVC, Toshiba, Cecotec) and the Freebox Player, on Android TV,
   Google TV, Fire OS and TCL's China builds. Some sets get the clean-up only and keep their own
-  home screen: Fire TV, TCL's China builds, Android 7, and TVs whose home screen the app cannot
-  switch safely.
+  home screen, and the app says why: Fire TV, TCL's China builds, Android 7, vendor home screens
+  the app does not know, Google's own Chromecast with Google TV and Streamer (the switch would cost
+  casting), the Kalley and PRISM+ sets of one family whose setup wizard returns at every boot, and
+  TVs whose setup wizard has to stay on.
 - **A brand fallback** for a model nobody has profiled yet: for Amazon, Hisense, Panasonic,
   Philips, Sony, TCL, XGIMI and Xiaomi the app switches off only what every profile of that brand
   agrees on, and says that it is being careful. More can be switched off by hand under Customise.
@@ -87,8 +89,7 @@ workflow's verify job) checks that the published APK is exactly that build plus 
   may be nothing.
 
 The TV needs network debugging (ADB on port 5555). On TVs that only offer Wireless debugging
-with a pairing code, pair once from a computer; the app shows the three commands. Pairing from
-the phone itself is planned.
+with a pairing code, pair once from a computer; the app shows the three commands.
 
 Your TV is not listed? See [CONTRIBUTING.md](CONTRIBUTING.md#propose-a-tv-profile).
 

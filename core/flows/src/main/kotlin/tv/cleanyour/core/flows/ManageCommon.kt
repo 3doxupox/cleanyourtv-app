@@ -89,7 +89,7 @@ class ManageDeps(
     val clock: Clock,
     val copy: FlowCopy,
     val encoder: ConfigEncoder = ConfigEncoder.Codec,
-    val appVersion: String = "0.1.0",
+    val appVersion: String = "0.2.0",
     val openWrites: OpenWrites = OpenWrites(),   // one per graph, shared by every Manage machine (R5-W8 O2)
 ) {
     fun tv(id: TvId): Tv? = tvs.tvs.value.firstOrNull { it.id == id }
