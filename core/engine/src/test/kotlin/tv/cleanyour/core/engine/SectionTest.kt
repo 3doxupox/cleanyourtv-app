@@ -79,6 +79,33 @@ class SectionTest {
         assertTrue(armed.deadlineWallMs >= s.deadlineMs + DefaultEngine.WATCHDOG_MARGIN_MS, "the phone's window ends first (R1 R-1)")
     }
 
+    // RF-LAUNCHER-250 F2: the TV input rule holds inside the takeover too, as upstream's disable.sh
+    // applies it to the old launcher. A stock launcher that asks for TV_INPUT_HARDWARE is kept enabled:
+    // its switch-off is skipped, the section goes on, SetHome makes ours the default, and the run
+    // ends with that one skip.
+    @Test fun aStockLauncherThatRunsTheInputsStaysOnAndTheSwitchGoesOn() = runTest(timeout = TEST_TIMEOUT) {
+        val h = Harness(this)
+        h.tv.requestedPermissions = mapOf(h.stock.pkg to listOf("android.permission.TV_INPUT_HARDWARE"))
+        val engine = h.engine()
+        val plan = h.setupPlan()
+        val off = plan.steps.single { it.op == Op.Disable(h.stock.pkg) }
+        val section = plan.sections.single()
+        assertTrue(off.index in section.from..section.to, "the stock launcher's switch-off is inside the section")
+        openCheckScreen(h, engine, plan)
+        assertEquals(EnabledState.ENABLED, h.tv.state(h.stock.pkg), "never switched off")
+        assertTrue(h.tv.execLog.none { it.contains("disable-user") && it.contains(h.stock.pkg.value) })
+        assertEquals(h.launcher, h.tv.home)
+        h.tv.focus = h.launcher
+        engine.confirmHome(h.tv.tvId)
+        h.settle(engine)
+        val fin = assertIs<RunState.Finished>(engine.runState(h.tv.tvId).value)
+        assertEquals(RunStatus.COMPLETED_WITH_SKIPS, fin.status)
+        assertEquals(listOf(off), fin.skipped)
+        assertEquals(h.launcher, h.tv.home)
+        assertEquals(EnabledState.ENABLED, h.tv.state(h.stock.pkg))
+        assertEquals(DefaultEngine.KEPT_TV_INPUT, h.records(plan).filterIsInstance<JournalRecord.Failed>().single().error)
+    }
+
     @Test fun noPutItBackRunsStepR() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
         val engine = h.engine()

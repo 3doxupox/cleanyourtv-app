@@ -259,8 +259,9 @@ class DefaultEngine(
                         else -> AdbError.Transport.Closed
                     }
                     when {
-                        // RF-LAUNCHER-250 F1: a package kept because it runs the TV's inputs is a skip
-                        // whatever the step's policy.
+                        // RF-LAUNCHER-250 F1, F2: a package kept because it runs the TV's inputs is a
+                        // skip whatever the step's policy, inside the takeover too: the section goes on
+                        // with the TV's own home screen left enabled (SetHome still makes ours the default).
                         outcome is Outcome.Refused && outcome.kept -> {
                             run.skipped += step; run.states[i] = NarrationState.SKIPPED; run.at = i + 1
                         }
@@ -401,7 +402,7 @@ class DefaultEngine(
                 return if (e.error.isLost()) Outcome.Lost(e.error) else Outcome.Failed(e.error, "dumpsys package failed")
             }
             val live = liveState(target, dump, run.snapshot)
-            val reason = Denylist.reason(target, live, run.profile, run.snapshot) ?: tvInputHardwareReason(run, step, dump)
+            val reason = Denylist.reason(target, live, run.profile, run.snapshot) ?: tvInputHardwareReason(step, dump)
                 ?: homeScreenReason(run, step, target)
             if (reason != null) {
                 journal.append(JournalRecord.Begin(run.plan.id, step.index, step.op, step.rendered.lines.map { it.text }, step.prior, clock.nowMs()))
@@ -437,14 +438,11 @@ class DefaultEngine(
     // the layer under the HDMI, AV and tuner inputs, registered as an input or not. Switched off, a port
     // still notices the cable but stays black until a full restore and a cold boot, so it is never
     // switched off, whatever the profile says. The dump is the one read just above, so this costs no
-    // extra call. Only a switch-off is refused: putting a package back always goes through. The stock
-    // launcher and the wizard inside the open guarded section stay the takeover's own (the watchdog
-    // covers them), as for the home screen rule.
-    private fun tvInputHardwareReason(run: Run, step: Step, dump: String): String? {
-        if (step.op !is Op.Disable || !PackageDump.requestsTvInputHardware(dump)) return null
-        val inSection = run.plan.sections.any { it.name in run.openSections && step.index in it.from..it.to }
-        return if (inSection) null else Denylist.REASON_TV_INPUT
-    }
+    // extra call. Only a switch-off is refused: putting a package back always goes through. It holds
+    // inside the takeover too (RF-LAUNCHER-250 F2), as upstream's disable.sh applies it to the old
+    // launcher: a stock launcher or wizard that asks for it stays enabled and the section goes on.
+    private fun tvInputHardwareReason(step: Step, dump: String): String? =
+        if (step.op is Op.Disable && PackageDump.requestsTvInputHardware(dump)) Denylist.REASON_TV_INPUT else null
 
     // Begin (forced) before the line is sent, Done or Failed before the next Begin.
     private suspend fun perform(run: Run, index: Int, op: Op, rendered: Rendered, prior: Prior?): Outcome {
