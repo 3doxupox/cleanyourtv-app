@@ -2,6 +2,26 @@
 
 All notable changes to the app. Versions follow [semantic versioning](https://semver.org/).
 
+## 0.2.0 (unreleased)
+
+### Home screen launcher
+- Bundles the Clean Your TV launcher 2.5 (upstream v2.5.0), built from source and signed with this
+  project's launcher key. New on the TV: edit the dock from the remote, choose the rows under the
+  dock and a wallpaper in Launcher settings, and more; every new launcher option is off by default.
+- A TV set up with 0.1.0 is offered "Update the home screen" in Manage. The dock, the look and the
+  card answers stay.
+- The Home screen page says what happens to a dock changed on the TV: the phone cannot see it, a
+  new look keeps it, and saving a different dock from the phone replaces it.
+- The phone reads the settings keys launcher 2.5 added exactly as the launcher does, and warns when
+  a settings file would take Back, the arrows, OK, Enter or Menu for the launcher's remote button
+  services.
+- Never switches off an app that asks for the TV input hardware permission (the layer under the
+  HDMI, AV and tuner inputs), even when a profile lists it.
+- After a look change, the launcher's remote button services come back on TVs that kept them
+  unbound before (accessibility is switched off and on again around the list, as upstream does).
+- When the home screen switch fails, Setup no longer names a TV's own fallback placeholder as
+  another home screen app.
+
 ## 0.1.0 (2026-10-20)
 
 The first public release.

@@ -257,6 +257,56 @@ launcher 2.4 and later). Follow-ups, open:
 - No API 34 Android TV emulator image on forge (only android-34 google_apis), so S06 and S09 ran on
   API 28 only.
 
+## RFC-W4-3: the keys of launcher v2.5.0 in the config codec (applied on launcher250, for review)
+
+What: `LauncherConfigDoc` and `EffectiveConfig` (frozen, PRODUCT-SPEC 5.7) gain one field per key
+that upstream v2.5.0's `Config.java` (9071ec8) reads beyond v2.4.0's 32, after the RFC-W4-2 fields
+and in `Config.load` read order: `launchActions`, `appLabels`, `appBanners`, `inputKeyKeycodes`,
+`appKeys`, `cinematicHome`, `wallpaperRotationMinutes`, `wallpaperDim`, `raceCalendar`; and 5.7
+gains two small types for the last one, `LauncherRace(round: Int, name: String, place: String,
+sessions: List<LauncherRaceSession>)` and `LauncherRaceSession(name: String, start: String)` (an ISO
+instant as `java.time.Instant.toString` prints it). In the doc they are nullable like every other
+key: the three package maps and `app_keys` as the trimmed, non-blank strings `Config.stringList`
+keeps (`List<String>?`), `inputKeyKeycodes: List<Int>?`, `cinematicHome: Boolean?`, the two
+wallpaper numbers `Int?`, `raceCalendar: List<LauncherRace>?` holding only the races the launcher
+keeps, as `RaceWeekend` keeps them (session names trimmed and upper-cased, sessions sorted by start).
+In `EffectiveConfig` they are non-null and default to v2.5.0's `config.xml` (all empty, false or 0):
+the three maps as `Config.packageMap` builds them (`Map<String, String>`, a later entry for a
+package wins), `appKeys` as `Config` keeps the list, and `wallpaperRotationMinutes`,
+`wallpaperDim` and `raceCalendar` read from the doc alone, as the launcher reads them from
+config.json alone (config.xml has none). No key of v2.4.0 changed type, range or default, and none
+was removed; `KEY_ORDER` puts the new keys at their read positions, so every config.json the app
+wrote before is byte for byte the same (the app writes none of the new keys).
+Why: the same as RFC-W4-2. Left in `unknown`, decode would warn "the launcher ignores it" for keys
+the bundled launcher reads, and `effective()` could not say what the TV shows.
+How the codec reads them: `stringList`, `packageMap` and `intArray` rules per key, 0 to 1440 and 0 to
+90 for the two wallpaper numbers, `RemoteKeys.parseAppKeys` for the warnings on `app_keys`, and
+`optString` and `optInt` as AOSP's org.json defines them for `race_calendar` (a number, null, a list
+or an object as a name gives its Java or compact JSON text, as on the TV). Warnings, never a
+rejection: an entry the launcher skips, a package half that is not a package name, an `app_banners`
+name that is not a bundled `banner_*` drawable (only `banner_tv` at v2.5.0), a race or session the
+launcher leaves out, and navigation buttons (Back, the arrows, OK, Enter, Menu) in
+`input_key_keycodes` or `app_keys`. The last is SECURITY V1 again and wider than in 2.4: those keys
+feed `InputKeyService` and `HomeKeyService`, accessibility services that filter keys in every app,
+so with one of them on, a rogue overlay listing OK would take the button away everywhere, not only
+on Home. The app never switches those services on and never writes these keys.
+Tests: `ConfigDifferentialTest` runs v2.5.0's `Config.java` (and `Festival.java`) from the
+submodule as the primary target; `WallpaperRotation.java` and `RaceWeekend.java`, which it now
+calls, are vendored in the test sources and a test holds them equal to the submodule's files
+(only the package line differs), so `core/spec/build.gradle.kts` keeps its copy task unchanged.
+The generator, the hand cases and the encoder round trip cover the nine keys, and
+`launcher25ChoicesOnTheTvLastUntilTheNextPush` covers launcher 2.5's two new choices on the TV
+(rows below the dock 0 to 3, a wallpaper pick), which, like the columns, win until a push changes
+config.json. Launcher 2.0 (1bbf0c9) stays the second target for the fifteen old keys.
+Not modelled, since the phone cannot read them: the choices on the TV, the dock and tile order set
+on the TV (Edit dock, #340, and Reorder, both `files/order.txt`, kept while `dock_apps` stays the
+same list), apps taken off Home on the TV, and a theme's `wallpapers/` collection, which the app
+never pushes.
+Affected: W4 (codec, tests), W8 (nothing: the phone writes none of the keys; the Home screen note
+says what happens to a dock changed on the TV), W1 (DECISIONS-W1 lists the 5.7 edit).
+Smallest alternative: keep the nine keys in `unknown` and change only the warning text; rejected
+for the reason RFC-W4-2 gave, and because `app_keys` and `input_key_keycodes` need the V1 warning.
+
 ## RF-PROFILES-63: the 60 profiles from upstream v2.4.0 (APPROVE WITH FOLLOW-UPS, reviews/RF-PROFILES-63.md)
 
 Done on profiles63: P1 below Android 8 (SDK 26, `DefaultPlanner.TV_MIN_SDK`, the launcher's and the
