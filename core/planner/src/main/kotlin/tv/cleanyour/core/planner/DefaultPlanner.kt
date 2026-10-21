@@ -425,6 +425,8 @@ class DefaultPlanner(
             if (snapshot.home.resolved == launcher) { homeScreenPossible = true; return }   // already ours
             if (snapshot.facts.installRefusal) { refuse("this TV refuses app installs, so the home screen switch is not possible"); return }
             if (snapshot.facts.sdk < TV_MIN_SDK) { refuse(REASON_OLD_ANDROID); return }
+            // RF-SAFETY-250: the TVs where the switch is skipped up front (SetupMachine never asks for it).
+            HomeSwitchRisk.of(snapshot.facts, profile, snapshot, wizardWifi)?.let { refuse(it.reason); return }
             val current = state(launcher.pkg)
             val installedAndVerified = current != null && current.signer == artifact.signer
             if (!launcherInstalledByPlan && !installedAndVerified) { refuse("the new home screen is not installed and the plan does not install it"); return }

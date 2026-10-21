@@ -972,17 +972,19 @@ class SetupMachineTest {
     }
 
     // D3 (launcher v2.4.0's guard) with RF-LAUNCHER-240 F6 and F14: the wizard stays on when it
-    // saved the Wi-Fi (the owner's card) or when the TV could not tell (its own card); with the Wi-Fi
-    // saved by others, or nothing saved at all (a cable), the takeover may switch it off as before.
+    // saved the Wi-Fi or when the TV could not tell. RF-SAFETY-250: the switch needs it off, and with
+    // it on and the TV's own home screen off it takes Home (upstream #506), so then the switch is
+    // skipped up front and S3 says why. With the Wi-Fi saved by others, or nothing saved at all (a
+    // cable), the takeover may switch it off as before.
     @Test fun theSetupWizardStaysOnWhileItMayOwnTheWifi() = runTest(timeout = 30.seconds) {
         val wizard = PackageName("com.google.android.tungsten.setupwraith")
-        data class Case(val wifi: SavedWifi?, val expected: WizardWifi, val verdict: String, val body: String?)
+        data class Case(val wifi: SavedWifi?, val expected: WizardWifi, val verdict: String, val block: HomeBlock)
         val cases = listOf(
-            Case(SavedWifi(true, 1, setOf("${wizard.value}:10031")), WizardWifi.OWNER, "wizard_owns", "STOP_HOME_SETUPWRAITH_WIFI_BODY"),
-            Case(SavedWifi(false, 0, emptySet()), WizardWifi.UNKNOWN, "cannot_tell", "STOP_HOME_SETUPWRAITH_WIFI_UNKNOWN_BODY"),
-            Case(null, WizardWifi.UNKNOWN, "cannot_tell", "STOP_HOME_SETUPWRAITH_WIFI_UNKNOWN_BODY"),   // the read failed
-            Case(SavedWifi(true, 1, setOf("android.uid.system:1000")), WizardWifi.NOT_OWNER, "others_own", null),
-            Case(SavedWifi(true, 0, emptySet()), WizardWifi.NOT_OWNER, "nothing_saved", null),
+            Case(SavedWifi(true, 1, setOf("${wizard.value}:10031")), WizardWifi.OWNER, "wizard_owns", HomeBlock.WIZARD_WIFI),
+            Case(SavedWifi(false, 0, emptySet()), WizardWifi.UNKNOWN, "cannot_tell", HomeBlock.WIZARD_WIFI_UNKNOWN),
+            Case(null, WizardWifi.UNKNOWN, "cannot_tell", HomeBlock.WIZARD_WIFI_UNKNOWN),   // the read failed
+            Case(SavedWifi(true, 1, setOf("android.uid.system:1000")), WizardWifi.NOT_OWNER, "others_own", HomeBlock.NONE),
+            Case(SavedWifi(true, 0, emptySet()), WizardWifi.NOT_OWNER, "nothing_saved", HomeBlock.NONE),
         )
         for (c in cases) {
             val h = Harness()
@@ -991,11 +993,12 @@ class SetupMachineTest {
                 Samples.miTvSnapshot(reason = r).let { s ->
                     s.copy(packages = s.packages + (wizard to tv.cleanyour.core.model.PackageState(tv.cleanyour.core.model.EnabledState.ENABLED, true, 1, null, false, false, null, false)),
                         home = s.home.copy(claimants = s.home.claimants + tv.cleanyour.core.model.HomeClaimant(tv.cleanyour.core.model.Component(wizard, ".RecoveryActivity"), 1)))
-                }
+                }.let { it.copy(contentHash = tv.cleanyour.core.store.SnapshotCodec.hash(it)) }
             }
             h.profiles.resolver = { _, _ -> tv.cleanyour.core.spec.ProfileResolution.Exact(miProfile.copy(setupWraith = wizard, quirks = setOf(tv.cleanyour.core.model.Quirk.HOME_TAKEOVER_SETUPWRAITH))) }
-            h.setupPlan = h.plan(listOf(Op.Disable(adPkg)), takeover = true)
-            h.engine.onStart = { p -> finish(p, RunStatus.COMPLETED_WITH_SKIPS, HomeOutcome.VERIFY_FAILED) }
+            val skipped = c.block != HomeBlock.NONE
+            h.setupPlan = h.plan(listOf(Op.Disable(adPkg)), takeover = !skipped)
+            h.engine.onStart = { p -> if (skipped) finish(p, RunStatus.COMPLETED, null) else finish(p, RunStatus.COMPLETED_WITH_SKIPS, HomeOutcome.VERIFY_FAILED) }
             var asked = 0
             val m = SetupMachine(h.setupDeps(savedWifi = { asked++; c.wifi ?: throw tv.cleanyour.core.probe.ProbeException(tv.cleanyour.core.probe.ProbeStage.LAUNCHER, "no answer") }),
                 backgroundScope, SetupStart.Fresh)
@@ -1003,24 +1006,64 @@ class SetupMachineTest {
             val setups = h.planner.requests.filterIsInstance<PlanRequest.Setup>()
             assertEquals(c.expected, setups.last().choices.wizardWifi, "$c")
             assertEquals(1, asked, "asked once per snapshot, however often the draft replans")
+            assertEquals(c.block, m.extras.value.homeBlock, "$c")
+            assertEquals(!skipped, m.extras.value.homePossible, "$c")
+            assertEquals(!skipped, setups.last().choices.takeover, "$c")
+            assertEquals(!skipped, setups.last().choices.installLauncher, "$c")
             m.dispatch(SetupIntent.MakeItClean); settle()
-            val s = assertIs<SetupState.Stopped>(m.state.value)
-            assertEquals(StopCase.HOME_SETUPWRAITH, s.card.case)
-            if (c.body == null) {
+            if (skipped) {
+                // The clean-up alone runs and ends on Done; no stop card, no switch, the wizard untouched.
+                assertTrue(m.state.value !is SetupState.Stopped, m.state.value.toString())
+                assertTrue(h.planner.requests.filterIsInstance<PlanRequest.Setup>().none { it.choices.takeover || wizard in it.choices.extraOff })
+            } else {
+                val s = assertIs<SetupState.Stopped>(m.state.value)
+                assertEquals(StopCase.HOME_SETUPWRAITH, s.card.case)
                 assertTrue(s.card.body.startsWith("STOP_HOME_SETUPWRAITH_BODY"), s.card.body)
                 assertTrue(s.card.primary.startsWith("STOP_HOME_SETUPWRAITH_PRIMARY"))
-            } else {
-                assertEquals(c.body, s.card.body, "$c")
-                assertTrue(s.card.primary.startsWith("STOP_HOME_SETUPWRAITH_WIFI_PRIMARY"))
-                // "Try again" asks the TV afresh and plans again, never with the wizard switched off.
-                m.dispatch(SetupIntent.StopAction(StopAction.PRIMARY)); settle()
-                assertEquals(2, h.engine.calls.count { it is FakeEngine.Call.Start })
-                assertEquals(2, asked)
-                assertTrue(h.planner.requests.filterIsInstance<PlanRequest.Setup>().none { wizard in it.choices.extraOff })
             }
             // Only the verdict is logged.
             assertTrue(h.logLines.any { it == "setup: setup wizard and saved Wi-Fi: ${c.verdict}" }, h.logLines.toString())
             assertTrue(h.logLines.none { "10031" in it || "android.uid" in it })
+        }
+    }
+
+    // RF-SAFETY-250 with the shipped profiles: each TV below gets the clean-up alone and its own S3
+    // line. The Google TV sets whose wizard the switch would switch off, when the TV says the wizard
+    // saved the Wi-Fi (and only then), and an unknown TV whose wizard saved the Wi-Fi.
+    @Test fun theSwitchIsSkippedUpFrontWhereItIsUnsafe() = runTest(timeout = 60.seconds) {
+        val wizard = PackageName("com.google.android.tungsten.setupwraith")
+        val shipped = tv.cleanyour.core.spec.BundledProfileSource.bundled.profiles.associateBy { it.id }
+        val owns = SavedWifi(true, 1, setOf("${wizard.value}:10031"))
+        val others = SavedWifi(true, 1, setOf("android.uid.system:1000"))
+        data class Case(val name: String, val profile: String?, val facts: tv.cleanyour.core.model.DeviceFacts, val wifi: SavedWifi, val block: HomeBlock)
+        val base = Samples.miTvFacts().copy(sdk = 34, release = "14")
+        fun facts(device: String, brand: String, manufacturer: String = brand, sdk: Int = 34) = base.copy(device = device, brand = brand, manufacturer = manufacturer, model = "unknown", sdk = sdk)
+        val cases = buildList {
+            for (id in listOf("tcl-43s5k", "tcl-g03-google-tv", "xgimi-mogo-3-pro", "eko-2k-google-tv-tennoji", "byintek-t5-max", "aiwa-ai-pont-sa", "polytron-2k-hayward")) {
+                add(Case(id, id, base, owns, HomeBlock.WIZARD_WIFI))
+                add(Case("$id, Wi-Fi saved by others", id, base, others, HomeBlock.NONE))
+            }
+            add(Case("unknown TV, wizard owns the Wi-Fi", null, base, owns, HomeBlock.WIZARD_WIFI))
+            add(Case("unknown TV, Wi-Fi saved by others", null, base, others, HomeBlock.NONE))
+        }
+        for (c in cases) {
+            val h = Harness()
+            h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+            h.prober.facts = c.facts
+            h.prober.snapshotFor = { r ->
+                Samples.miTvSnapshot(reason = r).let { s ->
+                    s.copy(packages = s.packages + (wizard to tv.cleanyour.core.model.PackageState(tv.cleanyour.core.model.EnabledState.ENABLED, true, 1, null, false, false, null, false)))
+                }.let { it.copy(contentHash = tv.cleanyour.core.store.SnapshotCodec.hash(it)) }
+            }
+            val profile = c.profile?.let { assertNotNull(shipped[it], it) }   // as shipped: the streamer and kalley-43g200 list no stock home
+            h.profiles.resolver = { _, _ -> profile?.let { tv.cleanyour.core.spec.ProfileResolution.Exact(it) } ?: tv.cleanyour.core.spec.ProfileResolution.None(listOf(Samples.stockLauncher)) }
+            val m = SetupMachine(h.setupDeps(savedWifi = { c.wifi }), backgroundScope, SetupStart.Fresh)
+            toFound(h, m)
+            val setup = h.planner.requests.filterIsInstance<PlanRequest.Setup>().last()
+            assertEquals(c.block, m.extras.value.homeBlock, c.name)
+            assertEquals(c.block == HomeBlock.NONE, setup.choices.takeover, c.name)
+            assertEquals(c.block == HomeBlock.NONE, setup.choices.installLauncher, c.name)
+            if (c.block != HomeBlock.NONE) assertNull(setup.config, "${c.name}: no look without the new home screen")
         }
     }
 

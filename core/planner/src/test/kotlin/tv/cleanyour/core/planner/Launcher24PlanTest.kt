@@ -35,22 +35,23 @@ class Launcher24PlanTest {
     private val quirky get() = profile(quirks = setOf(Quirk.HOME_TAKEOVER_SETUPWRAITH), setupWraith = wizard)
 
     // D3: the wizard is switched off only when the TV says its Wi-Fi was saved by someone else.
+    // RF-SAFETY-250: while it may own the Wi-Fi it stays on, and the switch is refused, since with it
+    // on and the TV's own home screen off the wizard takes Home (upstream #506); the clean-up alone
+    // is planned and never touches the wizard or the stock home.
     @Test fun theWizardStaysOnWhileItMayOwnTheWifi() {
         val off = plan(setup(profile = quirky, choices = choices(wizardWifi = WizardWifi.NOT_OWNER)))
         assertTrue(Op.Disable(wizard) in ops(off))
         assertTrue(Op.Enable(wizard) in off.sections.single().rollback)
-        for (w in listOf(WizardWifi.OWNER, WizardWifi.UNKNOWN)) {
-            val kept = plan(setup(profile = quirky, choices = choices(wizardWifi = w)))
-            assertTrue(Op.Disable(wizard) !in ops(kept), "$w")
-            assertTrue(Op.Enable(wizard) !in kept.sections.single().rollback, "$w")
-            assertTrue(kept.summary.groups.flatMap { it.rows }.none { it.pkg == wizard }, "$w: no row says the wizard goes off")
-            // The rest of the switch is planned as before.
-            assertTrue(Op.Disable(stock.pkg) in ops(kept) && Op.SetHome(launcher) in ops(kept), "$w")
+        for ((w, risk) in listOf(WizardWifi.OWNER to HomeSwitchRisk.Risk.WIZARD_WIFI, WizardWifi.UNKNOWN to HomeSwitchRisk.Risk.WIZARD_WIFI_UNKNOWN)) {
+            assertEquals(listOf(risk.reason), refused(setup(profile = quirky, choices = choices(wizardWifi = w))), "$w")
+            val clean = plan(setup(profile = quirky, choices = choices(installLauncher = false, takeover = false, wizardWifi = w)))
+            assertTrue(clean.sections.isEmpty(), "$w")
+            assertTrue(Op.Disable(wizard) !in ops(clean) && Op.Disable(stock.pkg) !in ops(clean), "$w")
         }
-        // A Choices made without the answer is UNKNOWN: the wizard stays on.
+        // A Choices made without the answer is UNKNOWN: the wizard stays on, so no switch.
         val unknown = Choices(emptySet(), emptySet(), null, null, true, true, false, false)
         assertEquals(WizardWifi.UNKNOWN, unknown.wizardWifi)
-        assertTrue(Op.Disable(wizard) !in ops(plan(setup(profile = quirky, choices = unknown))))
+        assertEquals(listOf(HomeSwitchRisk.Risk.WIZARD_WIFI_UNKNOWN.reason), refused(setup(profile = quirky, choices = unknown)))
     }
 
     // Launcher v2.4.0's precondition: the TV's own home screen is only touched once the new one

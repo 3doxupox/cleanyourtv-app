@@ -210,10 +210,13 @@ fun FoundScreen(state: SetupState.Found, extras: SetupExtras, actions: SetupActi
             }
             TextActionRow(row, stringResource(R.string.found_home_change), { actions.intent(SetupIntent.Open(Sheet.DOCK)) }, Modifier.padding(top = 8.dp))
         } else {
-            // RF-PROFILES-63 P1, P2: an older Android, or a home screen we do not know, says so plainly.
+            // RF-PROFILES-63 P1, P2: an older Android, or a home screen we do not know, says so plainly;
+            // RF-SAFETY-250: so does a switch skipped up front for safety.
             val line = when (extras.homeBlock) {
                 HomeBlock.OLD_ANDROID -> stringResource(R.string.found_home_old_android)
                 HomeBlock.UNKNOWN_HOME -> stringResource(R.string.found_home_unknown_stock)
+                HomeBlock.WIZARD_WIFI -> stringResource(R.string.found_home_wizard_wifi)
+                HomeBlock.WIZARD_WIFI_UNKNOWN -> stringResource(R.string.found_home_wizard_wifi_unknown)
                 else -> msg(R.string.stop_tv_refuses_home_body, "brand" to (extras.tvName ?: ""))
             }
             Banner(line, BannerTone.INFO, Modifier.padding(top = 16.dp))
