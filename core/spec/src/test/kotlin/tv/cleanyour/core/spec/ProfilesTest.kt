@@ -325,6 +325,32 @@ class ProfilesTest {
         assertTrue(all.getValue("prismplus-q65-ultra-r10g").neverDisable.containsAll(listOf(p("com.realtek.dtmb"), p("com.realtek.tv.atsc"), p("com.realtek.tv.isdb"))))
     }
 
+    // Safety rule 8 (0.2.0): nothing that accessibility, the remote or remote pairing needs is ever
+    // off by default, in a shipped list or a brand sure set: accessibility services and TalkBack, the
+    // phone remote and the remote's services, pairing. Such rows are ask rows (or never-disable).
+    @Test fun noAccessibilityRemoteOrPairingPackageIsDefaultOff() {
+        val facts = BundledFactsTable()
+        val words = Regex("talkback|accessib|marvin|remote|pairing|autopair|btservice|bluetooth|(^|_)rcu(_|$)|keyhandler|globalkey|virtualkey|fivekey|smartkey|keyintercept|inputkey")
+        // Named like the remote but not it: settings downloaded from Amazon's servers.
+        val notTheRemote = setOf(p("com.amazon.device_remote_config_sync_service"))
+        fun guarded(pkg: PackageName): Boolean = pkg !in notTheRemote &&
+            (facts.lookup(pkg)?.category == "accessibility" || pkg.value.split('.').drop(1).any { words.containsMatchIn(it.lowercase()) })
+        val offenders = mutableListOf<String>()
+        val profiles = BundledProfileSource.bundled.profiles
+        for (pr in profiles) for (g in pr.groups.filter { it.default == GroupDefault.DISABLE }) for (e in g.packages)
+            if (guarded(e.name) && e.name !in pr.neverDisable) offenders += "${pr.id} ${e.name.value} (${g.id})"
+        for (sure in SureSetGenerator.generate(profiles)) for (g in sure.groups) for (e in g.packages)
+            if (guarded(e.name)) offenders += "sure set ${sure.brand} ${e.name.value}"
+        assertEquals(emptyList(), offenders, "default-off accessibility, remote or pairing packages")
+        val all = profiles.associateBy { it.id }
+        fun askRow(id: String, pkg: String) = all.getValue(id).groups.single { g -> g.packages.any { it.name == p(pkg) } }.default
+        for (id in listOf("google-chromecast-gtv-4k", "tcl-g05-google-tv", "tcl-g10-google-tv", "xiaomi-mi-box-s", "google-tv-streamer-4k-kirkwood"))
+            assertEquals(GroupDefault.ASK, askRow(id, "com.google.android.marvin.talkback"), id)
+        assertEquals(GroupDefault.ASK, askRow("tcl-g10-google-tv", "com.google.android.tv.remote.service"))
+        for (id in listOf("google-chromecast-gtv-4k", "google-tv-streamer-4k-kirkwood"))
+            assertEquals(GroupDefault.ASK, askRow(id, "com.google.android.tv.remotecontrol.logging"), id)
+    }
+
     @Test fun resolveExactThenBrandThenNone() = runBlocking<Unit> {
         val source = BundledProfileSource()
         val mi = Fixtures.miTv().facts()

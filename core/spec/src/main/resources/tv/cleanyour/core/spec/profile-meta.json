@@ -539,9 +539,10 @@
         "Stock home. launcher/build-and-install.sh disables launcherx itself once the new launcher is installed": { "category": "home", "ask": false }
       },
       "packages": {
+        "com.google.android.tv.remotecontrol.logging": { "category": "tracking", "ask": true },
         "com.google.android.federatedcompute": { "category": "tracking", "ask": false },
         "com.google.android.ondevicepersonalization.services": { "category": "tracking", "ask": false },
-        "com.google.android.marvin.talkback": { "category": "accessibility", "ask": false }
+        "com.google.android.marvin.talkback": { "category": "accessibility", "ask": true }
       }
     },
     "google-tv-streamer-4k-kirkwood": {
@@ -561,6 +562,7 @@
         "Stock home. launcher/build-and-install.sh disables launcherx itself once the new launcher is": { "category": "home", "ask": false }
       },
       "packages": {
+        "com.google.android.tv.remotecontrol.logging": { "category": "tracking", "ask": true },
         "com.google.android.federatedcompute": { "category": "tracking", "ask": false },
         "com.google.android.ondevicepersonalization.services": { "category": "tracking", "ask": false },
         "com.google.android.videos": { "category": "streaming", "ask": true },
@@ -2674,7 +2676,7 @@
         "com.tcl.suspension": { "category": "brand", "ask": true },
         "android.autoinstalls.config.google.gtvpai": { "category": "ads", "ask": false },
         "com.google.android.feedback": { "category": "tracking", "ask": false },
-        "com.google.android.marvin.talkback": { "category": "accessibility", "ask": false },
+        "com.google.android.marvin.talkback": { "category": "accessibility", "ask": true },
         "com.google.android.apps.tv.dreamx": { "category": "screensaver", "ask": false },
         "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": true },
         "com.google.android.apps.mediashell": { "category": "casting", "ask": true }
@@ -2778,9 +2780,9 @@
         "com.tcl.UpdatePeripheral": { "category": "updates", "ask": false },
         "android.autoinstalls.config.google.gtvpai": { "category": "ads", "ask": false },
         "com.google.android.feedback": { "category": "tracking", "ask": false },
-        "com.google.android.marvin.talkback": { "category": "accessibility", "ask": false },
+        "com.google.android.marvin.talkback": { "category": "accessibility", "ask": true },
         "com.google.android.apps.tv.dreamx": { "category": "screensaver", "ask": false },
-        "com.google.android.tv.remote.service": { "category": "casting", "ask": false }
+        "com.google.android.tv.remote.service": { "category": "casting", "ask": true }
       }
     },
     "tcl-q10g-pro": {
@@ -3251,7 +3253,7 @@
         "com.xiaomi.mitv.updateservice": { "category": "updates", "ask": false },
         "com.mitv.download.service": { "category": "updates", "ask": false },
         "com.mitv.videoplayer": { "category": "preloads", "ask": true },
-        "com.google.android.marvin.talkback": { "category": "accessibility", "ask": false }
+        "com.google.android.marvin.talkback": { "category": "accessibility", "ask": true }
       }
     },
     "xiaomi-mi-box-s-2nd-gen": {

@@ -120,12 +120,15 @@ freebox-player-pop	com.google.android.apps.mediashell	commented out with KEEP in
 freebox-player-pop	com.google.android.tungsten.setupwraith	not a package line here; the header says it owns a Wi-Fi network saved at setup, so it stays on (protected by name anyway)
 freebox-player-pop	com.google.android.tvrecommendations	default-off as listed, as everywhere for now (RF-PROFILES-63 P14, owner call)
 google-chromecast-gtv-4k	(launcher)	the clean-up only, like the Streamer: the switch needs the setup wizard off, which takes the Cast receiver's credentials with it after every reboot (#361, #422); launcherx stays the listed stock home and is never switched off; the switch is skipped up front by device and maker (RF-SAFETY-250)
+google-chromecast-gtv-4k	com.google.android.marvin.talkback	accessibility helpers are ask rows (safety rule 8; the accessibility category asks already, the row now says so)
 google-chromecast-gtv-4k	com.google.android.tungsten.setupwraith	v2.5.0 header (upstream #361, #422): the Cast receiver reads its device credentials from the wizard, so with the wizard off casting from phones fails after the next reboot; the home screen switch here costs casting so 0.2.0 skips the switch up front here (RF-SAFETY-250)
+google-chromecast-gtv-4k	com.google.android.tv.remotecontrol.logging	logs remote use; nothing the remote needs may be off by default, so an ask row (safety rule 8)
 google-tv-streamer-4k-kirkwood	(header)	the header's kept list: the Cast receiver, the phone remote and both remote firmware updaters
 google-tv-streamer-4k-kirkwood	(launcher)	the stock home is launcherx, left out of stockLaunchers on purpose, so the app gives the clean-up only: the switch needs the setup wizard off, which here takes the Cast receiver's credentials with it after every reboot (upstream #361, #422), and while the wizard owns the saved Wi-Fi (as on the tested unit) the Wi-Fi guard keeps it on, its RecoveryActivity then claims Home and system_server crash-loops every 47 s (#506); 0.2.0 also skips the switch up front on Google's own hardware by device and maker (RF-SAFETY-250), so S3 names the casting reason; revisit when casting can be restored
 google-tv-streamer-4k-kirkwood	(match)	device kirkwood from the header; brand google as on google-chromecast-gtv-4k
 google-tv-streamer-4k-kirkwood	com.google.android.marvin.talkback	accessibility helpers are ask rows
 google-tv-streamer-4k-kirkwood	com.google.android.tungsten.setupwraith	a package line, so the converter names it as the switch's wizard; with no stock launcher listed the switch is never planned and the clean-up never touches the wizard
+google-tv-streamer-4k-kirkwood	com.google.android.tv.remotecontrol.logging	logs remote use; nothing the remote needs may be off by default, so an ask row (safety rule 8)
 google-tv-streamer-4k-kirkwood	com.google.android.videos	the Google TV app holds purchased films; ask row on Google TV (RF-PROFILES-63 P17)
 haier-android-tv-dvb2k	(match)	brand inferred, confirm with getprop: Haier; a wrong guess fails closed (the profile never matches)
 haier-android-tv-dvb2k	com.cvte.haier.tv.appmanager	a boot receiver that manages Haier apps, purpose not clear; ask row
@@ -395,6 +398,7 @@ tcl-g03-google-tv	com.tcl.partnercustomizer	ask row: the header tested the Input
 tcl-g03-google-tv	com.tcl.usercenter	the TCL account; ask row as on the other TCL lists
 tcl-g03-google-tv	com.tcl.versionUpdateApp	not listed: the header keeps TCL's firmware updater on; never-disable
 tcl-g03-google-tv	com.tcl.xian.StartandroidService	filed as a reporting service here, but tcl-55c715, tcl-beyondtv-rt2851 and tcl-55c725 (same build) keep it as device authentication; ask row
+tcl-g05-google-tv	com.google.android.marvin.talkback	accessibility helpers are ask rows (safety rule 8; the accessibility category asks already, the row now says so)
 tcl-g05-google-tv	com.tcl.channelplus	TCL Live registers a TV input (tcl-g07 header); TV inputs are never default-off, so it is an ask row here too and leaves the TCL sure set (0.2.0 safety review)
 tcl-g07-google-tv	(match)	device G07 alone: the model Smart TV names a family and otherwise beat tcl-40s5400a on its own C06 sets (RF-PROFILES-63 P8)
 tcl-g07-google-tv	com.google.android.tungsten.setupwraith	v2.5.0 notes (upstream #415): on a second unit (AR17) the Wi-Fi saved at setup belonged to the wizard; the takeover's Wi-Fi guard (D3) keeps it on then
@@ -413,6 +417,8 @@ tcl-g09-google-tv	com.tcl.gamebar	console game mode overlay; ask row as on tcl-5
 tcl-g09-google-tv	com.tcl.partnercustomizer	ask row: the header tested the Input button but not the remote's T key (RF-PROFILES-63 P5)
 tcl-g09-google-tv	com.tcl.ttvs	the header says updates come through Play Services on this set, but tcl-55s470g on the same G10 firmware family says ttvs hosts the updater; tracking ask row as on tcl-c755
 tcl-g09-google-tv	com.tcl.usercenter	the TCL account; ask row as on the other TCL lists
+tcl-g10-google-tv	com.google.android.marvin.talkback	accessibility helpers are ask rows (safety rule 8; the accessibility category asks already, the row now says so)
+tcl-g10-google-tv	com.google.android.tv.remote.service	the phone remote is an ask row (safety rule 8; the casting category asks already, the row now says so)
 tcl-g10-google-tv	com.tcl.channelplus	TCL Live registers a TV input (tcl-g07 header); TV inputs are never default-off, so it is an ask row here too and leaves the TCL sure set (0.2.0 safety review)
 tcl-qm6k-google-tv	com.tcl.channelplus	TCL Live registers a TV input (tcl-g07 header); TV inputs are never default-off, so it is an ask row here too and leaves the TCL sure set (0.2.0 safety review)
 tcl-uniontv-latin-america	com.tcl.appmarket2	TCL's app store, carries a package installer service (tcl-beyondtv-rt2851 header); ask row
@@ -486,6 +492,7 @@ xgimi-mogo-3-pro	com.google.android.tv.remote.service	the phone remote, off by c
 xgimi-mogo-3-pro	com.google.android.videos	the Google TV app holds purchased films; ask row on Google TV (RF-PROFILES-63 P17)
 xgimi-mogo-3-pro	com.xgimi.gimiplayer	the local video and photo player; USB media players are ask rows
 xgimi-mogo-3-pro	fusion.android.tv.demo	ask row: on MediaTek builds this retail display app also handles the Input key and remote pairing (hitachi-65qledsm20), and this header did not check either with it off (RF-PROFILES-63 P6)
+xiaomi-mi-box-s	com.google.android.marvin.talkback	accessibility helpers are ask rows (safety rule 8; the accessibility category asks already, the row now says so)
 xiaomi-mi-box-s-2nd-gen	com.xiaomi.tvqs.overseas	never-disable here: the header says it is the box's quick settings panel (the MOSR4 and MOOR2 lists call it Firebase analytics), which also keeps it out of the Xiaomi sure set
 xiaomi-mitv-afmu0	com.google.android.marvin.talkback	listed under preloaded apps; accessibility is never default-off, so it is an ask row
 xiaomi-mitv-afmu0	com.mitv.videoplayer	listed under preloaded apps; it is the USB video player, so it is an ask row
