@@ -579,6 +579,7 @@ fun DoneScreen(state: SetupState.Done, extras: SetupExtras, actions: SetupAction
                 state = if (finishing == Finishing.SWITCHING) CheckState.PENDING else CheckState.DONE,
             )
         }
+        for (name in extras.doneKept) Body(msg(R.string.kept_tv_input, "name" to name), Modifier.padding(start = 4.dp, top = 12.dp))
         when {
             s.skipped.size == 1 -> Body(msg(R.string.done_skipped, "name" to s.skipped.single()), Modifier.padding(start = 4.dp, top = 12.dp))
             s.skipped.size > 1 -> Body(msg(R.string.done_skipped_many, "count" to s.skipped.size), Modifier.padding(start = 4.dp, top = 12.dp))

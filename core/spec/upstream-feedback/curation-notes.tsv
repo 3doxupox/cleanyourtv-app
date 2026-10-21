@@ -284,7 +284,7 @@ prismplus-q65-ultra-r10g	(launcher)	the clean-up only: the same MOKA family as k
 prismplus-q65-ultra-r10g	(match)	the header names the maker MOKA but not the PRISM+ brand string, so the profile matches on the maker; kalley-r10g (same R10G hardware) wins when the TV reports Kalley
 prismplus-q65-ultra-r10g	com.apps.wifihotspot	a Wi-Fi hotspot service; network setup is never default-off
 prismplus-q65-ultra-r10g	com.mk.tv.meeting.service	purpose not documented; ask row
-prismplus-q65-ultra-r10g	com.realtek.dtmb	the unused broadcast tuners are TV inputs, never default-off; ask row (with com.realtek.tv.isdb and com.realtek.tv.atsc)
+prismplus-q65-ultra-r10g	com.realtek.dtmb	the unused broadcast tuners are TV input drivers, so with com.realtek.tv.isdb and com.realtek.tv.atsc they are in the curated never-disable list (they stay ask rows in the file; RF-LAUNCHER-250 F1)
 sanyo-atv-r2	com.realtek.leanbacklauncher.partnercustomizer	ask row: compac-atv-r2 (the same SCBC build, v2.5.0) found it supplies the Inputs button on the stock home
 sharp-aquos-tve21f	(header)	the Kept on purpose list (TV inputs, Live TV, channel scan, USB media, Freeview Play, remote hot keys, picture and brightness services, the disclaimer, TTS) is in the curated never-disable list, since the keep-list reader only reacts to keep wording
 sharp-aquos-tve21f	(launcher)	the stock tvlauncher was already disabled when the list was applied
@@ -309,9 +309,9 @@ sony-bravia-4k-gb-us	com.sony.dtv.smartmediaapp	listed under preloaded apps; it 
 sony-bravia-4k-vh2	(match)	EU firmware of BRAVIA_VH2; the fingerprint prefix leaves other regions to sony-kd-55x85j (same device and build)
 sony-bravia-4k-vh21	com.google.android.tts	in the owner's memory group; text to speech feeds TalkBack, so it is an accessibility ask row
 sony-bravia-4k-vh21	com.vewd.core.service	Vewd may also run HbbTV here (kept by the owner), so both Vewd packages are ask rows
-sony-bravia-ae2	com.mediatek.dtv.tvinput.atsctuner	the list switches off the ATSC tuner inputs; TV input services are never default-off, so the tuner group is an ask row
+sony-bravia-ae2	com.mediatek.dtv.tvinput.atsctuner	the list switches off the ATSC tuner inputs; TV input drivers are never switched off, so the tuner group is an ask row and the two tuner inputs are in the curated never-disable list (RF-LAUNCHER-250 F1)
 sony-bravia-ae2	com.sony.dtv.seeds.iot	filed under tracking; it is Sony's phone app and smart home link (the VH21 list), so it is an ask row
-sony-bravia-ae2	com.sony.dtv.tvinput.atsc3tuner	TV input service (ATSC 3.0 tuner); ask row, see above
+sony-bravia-ae2	com.sony.dtv.tvinput.atsc3tuner	TV input driver (ATSC 3.0 tuner); never-disable, see above
 sony-bravia-ae2	com.sony.dtv.tvinput.atsc3tuner.drmlicenseinstaller	part of the ATSC 3.0 tuner input; ask row, see above
 sony-bravia-tl2	(match)	the TPV device codename OD0M_EA_T32 may be shared with Philips sets; the Sony brand and the BRAVIA_TL2 fingerprint keep them apart
 sony-bravia-tl2	fusion.android.tv.demo	ask row: on MediaTek MTC builds this retail display app also handles the Input key and remote pairing (hitachi-65qledsm20), and this header did not check either with it off (RF-PROFILES-63 P6)

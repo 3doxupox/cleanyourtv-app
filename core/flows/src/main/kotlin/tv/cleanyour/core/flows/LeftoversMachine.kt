@@ -66,8 +66,9 @@ class LeftoversMachine(
     private suspend fun switchOff(found: LeftoversState.Found) {
         send(Show(LeftoversState.Working(0)))
         val expected = d.ledger.switchedOffByUs(tvId).toSet()
-        when (TvWriter(d).write(tvId, PlanRequest.Leftovers(expected)) { b -> if (b is Busy.Working) send(Show(LeftoversState.Working(b.percent))) }) {
-            is WriteResult.Done -> send(Show(LeftoversState.Done(found.names.size)))
+        when (val r = TvWriter(d).write(tvId, PlanRequest.Leftovers(expected)) { b -> if (b is Busy.Working) send(Show(LeftoversState.Working(b.percent))) }) {
+            // Only what really went off is counted (a switch-off kept for the TV's inputs is skipped, RF-LAUNCHER-250 F1).
+            is WriteResult.Done -> send(Show(LeftoversState.Done(found.names.size - r.finished.skipped.count { it.op is Op.Disable })))
             WriteResult.GateCancelled, WriteResult.NoTv, is WriteResult.Paused -> send(Show(found))   // Paused: the open-run card shows (O2)
             else -> send(Show(LeftoversState.Failed))
         }

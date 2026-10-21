@@ -110,7 +110,9 @@ class DefaultEngine(
 
     private sealed interface Outcome {
         data object Ok : Outcome
-        data class Refused(val exit: Int, val stderr: String) : Outcome        // the TV said no (non-zero exit, install refusal)
+        // The TV said no (non-zero exit, install refusal). `kept`: the live check kept a package that
+        // runs the TV's inputs (upstream #421); the step is skipped, never a pause (RF-LAUNCHER-250 F1).
+        data class Refused(val exit: Int, val stderr: String, val kept: Boolean = false) : Outcome
         data class Failed(val error: AdbError, val detail: String) : Outcome   // verify mismatch, policy, device error
         data class Lost(val error: AdbError) : Outcome                          // transport or auth: the TV went away
     }
@@ -257,6 +259,11 @@ class DefaultEngine(
                         else -> AdbError.Transport.Closed
                     }
                     when {
+                        // RF-LAUNCHER-250 F1: a package kept because it runs the TV's inputs is a skip
+                        // whatever the step's policy.
+                        outcome is Outcome.Refused && outcome.kept -> {
+                            run.skipped += step; run.states[i] = NarrationState.SKIPPED; run.at = i + 1
+                        }
                         section != null -> {
                             run.states[i] = NarrationState.FAILED
                             if (!rollbackSection(run, section, HomeOutcome.VERIFY_FAILED)) return
@@ -394,11 +401,14 @@ class DefaultEngine(
                 return if (e.error.isLost()) Outcome.Lost(e.error) else Outcome.Failed(e.error, "dumpsys package failed")
             }
             val live = liveState(target, dump, run.snapshot)
-            val reason = Denylist.reason(target, live, run.profile, run.snapshot) ?: homeScreenReason(run, step, target)
-                ?: tvInputHardwareReason(run, step, dump)
+            val reason = Denylist.reason(target, live, run.profile, run.snapshot) ?: tvInputHardwareReason(run, step, dump)
+                ?: homeScreenReason(run, step, target)
             if (reason != null) {
                 journal.append(JournalRecord.Begin(run.plan.id, step.index, step.op, step.rendered.lines.map { it.text }, step.prior, clock.nowMs()))
-                journal.append(JournalRecord.Failed(run.plan.id, step.index, null, "protected: $reason", ""))
+                journal.append(JournalRecord.Failed(run.plan.id, step.index, null, "$PROTECTED$reason", ""))
+                // A switch-off of something that runs the TV's inputs is kept and skipped (F1); any
+                // other protected package stops the step as before.
+                if (step.op is Op.Disable && reason == Denylist.REASON_TV_INPUT) return Outcome.Refused(1, "$PROTECTED$reason", kept = true)
                 return Outcome.Failed(AdbError.Policy.ProtectedPackage(target), reason)
             }
             if (!PackageDump.exists(target, dump) && step.op !is Op.Uninstall) {
@@ -794,6 +804,10 @@ class DefaultEngine(
     companion object {
         val GATED = setOf(Privilege.PROFILE_STEP, Privilege.COMMUNITY, Privilege.TAKEOVER)
         const val WATCHDOG_MARGIN_MS = 10_000L   // the phone's window ends at least this long before the watchdog fires (R1 R-1)
+        // The journal's Failed text for a live protected refusal. KEPT_TV_INPUT marks a package kept
+        // because it runs the TV's inputs (RF-LAUNCHER-250 F1); Done and Manage name it.
+        const val PROTECTED = "protected: "
+        const val KEPT_TV_INPUT = PROTECTED + Denylist.REASON_TV_INPUT
     }
 }
 

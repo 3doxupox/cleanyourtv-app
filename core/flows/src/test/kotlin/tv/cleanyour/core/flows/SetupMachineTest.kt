@@ -1076,6 +1076,31 @@ class SetupMachineTest {
         }
     }
 
+    // RF-LAUNCHER-250 F1: a profile's switch-off that the live check kept, because the package runs
+    // the TV's inputs, is a skip: Setup ends on Done (never the "We stopped" card), the line names it
+    // as kept for the inputs, and the generic "harmless" line is only for the other skips.
+    @Test fun aSwitchOffKeptForTheTvInputsEndsOnDoneWithItsOwnLine() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+        h.setupPlan = h.plan(listOf(Op.Disable(adPkg), Op.Disable(promoPkg)))
+        h.engine.onStart = { p -> if (p.kind != PlanKind.SETUP) finish(p, RunStatus.COMPLETED) else {
+            h.journal.append(JournalRecord.Begin(p.id, 0, p.steps[0].op, listOf("fake"), null, 20))
+            h.journal.append(JournalRecord.Failed(p.id, 0, null, tv.cleanyour.core.engine.DefaultEngine.KEPT_TV_INPUT, ""))
+            h.journal.append(JournalRecord.Begin(p.id, 1, p.steps[1].op, listOf("fake"), null, 21))
+            h.journal.append(JournalRecord.Failed(p.id, 1, 1, "exit 1", "package not on the TV"))
+            emit(p.tvId, RunState.Finished(p, RunStatus.COMPLETED_WITH_SKIPS, p.steps, null))
+        } }
+        val m = h.setup(backgroundScope)
+        toFound(h, m)
+        m.dispatch(SetupIntent.MakeItClean); settle()
+        val d = assertIs<SetupState.Done>(m.state.value)
+        val kept = m.extras.value.doneKept
+        assertEquals(1, kept.size, kept.toString())
+        assertEquals(1, d.summary.skipped.size, "only the other skip gets the generic line")
+        assertTrue(kept.single() !in d.summary.skipped)
+        assertTrue(h.engine.calls.none { it is FakeEngine.Call.ContinueRun })
+    }
+
     // Upstream #435: a vendor's FallbackHome answers Home but is no launcher, so when the switch fails
     // the card never names it as "another home screen app"; a real one is still named.
     @Test fun aFallbackHomeIsNotAnotherLauncher() = runTest(timeout = 30.seconds) {

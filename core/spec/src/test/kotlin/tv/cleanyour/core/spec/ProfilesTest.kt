@@ -317,6 +317,14 @@ class ProfilesTest {
         assertTrue(tcl.groups.flatMap { it.packages }.none { it.name == live })
     }
 
+    // RF-LAUNCHER-250 F1: the tuner input drivers the shipped lists name are never switched off; S3
+    // shows them under "We keep these" instead of a row the run would refuse anyway.
+    @Test fun knownTunerInputDriversAreNeverDisable() {
+        val all = BundledProfileSource.bundled.profiles.associateBy { it.id }
+        assertTrue(all.getValue("sony-bravia-ae2").neverDisable.containsAll(listOf(p("com.mediatek.dtv.tvinput.atsctuner"), p("com.sony.dtv.tvinput.atsc3tuner"))))
+        assertTrue(all.getValue("prismplus-q65-ultra-r10g").neverDisable.containsAll(listOf(p("com.realtek.dtmb"), p("com.realtek.tv.atsc"), p("com.realtek.tv.isdb"))))
+    }
+
     @Test fun resolveExactThenBrandThenNone() = runBlocking<Unit> {
         val source = BundledProfileSource()
         val mi = Fixtures.miTv().facts()

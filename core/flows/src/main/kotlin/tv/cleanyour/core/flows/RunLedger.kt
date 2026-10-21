@@ -1,5 +1,6 @@
 package tv.cleanyour.core.flows
 
+import tv.cleanyour.core.engine.DefaultEngine
 import tv.cleanyour.core.engine.Journal
 import tv.cleanyour.core.engine.JournalRecord
 import tv.cleanyour.core.engine.SectionState
@@ -71,6 +72,11 @@ class RunLedger(private val store: DocumentStore, private val journal: Journal) 
         }
         return RunProgress(doneSteps, doneDisables, open, ended)
     }
+
+    // The steps of a run whose switch-off the live check kept because the package runs the TV's
+    // inputs (RF-LAUNCHER-250 F1): Done and Manage name them with their own line.
+    suspend fun keptTvInputs(planId: PlanId): Set<Int> =
+        journal.read(planId).filterIsInstance<JournalRecord.Failed>().filter { it.error == DefaultEngine.KEPT_TV_INPUT }.map { it.i }.toSet()
 
     // The packages this app switched off and has not put back since, in the order they went off.
     suspend fun switchedOffByUs(tvId: TvId): List<PackageName> {

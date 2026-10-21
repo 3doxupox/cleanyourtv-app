@@ -442,19 +442,34 @@ class EngineTest {
     // Upstream #421 (launcher v2.5.0's disable step): a package that asks for TV_INPUT_HARDWARE drives
     // the HDMI, AV and tuner inputs even when no input is registered for it, so the live check refuses
     // to switch it off; a package that only holds it through others' lines, or puts one back, is fine.
+    // RF-LAUNCHER-250 F1: a switch-off of a package that asks for TV_INPUT_HARDWARE is kept and the
+    // step skipped, never a pause: the rest of the plan runs and the run ends with skips. The journal
+    // says why, so Done and Manage can name it.
     @Test fun theLiveCheckRefusesToSwitchOffATvInputDriver() = runTest(timeout = TEST_TIMEOUT) {
         val h = Harness(this)
         val engine = h.engine()
         val driver = h.debloat[0]
+        val other = h.debloat[1]
         h.tv.requestedPermissions = mapOf(driver to listOf("android.permission.INTERNET", "android.permission.TV_INPUT_HARDWARE"))
-        val plan = h.opsPlan(Op.Disable(driver))
+        val plan = h.plan(PlanRequest.SwitchOff(setOf(driver, other)))   // Manage's switch-off, as planned
+        val step = plan.steps.single { it.op == Op.Disable(driver) }
+        assertEquals(FailurePolicy.SKIP_IF_REFUSED, step.onFailure)
         engine.start(plan, h.tv, plan.hash, h.pass())
         h.settle(engine)
-        val paused = engine.runState(h.tv.tvId).value as RunState.Paused
-        assertEquals(AdbError.Policy.ProtectedPackage(driver), paused.error)
-        assertEquals(0, h.tv.execs("pm disable-user"), "the line was never sent")
+        val fin = assertIs<RunState.Finished>(engine.runState(h.tv.tvId).value)
+        assertEquals(RunStatus.COMPLETED_WITH_SKIPS, fin.status)
+        assertEquals(listOf(step), fin.skipped)
+        assertEquals(1, h.tv.execs("pm disable-user"), "only the other package's line was sent")
         val failed = h.records(plan).filterIsInstance<JournalRecord.Failed>().single()
-        assertTrue(failed.error.contains("TV input"), failed.error)
+        assertEquals(DefaultEngine.KEPT_TV_INPUT, failed.error)
+        assertTrue(!h.tv.isOff(driver))
+        assertTrue(h.tv.isOff(other))
+        // Putting a package back is never refused.
+        h.tv.packages[driver] = h.tv.packages.getValue(driver).copy(enabled = EnabledState.DISABLED_USER)
+        val back = h.opsPlan(Op.Enable(driver))
+        engine.start(back, h.tv, back.hash, h.pass())
+        h.settle(engine)
+        assertEquals(RunStatus.COMPLETED, (engine.runState(h.tv.tvId).value as RunState.Finished).status)
         assertTrue(!h.tv.isOff(driver))
     }
 

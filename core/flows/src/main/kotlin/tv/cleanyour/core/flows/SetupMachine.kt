@@ -121,6 +121,7 @@ data class SetupExtras(
     val restartSlow: Boolean = false,            // UX 4.8 at 3 minutes
     val restartReenabled: Int = 0,               // "2 things came back on after the restart; switched off again."
     val doneLines: List<String> = emptyList(),   // refused ops named on Done (UX 4.14)
+    val doneKept: List<String> = emptyList(),    // RF-LAUNCHER-250 F1: switch-offs kept because they run the TV's inputs
     val restorePointPushed: Boolean = false,     // D44
     val dock: List<AppChoice> = emptyList(),     // D4 row and the dock sheet (S3b): the dock, then Row 2 and Row 3
     val apps: List<AppChoice> = emptyList(),     // installed apps for the dock sheet
@@ -890,7 +891,11 @@ class SetupMachine(
             plan != null -> plan.steps.count { it.op is Op.Disable } - skipped.count { it.op is Op.Disable }
             else -> 0
         }
-        val skippedNames = skipped.mapNotNull { (it.op as? Op.Disable)?.pkg }.map { nameOfPkg(it) }
+        // RF-LAUNCHER-250 F1: a package the live check kept because it runs the TV's inputs gets its
+        // own line on Done, never the generic "it's harmless" one.
+        val kept = plan?.let { deps.ledger.keptTvInputs(it.id) }.orEmpty()
+        val keptNames = skipped.filter { it.index in kept }.mapNotNull { (it.op as? Op.Disable)?.pkg }.map { nameOfPkg(it) }
+        val skippedNames = skipped.filter { it.index !in kept }.mapNotNull { (it.op as? Op.Disable)?.pkg }.map { nameOfPkg(it) }
         val p = profile()
         val recommended = p == null || Quirk.HOME_TAKEOVER_SETUPWRAITH in p.quirks || p.tested?.rebootTested != true
         val restorePointAt = deps.snapshots.latest(tvId)?.takenAtMs ?: deps.clock.nowMs()
@@ -910,7 +915,7 @@ class SetupMachine(
         setupHome?.takeIf { (pushedDigest, _) -> pushedDigest == digest }?.let { (_, choice) ->
             deps.homePrefs?.let { prefs -> attempt { prefs.save(tvId, choice) } }
         }
-        mutableExtras.update { it.copy(doneLines = skippedNames) }
+        mutableExtras.update { it.copy(doneLines = skippedNames, doneKept = keptNames) }
         send(Ev.ShowDone(tvId, DoneSummary(off, homeOn, restorePointAt, skippedNames, recommended)))
         session?.let { s -> mutableExtras.update { it.copy(restorePointPushed = deps.restorePoint.write(done, s, p)) } }
     }

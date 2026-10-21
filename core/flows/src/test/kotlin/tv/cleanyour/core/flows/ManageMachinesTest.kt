@@ -4,6 +4,7 @@ import app.cash.turbine.test
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
+import tv.cleanyour.core.engine.DefaultEngine
 import tv.cleanyour.core.engine.JournalRecord
 import tv.cleanyour.core.engine.PauseReason
 import tv.cleanyour.core.engine.RunState
@@ -34,8 +35,8 @@ import tv.cleanyour.core.registry.FetchFailure
 import tv.cleanyour.core.spec.DecodeResult
 import tv.cleanyour.core.spec.LauncherConfigCodec
 import tv.cleanyour.core.spec.LauncherConfigDoc
-import tv.cleanyour.core.spec.Theme
 import tv.cleanyour.testing.fixtures.FakeThemeSource
+import tv.cleanyour.core.spec.Theme
 import tv.cleanyour.core.registry.IndexState
 import tv.cleanyour.core.trust.VerifiedIndex
 import tv.cleanyour.testing.fixtures.FakeApkInspector
@@ -114,6 +115,43 @@ class ManageMachinesTest {
         assertTrue(h.planner.requests.any { it == PlanRequest.PutBack(adPkg) })
         assertTrue(h.planner.requests.any { it is PlanRequest.WriteRestorePoint })   // D44 after every plan
         assertNull(m.state.value.busy)
+    }
+
+    // RF-LAUNCHER-250 F1: a switch-off the TV's live check kept, because the package runs the TV's
+    // inputs, ends the run with a skip (no open-run card, no Carry on loop) and says so in its own line.
+    @Test fun aSwitchOffKeptForTheTvInputsSaysSoAndLeavesNoOpenRun() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val tv = h.knownTv()
+        h.ranDisable(tv, listOf(adPkg))
+        h.respond(PlanKind.SWITCH_OFF, listOf(Op.Disable(adPkg)))
+        h.engine.onStart = { p ->
+            if (p.kind != PlanKind.SWITCH_OFF) finish(p, RunStatus.COMPLETED) else {
+                h.journal.append(JournalRecord.Begin(p.id, 0, p.steps[0].op, listOf("fake"), null, 20))
+                h.journal.append(JournalRecord.Failed(p.id, 0, null, DefaultEngine.KEPT_TV_INPUT, ""))
+                emit(p.tvId, RunState.Finished(p, RunStatus.COMPLETED_WITH_SKIPS, listOf(p.steps[0]), null))
+            }
+        }
+        val deps = h.manageDeps()
+        val m = SwitchedOffMachine(deps, backgroundScope, tv.id)
+        settle()
+        m.effects.test {
+            m.dispatch(SwitchedOffIntent.Undo(adPkg))
+            settle()
+            val snack = assertIs<ManageEffect.Snackbar>(drain().single())
+            assertEquals(SnackKind.KEPT_TV_INPUT, snack.kind)
+            assertFalse(snack.undo)
+        }
+        assertIs<RunState.Finished>(h.engine.runState(tv.id).value)
+        assertTrue(h.engine.calls.none { it is FakeEngine.Call.ContinueRun })
+        assertNull(deps.openWrites.current.value, "no open-run card")
+        assertNull(m.state.value.busy)
+        // A switch-off that went through is the usual line.
+        h.engine.onStart = { p -> finish(p, RunStatus.COMPLETED) }
+        m.effects.test {
+            m.dispatch(SwitchedOffIntent.Undo(adPkg))
+            settle()
+            assertEquals(SnackKind.SWITCHED_OFF, assertIs<ManageEffect.Snackbar>(drain().single()).kind)
+        }
     }
 
     @Test fun putBackCancelledAtTheGateChangesNothing() = runTest(timeout = 30.seconds) {

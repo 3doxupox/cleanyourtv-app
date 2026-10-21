@@ -1547,7 +1547,7 @@
       "liveTv": null,
       "setupWraith": null,
       "quirks": [],
-      "neverDisable": ["com.realtek.dtv", "com.realtek.tv.atv"],
+      "neverDisable": ["com.realtek.dtv", "com.realtek.tv.atv", "com.realtek.dtmb", "com.realtek.tv.atsc", "com.realtek.tv.isdb"],
       "suggestedDock": [],
       "tested": { "by": "dineshalphaque (PR #238)", "firmware": "UKR1.251010.001", "daysLivedWith": null, "rebootTested": false },
       "groups": {
@@ -1858,7 +1858,7 @@
       "liveTv": null,
       "setupWraith": "com.google.android.tungsten.setupwraith",
       "quirks": ["WIRELESS_DEBUG_PAIRING_REQUIRED", "HOME_TAKEOVER_SETUPWRAITH"],
-      "neverDisable": ["com.sony.dtv.tvapi", "com.sony.dtv.sonysystemservice"],
+      "neverDisable": ["com.sony.dtv.tvapi", "com.sony.dtv.sonysystemservice", "com.mediatek.dtv.tvinput.atsctuner", "com.sony.dtv.tvinput.atsc3tuner"],
       "suggestedDock": [],
       "tested": { "by": "Phil Trinh (PR #171)", "firmware": "UKN4.250422.001", "daysLivedWith": null, "rebootTested": false },
       "groups": {
