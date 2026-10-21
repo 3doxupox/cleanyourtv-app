@@ -20,6 +20,9 @@ object HomeSwitchRisk {
         // Google's own hardware: the Cast receiver reads its credentials from the setup wizard, so the
         // switch (which needs the wizard off) costs casting after every restart (upstream #361, #422).
         CASTING("on this Google device the home screen switch needs the setup wizard off, and casting from phones then stops working after every restart"),
+        // The MOKA family (kalley-43g200): the firmware turns the wizard back on at every boot, and with
+        // the TV's own home screen off it boot-looped a set that needed a USB reflash.
+        BOOT_LOOP("on this TV family the setup wizard comes back at every restart, and with the TV's own home screen off the TV can fail to start"),
     }
 
     // Google's own Google TV hardware, by maker and device: Chromecast with Google TV 4K (sabrina)
@@ -29,12 +32,23 @@ object HomeSwitchRisk {
     val GOOGLE_DEVICES: Set<String> = setOf("sabrina", "boreal", "kirkwood")
     val CASTING_PROFILES: Set<String> = setOf("google-chromecast-gtv-4k", "google-tv-streamer-4k-kirkwood")
 
+    // The MOKA family by the exact device and maker pairs its three profiles match on (kalley-43g200:
+    // R3_GTV by MOKA; prismplus-q65-ultra-r10g: R10G by MOKA; kalley-r10g: R10G under the Kalley
+    // brand), whatever the Android version. A device name alone could be another maker's, and the
+    // maker alone is too wide: MOKA also builds the Philips R8G (whitefield), which is not this family.
+    val MOKA_FAMILY: Set<Pair<String, String>> = setOf("R3_GTV" to "MOKA", "R10G" to "MOKA", "R10G" to "Kalley")
+    val MOKA_PROFILES: Set<String> = setOf("kalley-43g200", "kalley-r10g", "prismplus-q65-ultra-r10g")
+
     // The first risk that applies, or null when the switch may be planned. `profile` is the exact
     // profile (null on a brand sure set or the generic path); `wizardWifi` the D3 answer.
     fun of(facts: DeviceFacts, profile: Profile?, snapshot: Snapshot, wizardWifi: WizardWifi): Risk? = when {
+        isMokaFamily(facts) || profile?.id in MOKA_PROFILES -> Risk.BOOT_LOOP
         isGoogleHardware(facts) || profile?.id in CASTING_PROFILES -> Risk.CASTING
         else -> wizardWifiRisk(profile, snapshot, wizardWifi)
     }
+
+    fun isMokaFamily(f: DeviceFacts): Boolean =
+        MOKA_FAMILY.any { (device, maker) -> device.equals(f.device, ignoreCase = true) && (maker.equals(f.brand, ignoreCase = true) || maker.equals(f.manufacturer, ignoreCase = true)) }
 
     fun isGoogleHardware(f: DeviceFacts): Boolean =
         GOOGLE_DEVICES.any { it.equals(f.device, ignoreCase = true) } && (GOOGLE_MAKER.equals(f.brand, ignoreCase = true) || GOOGLE_MAKER.equals(f.manufacturer, ignoreCase = true))

@@ -1029,7 +1029,8 @@ class SetupMachineTest {
 
     // RF-SAFETY-250 with the shipped profiles: each TV below gets the clean-up alone and its own S3
     // line. The Google TV sets whose wizard the switch would switch off, when the TV says the wizard
-    // saved the Wi-Fi (and only then); Google's own hardware (casting); and an unknown TV whose wizard saved the Wi-Fi.
+    // saved the Wi-Fi (and only then); Google's own hardware (casting); the MOKA family (the boot
+    // loop), also when no profile matches; and an unknown TV whose wizard saved the Wi-Fi.
     @Test fun theSwitchIsSkippedUpFrontWhereItIsUnsafe() = runTest(timeout = 60.seconds) {
         val wizard = PackageName("com.google.android.tungsten.setupwraith")
         val shipped = tv.cleanyour.core.spec.BundledProfileSource.bundled.profiles.associateBy { it.id }
@@ -1046,8 +1047,13 @@ class SetupMachineTest {
             add(Case("chromecast", "google-chromecast-gtv-4k", facts("sabrina", "google"), others, HomeBlock.CASTING))
             add(Case("streamer", "google-tv-streamer-4k-kirkwood", facts("kirkwood", "google"), others, HomeBlock.CASTING))
             add(Case("chromecast hd, no profile", null, facts("boreal", "google"), others, HomeBlock.CASTING))
+            add(Case("kalley-43g200", "kalley-43g200", facts("R3_GTV", "Kalley", "MOKA"), others, HomeBlock.BOOT_LOOP))
+            add(Case("kalley-r10g", "kalley-r10g", facts("R10G", "Kalley"), others, HomeBlock.BOOT_LOOP))
+            add(Case("prismplus-q65-ultra-r10g", "prismplus-q65-ultra-r10g", facts("R10G", "PRISMPLUS", "MOKA"), others, HomeBlock.BOOT_LOOP))
+            add(Case("R10G on Android 15, no profile", null, facts("R10G", "PRISMPLUS", "MOKA", sdk = 35), others, HomeBlock.BOOT_LOOP))
             add(Case("unknown TV, wizard owns the Wi-Fi", null, base, owns, HomeBlock.WIZARD_WIFI))
             add(Case("unknown TV, Wi-Fi saved by others", null, base, others, HomeBlock.NONE))
+            add(Case("Philips R8G, made by MOKA but not this family", null, facts("whitefield", "Philips", "MOKA"), others, HomeBlock.NONE))
         }
         for (c in cases) {
             val h = Harness()

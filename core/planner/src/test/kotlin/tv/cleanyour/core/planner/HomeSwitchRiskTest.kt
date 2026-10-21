@@ -79,6 +79,35 @@ class HomeSwitchRiskTest {
         assertNull(HomeSwitchRisk.of(facts("sabrina", "Acme"), null, tv, WizardWifi.NOT_OWNER))
     }
 
+    // (c) The MOKA family: the wizard comes back at boot and the set can boot-loop. The three shipped
+    // profiles, and a set of the family that no profile matches (an Android update, another brand
+    // build of the same device), get no switch; the Philips R8G, also made by MOKA, does.
+    @Test fun theMokaFamilyGetsNoSwitch() {
+        val pairs = HomeSwitchRisk.MOKA_PROFILES.flatMap { id -> shipped.getValue(id).match.let { m -> m.devices.map { it to m.brand!! } } }.toSet()
+        assertEquals(HomeSwitchRisk.MOKA_FAMILY, pairs, "the family is exactly what its profiles match on")
+        for ((f, id) in listOf(facts("R3_GTV", "Kalley", "MOKA") to "kalley-43g200", facts("R10G", "Kalley", "MOKA") to "kalley-r10g",
+            facts("R10G", "PRISMPLUS", "MOKA") to "prismplus-q65-ultra-r10g")) {
+            assertEquals(id, exact(f)?.id)
+            assertEquals(Risk.BOOT_LOOP, HomeSwitchRisk.of(f, exact(f), withFacts(f), WizardWifi.NOT_OWNER), id)
+            assertTrue(Risk.BOOT_LOOP.reason in refused(setup(profile = exact(f)), snapshot = withFacts(f)), id)
+        }
+        val android15 = facts("R10G", "PRISMPLUS", "MOKA", sdk = 35)
+        assertNull(exact(android15))
+        assertEquals(Risk.BOOT_LOOP, HomeSwitchRisk.of(android15, null, withFacts(android15), WizardWifi.NOT_OWNER))
+        assertEquals(listOf(Risk.BOOT_LOOP.reason), refused(setup(profile = null), snapshot = withFacts(android15)))
+        assertEquals(Risk.BOOT_LOOP, HomeSwitchRisk.of(facts("r10g", "Kalley", "Kalley"), null, tv, WizardWifi.NOT_OWNER), "case does not matter")
+        // Never by the maker alone or the device alone.
+        val philips = facts("whitefield", "Philips", "MOKA")
+        assertEquals("philips-r8g-google-tv", exact(philips.copy(model = "R8G"))?.id)
+        assertNull(HomeSwitchRisk.of(philips, null, tv, WizardWifi.NOT_OWNER))
+        assertNull(HomeSwitchRisk.of(facts("R10G", "Acme"), null, tv, WizardWifi.NOT_OWNER))
+        assertNull(HomeSwitchRisk.of(facts("R3_GTV", "Acme"), null, tv, WizardWifi.NOT_OWNER))
+        // The clean-up alone is planned for the family, with the stock home and the wizard left alone.
+        val f = facts("R10G", "Kalley", "MOKA")
+        val clean = plan(setup(profile = exact(f), choices = choices(installLauncher = false, takeover = false)), snapshot = withFacts(f))
+        assertTrue(clean.sections.isEmpty() && clean.steps.none { it.op == Op.Disable(wizard) })
+    }
+
     // The reference TV keeps its switch.
     @Test fun theReferenceTvKeepsItsSwitch() {
         assertNull(HomeSwitchRisk.of(tv.facts, PlannerFixtures.profile(), tv, WizardWifi.NOT_OWNER))

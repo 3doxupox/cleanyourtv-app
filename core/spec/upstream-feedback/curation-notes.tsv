@@ -182,10 +182,11 @@ jvc-android-tv-menlo	com.google.android.tvrecommendations	ask row: the header sa
 jvc-android-tv-menlo	com.google.android.videos	the Google TV app holds purchased films; ask row (streaming)
 jvc-android-tv-menlo	com.mstar.android.tv.disclaimercustomization	the hisense-hg9 list keeps it (first-boot legal text); ask row
 kalley-43g200	(header)	the KEEP block at the end of the file (updaters, key handlers, remote, Realtek TV stack) is in the curated never-disable list
-kalley-43g200	(launcher)	launcherx must never be switched off on this set: the firmware turns the setup wizard back on at every boot and its RecoveryActivity then boot-loops the TV (a USB reflash was needed once), so stockLaunchers is empty and Setup gives the clean-up only; both stay never-disable
+kalley-43g200	(launcher)	launcherx must never be switched off on this set: the firmware turns the setup wizard back on at every boot and its RecoveryActivity then boot-loops the TV (a USB reflash was needed once), so stockLaunchers is empty and Setup gives the clean-up only; both stay never-disable; 0.2.0 also skips the switch up front for the whole family by device and maker (RF-SAFETY-250), so S3 names the boot loop
 kalley-43g200	(match)	the header names the maker MOKA and the device R3_GTV but not the Kalley brand string, so the profile matches on the maker; kalley-r10g is a different device (R10G)
 kalley-43g200	com.apps.wifihotspot	a Wi-Fi hotspot service; network setup is never default-off, ask row as on prismplus-q65-ultra-r10g
 kalley-43g200	com.realtek.leanbacklauncher.partnercustomizer	ask row: the app keeps the stock home here, and compac-atv-r2 found this customizer supplies the stock home's Inputs button
+kalley-r10g	(launcher)	the clean-up only: the same MOKA family as kalley-43g200, whose firmware brings the setup wizard back at every boot and boot-looped with launcherx off; the switch is skipped up front for the family by device and maker (RF-SAFETY-250)
 kalley-r10g	(match)	same R10G hardware as prismplus-q65-ultra-r10g; this profile needs the TV to report the brand Kalley, and the PRISM+ one matches on the maker MOKA
 kalley-r10g	(match)	brand inferred, confirm with getprop: Kalley; a wrong guess fails closed (the profile never matches)
 kalley-r10g	com.seraphic.media.tv.interactive.app	interactive broadcast service, purpose not documented; ask row
@@ -279,6 +280,7 @@ polytron-2k-hayward	com.google.android.tungsten.setupwraith	the header says it a
 polytron-2k-hayward	com.mediatek.android.leanbacklauncher.partnercustomizer	never-disable: on MediaTek sets the partner customizer provides the tvlauncher.widget provider com.mediatek.tv.service needs after a reboot (chiq-ai-pont; the cecotec, jvc, aiwa and eko headers say so too); the list was not reboot-tested (RF-PROFILES-63 P4)
 polytron-2k-hayward	com.mstar.android.tv.disclaimercustomization	the hisense-hg9 list keeps it (first-boot legal text); ask row
 polytron-2k-hayward	fusion.android.tv.demo	ask row: on MediaTek MTC builds this retail display app also handles the Input key and remote pairing (hitachi-65qledsm20), and this header did not check either with it off (RF-PROFILES-63 P6)
+prismplus-q65-ultra-r10g	(launcher)	the clean-up only: the same MOKA family as kalley-43g200, whose firmware brings the setup wizard back at every boot and boot-looped with launcherx off; the switch is skipped up front for the family by device and maker (RF-SAFETY-250)
 prismplus-q65-ultra-r10g	(match)	the header names the maker MOKA but not the PRISM+ brand string, so the profile matches on the maker; kalley-r10g (same R10G hardware) wins when the TV reports Kalley
 prismplus-q65-ultra-r10g	com.apps.wifihotspot	a Wi-Fi hotspot service; network setup is never default-off
 prismplus-q65-ultra-r10g	com.mk.tv.meeting.service	purpose not documented; ask row
