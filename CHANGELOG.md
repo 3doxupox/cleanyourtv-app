@@ -11,14 +11,18 @@ All notable changes to the app. Versions follow [semantic versioning](https://se
 - A TV set up with 0.1.0 is offered "Update the home screen" in Manage. The dock, the look and the
   card answers stay.
 - The Home screen page says what happens to a dock changed on the TV: the phone cannot see it, a
-  new look keeps it, and saving a different dock from the phone replaces it.
-- The phone reads the settings keys launcher 2.5 added exactly as the launcher does, and warns when
-  a settings file would take Back, the arrows, OK, Enter or Menu for the launcher's remote button
-  services.
+  new look keeps it, and saving a different dock from the phone replaces it. A new look now sends
+  the saved dock as it is, even when an app in it has gone from the TV, so the TV's own dock edit
+  stays; a dock of more than 12 apps saved under Six columns keeps its first 12 in a four-tile look.
+- The phone reads the settings keys launcher 2.5 added exactly as the launcher does.
 - Never switches off an app that asks for the TV input hardware permission (the layer under the
-  HDMI, AV and tuner inputs), even when a profile lists it.
+  HDMI, AV and tuner inputs), even when a profile lists it and also during the home screen switch,
+  where a TV's own home screen that asks for it stays on. The run goes on without it, and Done and
+  Manage say it was kept because it runs the TV's HDMI and tuner inputs.
 - After a look change, the launcher's remote button services come back on TVs that kept them
   unbound before (accessibility is switched off and on again around the list, as upstream does).
+  Stopping a run in the middle of that step finishes it first, so the TV never stays without its
+  accessibility services.
 - When the home screen switch fails, Setup no longer names a TV's own fallback placeholder as
   another home screen app.
 
@@ -29,10 +33,19 @@ All notable changes to the app. Versions follow [semantic versioning](https://se
   XGIMI MoGo 2 and MoGo 3 Pro, Xiaomi's China sets on PatchWall and HyperOS 3, Hisense and Vidda
   VIDAA sets, the Freebox Player POP, and first lists from AIWA, BYINTEK, Cecotec, Challenger,
   Compac, EKO, FFalcon, JVC, Kogan, Motorola, MTC, Polytron, SHARP, Tele System and Verizon.
-- Sets where the home screen cannot be switched safely get the clean-up and keep their own home:
-  TVs with a vendor home the app does not know (Xiaomi PatchWall, VIDAA, OQEE, Verizon), a Kalley
-  set whose firmware brings the setup wizard back at boot, and the Google TV Streamer, where the
-  switch would cost casting after every reboot.
+- Sets where the home screen cannot be switched safely get the clean-up and keep their own home,
+  and the "What we found" page says why: TVs with a vendor home the app does not know (Xiaomi
+  PatchWall, VIDAA, OQEE, Verizon); the Kalley 43G200, the Kalley R10G and the PRISM+ Q65 Ultra,
+  one family whose firmware brings the setup wizard back at every boot and has left a set stuck at
+  start-up, also when no list matches the TV exactly; and Google's own Chromecast with Google TV and
+  Google TV Streamer, where the switch would cost casting after every reboot.
+- On TVs whose home screen switch needs the setup wizard off, the switch is skipped up front when
+  the wizard saved the TV's Wi-Fi or the TV cannot say who did: switching the wizard off would
+  forget the Wi-Fi, and left on, it takes over the Home button and can crash the TV (upstream
+  #506). The same goes for a TV without a list whose wizard saved the Wi-Fi. Setup does the clean-up
+  and says how to get the new home screen later.
+- TCL Live, a TV input, is a choice on every TCL list instead of off by default, and the broadcast
+  tuner inputs on the Sony BRAVIA AE2 and PRISM+ Q65 Ultra lists are always kept.
 - Corrections from upstream: the onn 4K box keeps Google's ambient mode so the Google Photos
   screensaver works, the Philips 65PUS8102 also switches off its reboot logger, and the TCL G07 and
   Xiaomi MSSP3 lists gained notes from more units. Home screen customizers that a TV service or
