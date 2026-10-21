@@ -34,6 +34,8 @@ import tv.cleanyour.core.registry.FetchFailure
 import tv.cleanyour.core.spec.DecodeResult
 import tv.cleanyour.core.spec.LauncherConfigCodec
 import tv.cleanyour.core.spec.LauncherConfigDoc
+import tv.cleanyour.core.spec.Theme
+import tv.cleanyour.testing.fixtures.FakeThemeSource
 import tv.cleanyour.core.registry.IndexState
 import tv.cleanyour.core.trust.VerifiedIndex
 import tv.cleanyour.testing.fixtures.FakeApkInspector
@@ -470,6 +472,33 @@ class ManageMachinesTest {
         val again = HomeScreenMachine(h.manageDeps(encoder = ConfigEncoder.Codec), backgroundScope, tv.id)
         settle()
         assertEquals(six - six[1], again.state.value.dock.map { it.pkg })
+    }
+
+    // RF-LAUNCHER-250 F4: a new look, and "Restore mine", push the dock as it was saved, even with an
+    // app of it switched off on the TV since (the sheet shows it without), so dock_apps stays the same
+    // and the TV's own dock edit keeps applying (upstream #340). Up to 18 apps under Six columns.
+    @Test fun aNewLookPushesTheSavedDockUnchanged() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val tv = h.knownTv().copy(launcher = LauncherState(1, Samples.zeroHash, Samples.zeroHash, Samples.zeroHash))
+        h.tvs.upsert(tv)
+        val apps = List(18) { PackageName("com.example.app$it") }
+        fun state(on: Boolean) = PackageState(if (on) EnabledState.ENABLED else EnabledState.DISABLED_USER, false, 0, null, false, false, null, false)
+        h.snapshots.save(Samples.snapshot(packages = Samples.miTvPackages() + apps.associateWith { state(it != apps[1]) }, takenAtMs = Samples.NOW_MS + 1))
+        val sixColumns = Theme("six-columns", "Six columns", "Six smaller tiles", LauncherConfigDoc(columns = 6), null)
+        val themes = FakeThemeSource(listOf(Theme("aurora", "Aurora", "Navy", LauncherConfigDoc(), null), sixColumns))
+        val deps = h.manageDeps(encoder = ConfigEncoder.Codec, themes = themes)
+        HomePrefs(h.documents).save(tv.id, HomeChoice(apps, "six-columns", cards = false))
+        val m = HomeScreenMachine(deps, backgroundScope, tv.id)
+        settle()
+        assertEquals(apps - apps[1], m.state.value.dock.map { it.pkg }, "the sheet shows the dock as the TV does")
+        m.dispatch(HomeScreenIntent.SetTheme("six-columns")); settle()
+        assertEquals(apps, h.planner.requests.filterIsInstance<PlanRequest.ApplyTheme>().last().doc.dockApps)
+        m.dispatch(HomeScreenIntent.RestoreMine); settle()
+        assertEquals(apps, h.planner.requests.filterIsInstance<PlanRequest.ApplyTheme>().last().doc.dockApps)
+        // A four-tile look holds 12: the saved dock is cut to its first 12 there, the stated limit.
+        m.dispatch(HomeScreenIntent.SetTheme("aurora")); settle()
+        assertEquals(apps.take(12), h.planner.requests.filterIsInstance<PlanRequest.ApplyTheme>().last().doc.dockApps)
+        assertEquals(apps.take(12), HomePrefs(h.documents).load(tv.id)?.dock)
     }
 
     // RFC-CARDS-1: a TV set up with the new home screen and module cards off, Retro in the index.
