@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/banner.png" width="800" alt="Community app for Clean Your TV. Clean your TV from your phone. No laptop. No coding agent. Open the app on your Android phone, tap Start, and the ads and bloat are gone in about five minutes.">
+  <img src="docs/images/hero-banner.png" width="800" alt="Community app for Clean Your TV. Clean your TV from your phone. No laptop. No coding agent. Open the app on your Android phone, tap Start, and the ads and bloat are gone in about five minutes.">
 </p>
 
 <p align="center">
