@@ -18,12 +18,14 @@ amazon-fire-tv-stick-4k-2018	com.amazon.wifilocker	default-off as listed (it upl
 benq-e55-750	(match)	model AI PONT on Android 11; benq-e55-735 is the same model on Android 14, told apart by the SDK
 benq-e55-750	(match)	brand inferred, confirm with getprop: BenQ; a wrong guess fails closed (the profile never matches)
 chiq-gtvu65	(match)	brand inferred, confirm with getprop: CHiQ; a wrong guess fails closed (the profile never matches)
+google-chromecast-gtv-4k	com.google.android.tungsten.setupwraith	v2.5.0 header (upstream #361, #422): the Cast receiver reads its device credentials from the wizard, so with the wizard off casting from phones fails after the next reboot; the home screen switch here costs casting (owner decision open)
 haier-android-tv-dvb2k	(match)	brand inferred, confirm with getprop: Haier; a wrong guess fails closed (the profile never matches)
 haier-android-tv-dvb2k	com.cvte.haier.tv.appmanager	a boot receiver that manages Haier apps, purpose not clear; ask row
 haier-android-tv-dvb2k	com.haierubic.usmartdevice	Haier smart-device service in the list's telemetry group, purpose not clear; ask row
 haier-android-tv-dvb2k	com.mediatek.android.leanbacklauncher.partnercustomizer	ask row until reboot-tested: on MediaTek Android TV 11 sets the partner customizer feeds the TV service after a reboot (RF-PROFILES-63 P4)
 haier-android-tv-dvb2k	fusion.android.tv.demo	default-off as listed: the header names the component, HRetailDisplay_2K, a plain retail display (RF-PROFILES-63 P6)
 haier-h32s80efx	(match)	brand inferred, confirm with getprop: Haier; a wrong guess fails closed (the profile never matches)
+haier-h32s80efx	com.mediatek.android.leanbacklauncher.partnercustomizer	ask row: four v2.5.0 MediaTek lists (aiwa, cecotec, eko, jvc) keep it because it feeds the TV service at boot, and this set was not reboot-tested with it off (RF-PROFILES-63 P4)
 haier-h32s80efx	fusion.android.tv.demo	default-off as listed: the header checked the components of the look-alike packages with dumpsys (RF-PROFILES-63 P6)
 haier-h32s80efx	it.hon.service	Haier hOn appliance link, a feature some homes use; ask row
 hisense-hg9	(match)	brand inferred, confirm with getprop: Hisense; a wrong guess fails closed (the profile never matches)
@@ -53,6 +55,7 @@ hitachi-cdh-le32smart21	com.tcl.useragreement	tcl-55s470g and tcl-c755 keep it (
 jmgo-n1s-holan	(header)	the header's never-disable list (optics, gimbal, remote and updates) is in the curated never-disable list, since the keep-list reader only reacts to keep wording
 jmgo-n1s-holan	(match)	brand inferred, confirm with getprop: JMGO; a wrong guess fails closed (the profile never matches)
 jmgo-n1s-holan	com.jmgo.helpcenter	the help centre also carries a preinstall download service; an extras ask row
+jmgo-n1s-holan	com.mediatek.android.leanbacklauncher.partnercustomizer	ask row: four v2.5.0 MediaTek lists (aiwa, cecotec, eko, jvc) keep it because it feeds the TV service at boot, and this set was not reboot-tested with it off (RF-PROFILES-63 P4)
 jmgo-n1s-holan	fusion.android.tv.demo	ask row: on MediaTek MTC builds this retail display app also handles the Input key and remote pairing (hitachi-65qledsm20), and this header did not check either with it off (RF-PROFILES-63 P6)
 kalley-r10g	(match)	same R10G hardware as prismplus-q65-ultra-r10g; this profile needs the TV to report the brand Kalley, and the PRISM+ one matches on the maker MOKA
 kalley-r10g	(match)	brand inferred, confirm with getprop: Kalley; a wrong guess fails closed (the profile never matches)
@@ -64,6 +67,7 @@ nvidia-shield-tv-2019	com.nvidia.KeyComboOta	the owner's choice; updaters stay S
 nvidia-shield-tv-2019	com.nvidia.tegraprofiler.security	purpose not documented beyond profiler permissions; ask row
 onn-4k-streaming-box-2023	(match)	the header gives device YOC but not the brand string; the profile matches when brand or manufacturer is onn
 onn-4k-streaming-box-2023	(match)	brand inferred, confirm with getprop: onn; a wrong guess fails closed (the profile never matches)
+onn-4k-streaming-box-2023	com.google.android.apps.tv.dreamx	v2.5.0 keeps ambient mode (upstream #393): the Google Photos screensaver works with launcherx off, so the list no longer switches it off and it is no longer a row
 onn-4k-streaming-box-2023	com.google.android.tungsten.setupwraith	the header says it owns the Wi-Fi saved at setup; the takeover's Wi-Fi guard skips it then
 panasonic-4ktv-jup	(match)	brand inferred, confirm with getprop: Panasonic; a wrong guess fails closed (the profile never matches)
 panasonic-4ktv-jup	com.google.android.leanbacklauncher.partnercustomizer	never-disable: on this MediaTek Android TV 11 platform it provides the tvlauncher.widget provider com.mediatek.tv.service needs after a reboot (chiq-ai-pont, hitachi-65qledsm20); the list was not reboot-tested (RF-PROFILES-63 P4)
@@ -86,12 +90,14 @@ philips-55oled707	com.google.android.tungsten.setupwraith	listed with a Wi-Fi wa
 philips-55oled707	com.phorus.playfi.softap	Play-Fi's soft access point helper (network plumbing); ask row
 philips-65pus8102	com.opera.sdk.example	on Sony sets this package is the built-in browser; ask row
 philips-65pus8102	org.droidtv.nettvregistration	the philips-50pus8517 header files it with the firmware update packages; Software updates row
+philips-65pus8102	org.droidtv.tv.frameworklogger	added in v2.5.0 (upstream #483): reboot reasons and update records for the Philips logger; default-off as listed, in the telemetry group
 philips-r8g-google-tv	(match)	ro.product.brand is PHILIPS and the manufacturer MOKA; brands match without case
 philips-r8g-google-tv	com.google.android.tungsten.setupwraith	the header reports it deleted the Wi-Fi saved at setup; the takeover's Wi-Fi guard skips it when it owns the network
 prismplus-q65-ultra-r10g	(match)	the header names the maker MOKA but not the PRISM+ brand string, so the profile matches on the maker; kalley-r10g (same R10G hardware) wins when the TV reports Kalley
 prismplus-q65-ultra-r10g	com.apps.wifihotspot	a Wi-Fi hotspot service; network setup is never default-off
 prismplus-q65-ultra-r10g	com.mk.tv.meeting.service	purpose not documented; ask row
 prismplus-q65-ultra-r10g	com.realtek.dtmb	the unused broadcast tuners are TV inputs, never default-off; ask row (with com.realtek.tv.isdb and com.realtek.tv.atsc)
+sanyo-atv-r2	com.realtek.leanbacklauncher.partnercustomizer	ask row: compac-atv-r2 (the same SCBC build, v2.5.0) found it supplies the Inputs button on the stock home
 skyworth-swtv-21ae	(match)	brand inferred, confirm with getprop: Skyworth (the header gives the manufacturer skyworth); a wrong guess fails closed (the profile never matches)
 skyworth-swtv-21ae	com.cltv.fast	FAST channels register a TV input (hitachi-65qledsm20 header); ask row
 skyworth-swtv-21ae	fusion.android.tv.demo	ask row: on MediaTek MTC builds this retail display app also handles the Input key and remote pairing (hitachi-65qledsm20), and this header did not check either with it off (RF-PROFILES-63 P6)
@@ -146,8 +152,10 @@ tcl-c755-google-tv	(match)	G08 sold outside the US (product G08_4K_GB); the fing
 tcl-c755-google-tv	com.tcl.channelplus	TCL Live registers a TV input (tcl-g07 header); TV inputs are never default-off, so it is an ask row
 tcl-c755-google-tv	com.tcl.ttvs	the header calls it tracking and says updates come through Play here, but tcl-qm6k-google-tv (same G08 board) keeps it and other TCL lists say it hosts the firmware updater; tracking ask row
 tcl-g07-google-tv	(match)	device G07 alone: the model Smart TV names a family and otherwise beat tcl-40s5400a on its own C06 sets (RF-PROFILES-63 P8)
+tcl-g07-google-tv	com.google.android.tungsten.setupwraith	v2.5.0 notes (upstream #415): on a second unit (AR17) the Wi-Fi saved at setup belonged to the wizard; the takeover's Wi-Fi guard (D3) keeps it on then
 tcl-g07-google-tv	com.tcl.channelplus	TCL Live registers a TV input (the header says so); ask row
 tcl-g07-google-tv	com.tcl.dashboard	other TCL lists keep it; ask row
+tcl-g07-google-tv	com.tcl.notereminder	added in v2.5.0 (it was on on the AR17 unit); reminders fed by the message box, default-off as listed
 tcl-g07-google-tv	com.tcl.ttvs	the header itself says it is also TCL's firmware updater; Software updates row
 tcl-g07-google-tv	com.tcl.useragreement	tcl-55s470g and tcl-c755 keep it (setup screens); ask row
 tcl-uniontv-latin-america	com.tcl.appmarket2	TCL's app store, carries a package installer service (tcl-beyondtv-rt2851 header); ask row
@@ -171,8 +179,10 @@ xiaomi-mitv-afmu0	com.xiaomi.mitv.mediaexplorer	listed under preloaded apps; it 
 xiaomi-mitv-astp1	com.mitv.tvhome	the stock home (PatchWall) on this China build; not a known launcher to the app, so it is never-disable and the home screen switch leaves it alone
 xiaomi-mitv-astp1	com.xiaomi.gamecenter.sdk.service.mibox	listed under background services; Xiaomi store games may need it for sign-in, so it is an ask row
 xiaomi-mitv-astp1	com.xiaomi.mitv.settings	never-disable: the header says it is the only settings app on this firmware
+xiaomi-mitv-astp1	com.xiaomi.mitv.smartpanel	ask row: xiaomi-mitv-mffu0 (v2.5.0) keeps it as the Menu button's panel
 xiaomi-mitv-axfr1	com.android.tv	never-disable: the Live TV app also owns the input picker on this firmware
 xiaomi-mitv-axso2	com.google.android.marvin.talkback	listed under Android extras; accessibility is never default-off, so it is an ask row
 xiaomi-mitv-axso2	com.google.android.tvrecommendations	default-off as listed; the header notes the Google sign-in notice then has nowhere to show
 xiaomi-mitv-mosr4	fusion.android.tv.demo	ask row: on MediaTek MTC builds this retail display app also handles the Input key and remote pairing (hitachi-65qledsm20), and this header did not check either with it off (RF-PROFILES-63 P6)
+xiaomi-mitv-mssp3-android9	(header)	v2.5.0 notes for the older PI.4663 firmware (upstream #494, alessandrodauria): no package change; there the old leanback home is installed next to tvlauncher, and the home screen switch turns off only the one that holds Home
 xiaomi-mitv-mssp3-android9	com.google.android.katniss	the header says the firmware turns it back on at every boot (REENABLED_AT_BOOT)

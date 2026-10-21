@@ -7,7 +7,7 @@ android.autoinstalls.config.hisense.laohushan	Hisense partner installs	Installs 
 android.autoinstalls.config.hisense.xiaoyushan	Hisense partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.homwee	Homwee partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.nvidia	NVIDIA partner installs	Installs partner apps without asking	ads
-android.autoinstalls.config.scbc.device	SANYO partner installs	Installs partner apps without asking	ads
+android.autoinstalls.config.scbc.device	SCBC partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.skyworth	Skyworth partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.soc.amlogic	Amlogic partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.sony.bravia	Sony partner installs	Installs partner apps without asking	ads
@@ -192,17 +192,17 @@ com.appgeneration.itunerfree	Radio tuner app	Radio app preloaded on this TV	stre
 com.apple.airplay.amazon.airplay	AirPlay	Lets Apple devices play to the TV	casting
 com.apple.atve.androidtv.appletv	Apple TV	Apple TV+ films and series	streaming
 com.apple.atve.sony.appletv	Apple TV	Apple TV streaming app	streaming
-com.apps.authota	SANYO update helper	Companion to the SANYO updater	updates
-com.apps.channels	S-Channels	SANYO content channels app	ads
+com.apps.authota	SCBC update helper	Companion to the SCBC firmware updater (SANYO, Thomson)	updates
+com.apps.channels	S-Channels	SCBC content channels app	ads
 com.apps.clear	TV Booster	Memory cleaner app	brand
 com.apps.eshow	E-SHOW demo	In-store demo and promo app	demo
 com.apps.esticker3	Store sticker	Store demo sticker overlay	demo
-com.apps.factory.ui	SANYO factory menu	Factory menus, needed by the system	system
+com.apps.factory.ui	SCBC factory menu	Factory menus, needed by the system	system
 com.apps.fivekey	SANYO remote keys (five)	Remote key handling	system
-com.apps.function.gdpr	SANYO data consent	Collects data-sharing consent	tracking
+com.apps.function.gdpr	SCBC data consent	Collects data-sharing consent	tracking
 com.apps.mk.gameui	Game mode screen	Vendor game mode app	preloads
 com.apps.networkspeed	Network speed test	Speed test app	preloads
-com.apps.ota	SANYO updater	Checks for SANYO firmware updates	updates
+com.apps.ota	SCBC updater	Checks for firmware updates on SCBC-made sets	updates
 com.apps.puresound	Pure Sound	Vendor sound app	preloads
 com.apps.scast	Screen cast	Vendor screen mirroring app	casting
 com.apps.smartkey	SANYO smart keys	Remote key handling	system
@@ -363,7 +363,7 @@ com.king.candycrushsaga	Candy Crush Saga	Preloaded game	preloads
 com.mautilus.tvgames.portal.androidtv	TV games portal	Preloaded game portal	preloads
 com.mediatek.AirplayAPK	AirPlay (MediaTek)	Receives AirPlay from Apple devices	casting
 com.mediatek.airplaydaemon	AirPlay service	Background service for AirPlay	casting
-com.mediatek.android.leanbacklauncher.partnercustomizer	Home screen partner config	Adds partner apps and rows to the home	ads
+com.mediatek.android.leanbacklauncher.partnercustomizer	Home screen partner config	Partner rows; some MediaTek TVs need it for the TV service at boot	system
 com.mediatek.androidbox	Screen sharing	Miracast receiver (Wi-Fi Display)	casting
 com.mediatek.autopair	MediaTek remote pairing	Pairs and wakes the remote	system
 com.mediatek.dialservice	DIAL service	Lets phone apps find the TV to cast	casting
@@ -467,7 +467,7 @@ com.realtek.factorytools	Realtek factory tools	Factory tools, needed by the syst
 com.realtek.kara	Karaoke	Karaoke app	preloads
 com.realtek.karaoke.userguide	Karaoke guide	User guide for the karaoke app	preloads
 com.realtek.keyinterceptserver	Realtek key service	Remote key handling	system
-com.realtek.leanbacklauncher.partnercustomizer	Realtek home customizer	Adds partner rows to the home screen	ads
+com.realtek.leanbacklauncher.partnercustomizer	Realtek home customizer	Partner rows; on some sets also the stock home's Inputs button	ads
 com.realtek.tv.atsc	ATSC tuner	North American TV tuner input	other
 com.realtek.tv.isdb	ISDB tuner	Japanese and South American tuner input	other
 com.rtk.engmenu	Realtek engineering menu	Factory menu, needed by the system	system
@@ -594,7 +594,7 @@ com.tcl.channelplus	TCL Live	Free ad-supported TCL channels	ads
 com.tcl.common.terminalmanagerplus	TCL device manager	Device management; watches app installs	other
 com.tcl.common.weather	TCL weather	Weather widget service	preloads
 com.tcl.copydatatotv	TCL copy to TV	Copies phone data to the TV	brand
-com.tcl.cyberui	TCL CyberUI	The TCL home screen on this set	launcher
+com.tcl.cyberui	TCL CyberUI	TCL's home screen on China sets; a content service on others	launcher
 com.tcl.dashboard	TCL Home panel	TCL dashboard and promos; newer TCL Google TVs need it for inputs	ads
 com.tcl.dashboard.service	TCL dashboard service	Dashboard service, needed by the system	system
 com.tcl.esticker	TCL sticker	Retail demo stickers	demo
@@ -602,7 +602,7 @@ com.tcl.exhibit	TCL exhibit mode	Shop display mode	demo
 com.tcl.factory.view	TCL factory wizard	Factory wizard, needed by the system	system
 com.tcl.ffeducation	TCL education	Kids and education content	preloads
 com.tcl.ffkaraoke	TCL karaoke	Karaoke app	preloads
-com.tcl.gallery	TCL gallery	Photo gallery	preloads
+com.tcl.gallery	TCL gallery	USB photo gallery; on some sets also the TCL screensaver	preloads
 com.tcl.gamebar	TCL game bar	Game mode overlay for consoles	preloads
 com.tcl.gamecenter	TCL game center	Game store	preloads
 com.tcl.globalkeyoverlay	TCL key overlay	Remote key overlay, needed	system
@@ -621,9 +621,9 @@ com.tcl.micmanager	TCL mic manager	Manages the remote's microphone	voice
 com.tcl.miracast	TCL Miracast	Screen mirroring from phones and PCs	casting
 com.tcl.notereminder	TCL notes	Note and reminder app	preloads
 com.tcl.ocean.instructions	TCL e-manual	On-screen user manual	preloads
-com.tcl.overseasappshow	TCL app showcase	Recommended apps showcase	ads
+com.tcl.overseasappshow	TCL app showcase	Recommended apps; on some sets turns promo apps back on at boot	ads
 com.tcl.packageinstaller.service.renew	TCL installer service	App installer service, needed	system
-com.tcl.partnercustomizer	TCL home customizer	TCL tweaks to home rows	ads
+com.tcl.partnercustomizer	TCL home customizer	TCL home rows; on some sets also the T key and Inputs icon	ads
 com.tcl.playskill	TCL tips	Tips app	preloads
 com.tcl.profilemanager	TCL profile manager	Builds an audience profile for TCL	tracking
 com.tcl.providers.config	TCL config provider	Settings provider, needed for Wi-Fi	system
@@ -706,15 +706,15 @@ com.xiaomi.mitv.manualhelp	Mi manual	On-screen user manual	preloads
 com.xiaomi.mitv.mediaexplorer	Mi Media Player	Plays videos, music and photos from USB	preloads
 com.xiaomi.mitv.res	Mi TV resources	Framework resources, needed	system
 com.xiaomi.mitv.scenemode	Mi scene mode	Game mode and picture modes	system
-com.xiaomi.mitv.smartpanel	Smart home panel	Controls Xiaomi smart home devices	preloads
+com.xiaomi.mitv.smartpanel	Xiaomi smart panel	The Menu button's panel, with smart home controls	brand
 com.xiaomi.mitv.smartshare	Mi SmartShare	Share media from phones	casting
-com.xiaomi.mitv.tvmanager	TV Manager	Cleaner and booster app	brand
+com.xiaomi.mitv.tvmanager	TV Manager	Cleaner; Xiao Ai voice also opens apps through it	brand
 com.xiaomi.mitv.tvpush.tvpushservice	Xiaomi push service	Delivers Xiaomi push messages and promos	ads
 com.xiaomi.mitv.updateservice	Xiaomi updater	Firmware and PatchWall updates	updates
 com.xiaomi.mitv.upgrade	Xiaomi updater	Downloads and installs firmware updates	updates
 com.xiaomi.screenrecorder	Screen recorder	Records the TV screen	preloads
 com.xiaomi.statistic	Xiaomi statistics	Sends usage statistics to Xiaomi	tracking
-com.xiaomi.tv.gallery	Xiaomi Gallery	Photo gallery app	preloads
+com.xiaomi.tv.gallery	Xiaomi Pictorial	Wallpaper and photo app with advert code	preloads
 com.xiaomi.tvqs.overseas	Xiaomi quality stats	Firebase analytics uploader	tracking
 com.xiaomi.tvqs.overseas.y24	Xiaomi quality stats 2024	Uploads quality logs to Xiaomi	tracking
 com.xiaomi.wfdsinkhelperservice	Miracast helper	Xiaomi Miracast receiver helper	casting
@@ -731,7 +731,7 @@ com.zeasn.whalelive	WhaleLive	Free channels with ads	streaming
 com.zee5.amazon	ZEE5 (Fire TV)	Streaming app	streaming
 com.zee5.xiaomiTV	ZEE5 (old Mi copy)	Old partner copy of the ZEE5 app	streaming
 dw.com.androidtv.live	DW	Deutsche Welle news app	streaming
-fusion.android.tv.demo	Retail demo	Retail demo app; on some MediaTek TVs it also handles the Input key	demo
+fusion.android.tv.demo	Retail demo	Retail demo app; on some MediaTek and Vestel TVs also the Input key	demo
 in.startv.hotstar	JioHotstar	Streaming app	streaming
 io.tiv.dvtv.tv	DVTV	Czech news video app	streaming
 it.hon.service	Haier hOn	Links Haier home appliances	brand
@@ -773,6 +773,7 @@ org.droidtv.nettvapps	NetTV app installer	Installs gallery apps without asking	a
 org.droidtv.nettvrecommender	Philips Top Picks	Promoted content row	ads
 org.droidtv.nettvregistration	Philips registration	Philips account and NetTV registration	updates
 org.droidtv.recommendation	Philips recommendations	Backend for the Top Picks row	ads
+org.droidtv.tv.frameworklogger	Philips reboot logger	Sends reboot reasons and update records to the Philips logger	tracking
 org.droidtv.usagelogger	Philips usage logger	Logs usage and device data	tracking
 org.liskovsoft.androidtv.rukeyboard	Russian keyboard	On-screen keyboard	system
 org.obs.mhegservice	MHEG interactive TV	UK red button services	preloads

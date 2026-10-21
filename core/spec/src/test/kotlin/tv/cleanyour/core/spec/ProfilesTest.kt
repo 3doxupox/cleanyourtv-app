@@ -24,7 +24,7 @@ class ProfilesTest {
     private fun profile(folder: String) = DebloatTxtParser.parse(examples.first { it.folder == folder }.debloatTxt, folder)
 
     @Test fun everyConvertedUpstreamExampleParsesWithCuratedMetadata() {
-        assertEquals(93, upstream.size)
+        assertEquals(147, upstream.size)
         assertEquals(89, examples.size)
         for (e in examples) {
             val profile = DebloatTxtParser.parse(e.debloatTxt, e.folder)
@@ -48,7 +48,7 @@ class ProfilesTest {
         val (bundle, problems) = ProfileConverter.convert(
             File(Fixtures.upstreamDir, "examples"),
             File(Fixtures.repoRoot, "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json"),
-            "69c93b6",
+            "9071ec8",
             unconverted,
         )
         assertEquals(emptyList(), problems)
@@ -60,7 +60,7 @@ class ProfilesTest {
     @Test fun theUnconvertedListIsPinnedToTheSubmodule() {
         val meta = ProfileMeta.decode(File(Fixtures.repoRoot, "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json").readText())
         assertEquals(upstream.map { it.folder }.filter { it !in meta.profiles }.toSet(), unconverted)
-        assertEquals(4, unconverted.size)
+        assertEquals(58, unconverted.size)
         val listed = unconvertedFile.readLines().filter { it.isNotBlank() && !it.startsWith("#") }
         assertEquals(listed.sorted(), listed, "one folder per line, sorted")
         assertTrue('\u2014' !in unconvertedFile.readText() && "-".repeat(2) !in unconvertedFile.readText())
@@ -179,9 +179,10 @@ class ProfilesTest {
         assertEquals(setOf("stellamore-t950s", "xiaomi-mitv-astp1"), none.map { it.id }.toSet())
     }
 
-    // RF-PROFILES-63 P8: where two profiles score the same for a TV, the resolver takes the first id.
-    // Every such TV is pinned here with the winner its curation note intends, and any new tie fails,
-    // so a renamed or new upstream folder can never flip a reviewed resolution silently.
+    // RF-PROFILES-63 P8: where two profiles score the same for a TV, the longer fingerprint prefix wins
+    // (ruling 1), and a pair still level goes to the first id. Every such TV is pinned here with the
+    // winner its curation note intends, and any new level pair fails, so a renamed or new upstream
+    // folder can never flip a reviewed resolution silently.
     @Test fun everyTieTheResolverSettlesIsPinned() {
         val source = BundledProfileSource()
         fun facts(model: String, device: String, brand: String, sdk: Int, fingerprint: String = "", manufacturer: String = brand) =
@@ -229,15 +230,14 @@ class ProfilesTest {
         for (pr in profiles) {
             val m = pr.match
             val own = facts(m.models.firstOrNull() ?: "unknown", m.devices.firstOrNull() ?: "unknown", m.brand!!, m.sdkMin ?: 30, (m.fingerprintPrefix ?: "") + "x")
-            val scored = profiles.mapNotNull { o -> BundledProfileSource.score(o, own)?.let { it to o.id } }
-            val top = scored.maxOf { it.first }
+            val scored = profiles.mapNotNull { o -> BundledProfileSource.score(o, own)?.let { (it to BundledProfileSource.specificity(o)) to o.id } }
+            val top = scored.map { it.first }.maxWith(compareBy<Pair<Int, Int>>({ it.first }, { it.second }))
             scored.filter { it.first == top }.map { it.second }.toSet().takeIf { it.size > 1 }?.let { ties += it }
             assertEquals(if (pr.id == "tcl-g10-google-tv") "tcl-55s470g" else pr.id, winner(own), pr.id)
         }
-        assertEquals(setOf(
-            setOf("sony-bravia-4k-gb", "sony-bravia-4k-gb-us"), setOf("sony-bravia-4k-vh2", "sony-kd-55x85j"),
-            setOf("tcl-55s470g", "tcl-g10-google-tv"), setOf("tcl-65c735", "tcl-g05-google-tv"), setOf("tcl-c755-google-tv", "tcl-qm6k-google-tv"),
-        ), ties)
+        // The fingerprint prefix settles the BRAVIA_ATV2, BRAVIA_VH2, G05 and G08 pairs (pinned above);
+        // tcl-g10-google-tv is the one true duplicate.
+        assertEquals(setOf(setOf("tcl-55s470g", "tcl-g10-google-tv")), ties)
     }
 
     @Test fun malformedFilesFailWithTheLine() {
@@ -250,7 +250,7 @@ class ProfilesTest {
 
     @Test fun bundledProfilesEqualAFreshParse() {
         val bundle = BundledProfileSource.bundled
-        assertEquals("69c93b6", bundle.upstreamCommit)
+        assertEquals("9071ec8", bundle.upstreamCommit)
         assertEquals(examples.map { it.folder }, bundle.profiles.map { it.id })
         for (e in examples) assertEquals(DebloatTxtParser.parse(e.debloatTxt, e.folder), bundle.profiles.first { it.id == e.folder }, e.folder)
         assertEquals(SureSetGenerator.generate(bundle.profiles), bundle.sureSets)

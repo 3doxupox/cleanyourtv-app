@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "upstreamCommit": "69c93b6",
+  "upstreamCommit": "9071ec8",
   "profiles": {
     "aipro2k": {
       "match": { "models": [], "devices": ["dongnae"], "brand": "Expressluck", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
@@ -237,7 +237,8 @@
         "it.hon.service": { "category": "brand", "ask": true },
         "com.haierubic.usmartdevice": { "category": "brand", "ask": true },
         "com.haier.tvhousekeeper": { "category": "brand", "ask": false },
-        "com.haier.emanual": { "category": "preloads", "ask": false }
+        "com.haier.emanual": { "category": "preloads", "ask": false },
+        "com.mediatek.android.leanbacklauncher.partnercustomizer": { "category": "brand", "ask": true }
       }
     },
     "hisense-hg9": {
@@ -517,7 +518,8 @@
       },
       "packages": {
         "com.jmgo.overseas.atmosphere": { "category": "screensaver", "ask": true },
-        "fusion.android.tv.demo": { "category": "demo", "ask": true }
+        "fusion.android.tv.demo": { "category": "demo", "ask": true },
+        "com.mediatek.android.leanbacklauncher.partnercustomizer": { "category": "brand", "ask": true }
       }
     },
     "kalley-r10g": {
@@ -630,11 +632,10 @@
       "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
       "neverDisable": ["com.gretzky.GlobalKey", "com.gretzky.hwinfo", "com.onn.bluetoothconnect", "com.onn.updatenotification", "com.google.android.tv.dfuservice", "com.google.android.tv.remote.service"],
       "suggestedDock": [],
-      "tested": { "by": "shuklamrajat (PR #270)", "firmware": "URO4.260304.011.B1.15051976", "daysLivedWith": null, "rebootTested": false },
+      "tested": { "by": "shuklamrajat (PR #270, PR #393)", "firmware": "URO4.260304.011.B1.15051976", "daysLivedWith": null, "rebootTested": false },
       "groups": {
         "Telemetry and feedback": { "category": "tracking", "ask": false },
         "Preloaded apps": { "category": "preloads", "ask": false },
-        "Google ambient mode screensaver (replaced by the launcher's Clock screensaver)": { "category": "screensaver", "ask": true },
         "Stock home. launcher/build-and-install.sh disables launcherx itself once the new launcher is installed": { "category": "home", "ask": false }
       },
       "packages": {
@@ -786,7 +787,7 @@
       "quirks": [],
       "neverDisable": ["org.droidtv.playtv"],
       "suggestedDock": [],
-      "tested": { "by": "Riku Pirttinokka (PR #295)", "firmware": "TPM171E_R.107.001.143.000", "daysLivedWith": null, "rebootTested": false },
+      "tested": { "by": "Riku Pirttinokka (PR #295, PR #483)", "firmware": "TPM171E_R.107.001.143.000", "daysLivedWith": null, "rebootTested": false },
       "groups": {
         "Google feedback, tutorials and recommendation rows (same as philips-55pus7503)": { "category": "ads", "ask": false },
         "Philips promotion and telemetry": { "category": "tracking", "ask": false },
@@ -945,7 +946,8 @@
         "com.android.printspooler": { "category": "preloads", "ask": false },
         "com.apps.networkspeed": { "category": "preloads", "ask": false },
         "com.apps.ota": { "category": "updates", "ask": false },
-        "com.apps.authota": { "category": "updates", "ask": false }
+        "com.apps.authota": { "category": "updates", "ask": false },
+        "com.realtek.leanbacklauncher.partnercustomizer": { "category": "brand", "ask": true }
       }
     },
     "skyworth-swtv-21ae": {
@@ -1799,7 +1801,7 @@
       "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
       "neverDisable": [],
       "suggestedDock": [],
-      "tested": { "by": "Erick Mwamodo (PR #290)", "firmware": "RP1A.200622.001 AR20", "daysLivedWith": null, "rebootTested": true },
+      "tested": { "by": "Erick Mwamodo (PR #290), Mateus Zanes (PR #415), Jean-Baptiste (PR #420)", "firmware": "RP1A.200622.001 AR20, AR17", "daysLivedWith": null, "rebootTested": true },
       "groups": {
         "1. Telemetry and analytics": { "category": "tracking", "ask": false },
         "2. Content and ad services": { "category": "ads", "ask": false },
@@ -2227,7 +2229,8 @@
       "packages": {
         "com.android.smspush": { "category": "preloads", "ask": false },
         "com.xiaomi.gamecenter.sdk.service.mibox": { "category": "brand", "ask": true },
-        "com.newtv.cboxtv": { "category": "streaming", "ask": true }
+        "com.newtv.cboxtv": { "category": "streaming", "ask": true },
+        "com.xiaomi.mitv.smartpanel": { "category": "brand", "ask": true }
       }
     },
     "xiaomi-mitv-axfr1": {
