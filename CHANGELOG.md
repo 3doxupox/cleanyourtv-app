@@ -22,6 +22,29 @@ All notable changes to the app. Versions follow [semantic versioning](https://se
 - When the home screen switch fails, Setup no longer names a TV's own fallback placeholder as
   another home screen app.
 
+### TV lists
+- Matches the TV against 131 community tested profiles from 46 brands, up from 89, from
+  the upstream lists of launcher v2.5.0: 42 new ones, among them the first Fire OS 8 list (Fire
+  TV Stick 4K, 2023), three more Fire TV devices, six more TCL sets, the Google TV Streamer,
+  XGIMI MoGo 2 and MoGo 3 Pro, Xiaomi's China sets on PatchWall and HyperOS 3, Hisense and Vidda
+  VIDAA sets, the Freebox Player POP, and first lists from AIWA, BYINTEK, Cecotec, Challenger,
+  Compac, EKO, FFalcon, JVC, Kogan, Motorola, MTC, Polytron, SHARP, Tele System and Verizon.
+- Sets where the home screen cannot be switched safely get the clean-up and keep their own home:
+  TVs with a vendor home the app does not know (Xiaomi PatchWall, VIDAA, OQEE, Verizon), a Kalley
+  set whose firmware brings the setup wizard back at boot, and the Google TV Streamer, where the
+  switch would cost casting after every reboot.
+- Corrections from upstream: the onn 4K box keeps Google's ambient mode so the Google Photos
+  screensaver works, the Philips 65PUS8102 also switches off its reboot logger, and the TCL G07 and
+  Xiaomi MSSP3 lists gained notes from more units. Home screen customizers that a TV service or
+  the stock home's Inputs button relies on are now a choice rather than off by default on four
+  more TVs.
+- When two profiles match a TV equally, the one whose firmware fingerprint is named more exactly
+  wins, so lists for neighbouring firmware builds each reach their own TVs.
+- Sixteen upstream lists are not shipped, each with its reason in
+  `core/spec/upstream-feedback/unconverted.txt`: duplicates of a shipped list, lists with nothing
+  the app can match on, and a TCL China set whose network debugging needs a computer after every
+  reboot.
+
 ## 0.1.0 (2026-10-20)
 
 The first public release.

@@ -1,18 +1,29 @@
 # package	name	description	category
+air.ITVMobilePlayer	ITVX	UK ITV streaming app	streaming
 air.com.vudu.air.DownloaderTablet	Vudu (Fandango at Home)	Movie rental and purchase app	streaming
 android.autoinstalls.config.JVC	JVC partner installs	Installs partner apps without asking	ads
+android.autoinstalls.config.SW	Skyworth partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.google.gtvpai	Google TV partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.haier.hanyang	Haier partner installs	Installs partner apps without asking	ads
+android.autoinstalls.config.hisense	Hisense partner installs	Installs partner apps without asking	ads
+android.autoinstalls.config.hisense.hayward	Hisense partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.hisense.laohushan	Hisense partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.hisense.xiaoyushan	Hisense partner installs	Installs partner apps without asking	ads
+android.autoinstalls.config.hkc	HKC partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.homwee	Homwee partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.nvidia	NVIDIA partner installs	Installs partner apps without asking	ads
-android.autoinstalls.config.scbc.device	SANYO partner installs	Installs partner apps without asking	ads
+android.autoinstalls.config.scbc.device	SCBC partner installs	Installs partner apps without asking	ads
+android.autoinstalls.config.sdmc	SDMC partner installs	Installs partner apps without asking	ads
+android.autoinstalls.config.sei	SEI partner installs	Installs partner apps without asking	ads
+android.autoinstalls.config.sharp	SHARP partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.skyworth	Skyworth partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.soc.amlogic	Amlogic partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.sony.bravia	Sony partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.tcl.device	TCL partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.tpv.device	TPV partner installs	Installs partner apps without asking	ads
+android.autoinstalls.config.vestel.coma	Vestel partner installs	Installs partner apps without asking	ads
+android.autoinstalls.config.vestel.cosmos	Vestel partner installs	Installs partner apps without asking	ads
+android.autoinstalls.config.vestel.medusa	Vestel partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.xgimi.xgimigalileo	XGIMI partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.xiaomi.amelie	Xiaomi partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.xiaomi.mibox3	Mi Box partner installs	Installs partner apps without asking	ads
@@ -23,7 +34,11 @@ au.com.stan.and	Stan	Australian streaming service	streaming
 au.net.abc.iview	ABC iview	ABC catch-up TV (Australia)	streaming
 ca.cbc.mobile.android.cbcnewsandroidwebview	CBC News	Canadian news app	streaming
 cm.aptoidetv.pt	Aptoide TV	Third-party app store	preloads
+cm.aptoidetv.pt.cvt_platform7	Aptoide TV	Third-party app store	preloads
+cn.cvte.tv.factory.autotest	CVTE factory test	Factory test tool	demo
+cn.tcl.odm.android.vstoresubclient	Zeasn store client	App store client for TCL-made sets	preloads
 co.sensara.tv.mitv	Sensara TV guide	Partner TV guide with sponsored show picks	ads
+com.FDGEntertainment.redball4.gp	Red Ball 4	Preloaded game	preloads
 com.Smartdevice.emanual	Skyworth e-manual	On-screen user manual	preloads
 com.aajtak.firetv	Aaj Tak	News app preloaded on this TV	streaming
 com.abc.abcnews	ABC News	US news app	streaming
@@ -62,6 +77,7 @@ com.amazon.device.software.ota	Fire OS updater	Checks for firmware updates	updat
 com.amazon.device.software.ota.override	Fire OS updater override	Settings for firmware updates	updates
 com.amazon.device.sync	Amazon device sync	Syncs settings with your Amazon account	brand
 com.amazon.device.sync.sdk.internal	Amazon sync library	Helper library for Amazon sync	brand
+com.amazon.device.telemetry.emitter	Amazon telemetry emitter	Sends device telemetry to Amazon	tracking
 com.amazon.device_remote_config_sync_service	Amazon remote settings	Downloads settings from Amazon	brand
 com.amazon.dialservice	DIAL cast receiver	Lets phone apps start videos on the TV	casting
 com.amazon.diode	Amazon Diode	An Amazon background service	brand
@@ -75,8 +91,11 @@ com.amazon.dummy.music	Placeholder music	Empty placeholder app	other
 com.amazon.dummy.settings	Placeholder settings	Empty placeholder app	other
 com.amazon.firehomestarter	Fire TV home starter	Starts the Fire TV home screen	launcher
 com.amazon.fireos.cirruscloud	Amazon cloud storage link	Cloud sync service for Fire OS	brand
+com.amazon.firetv.androidskillconnectioncapability	Alexa skill connections	Connects Alexa skills to apps on the TV	voice
 com.amazon.franktvinput	Fire TV live input	Live TV input behind the Live tab	ads
+com.amazon.ftv.screensaver	Fire TV screensaver	Amazon's idle screensaver	screensaver
 com.amazon.ftvads.deeplinking	Fire TV ad links	Opens links from Fire TV adverts	ads
+com.amazon.ftvspatial	Amazon presence sensing	Senses presence and indoor location near the TV	tracking
 com.amazon.gamehub	Amazon Luna	Amazon's game streaming hub	preloads
 com.amazon.hedwig	Fire TV Channels	Free channels with ads	ads
 com.amazon.hybridadidservice	Advertising ID service	Provides the ID used to target adverts	ads
@@ -105,8 +124,10 @@ com.amazon.rtcsessioncontroller	Amazon call controller	An Amazon background serv
 com.amazon.securitysyncclient	Amazon security sync	Syncs security settings with Amazon	brand
 com.amazon.shoptv.client	Shop on TV	Amazon shopping on the TV	ads
 com.amazon.shoptv.firetv.client	Shop on Fire TV	Amazon shopping on the TV	ads
+com.amazon.smarthomemapviewapp	Alexa smart home view	Shows cameras and smart home devices on the TV	brand
 com.amazon.sneakpeek	Amazon Sneak Peek	Previews of Amazon content	ads
 com.amazon.spiderpork	Amazon Spiderpork	An Amazon background service	brand
+com.amazon.spotify.mediabrowserservice	Spotify for Alexa	Lets Alexa play Spotify; the Spotify app is separate	voice
 com.amazon.storm.lightning.tutorial	Remote tutorial	On-screen help for the Fire TV remote	preloads
 com.amazon.sync.provider.ipc	Amazon sync provider	Helper for Amazon sync	brand
 com.amazon.sync.service	Amazon sync service	Syncs data with your Amazon account	brand
@@ -122,9 +143,11 @@ com.amazon.tv.alexanotifications	Alexa notifications	Shows Alexa notifications o
 com.amazon.tv.csapp	Amazon customer service	Amazon customer service app	brand
 com.amazon.tv.democontent.provider	Retail demo videos	Demo videos for store displays	demo
 com.amazon.tv.developer.dataservice	Amazon content data	Shares viewing data for personalization	tracking
+com.amazon.tv.earlyaccess	Fire TV early access	Preview programme for new Fire TV features	brand
 com.amazon.tv.easyupgrade	Fire TV easy upgrade	Helps install system upgrades	updates
 com.amazon.tv.ffsprovisioneeclient	Amazon easy setup client	Lets an Amazon phone app set this device up on Wi-Fi	other
 com.amazon.tv.forcedotaupdater.v2	Fire OS forced updater	Installs required firmware updates	updates
+com.amazon.tv.ftvambient	Fire TV Ambient Experience	Ambient screensaver with art and widgets	screensaver
 com.amazon.tv.fw.metrics	Fire OS metrics	Sends system metrics to Amazon	tracking
 com.amazon.tv.launcher	Fire TV home	The Fire TV home screen	launcher
 com.amazon.tv.legal.notices	Legal notices	Shows legal notices	other
@@ -148,6 +171,7 @@ com.amazon.wha.mediabrowserservice	Multi-room music browser	Media browser for mu
 com.amazon.whad	Multi-room music	Plays music on several Amazon devices	brand
 com.amazon.whasettings	Multi-room settings	Settings for multi-room audio	brand
 com.amazon.whisperjoin.middleware.np	Amazon easy setup	Frustration-free setup of Amazon devices	other
+com.amazon.whisperjoin.middleware.v2.np	Amazon device setup	Sets up other Amazon devices on your Wi-Fi	other
 com.amazon.whisperjoin.wss.wifiprovisioner	Amazon Wi-Fi setup	Shares Wi-Fi with new Amazon devices	other
 com.amazon.whisperlink.core.android	Whisperlink	Amazon casting service	casting
 com.amazon.whisperplay.contracts	Whisperplay	Amazon casting service	casting
@@ -159,6 +183,7 @@ com.analiti.fastest.android	analiti speed test	Network speed test app	preloads
 com.android.adservices.api	Android ad services	On-device advertising framework	tracking
 com.android.backupconfirm	Backup confirmation	Confirms a backup started from a computer	preloads
 com.android.bluetoothmidiservice	Bluetooth MIDI	Connects Bluetooth music keyboards	other
+com.android.browser	Android browser	Old built-in web browser	preloads
 com.android.camera2	Camera	Camera app for phones	preloads
 com.android.cameraextensions	Camera extensions	Camera effects for phones	preloads
 com.android.cts.ctsshim	CTS test shim	Android test placeholder	preloads
@@ -173,6 +198,8 @@ com.android.hotspot2.osulogin	Hotspot sign-in	Signs in to Passpoint Wi-Fi hotspo
 com.android.hotwordenrollment.okgoogle	OK Google setup	Voice training for OK Google	voice
 com.android.hotwordenrollment.xgoogle	Hotword setup	Voice training for the voice hotword	voice
 com.android.htmlviewer	HTML viewer	Shows HTML files, for phones	preloads
+com.android.managedprovisioning	Work profile setup	Sets up company-managed devices	other
+com.android.mgstv	Mango TV	Chinese video streaming app	streaming
 com.android.musicfx	Music effects	Audio equalizer for phones	preloads
 com.android.ondevicepersonalization.services	On-device personalization	Personalizes ads on the device	tracking
 com.android.packageinstaller	Package installer	Installs, updates and removes apps and shows permission prompts	system
@@ -192,17 +219,18 @@ com.appgeneration.itunerfree	Radio tuner app	Radio app preloaded on this TV	stre
 com.apple.airplay.amazon.airplay	AirPlay	Lets Apple devices play to the TV	casting
 com.apple.atve.androidtv.appletv	Apple TV	Apple TV+ films and series	streaming
 com.apple.atve.sony.appletv	Apple TV	Apple TV streaming app	streaming
-com.apps.authota	SANYO update helper	Companion to the SANYO updater	updates
-com.apps.channels	S-Channels	SANYO content channels app	ads
+com.apps.authota	SCBC update helper	Companion to the SCBC firmware updater (SANYO, Thomson)	updates
+com.apps.channels	S-Channels	SCBC content channels app	ads
 com.apps.clear	TV Booster	Memory cleaner app	brand
 com.apps.eshow	E-SHOW demo	In-store demo and promo app	demo
+com.apps.esticker	Retail e-sticker	Shop banners for store displays	demo
 com.apps.esticker3	Store sticker	Store demo sticker overlay	demo
-com.apps.factory.ui	SANYO factory menu	Factory menus, needed by the system	system
+com.apps.factory.ui	SCBC factory menu	Factory menus, needed by the system	system
 com.apps.fivekey	SANYO remote keys (five)	Remote key handling	system
-com.apps.function.gdpr	SANYO data consent	Collects data-sharing consent	tracking
+com.apps.function.gdpr	SCBC data consent	Collects data-sharing consent	tracking
 com.apps.mk.gameui	Game mode screen	Vendor game mode app	preloads
 com.apps.networkspeed	Network speed test	Speed test app	preloads
-com.apps.ota	SANYO updater	Checks for SANYO firmware updates	updates
+com.apps.ota	SCBC updater	Checks for firmware updates on SCBC-made sets	updates
 com.apps.puresound	Pure Sound	Vendor sound app	preloads
 com.apps.scast	Screen cast	Vendor screen mirroring app	casting
 com.apps.smartkey	SANYO smart keys	Remote key handling	system
@@ -212,9 +240,12 @@ com.apps.usbmediaplayer	USB media player	Plays files from USB	preloads
 com.apps.virtualkey	SANYO virtual keys	Remote key handling	system
 com.apps.wifihotspot	Wi-Fi hotspot	Lets the TV act as a Wi-Fi hotspot	brand
 com.asanteegames.magicrampage	Magic Rampage	Preloaded game	preloads
+com.at.factory.androidtvaidlservice	Factory test service	Factory test service	demo
+com.at.factory.factorymanager	Factory test manager	Factory test manager	demo
 com.bloomberg.btva	Bloomberg TV	Business news app	streaming
 com.boosteroidtv.streaming	Boosteroid	Cloud gaming service	streaming
 com.bruyere.android.solitaire	Solitaire	Preloaded card game	preloads
+com.canal.android.canal	Canal+	Canal+ streaming app	streaming
 com.cbs.ca	Paramount+ (Canada)	Paramount's streaming app	streaming
 com.cbs.ott	Paramount+	Streaming app	streaming
 com.cg.football	Football game	Preloaded football game	preloads
@@ -223,17 +254,38 @@ com.cltv.fast	FAST channels	Free ad-supported TV channels	ads
 com.cltv.hybrid	CanaliTV Live TV	Live TV app for this set	system
 com.cltv.mal	CanaliTV helper	Live TV support service	system
 com.cnn.mobile.android.tv	CNN	News app	streaming
+com.coocaa.factory	Coocaa factory test	Factory test suite	demo
+com.creative.fastscreen.tv	FastScreen mirroring	Screen mirroring receiver	casting
 com.crunchyroll.crunchyroid	Crunchyroll	Anime streaming app	streaming
+com.ctc	Media processor demo	Factory media demo app	demo
 com.curiosity.curiositystream.androidtv	CuriosityStream	Documentary streaming app	streaming
+com.cvte.fac.menu	CVTE factory menu	Hidden factory settings menu	demo
 com.cvte.haier.tv.appmanager	Haier app manager	Manages Haier apps at startup	brand
+com.cvte.startpartnertv	Partner TV app	Preloaded partner TV app	preloads
+com.cvte.startpartnertvvod	Partner video app	Preloaded partner video-on-demand app	streaming
+com.cvte.tcl.factory.at	CVTE factory test (TCL)	Factory test tool	demo
+com.cvte.tv.appstore	CVTE app store	The TV maker's app store	preloads
+com.cvte.tv.at	CVTE auto test	Factory auto-test screen	demo
+com.cvte.tv.audiotest	CVTE audio test	Factory audio test	demo
+com.cvte.tv.fac.aging	CVTE aging test	Factory burn-in test	demo
+com.cvte.tv.fac.menu	CVTE factory menu	Factory menu	demo
+com.cvte.tv.launcher	CVTE home screen	The TV's own home screen	home
+com.cvte.tv.media	CVTE media center	Plays files from USB and the network	preloads
+com.cvte.tv.player	CVTE media player	Plays video files	preloads
+com.cvte.tv.ucservice	CVTE user center	Account service of the TV maker	other
+com.cvte.tvclean	CVTE memory cleaner	Background memory cleaner	preloads
+com.cxinventor.file.explorer	X-plore	File manager for USB and network storage	preloads
 com.dazn	DAZN	Sports streaming app	streaming
 com.ddnational.prasarbharati	DD National	Indian TV channel app	streaming
 com.demo	Hisense demo	Retail demo app	demo
 com.discoveryplus.mitv	discovery+	Streaming app	streaming
 com.disney.disneyplus	Disney+	Streaming app	streaming
+com.disneyplus.mea	Disney+ (Middle East)	Disney's streaming app for the Middle East	streaming
 com.dolby.android.audio.service	Dolby audio service	Dolby audio processing	system
+com.droidlogic.readlog	Amlogic log dumper	Copies system logs to USB storage	other
 com.duokan.factorytest	Xiaomi factory test	Factory test app that also claims Home	other
 com.duokan.videodaily	Video Daily	Daily promoted video picks	ads
+com.ecloud.emedia	eMedia (DLNA)	DLNA receiver for media from phones	casting
 com.eros.mitv	Eros Now	Streaming app	streaming
 com.espn.gtv	ESPN	Sports streaming app	streaming
 com.fancode.tv	FanCode	Sports streaming app	streaming
@@ -256,6 +308,7 @@ com.google.android.apps.tv.dreamx	Google ambient mode	Screensaver that mixes in 
 com.google.android.apps.tv.launcherx	Google TV home	The stock Google TV home screen	launcher
 com.google.android.apps.tv.netoscope	Network diagnostics	Reports network quality to Google	tracking
 com.google.android.backdrop	Ambient screensaver	Google photo screensaver	screensaver
+com.google.android.boot.appsplashscreen	Boot splash	Splash animation shown at startup	other
 com.google.android.ext.adservices.api	Privacy Sandbox ads (ext)	Google's ad targeting service	ads
 com.google.android.federatedcompute	Federated compute	On-device learning from your usage	tracking
 com.google.android.feedback	Google Feedback	Sends feedback and crash reports	tracking
@@ -283,6 +336,7 @@ com.google.android.tv.bugreportsender	Bug report sender	Uploads bug reports to G
 com.google.android.tv.dfuservice	Remote firmware updates	Updates the remote's own firmware	system
 com.google.android.tv.remote.service	Android TV phone remote	Phone remote; on some TVs also the remote's mic button	casting
 com.google.android.tv.remotecontrol.logging	Remote usage logging	Logs how you use the remote	tracking
+com.google.android.tv.setup.customizationsample	Setup customization	Partner settings for the setup screens	other
 com.google.android.tvlauncher	Android TV home	The stock Android TV home screen	launcher
 com.google.android.tvrecommendations	Home recommendations	Promoted rows; also the notification panel and sign-in notices	ads
 com.google.android.tvtutorials	Android TV tutorials	First-use tutorial screens	preloads
@@ -301,6 +355,7 @@ com.haier.tvhousekeeper	Haier TV housekeeper	Cleaner app	brand
 com.haier.yudee.tv	Haier share	Shares phone media to the TV	casting
 com.haierubic.usmartdevice	Haier smart device	Haier smart device service	brand
 com.hbo.hbonow	HBO Max	Streaming app	streaming
+com.hbo_android_tv	HBO (old app)	Older HBO app, replaced by Max	streaming
 com.heytap.olink	OnePlus Connect	Links the TV to the OnePlus phone app	brand
 com.heytap.oprcupgradeservice	OnePlus remote updates	Updates the remote's firmware	system
 com.heytap.optvfactory	OnePlus factory app	Factory test app, left alone	system
@@ -310,24 +365,42 @@ com.heytap.tv.filebrowser	File Browser	Browse files on the TV	brand
 com.heytap.tv.livetv	OnePlus Live TV	Live TV, HDMI and tuner inputs	system
 com.hisense.alexa	Hisense Alexa	Alexa voice assistant	voice
 com.hisense.app.logreport	Hisense log report	Uploads logs to Hisense	tracking
+com.hisense.ar.baike	Hisense AR encyclopedia	AR encyclopedia app	preloads
+com.hisense.autotest	Hisense factory test	Factory test tool	demo
+com.hisense.business.ad	Hisense ad SDK	Advertising and shopping SDK	ads
+com.hisense.demonstrate	Hisense demo reels	Store demo videos and sound demos	demo
+com.hisense.electronictutorial	Hisense e-manual	Built-in electronic manual	preloads
 com.hisense.evservice	Hisense Enhanced Viewing	Content recognition and data sharing	tracking
 com.hisense.fte	Hisense first-time setup	First-time experience screens	other
 com.hisense.hibrowser	Hisense browser	Web browser	preloads
+com.hisense.hitv.das	Hisense data reporting	Reports usage data to Hisense	tracking
 com.hisense.hitv.hicloud.account	Hisense account	HiCloud account manager	other
+com.hisense.hotelmenu	Hisense hotel menu	Hotel mode settings	demo
 com.hisense.hotelmode	Hisense hotel mode	Hotel and business TV mode	demo
+com.hisense.logupload	Hisense log upload	Uploads logs to Hisense	tracking
 com.hisense.myapplication	Hisense screensaver	Hisense screensaver	screensaver
 com.hisense.odinbrowser	Hisense browser	Built-in web browser	preloads
+com.hisense.platformreport	Hisense platform report	Sends device reports to Hisense	tracking
 com.hisense.remoteupgrade	Hisense remote upgrade	Firmware updates over the network	updates
+com.hisense.service.ad	Hisense ad service	Ad service that watches what is on screen	ads
+com.hisense.service.hproxy	Hisense proxy service	Background poller that runs all the time	tracking
 com.hisense.service.message	Hisense messages	Push messages from Hisense	ads
 com.hisense.storemode	Hisense store mode	Shop display mode	demo
 com.hisense.tv.b2b	Hisense business mode	Hotel and business features	demo
 com.hisense.tv.customerlauncher	Hisense customer launcher	Hisense launcher component, needed	system
+com.hisense.tv.fitmirror	Hisense fitness mirror	Fitness app for the TV camera	preloads
+com.hisense.tv.foodmanage	Hisense recipes	Recipe app	preloads
 com.hisense.tv.hisremotenow	RemoteNOW	Hisense phone remote	other
 com.hisense.tv.hitvinput	Hisense TV input	Handles TV and HDMI inputs	system
 com.hisense.tv.ota	Hisense updater	Firmware updates	updates
 com.hisense.tv.protector	Hisense TV protector	Cleaner and speed-up tool	brand
 com.hisense.tv.smartsense	Hisense SmartSense	Hisense system service, needed to boot	system
 com.hisense.tv.smartservice	Hisense smart service	Core Hisense TV service	system
+com.hisense.tv.videochat.social	Hisense video chat	Preloaded video chat app	preloads
+com.hisense.tv.videoconference	Hisense video conference	Video conferencing app	preloads
+com.hisense.tv.weather	Hisense weather	Weather card on the home screen	preloads
+com.hisense.usbupgrade	Hisense USB updater	Installs firmware updates from a USB stick	updates
+com.hisense.widget.pro	Hisense home widget rows	Operator content rows on the home screen	ads
 com.homwee.aipont	AI PONT portal	Changhong's brand portal	brand
 com.homwee.alexacontrol	Homwee Alexa	Alexa integration	voice
 com.homwee.chinstallapk	Homwee silent installer	Installs apps without asking	ads
@@ -349,6 +422,9 @@ com.imdb.livingroom.firetv	IMDb	Film and TV database app	preloads
 com.iqiyi.i18n.tv	iQIYI	Asian drama and film streaming app	streaming
 com.ivona.orchestrator	Alexa speech engine	Text-to-speech for Alexa	voice
 com.ivona.tts.oem	Alexa speech voices	Voice data for Alexa speech	voice
+com.jamdeo.calendar	VIDAA calendar	Calendar app	preloads
+com.jamdeo.screensaver	VIDAA screensaver	Stock photo screensaver with captions and likes	screensaver
+com.jamdeo.tv.fte	VIDAA first-run setup	First-run setup, used again after a factory reset	other
 com.jamdeo.tv.mediacenter	Hisense media center	Plays USB and network media	preloads
 com.jio.media.ondemand	JioCinema	Films, series and live sport	streaming
 com.jio.media.stb.ondemand	Jio on demand	Streaming app	streaming
@@ -358,12 +434,14 @@ com.jmgo.overseas.atmosphere	JMGO Atmosphere	Ambient scenes screensaver	screensa
 com.jmgo.spider	JMGO usage tracker	Reports location and app usage	tracking
 com.joxdev.orbia	Orbia	Preloaded game	preloads
 com.july.ndtv	NDTV	News app	streaming
+com.keylab.speech.view.vidaa	VIDAA voice and card home	Voice assistant screens, the mic key and a second home	voice
 com.kick.mobile	Kick	Live streaming app	streaming
 com.king.candycrushsaga	Candy Crush Saga	Preloaded game	preloads
+com.limelight	Moonlight	Game streaming from a PC	streaming
 com.mautilus.tvgames.portal.androidtv	TV games portal	Preloaded game portal	preloads
 com.mediatek.AirplayAPK	AirPlay (MediaTek)	Receives AirPlay from Apple devices	casting
 com.mediatek.airplaydaemon	AirPlay service	Background service for AirPlay	casting
-com.mediatek.android.leanbacklauncher.partnercustomizer	Home screen partner config	Adds partner apps and rows to the home	ads
+com.mediatek.android.leanbacklauncher.partnercustomizer	Home screen partner config	Partner rows; some MediaTek TVs need it for the TV service at boot	system
 com.mediatek.androidbox	Screen sharing	Miracast receiver (Wi-Fi Display)	casting
 com.mediatek.autopair	MediaTek remote pairing	Pairs and wakes the remote	system
 com.mediatek.dialservice	DIAL service	Lets phone apps find the TV to cast	casting
@@ -372,6 +450,8 @@ com.mediatek.hotkey.dispatcher	MediaTek hotkeys	Remote hotkeys including Source	
 com.mediatek.network	MediaTek network monitor	Network monitor, needed by the system	system
 com.mediatek.testpq	Picture test tool	MediaTek picture quality tool	other
 com.mediatek.tv.agent	MediaTek TV agent	Power, HbbTV and keys	system
+com.mediatek.tv.factory	MediaTek factory tools	Factory diagnostics	demo
+com.mediatek.tv.freeviewplay	Freeview Play	UK catch-up and on-demand TV from the guide	streaming
 com.mediatek.tv.service	MediaTek TV service	Core TV service	system
 com.mediatek.tv.systemupdater	MediaTek system updater	Firmware updates	updates
 com.mediatek.tvinput	MediaTek TV input	HDMI, AV and tuner inputs	system
@@ -380,9 +460,12 @@ com.mediatek.wwtv.setupwizard	Channel scan wizard	Live TV channel scan wizard	sy
 com.mediatek.wwtv.tvcenter	MediaTek Live TV	Live TV and HDMI app	system
 com.mediatek.wwtv.tvrecommendation	TV recommendations	MediaTek recommendation feed	ads
 com.mediatek.wwtv.webview	Vendor web view	Web view shell used by the vendor	other
+com.meetingroom	Meeting room app	Preloaded meeting room app	preloads
+com.megogo.application	MEGOGO	Streaming app	streaming
 com.mgmedia.androidApp	CHILI	Film rental and streaming app	streaming
 com.mi.bluetooth	Mi Bluetooth	Remote and Bluetooth pairing	system
 com.mitv.ABUpdateStatus	Update status	Shows the progress of a firmware update	updates
+com.mitv.alarmcenter	Xiaomi alarms	Reminders and alarms, also those set by XiaoAI voice	preloads
 com.mitv.cloudcontrol	Xiaomi cloud control	Lets Xiaomi push apps to the TV remotely	ads
 com.mitv.download.service	Mi download service	Download helper for the Mi updater	updates
 com.mitv.dream	Mi screensaver	Xiaomi MiDream screensaver	screensaver
@@ -390,6 +473,7 @@ com.mitv.gallery	Mi Gallery	Xiaomi photo gallery	preloads
 com.mitv.livetv	Mi Live TV	Live TV and input switching	system
 com.mitv.milinkservice	Mi Cast (MiLink)	Cast from Xiaomi phones	casting
 com.mitv.overseaservice	Mi overseas service	Netflix key and remote handling	system
+com.mitv.screensaver	Xiaomi screensaver	Xiaomi's stock screensaver	screensaver
 com.mitv.setup	Mi TV setup	Xiaomi setup service	system
 com.mitv.shoplugin	TV shopping plugin	Shopping channel plugin (TV Taobao)	ads
 com.mitv.toolhouse	Mi Tool House	Xiaomi tools app	brand
@@ -401,6 +485,7 @@ com.mitv.tvlock	Mi TV lock	Parental lock and password; switching it off removes 
 com.mitv.upgrader	Mi upgrader	Xiaomi firmware updater	updates
 com.mitv.videoplayer	Mi video player	Xiaomi video player	preloads
 com.miui.analytics	MIUI analytics	Sends usage statistics to Xiaomi	tracking
+com.miui.misightservice	Xiaomi MiSight	Remote diagnostics and log upload to Xiaomi	tracking
 com.miui.tv.analytics	Xiaomi Analytics	Reports what you watch to Xiaomi	tracking
 com.mk.tv.meeting.service	Meeting service	Vendor video meeting service	brand
 com.mstar.android.tv.disclaimercustomization	Vendor disclaimer	Disclaimer screen	other
@@ -408,9 +493,12 @@ com.mstar.netflixobserver	Netflix button helper	Runs the remote's Netflix button
 com.mxtech.videoplayer.television	MX Player	Video player and streaming app	streaming
 com.nagra.ion.claroco	Claro TV	Operator TV app (Colombia)	streaming
 com.nbcuni.telemundostation.houston.firetv	Telemundo Houston	Local Telemundo station app	streaming
+com.nes.dvb.playtest	DVB playback test	Factory test for the TV tuner	demo
 com.netflix.ninja	Netflix	Films and series	streaming
+com.netflix.tokenmanager	Netflix token service	Partner sign-in token service used only by Netflix	streaming
 com.newtv.cboxtv	CCTV NewTV	Chinese TV streaming app	streaming
 com.nexgtv.tv	NexG TV	Live TV streaming app	streaming
+com.nextinteractive.rmcbfmplay.tv.free	RMC BFM Play	French news and sport streaming app	streaming
 com.nousguide.android.rbtv	Red Bull TV	Streaming app	streaming
 com.nvidia.ControllerMapper	NVIDIA controller mapper	Game controller mapping	system
 com.nvidia.KeyComboOta	NVIDIA key combo updater	Key combo update service	system
@@ -450,6 +538,7 @@ com.onemainstream.sonyliv.android	SonyLIV	Streaming app	streaming
 com.oneplus.tv.factory	OnePlus TV factory app	Factory test app, left alone	system
 com.oneplus.tv.launcher	OnePlus launcher page	OnePlus content page	brand
 com.opera.sdk.example	Opera TV sample app	Opera TV SDK sample app	preloads
+com.osn.go	OSN+	Middle East series and film streaming app	streaming
 com.panasonic.demomode	Panasonic demo mode	Store demo mode	demo
 com.panasonic.ehelp	Panasonic eHelp	On-screen user manual	preloads
 com.panasonic.hotelmode	Panasonic hotel mode	Hotel mode settings	demo
@@ -458,8 +547,10 @@ com.peacock.peacockfiretv	Peacock	Streaming app	streaming
 com.peacocktv.peacockandroid	Peacock	NBC series, films and live sport	streaming
 com.phorus.playfi.softap	Play-Fi access point	Wi-Fi helper for Play-Fi speakers	brand
 com.plexapp.android	Plex	Your own films and music, and free channels	streaming
+com.pomelogames.MarsGame	Pomelo Games game	Preloaded game	preloads
 com.poovarasan.tv.tamiltv	Tamil TV	Streaming app	streaming
 com.popoko.tictactoe	Tic Tac Toe	Preloaded game	preloads
+com.qjy.browser	Preloaded browser	Web browser	preloads
 com.qterics.da.product	Qterics device agent	Remote support and device data	tracking
 com.realtek.dtmb	DTMB tuner	Chinese digital TV tuner input	other
 com.realtek.dtv	Realtek digital TV	Digital tuner input	system
@@ -467,11 +558,15 @@ com.realtek.factorytools	Realtek factory tools	Factory tools, needed by the syst
 com.realtek.kara	Karaoke	Karaoke app	preloads
 com.realtek.karaoke.userguide	Karaoke guide	User guide for the karaoke app	preloads
 com.realtek.keyinterceptserver	Realtek key service	Remote key handling	system
-com.realtek.leanbacklauncher.partnercustomizer	Realtek home customizer	Adds partner rows to the home screen	ads
+com.realtek.leanbacklauncher.partnercustomizer	Realtek home customizer	Partner rows; on some sets also the stock home's Inputs button	ads
 com.realtek.tv.atsc	ATSC tuner	North American TV tuner input	other
 com.realtek.tv.isdb	ISDB tuner	Japanese and South American tuner input	other
+com.rkgames.basisgame	RK Games game	Preloaded game	preloads
 com.rtk.engmenu	Realtek engineering menu	Factory menu, needed by the system	system
 com.sbs.ondemand.tv	SBS On Demand	SBS catch-up TV (Australia)	streaming
+com.sdmc.facTest	SDMC factory test	Factory test menu	demo
+com.sdmc.hwinfo	SDMC hardware info	Hardware info and diagnostics	brand
+com.sdmc.leakbackcustomer	SDMC partner service	Partner customer service, purpose unclear	other
 com.sdt.deviceinfo	Skyworth device info	Reports device information	tracking
 com.sdt.producttest	Skyworth product test	Factory key and USB test	demo
 com.secretexit.turbodismount	Turbo Dismount	Preloaded game	preloads
@@ -480,6 +575,7 @@ com.seraphic.hbbtv.app	HbbTV	Red button interactive TV (Europe)	preloads
 com.seraphic.media.tv.interactive.app	Interactive TV	Interactive broadcast services	other
 com.singa.client	Singa	Karaoke app	streaming
 com.sling	Sling TV	Streaming app	streaming
+com.smartdevice.acr.recommendation	Skyworth ACR	Recognises what is on screen for recommendations	tracking
 com.smartdevice.aftersale	Skyworth after-sale tracker	Tracks boot, network and location	tracking
 com.smartdevice.bleconnectservice	Skyworth remote over BLE	Remote connection and battery	system
 com.smartdevice.common.demonow	Demo Now	Store demo app	demo
@@ -487,22 +583,29 @@ com.smartdevice.dailymanage	Skyworth daily manager	Background service started at
 com.smartdevice.dailyshortcut	Skyworth quick menu	Quick menu, Art Time and IP control	system
 com.smartdevice.dtv.icast	Skyworth iCast	AirPlay and Miracast receiver	casting
 com.smartdevice.duplebluetooth	Skyworth Bluetooth audio	Bluetooth audio support	system
+com.smartdevice.epopplayer	Skyworth e-POP player	Shop-floor promo player	demo
 com.smartdevice.factory	Skyworth factory service	Panel calibration service	system
+com.smartdevice.firewall	Skyworth firewall service	Skyworth background service; purpose not documented	brand
 com.smartdevice.global.service	Skyworth remote hot keys	Hot keys and find my remote	system
 com.smartdevice.leanbacklauncher.customizer	Skyworth home customizer	Adds rows to the home screen	ads
 com.smartdevice.myapp	Skyworth My Apps	Skyworth apps screen	brand
 com.smartdevice.recommendation	Skyworth recommendations	Content recommendation rows	ads
 com.smartdevice.recordactivation	Skyworth activation record	Records first activation	tracking
+com.smartdevice.tv.aircast	iCast AirPlay	AirPlay and screen mirroring receiver	casting
+com.snm.upgrade	SNM updater	A second firmware updater (updateos)	updates
 com.sohu.inputmethod.sogou.tv	Sogou keyboard	The only on-screen keyboard	system
 com.sony.dtv.QuickSetupCustomizer	Sony setup customizer	Partner settings for first setup	other
 com.sony.dtv.airplayapp	AirPlay	Receives AirPlay from Apple devices	casting
 com.sony.dtv.assistantadapter	Sony Assistant adapter	Connects the remote mic to Assistant	voice
 com.sony.dtv.atscbrowserservice	ATSC 3.0 browser	Interactive services for ATSC 3.0 broadcasts	other
 com.sony.dtv.b2b.hotelmode	Sony hotel mode	Hotel and pro mode service	brand
+com.sony.dtv.b2b.importexport	Sony pro settings transfer	Imports and exports hotel mode settings	brand
 com.sony.dtv.b2b.noderuntime.normal	Sony pro mode runtime	Node.js runtime for hotel mode apps	brand
 com.sony.dtv.b2b.noderuntime.privilege	Sony pro mode runtime	Privileged Node.js runtime for hotel apps	brand
 com.sony.dtv.b2b.noderuntimeextension.bpk	Sony pro mode extension	Extension for the hotel mode runtime	brand
 com.sony.dtv.b2b.noderuntimeextension.node_12_13_1	Sony pro mode extension	Node.js 12 extension for hotel mode	brand
+com.sony.dtv.b2b.prosettings	Sony pro settings	Settings for hotel and pro mode	brand
+com.sony.dtv.b2b.rs232csupport	Sony RS-232C control	Lets a serial controller drive the TV	brand
 com.sony.dtv.b2b.vendorprotocol	Sony business protocol	Broadcasts TV details for home automation	brand
 com.sony.dtv.bivlinfo	Sony content list	Content list that feeds Discover	ads
 com.sony.dtv.bravialifehack	BRAVIA Life Hack	Sony tips and tricks app	preloads
@@ -543,6 +646,7 @@ com.sony.dtv.smarthomesettings	Works with Alexa setup	Links the TV to Alexa	voic
 com.sony.dtv.smartmediaapp	Sony Media Player	Plays files from USB	preloads
 com.sony.dtv.sonybugreportsys	Sony bug reports	Sends bug reports to Sony	tracking
 com.sony.dtv.sonyselect	Sony Select	Sony app store and promos	ads
+com.sony.dtv.sonyselect.overlay	Sony Select overlay	Resource overlay for the Sony Select promo tile	ads
 com.sony.dtv.sonyshelf	Sony shelf	Sony content shelf on the home screen	ads
 com.sony.dtv.sonysystemservice	Sony system service	Core Sony TV service	system
 com.sony.dtv.sonytab	Sony tab	Sony partner content on the home screen	ads
@@ -574,6 +678,8 @@ com.suntv.sunnxt	Sun NXT	Streaming app	streaming
 com.suntv.sunnxt.mitv	Sun NXT (Mi)	Streaming app	streaming
 com.swm.live	7plus	Channel 7 catch-up TV (Australia)	streaming
 com.taiwanmobile.myVideotv	myVideo	Streaming app	streaming
+com.talents.huanclientauth	Huan client sign-in	Sign-in service for Huan content apps	other
+com.tcl.FactoryMode	TCL factory mode	Factory test mode	demo
 com.tcl.MultiScreenInteraction_TV	TCL T-Cast	Links the TV with TCL's phone app	casting
 com.tcl.TFDS.service	TCL TFDS service	TCL system service, needed	system
 com.tcl.UpdatePeripheral	TCL soundbar updater	Updates TCL soundbar firmware	updates
@@ -594,7 +700,7 @@ com.tcl.channelplus	TCL Live	Free ad-supported TCL channels	ads
 com.tcl.common.terminalmanagerplus	TCL device manager	Device management; watches app installs	other
 com.tcl.common.weather	TCL weather	Weather widget service	preloads
 com.tcl.copydatatotv	TCL copy to TV	Copies phone data to the TV	brand
-com.tcl.cyberui	TCL CyberUI	The TCL home screen on this set	launcher
+com.tcl.cyberui	TCL CyberUI	TCL's home screen on China sets; a content service on others	launcher
 com.tcl.dashboard	TCL Home panel	TCL dashboard and promos; newer TCL Google TVs need it for inputs	ads
 com.tcl.dashboard.service	TCL dashboard service	Dashboard service, needed by the system	system
 com.tcl.esticker	TCL sticker	Retail demo stickers	demo
@@ -602,7 +708,7 @@ com.tcl.exhibit	TCL exhibit mode	Shop display mode	demo
 com.tcl.factory.view	TCL factory wizard	Factory wizard, needed by the system	system
 com.tcl.ffeducation	TCL education	Kids and education content	preloads
 com.tcl.ffkaraoke	TCL karaoke	Karaoke app	preloads
-com.tcl.gallery	TCL gallery	Photo gallery	preloads
+com.tcl.gallery	TCL gallery	USB photo gallery; on some sets also the TCL screensaver	preloads
 com.tcl.gamebar	TCL game bar	Game mode overlay for consoles	preloads
 com.tcl.gamecenter	TCL game center	Game store	preloads
 com.tcl.globalkeyoverlay	TCL key overlay	Remote key overlay, needed	system
@@ -621,9 +727,9 @@ com.tcl.micmanager	TCL mic manager	Manages the remote's microphone	voice
 com.tcl.miracast	TCL Miracast	Screen mirroring from phones and PCs	casting
 com.tcl.notereminder	TCL notes	Note and reminder app	preloads
 com.tcl.ocean.instructions	TCL e-manual	On-screen user manual	preloads
-com.tcl.overseasappshow	TCL app showcase	Recommended apps showcase	ads
+com.tcl.overseasappshow	TCL app showcase	Recommended apps; on some sets turns promo apps back on at boot	ads
 com.tcl.packageinstaller.service.renew	TCL installer service	App installer service, needed	system
-com.tcl.partnercustomizer	TCL home customizer	TCL tweaks to home rows	ads
+com.tcl.partnercustomizer	TCL home customizer	TCL home rows; on some sets also the T key and Inputs icon	ads
 com.tcl.playskill	TCL tips	Tips app	preloads
 com.tcl.profilemanager	TCL profile manager	Builds an audience profile for TCL	tracking
 com.tcl.providers.config	TCL config provider	Settings provider, needed for Wi-Fi	system
@@ -632,6 +738,7 @@ com.tcl.repairguide	TCL repair guide	Repair help	preloads
 com.tcl.settings	TCL settings	TCL settings app	system
 com.tcl.smartalexa	TCL Alexa	Alexa voice service	voice
 com.tcl.smartlink.core	TCL SmartLink	Includes a silent app installer	ads
+com.tcl.sticker	TCL retail sticker	Store demo sticker overlay	demo
 com.tcl.suspension	TCL Quick Panel	Quick panel behind the remote's Input key; off, that key stops	brand
 com.tcl.system.server	TCL system server	Remote key plumbing	system
 com.tcl.systemserver	TCL system server	Remote key plumbing	system
@@ -646,14 +753,17 @@ com.tcl.tv.tclchannel	TCL Channel	TCL channel app with Google ads	ads
 com.tcl.tv.tclhome_passive	TCL home feed	Pushes TCL content at boot	ads
 com.tcl.tvhealthcheck	TCL health check	Diagnostics uploader	tracking
 com.tcl.tvinput	TCL TV input	Live TV tuner and HDMI inputs	system
+com.tcl.tvsmartalbum	TCL smart album	Photo album app	preloads
 com.tcl.tvweishi	TCL TV guard	Cleaner widget service	brand
 com.tcl.ui_mediaCenter	TCL media center	Plays media from USB	preloads
 com.tcl.useragreement	TCL user agreement	End-user agreement screen; some TCL Google TVs need it	other
 com.tcl.usercenter	TCL account	TCL account sign-in	brand
 com.tcl.versionUpdateApp	TCL updater	TCL firmware updates	updates
+com.tcl.videocall	TCL video calls	Video calling app	preloads
 com.tcl.videoplayer	TCL video player	Plays videos from USB	preloads
 com.tcl.walleve	TCL voice engine	Voice control for the remote's voice key	voice
 com.tcl.waterfall.overseas	TCL content feed	Web content feed	ads
+com.tcl.weixin	WeChat for TV	WeChat app for the TV	preloads
 com.tcl.wholenetsearch	TCL global search	Searches across TCL content	brand
 com.tcl.xian.StartandroidService	TCL start service	TCL system service, needed	system
 com.teamviewer.quicksupport.market	TeamViewer QuickSupport	Remote support app	preloads
@@ -661,15 +771,27 @@ com.ted.android.tv	TED	TED talks	streaming
 com.tianci.localmedia	Skyworth USB media player	Plays media from USB	system
 com.tubitv	Tubi	Free films and series with adverts	streaming
 com.tubitv.ott	Tubi	Streaming app	streaming
+com.twentyfouri.tvbridge.rte	RTE bridge	Part of the Freeview Play app layer	streaming
 com.uei.quicksetsdk.sony	UEI QuickSet	IR control of cable boxes and soundbars	other
 com.univision.android	Univision	Spanish-language TV app	streaming
+com.utsmta.app	Factory test	Factory test app that starts from a USB stick	demo
 com.vectorunit.purple.googleplay	Beach Buggy Racing 2	Preloaded game	preloads
+com.verizon.tv.ams	Verizon event recorder	Records app, screen and power events; crash reports	tracking
+com.verizon.tv.launcher	Verizon home	The stock home; also the remote pairing screen	launcher
+com.vestel.smartcenter	Vestel SmartCenter	Background service that sees which apps you run	tracking
+com.vestel.smartlogger	Vestel logger	Vestel logging service	tracking
+com.vestel.tv.speedup	Vestel speed up	Memory cleaner that can read system logs	brand
+com.vestel.vestelreporter	Vestel reporter	Sends usage reports to Vestel at boot	tracking
 com.vewd.core.integration.dia	Vewd	Web app store and browser	preloads
 com.vewd.core.service	Vewd core	App store and HbbTV core service	brand
+com.viacom18.tv.voot	Voot	Streaming app	streaming
 com.vidaa.oemtabcontentprovider	VIDAA content tab	Feeds the VIDAA tab on the home	ads
 com.vidaa.persistent.service	VIDAA service	Core VIDAA service, needed	system
 com.vimeo.android.videoapp	Vimeo	Video sharing app	streaming
+com.vision.aibook	AI picture book	Children's picture book app	preloads
+com.vodafone.vodafoneplay	Vodafone Play	Streaming app	streaming
 com.vt.alexa	HiAlexa	Alexa for Hisense TVs	voice
+com.vt.ambiencephoto	Ambience photo screensaver	Photo screensaver	screensaver
 com.vt.factory	Hisense factory tools	Factory test and service menu	demo
 com.vt.fte	First-time setup guide	Walkthrough shown at first setup	other
 com.vt.hishow	FamilyMoment	Photo and camera app with a screensaver	preloads
@@ -691,32 +813,51 @@ com.xgimi.atmosphere	XGIMI ambient scenes	Animated screensaver	screensaver
 com.xgimi.atvwifiverify	XGIMI Wi-Fi check	Factory Wi-Fi test	demo
 com.xgimi.bugreportsender	XGIMI bug reports	Uploads bug reports to XGIMI	tracking
 com.xgimi.burnin	XGIMI burn-in test	Factory burn-in test that runs at startup	demo
+com.xgimi.datareporter	XGIMI usage reporting	Reports usage data to XGIMI	tracking
 com.xgimi.doubanfm	XGIMI music	XGIMI music app and speaker-mode screen	preloads
 com.xgimi.filemanager	XGIMI file manager	File manager with network sharing	other
 com.xgimi.gimiplayer	XGIMI media player	Plays your own videos and photos	other
 com.xgimi.minitvfactory	XGIMI factory menu	Factory menu and test services	demo
+com.xgimi.ota.accessories	XGIMI accessory updates	Firmware updates for the remote, speaker and other accessories	updates
+com.xgimi.screensaver	XGIMI screensaver	Atmosphere screensaver and ambient scenes	screensaver
+com.xgimi.upgrade	XGIMI updater	XGIMI firmware updates	updates
+com.xiaomi.aitranslate	Xiaomi AI translation	Translates subtitles with AI	preloads
 com.xiaomi.amazon.alexa	Xiaomi Alexa bridge	Alexa integration	voice
 com.xiaomi.android.tvsetup.partnercustomizer	Xiaomi setup helper	Remote pairing and shortcut keys	system
+com.xiaomi.eetv.litehome	Xiaomi office mode	A second home screen for office use	preloads
 com.xiaomi.floatingframe	Xiaomi floating frame	Floating promo overlay	ads
 com.xiaomi.gamecenter.sdk.service.mibox	Xiaomi game service	Sign-in and payments for Xiaomi store games	brand
 com.xiaomi.mi_connect_service	Mi Connect	Links the TV with Xiaomi phones and devices	casting
+com.xiaomi.mico.mqtt.service.application.tv	Xiao Ai speaker link	Lets a Xiao Ai speaker control the TV	voice
 com.xiaomi.mimusic2	Mi Music	Xiaomi music app	preloads
+com.xiaomi.mitv.calendar	Mi Calendar	Xiaomi calendar app	preloads
+com.xiaomi.mitv.csi	Xiaomi after-sales assistant	Uploads satisfaction surveys to Xiaomi	tracking
 com.xiaomi.mitv.handbook	Mi handbook	On-screen user manual	preloads
+com.xiaomi.mitv.health	MiHealth	Xiaomi health app	preloads
+com.xiaomi.mitv.karaoke.service	Xiaomi karaoke	Karaoke service	preloads
+com.xiaomi.mitv.light	Xiaomi light effects	Light effect app	preloads
 com.xiaomi.mitv.manualhelp	Mi manual	On-screen user manual	preloads
 com.xiaomi.mitv.mediaexplorer	Mi Media Player	Plays videos, music and photos from USB	preloads
 com.xiaomi.mitv.res	Mi TV resources	Framework resources, needed	system
 com.xiaomi.mitv.scenemode	Mi scene mode	Game mode and picture modes	system
-com.xiaomi.mitv.smartpanel	Smart home panel	Controls Xiaomi smart home devices	preloads
+com.xiaomi.mitv.shop	Xiaomi shop	Xiaomi shopping app	ads
+com.xiaomi.mitv.smartpanel	Xiaomi smart panel	The Menu button's panel, with smart home controls	brand
 com.xiaomi.mitv.smartshare	Mi SmartShare	Share media from phones	casting
-com.xiaomi.mitv.tvmanager	TV Manager	Cleaner and booster app	brand
+com.xiaomi.mitv.tvmanager	TV Manager	Cleaner; Xiao Ai voice also opens apps through it	brand
 com.xiaomi.mitv.tvpush.tvpushservice	Xiaomi push service	Delivers Xiaomi push messages and promos	ads
+com.xiaomi.mitv.tvvideocall	MiTime video calls	Video calling app	preloads
 com.xiaomi.mitv.updateservice	Xiaomi updater	Firmware and PatchWall updates	updates
 com.xiaomi.mitv.upgrade	Xiaomi updater	Downloads and installs firmware updates	updates
 com.xiaomi.screenrecorder	Screen recorder	Records the TV screen	preloads
+com.xiaomi.smarthome.tv	Mi Home	Xiaomi smart home app; also lets a Xiao Ai speaker control the TV	voice
 com.xiaomi.statistic	Xiaomi statistics	Sends usage statistics to Xiaomi	tracking
-com.xiaomi.tv.gallery	Xiaomi Gallery	Photo gallery app	preloads
+com.xiaomi.tv.gallery	Xiaomi Pictorial	Wallpaper and photo app with advert code	preloads
+com.xiaomi.tvqs	Xiaomi quality reports	Uploads crash and performance data to Xiaomi	tracking
 com.xiaomi.tvqs.overseas	Xiaomi quality stats	Firebase analytics uploader	tracking
 com.xiaomi.tvqs.overseas.y24	Xiaomi quality stats 2024	Uploads quality logs to Xiaomi	tracking
+com.xiaomi.tweather	Mi Weather	Xiaomi weather app	preloads
+com.xiaomi.voicecontrol	Xiao Ai voice control	Xiaomi voice assistant and the remote's voice key	voice
+com.xiaomi.wakeupservice	Xiao Ai wake-up	Listens for the Xiao Ai wake word	voice
 com.xiaomi.wfdsinkhelperservice	Miracast helper	Xiaomi Miracast receiver helper	casting
 com.xiaomitv.sonyliv	Sony LIV (old Mi copy)	Old partner copy of the Sony LIV app	streaming
 com.xiaomo.tv.milegal	Xiaomi legal notices	Legal and privacy screens	other
@@ -730,19 +871,34 @@ com.zeasn.deviceportal.asdprovider.xym_hisi351	Zeasn device portal	Vendor cloud 
 com.zeasn.whalelive	WhaleLive	Free channels with ads	streaming
 com.zee5.amazon	ZEE5 (Fire TV)	Streaming app	streaming
 com.zee5.xiaomiTV	ZEE5 (old Mi copy)	Old partner copy of the ZEE5 app	streaming
+de.benzac.msx	Media Station X	Media player app for web content	streaming
 dw.com.androidtv.live	DW	Deutsche Welle news app	streaming
-fusion.android.tv.demo	Retail demo	Retail demo app; on some MediaTek TVs it also handles the Input key	demo
+fr.francetv.pluzz	france.tv	Streaming app	streaming
+fr.francetv.zouzous	Okoo	france.tv app for children	preloads
+fr.free.aktu	Free Aktu	Free's news app	preloads
+fr.freebox.disneypluslauncher	Disney+ shortcut (Free)	Free's shortcut to the Disney+ app	streaming
+fr.freebox.fbxstats	Freebox statistics	Sends usage statistics to Free	tracking
+fr.m6.m6replay.free	M6+	French TV channel streaming app	streaming
+fr.tf1.mytf1.free	TF1+	French TV channel streaming app	streaming
+fr.tfou.max	TFOU Max	TF1 app for children	preloads
+fusion.android.tv.demo	Retail demo	Retail demo app; on some MediaTek and Vestel TVs also the Input key	demo
 in.startv.hotstar	JioHotstar	Streaming app	streaming
 io.tiv.dvtv.tv	DVTV	Czech news video app	streaming
 it.hon.service	Haier hOn	Links Haier home appliances	brand
 jp.co.rarity.tvweb	TV Web Browser	Web browser for TVs	preloads
+limehd.ru.ctv	Lime HD CTV	Live TV streaming app (Russia)	streaming
+limehd.ru.ctvshka	Lime HD CTVshka	Live TV streaming app (Russia)	streaming
+limehd.ru.lise	Lime HD TV	Live TV streaming app (Russia)	streaming
+limehd.ru.lite	Lime HD TV Lite	Live TV streaming app (Russia)	streaming
 map.finder	Map finder	Map app preloaded on this TV	preloads
 mitv.service	Mi TV service	Core Xiaomi TV service	system
+mobi.zona	Zona	Streaming app	streaming
 net.aljazeera.english	Al Jazeera	News streaming app	streaming
 net.froemling.bombsquad	BombSquad	Preloaded game	preloads
 net.hexage.ritual	Ritual	Preloaded game	preloads
 net.vidaatv.hisense.android.tv	VIDAA	Hisense VIDAA app preload	preloads
 oneplus.smarthome	OnePlus Smart Home	Smart home control	brand
+org.chromium.webview_shell	WebView test browser	AOSP test browser for the web view, not the web view itself	preloads
 org.droidtv.amazonalexa	Philips Alexa	Alexa bridge for the TV	voice
 org.droidtv.android.fitness	Fitness Buddy	Fitness app	preloads
 org.droidtv.candeebug	Philips DAC analytics	Uploads viewing and device data	tracking
@@ -773,6 +929,8 @@ org.droidtv.nettvapps	NetTV app installer	Installs gallery apps without asking	a
 org.droidtv.nettvrecommender	Philips Top Picks	Promoted content row	ads
 org.droidtv.nettvregistration	Philips registration	Philips account and NetTV registration	updates
 org.droidtv.recommendation	Philips recommendations	Backend for the Top Picks row	ads
+org.droidtv.sticker	Philips e-sticker	Shop banners for store displays	demo
+org.droidtv.tv.frameworklogger	Philips reboot logger	Sends reboot reasons and update records to the Philips logger	tracking
 org.droidtv.usagelogger	Philips usage logger	Logs usage and device data	tracking
 org.liskovsoft.androidtv.rukeyboard	Russian keyboard	On-screen keyboard	system
 org.obs.mhegservice	MHEG interactive TV	UK red button services	preloads
@@ -785,8 +943,10 @@ tunein.player	TuneIn Radio	Radio streaming app	streaming
 tv.alphonso.alphonso_eula	Alphonso	Recognises what you watch to target ads	tracking
 tv.anoki.acr.anokiacroptin	Anoki ACR consent	Recognises what is on screen	tracking
 tv.anoki.acr.controller	Anoki ACR	Recognises what is on screen	tracking
+tv.arte.plus7	ARTE	Streaming app	streaming
 tv.inscape.tvclient.inscapeacr	Inscape ACR	Recognizes what is on screen	tracking
 tv.mopa.ginga	Ginga	Brazilian interactive broadcast middleware	other
+tv.okko.androidtv	Okko	Streaming app (Russia)	streaming
 tv.pluto.android	Pluto TV	Free streaming TV app	streaming
 tv.samba.ssm	Samba TV	Reports what you watch	tracking
 tv.samba.ssm.ui	Samba TV settings	Opt-in and privacy screens for Samba TV	tracking

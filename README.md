@@ -73,13 +73,16 @@ workflow's verify job) checks that the published APK is exactly that build plus 
 
 ## Supported TVs
 
-- **89 TV profiles** from the community lists in the upstream launcher repository: 27 brands,
-  among them TCL (18 models), Sony (16), Xiaomi (15), Hisense, Philips, Amazon Fire TV, BenQ,
-  NVIDIA Shield, Panasonic, Skyworth, Haier, CHiQ and XGIMI, on Android TV, Google TV, Fire OS
-  and TCL's China builds.
-- **A brand fallback** for a model nobody has profiled yet: for Amazon, Hisense, Philips, Sony,
-  TCL and Xiaomi the app switches off only what every profile of that brand agrees on, and says
-  that it is being careful. More can be switched off by hand under Customise.
+- **131 TV profiles** from the community lists in the upstream launcher repository (v2.5.0): 46
+  brands, among them TCL (24 models, Hitachi's TCL build included), Sony (17), Xiaomi (17),
+  Hisense, Philips, Amazon Fire TV, Panasonic, XGIMI, BenQ, NVIDIA Shield, Skyworth, Haier, CHiQ,
+  onn, Google, Vestel-made sets (JVC, Toshiba, Cecotec) and the Freebox Player, on Android TV,
+  Google TV, Fire OS and TCL's China builds. Some sets get the clean-up only and keep their own
+  home screen: Fire TV, TCL's China builds, Android 7, and TVs whose home screen the app cannot
+  switch safely.
+- **A brand fallback** for a model nobody has profiled yet: for Amazon, Hisense, Panasonic,
+  Philips, Sony, TCL, XGIMI and Xiaomi the app switches off only what every profile of that brand
+  agrees on, and says that it is being careful. More can be switched off by hand under Customise.
 - Other Android TVs get the home screen, and the app suggests only what it is sure about, which
   may be nothing.
 
