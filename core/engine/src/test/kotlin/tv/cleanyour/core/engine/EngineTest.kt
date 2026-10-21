@@ -15,6 +15,7 @@ import tv.cleanyour.core.model.ShellLine
 import tv.cleanyour.core.model.SnapshotReason
 import tv.cleanyour.core.model.TvId
 import tv.cleanyour.core.ops.FailurePolicy
+import tv.cleanyour.core.ops.PackageDump
 import tv.cleanyour.core.planner.PlanRequest
 import tv.cleanyour.core.store.GateMethod
 import tv.cleanyour.testing.fixtures.Samples
@@ -436,6 +437,95 @@ class EngineTest {
             assertTrue(failed.error.contains("home screen"), failed.error)
             assertTrue(!h.tv.isOff(target), case)
         }
+    }
+
+    // Upstream #421 (launcher v2.5.0's disable step): a package that asks for TV_INPUT_HARDWARE drives
+    // the HDMI, AV and tuner inputs even when no input is registered for it, so the live check refuses
+    // to switch it off; a package that only holds it through others' lines, or puts one back, is fine.
+    // RF-LAUNCHER-250 F1: a switch-off of a package that asks for TV_INPUT_HARDWARE is kept and the
+    // step skipped, never a pause: the rest of the plan runs and the run ends with skips. The journal
+    // says why, so Done and Manage can name it.
+    @Test fun theLiveCheckRefusesToSwitchOffATvInputDriver() = runTest(timeout = TEST_TIMEOUT) {
+        val h = Harness(this)
+        val engine = h.engine()
+        val driver = h.debloat[0]
+        val other = h.debloat[1]
+        h.tv.requestedPermissions = mapOf(driver to listOf("android.permission.INTERNET", "android.permission.TV_INPUT_HARDWARE"))
+        val plan = h.plan(PlanRequest.SwitchOff(setOf(driver, other)))   // Manage's switch-off, as planned
+        val step = plan.steps.single { it.op == Op.Disable(driver) }
+        assertEquals(FailurePolicy.SKIP_IF_REFUSED, step.onFailure)
+        engine.start(plan, h.tv, plan.hash, h.pass())
+        h.settle(engine)
+        val fin = assertIs<RunState.Finished>(engine.runState(h.tv.tvId).value)
+        assertEquals(RunStatus.COMPLETED_WITH_SKIPS, fin.status)
+        assertEquals(listOf(step), fin.skipped)
+        assertEquals(1, h.tv.execs("pm disable-user"), "only the other package's line was sent")
+        val failed = h.records(plan).filterIsInstance<JournalRecord.Failed>().single()
+        assertEquals(DefaultEngine.KEPT_TV_INPUT, failed.error)
+        assertTrue(!h.tv.isOff(driver))
+        assertTrue(h.tv.isOff(other))
+        // Putting a package back is never refused.
+        h.tv.packages[driver] = h.tv.packages.getValue(driver).copy(enabled = EnabledState.DISABLED_USER)
+        val back = h.opsPlan(Op.Enable(driver))
+        engine.start(back, h.tv, back.hash, h.pass())
+        h.settle(engine)
+        assertEquals(RunStatus.COMPLETED, (engine.runState(h.tv.tvId).value as RunState.Finished).status)
+        assertTrue(!h.tv.isOff(driver))
+    }
+
+    // RF-LAUNCHER-250 F3: "Stop here" on a run cut off inside the accessibility restore (upstream
+    // #424: clear the list, accessibility off, write the list back, accessibility on) first runs the
+    // rest of it, so the TV is never left with no accessibility services and accessibility off.
+    @Test fun stopHereFinishesAnAccessibilityRestoreFirst() = runTest(timeout = TEST_TIMEOUT) {
+        val h = Harness(this)
+        val list = "com.gathin.tvhome/com.gathin.tvhome.HomeKeyService:com.google.android.marvin.talkback/.TalkBackService"
+        h.tv.settings[SettingKey.ENABLED_ACCESSIBILITY] = list
+        h.tv.settings[SettingKey.ACCESSIBILITY_ENABLED] = "1"
+        val engine = h.engine()
+        val plan = h.opsPlan(Op.Settle(1), Op.SettingsPut(SettingKey.ENABLED_ACCESSIBILITY, null), Op.SettingsPut(SettingKey.ACCESSIBILITY_ENABLED, "0"),
+            Op.Settle(1), Op.SettingsPut(SettingKey.ENABLED_ACCESSIBILITY, list), Op.SettingsPut(SettingKey.ACCESSIBILITY_ENABLED, "1"))
+        // The connection drops as the list is written back: the TV has no services and accessibility off.
+        h.tv.dropOnLine = { it.contains("'put'") && it.contains("'enabled_accessibility_services'") }
+        engine.start(plan, h.tv, plan.hash, h.pass())
+        h.settle(engine)
+        assertEquals(PauseReason.CONNECTION_LOST, (engine.runState(h.tv.tvId).value as RunState.Paused).reason)
+        assertNull(h.tv.settings[SettingKey.ENABLED_ACCESSIBILITY])
+        assertEquals("0", h.tv.settings[SettingKey.ACCESSIBILITY_ENABLED])
+        // Still offline: Stop here waits for the TV.
+        engine.abandon(h.tv.tvId); h.settle(engine)
+        assertIs<RunState.Paused>(engine.runState(h.tv.tvId).value)
+        h.tv.dropOnLine = null; h.tv.reconnect()
+        engine.abandon(h.tv.tvId); h.settle(engine)
+        assertEquals(RunStatus.ABANDONED, (engine.runState(h.tv.tvId).value as RunState.Finished).status)
+        assertEquals(list, h.tv.settings[SettingKey.ENABLED_ACCESSIBILITY])
+        assertEquals("1", h.tv.settings[SettingKey.ACCESSIBILITY_ENABLED])
+        assertEquals("end:ABANDONED", h.types(plan).last())
+        // A run stopped before the restore began is given up at once, as before.
+        val h2 = Harness(this)
+        h2.tv.settings[SettingKey.ENABLED_ACCESSIBILITY] = list
+        h2.tv.settings[SettingKey.ACCESSIBILITY_ENABLED] = "1"
+        val e2 = h2.engine()
+        val p2 = h2.opsPlan(Op.Disable(h2.debloat[0]), Op.Settle(1), Op.SettingsPut(SettingKey.ENABLED_ACCESSIBILITY, null),
+            Op.SettingsPut(SettingKey.ACCESSIBILITY_ENABLED, "0"), Op.Settle(1), Op.SettingsPut(SettingKey.ENABLED_ACCESSIBILITY, list), Op.SettingsPut(SettingKey.ACCESSIBILITY_ENABLED, "1"))
+        h2.tv.dropOnLine = { it.contains("'disable-user'") }
+        e2.start(p2, h2.tv, p2.hash, h2.pass())
+        h2.settle(e2)
+        h2.tv.dropOnLine = null; h2.tv.reconnect()
+        e2.abandon(h2.tv.tvId); h2.settle(e2)
+        assertEquals(RunStatus.ABANDONED, (e2.runState(h2.tv.tvId).value as RunState.Finished).status)
+        assertEquals(0, h2.tv.execs("settings put"), "nothing of the restore was run")
+        assertEquals(list, h2.tv.settings[SettingKey.ENABLED_ACCESSIBILITY])
+    }
+
+    @Test fun onlyTheRequestedPermissionsBlockCounts() {
+        fun dump(vararg lines: String) = "Packages:\n  Package [com.example.tv] (1a2b3c):\n" + lines.joinToString("") { "    $it\n" }
+        assertTrue(PackageDump.requestsTvInputHardware(dump("requested permissions:", "  android.permission.TV_INPUT_HARDWARE", "install permissions:")))
+        assertTrue(PackageDump.requestsTvInputHardware(dump("requested permissions:", "  android.permission.TV_INPUT_HARDWARE: restricted=true")))
+        // Granted through a shared user, or printed in another block: not this package's own request.
+        assertTrue(!PackageDump.requestsTvInputHardware(dump("requested permissions:", "  android.permission.INTERNET", "install permissions:", "  android.permission.TV_INPUT_HARDWARE: granted=true")))
+        assertTrue(!PackageDump.requestsTvInputHardware(dump("requested permissions:", "User 0: installed=true", "  android.permission.TV_INPUT_HARDWARE")))
+        assertTrue(!PackageDump.requestsTvInputHardware(dump("requested permissions:", "  android.permission.TV_INPUT_HARDWARE_EXTRA")))
+        assertTrue(!PackageDump.requestsTvInputHardware(""))
     }
 
     // RFC-W8-5: the restart test is a plan of its own, journaled, and needs no credential pass.

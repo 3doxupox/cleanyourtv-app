@@ -80,8 +80,8 @@ class AndroidAppConventionPlugin : Plugin<Project> {
                 applicationId = "tv.cleanyour.app"
                 minSdk = Toolchain.MIN_SDK
                 targetSdk = Toolchain.TARGET_SDK
-                versionCode = 1
-                versionName = "0.1.0"
+                versionCode = 2
+                versionName = "0.2.0"
             }
             // Optional local signing (ReleaseSigning): env or a gitignored keystore.properties only.
             // Unset, the release APK is unsigned, as CI and scripts/release-on-forge.sh build it.

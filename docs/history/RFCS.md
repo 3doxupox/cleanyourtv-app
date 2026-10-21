@@ -257,6 +257,106 @@ launcher 2.4 and later). Follow-ups, open:
 - No API 34 Android TV emulator image on forge (only android-34 google_apis), so S06 and S09 ran on
   API 28 only.
 
+## RFC-W4-3: the keys of launcher v2.5.0 in the config codec (applied on launcher250; reviewed and approved as written, reviews/RF-LAUNCHER-250.md)
+
+What: `LauncherConfigDoc` and `EffectiveConfig` (frozen, PRODUCT-SPEC 5.7) gain one field per key
+that upstream v2.5.0's `Config.java` (9071ec8) reads beyond v2.4.0's 32, after the RFC-W4-2 fields
+and in `Config.load` read order: `launchActions`, `appLabels`, `appBanners`, `inputKeyKeycodes`,
+`appKeys`, `cinematicHome`, `wallpaperRotationMinutes`, `wallpaperDim`, `raceCalendar`; and 5.7
+gains two small types for the last one, `LauncherRace(round: Int, name: String, place: String,
+sessions: List<LauncherRaceSession>)` and `LauncherRaceSession(name: String, start: String)` (an ISO
+instant as `java.time.Instant.toString` prints it). In the doc they are nullable like every other
+key: the three package maps and `app_keys` as the trimmed, non-blank strings `Config.stringList`
+keeps (`List<String>?`), `inputKeyKeycodes: List<Int>?`, `cinematicHome: Boolean?`, the two
+wallpaper numbers `Int?`, `raceCalendar: List<LauncherRace>?` holding only the races the launcher
+keeps, as `RaceWeekend` keeps them (session names trimmed and upper-cased, sessions sorted by start).
+In `EffectiveConfig` they are non-null and default to v2.5.0's `config.xml` (all empty, false or 0):
+the three maps as `Config.packageMap` builds them (`Map<String, String>`, a later entry for a
+package wins), `appKeys` as `Config` keeps the list, and `wallpaperRotationMinutes`,
+`wallpaperDim` and `raceCalendar` read from the doc alone, as the launcher reads them from
+config.json alone (config.xml has none). No key of v2.4.0 changed type, range or default, and none
+was removed; `KEY_ORDER` puts the new keys at their read positions, so every config.json the app
+wrote before is byte for byte the same (the app writes none of the new keys).
+Why: the same as RFC-W4-2. Left in `unknown`, decode would warn "the launcher ignores it" for keys
+the bundled launcher reads, and `effective()` could not say what the TV shows.
+How the codec reads them: `stringList`, `packageMap` and `intArray` rules per key, 0 to 1440 and 0 to
+90 for the two wallpaper numbers, `RemoteKeys.parseAppKeys` for the warnings on `app_keys`, and
+`optString` and `optInt` as AOSP's org.json defines them for `race_calendar` (a number, null, a list
+or an object as a name gives its Java or compact JSON text, as on the TV). Warnings, never a
+rejection: an entry the launcher skips, a package half that is not a package name, an `app_banners`
+name that is not a bundled `banner_*` drawable (only `banner_tv` at v2.5.0), a race or session the
+launcher leaves out, and navigation buttons (Back, the arrows, OK, Enter, Menu) in
+`input_key_keycodes` or `app_keys`. The last is SECURITY V1 again and wider than in 2.4: those keys
+feed `InputKeyService` and `HomeKeyService`, accessibility services that filter keys in every app,
+so with one of them on, a rogue overlay listing OK would take the button away everywhere, not only
+on Home. The app never switches those services on and never writes these keys.
+Tests: `ConfigDifferentialTest` runs v2.5.0's `Config.java` (and `Festival.java`) from the
+submodule as the primary target; `WallpaperRotation.java` and `RaceWeekend.java`, which it now
+calls, are vendored in the test sources and a test holds them equal to the submodule's files
+(only the package line differs), so `core/spec/build.gradle.kts` keeps its copy task unchanged.
+The generator, the hand cases and the encoder round trip cover the nine keys, and
+`launcher25ChoicesOnTheTvLastUntilTheNextPush` covers launcher 2.5's two new choices on the TV
+(rows below the dock 0 to 3, a wallpaper pick), which, like the columns, win until a push changes
+config.json. Launcher 2.0 (1bbf0c9) stays the second target for the fifteen old keys.
+Not modelled, since the phone cannot read them: the choices on the TV, the dock and tile order set
+on the TV (Edit dock, #340, and Reorder, both `files/order.txt`, kept while `dock_apps` stays the
+same list), apps taken off Home on the TV, and a theme's `wallpapers/` collection, which the app
+never pushes. A new look and "Restore mine" push the saved `dock_apps` unchanged (RF-LAUNCHER-250
+F4), so a dock edited on the TV survives a look change. The one cut: a dock of 13 to 18 apps saved
+under Six columns (the dock and two rows of six) is cut to its first 12 by a four-tile look (the
+dock and two rows of four), so `dock_apps` changes and the TV's own dock edit for the longer list
+no longer applies; the Dock row then shows the shorter list.
+Affected: W4 (codec, tests), W8 (nothing: the phone writes none of the keys; the Home screen note
+says what happens to a dock changed on the TV), W1 (DECISIONS-W1 lists the 5.7 edit).
+Smallest alternative: keep the nine keys in `unknown` and change only the warning text; rejected
+for the reason RFC-W4-2 gave, and because `app_keys` and `input_key_keycodes` need the V1 warning.
+
+Review (RF-LAUNCHER-250, changes required before merge, RFC-W4-3 signed off as written): the seven
+must-do items are done on release020, after launcher250 and profiles250 were merged. F1: a switch-off
+the live check refuses because the package asks for TV_INPUT_HARDWARE (or registers a TV input) is
+kept and skipped whatever the step's policy, never a pause, so the run ends COMPLETED_WITH_SKIPS; the
+journal's Failed text is `DefaultEngine.KEPT_TV_INPUT`, and Done (`SetupExtras.doneKept`) and Manage
+(`SnackKind.KEPT_TV_INPUT`, Leftovers counts only what went off) say "{name}. Kept: it runs the TV's
+HDMI and tuner inputs." instead of the generic harmless line. The tuner input drivers the lists name
+are never-disable (sony-bravia-ae2: `com.mediatek.dtv.tvinput.atsctuner`,
+`com.sony.dtv.tvinput.atsc3tuner`; prismplus-q65-ultra-r10g: `com.realtek.dtmb`, `com.realtek.tv.atsc`,
+`com.realtek.tv.isdb`); plan-time marking (D4) waits until after 0.2.0. Tests:
+`EngineTest.theLiveCheckRefusesToSwitchOffATvInputDriver`, `SetupMachineTest.aSwitchOffKeptForTheTvInputsEndsOnDoneWithItsOwnLine`,
+`ManageMachinesTest.aSwitchOffKeptForTheTvInputsSaysSoAndLeavesNoOpenRun`, `ProfilesTest.knownTunerInputDriversAreNeverDisable`.
+F2: the rule has no takeover exemption; a stock launcher or wizard that asks for the permission stays
+enabled, its switch-off is skipped and the section goes on (`SectionTest.aStockLauncherThatRunsTheInputsStaysOnAndTheSwitchGoesOn`).
+F3: "Stop here" on a run stopped inside the accessibility restore (from the clear of the list to
+`accessibility_enabled 1`) first runs its remaining steps, and waits for the TV when it is away
+(`EngineTest.stopHereFinishesAnAccessibilityRestoreFirst`). F4: SetTheme and RestoreMine push the
+saved dock unchanged (`ManageMachinesTest.aNewLookPushesTheSavedDockUnchanged`, 18 apps;
+`DockLayersTest.aDockOfMoreThanTwelveAppsIsCutByAFourTileLook`, 13 and 18). F5: the CHANGELOG no
+longer claims a warning nobody sees, and its TV input bullet says what F1 and F2 do. F6: PRODUCT-SPEC
+5.7 (the RFC-W4-3 paragraph, "built from v2.5.0"), SECURITY V1 (the key services, ThemeProvider) and
+3.3 (the `0` step and F3), and LAUNCHER-250-PLAN sections 2 and 5. F7: the full check on the merged
+tree in verify mode (111 suites, 1792 tests, 0 failures, 1 skipped; the v2.5.0 differential tally
+"7313 applied (6287 with warnings), 2646 ignored, 41 would crash"), and S06 on API 28
+(`:e2e:emulatorTestTheme`, new, runs it alone). S06 was reported PENDING on this tree, since
+`E2eWiring` still returns null for every piece, so it now builds the real pieces itself as S09
+does. It pushes Aurora, checks the overlay bytes, the launcher's restart and the service list and
+`accessibility_enabled 1` after the new restore order, then pushes again, stops the run inside the
+restore (paused at step 7 of the restore's 6 to 10: list empty, accessibility 0) and gives it up
+with "Stop here", which put the list and `1` back. It passed in 9.6 s; of two earlier runs, one lost
+the emulator's adb connection during the second push (the API 28 image's graphics stack, as S09
+notes) and one could not reconnect for a second test method, hence the one method. Follow-ups,
+open:
+- F8: "Update the home screen" (`pm install -r`) replaces the running launcher without the
+  accessibility restore; consider the same restore after an in-place update when the probed list
+  names ours and accessibility is on.
+- F9: one TV-side line for the clear, off, write back and on (a typed composite op, an RFC for 5.2),
+  so a lost phone cannot split the restore at all.
+- F10: no codec warning reaches a screen; when drift is found, decode the TV's overlay from the fresh
+  snapshot and say in the banner when it takes a remote button.
+- F11: a `KEYCODE_` name Android does not know resolves to 0 upstream and is skipped, while the codec
+  keeps it silently; warn, or carry `KeyEvent`'s name table. KEYCODE_HOME (3) in `app_keys` is not in
+  the navigation set; consider it with RF-LAUNCHER-240 F18's 109 and 160.
+- F12: the Home screen note's "last until you change the home screen here": a card added in Cards and
+  modules and a Setup re-run also push `config.json`; worth a word when the note is next touched.
+
 ## RF-PROFILES-63: the 60 profiles from upstream v2.4.0 (APPROVE WITH FOLLOW-UPS, reviews/RF-PROFILES-63.md)
 
 Done on profiles63: P1 below Android 8 (SDK 26, `DefaultPlanner.TV_MIN_SDK`, the launcher's and the
@@ -299,3 +399,106 @@ every tie the resolver settles by id. P9 the facts pass and the brand-inferred n
   correct but fragile.
 - Ruling 1: a resolver policy instead of the id order (score, then the more specific match, then an
   explicit `supersedes`, then a test failure); tcl-g10-google-tv marked superseded, not removed.
+
+## RF-PROFILES-250: the profiles from upstream v2.5.0 (branch profiles250)
+
+Done on profiles250: the submodule and the profile build at v2.5.0 (9071ec8); 42 new profiles (131
+in all, 46 brands) and 16 upstream folders refused or parked in unconverted.txt with reasons;
+corrections to the shipped lists from v2.5.0 (onn 4K ambient mode, the 65PUS8102 FrameworkLogger,
+the G07 and MSSP3 notes, the Chromecast casting note); the MediaTek and Realtek home customizers
+ask rows on haier-h32s80efx, jmgo-n1s-holan and sanyo-atv-r2, the Xiaomi smart panel on
+xiaomi-mitv-astp1. Ruling 1 in part: of two profiles with the same score the longer fingerprint
+prefix wins (`BundledProfileSource.specificity`), then the id; ProfilesTest pins every resolution
+and fails on any pair still level other than tcl-g10-google-tv. Open, for the owner or later work:
+- P11 is live on more TVs: on Google TV sets whose setup wizard owns the saved Wi-Fi (tcl-43s5k,
+  tcl-g03-google-tv, xgimi-mogo-3-pro, eko-2k-google-tv-tennoji, byintek-t5-max and others), D3
+  keeps the wizard on while launcherx is switched off, and v2.5.0 documents the wizard then claiming
+  Home and system_server crash-looping (upstream #506). Skip the switch up front in that case.
+- Casting: on Google's own hardware the Cast receiver reads its credentials from the setup wizard
+  (#361, #422), so the switch costs casting after every reboot. google-tv-streamer-4k-kirkwood is
+  the clean-up only for that reason; google-chromecast-gtv-4k still offers the switch (owner call).
+- MOKA Google TV sets: kalley-43g200's firmware brings the wizard back at every boot and the set
+  boot-looped with launcherx off; it is the clean-up only. kalley-r10g and
+  prismplus-q65-ultra-r10g are the same family with the switch; an unknown MOKA set takes the
+  generic path. A planner guard for this family is worth considering.
+- `com.tcl.channelplus` (TCL Live, a TV input) is default-off on tcl-g05-google-tv,
+  tcl-g10-google-tv and tcl-qm6k-google-tv and so in the TCL sure set; the live TV input check
+  protects it at run time, but the rows should be ask rows (P20).
+- Ruling 1, the rest: an explicit `supersedes` for true duplicates; the parked AR14 C06 lists
+  (tcl-32s5400a, tcl-l40s66e) and BeyondTV2 AR05 (tcl-beyondtv2-android-11) wait on it or on the
+  owner preferring them.
+- Parked for getprop from the contributors: sony-kd-49x8307c (fingerprint), tcl-32l5a, byintek-u4,
+  vision-2024vision43stv.
+- P15 candidates from v2.5.0 headers: remote app keys that only launcherx answered (onn 4K Plus,
+  tcl-43s5k gear, tcl-55c725, tcl-g03-google-tv, motorola-swtv-24ae-fhd); XGIMI MoGo 3 Pro's
+  xrmservice switches the stock home back on at its remote keys unless the launcher's app keys and
+  stock home redirect are set.
+- P19 on the v2.5.0 profiles: some header keep names are still not in never-disable (Fire TV
+  casting and Silk names given in short form, the VIDAA and Xiaomi casting and NAS stacks, Gboard on
+  oneplus, verizon, sharp and jvc, Assistant on the Streamer and MoGo 2); no plan changes today.
+- mtc-uk-2k-android-tv: dumpsys is disabled on that firmware, and the app reads the TV with
+  dumpsys; expect a read failure there until the probe has a fallback.
+- tcl-55c725 is parked: its product prefix alone would take tcl-65c725's tvlauncher sets.
+Taken up for 0.2.0 in RF-SAFETY-250 below: the P11 Wi-Fi item, casting, the MOKA family and
+`com.tcl.channelplus`.
+
+## RF-SAFETY-250: home screen switch safety for 0.2.0 (owner decisions, applied on release020)
+
+The owner's calls on the RF-PROFILES-250 open items, each with tests. No frozen interface changes:
+`HomeSwitchRisk` (in `:core:planner`, beside the planner) decides, `SetupMachine.homeBlock` uses it
+before planning, so Setup asks for no launcher install, look, curtain or switch, and S3 shows the
+reason in place of the home screen row, in the voice of the P1 and P2 lines; `DefaultPlanner.takeover`
+refuses a switch asked for anyway with the same reason (`HomeSwitchRisk.Risk.reason`). New
+`HomeBlock` values (a presentation field, RFC-W8-2): `WIZARD_WIFI`, `WIZARD_WIFI_UNKNOWN`, `CASTING`,
+`BOOT_LOOP`.
+- (a) The setup wizard and the saved Wi-Fi (upstream #506, #422). When a profile's switch would
+  switch the wizard off (its `setupWraith` with HOME_TAKEOVER_SETUPWRAITH) and D3 keeps it on, because
+  the TV says the wizard saved the Wi-Fi or cannot tell, the wizard would stay on with the stock
+  home off, its RecoveryActivity would take Home and system_server can crash-loop. The switch is
+  skipped up front. On the generic path the switch never touches the wizard; there only a TV that
+  says outright, at probe time, that its wizard saved the Wi-Fi is held back (a failed read keeps
+  0.1.0's behaviour). A wizard already off on the TV holds nothing back. S3 says how to get the new
+  home screen later (forget and re-add the network, or a cable, then Setup again). Tests:
+  `HomeSwitchRiskTest` and `SetupMachineTest.theSwitchIsSkippedUpFrontWhereItIsUnsafe` on the
+  shipped tcl-43s5k, tcl-g03-google-tv, xgimi-mogo-3-pro, eko-2k-google-tv-tennoji, byintek-t5-max,
+  aiwa-ai-pont-sa and polytron-2k-hayward and the generic case; `Launcher24PlanTest` and
+  `SetupMachineTest.theSetupWizardStaysOnWhileItMayOwnTheWifi` updated (the Wi-Fi stop card is no
+  longer reached from a profile's switch).
+- (b) Casting on Google's own hardware (#361, #422): google-chromecast-gtv-4k is the clean-up only,
+  like google-tv-streamer-4k-kirkwood; S3 now gives both the casting reason. By profile id, and on an
+  unprofiled set by maker Google and device sabrina, boreal or kirkwood (an emulator image also says
+  Google, so never the maker alone).
+- (c) The MOKA family boot loop: kalley-43g200's firmware turns the wizard back on at every boot and
+  a set boot-looped with launcherx off (a USB reflash was needed). kalley-r10g and
+  prismplus-q65-ultra-r10g are the clean-up only, and so is any TV matching the exact device and maker
+  pairs the three profiles match on (R3_GTV by MOKA, R10G by MOKA, R10G under Kalley) whatever its
+  Android version or exact profile; `HomeSwitchRiskTest` holds the pairs equal to the profiles' match
+  keys. The maker alone is never enough: MOKA also builds the Philips R8G (whitefield), which keeps
+  its switch.
+- (d) `com.tcl.channelplus` (TCL Live, a TV input) is an ask row on tcl-g05-google-tv,
+  tcl-g10-google-tv and tcl-qm6k-google-tv too, so it is out of the TCL sure set
+  (`ProfilesTest.tclLiveIsAlwaysAnAskRow`); curation notes added.
+- (a, closed for 0.2.0 by the owner) The generic path: without an exact profile the switch never
+  switches the setup wizard off, so whenever a setup wizard is on the TV the plan would switch the
+  stock home off while the wizard stays on, the same RecoveryActivity risk. Such a TV now gets the
+  clean-up alone, whatever the Wi-Fi answer (`HomeSwitchRisk.Risk.WIZARD_STAYS_ON`, HomeBlock
+  `WIZARD_STAYS_ON`, its own S3 line; the Wi-Fi line when the TV says the wizard saved the Wi-Fi).
+  A TV without a wizard, or with it off, keeps the switch, and a re-run on a TV whose home is
+  already ours is never held back. Tests: `HomeSwitchRiskTest.anUnknownTvWithItsSetupWizardOnGetsNoSwitch`,
+  `SetupMachineTest.theSwitchIsSkippedUpFrontWhereItIsUnsafe`. The emulator scenarios S05 and S09
+  (no profile matches the image) switch the image's wizard off before they plan, and on again after.
+- Safety rule 8 rows: TalkBack (google-chromecast-gtv-4k, tcl-g05-google-tv, tcl-g10-google-tv,
+  xiaomi-mi-box-s) and `com.google.android.tv.remote.service` (tcl-g10-google-tv) were already ask
+  rows through their accessibility and casting categories; the curated rows now say `ask: true`.
+  The scan of every shipped list and sure set found one more: `com.google.android.tv.remotecontrol.logging`
+  (google-chromecast-gtv-4k, google-tv-streamer-4k-kirkwood), off by default as telemetry, now an
+  ask row. `ProfilesTest.noAccessibilityRemoteOrPairingPackageIsDefaultOff` fails on any package of
+  the accessibility category or named like TalkBack, accessibility, the remote, pairing or the
+  remote's key services in a default-off group or a sure set (one named exception,
+  `com.amazon.device_remote_config_sync_service`, settings from Amazon's servers). The committed
+  protected-in-disable-groups report loses the two logger rows.
+Open:
+- The shared e2e wiring (`E2eWiring`) still returns null for every piece, so S01 to S05, S07 and S08
+  report PENDING in a full emulator session; only S06 and S09 build their real pieces themselves.
+  Wire it once (the real constructors, as AppGraph builds them) so the whole suite runs, and set
+  `CYT_E2E_REQUIRE_ALL=1` in the nightly job.

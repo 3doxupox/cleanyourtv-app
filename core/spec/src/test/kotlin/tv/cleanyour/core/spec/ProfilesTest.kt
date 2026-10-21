@@ -24,8 +24,8 @@ class ProfilesTest {
     private fun profile(folder: String) = DebloatTxtParser.parse(examples.first { it.folder == folder }.debloatTxt, folder)
 
     @Test fun everyConvertedUpstreamExampleParsesWithCuratedMetadata() {
-        assertEquals(93, upstream.size)
-        assertEquals(89, examples.size)
+        assertEquals(147, upstream.size)
+        assertEquals(131, examples.size)
         for (e in examples) {
             val profile = DebloatTxtParser.parse(e.debloatTxt, e.folder)
             assertEquals(e.folder, profile.id)
@@ -48,7 +48,7 @@ class ProfilesTest {
         val (bundle, problems) = ProfileConverter.convert(
             File(Fixtures.upstreamDir, "examples"),
             File(Fixtures.repoRoot, "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json"),
-            "69c93b6",
+            "9071ec8",
             unconverted,
         )
         assertEquals(emptyList(), problems)
@@ -60,7 +60,7 @@ class ProfilesTest {
     @Test fun theUnconvertedListIsPinnedToTheSubmodule() {
         val meta = ProfileMeta.decode(File(Fixtures.repoRoot, "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json").readText())
         assertEquals(upstream.map { it.folder }.filter { it !in meta.profiles }.toSet(), unconverted)
-        assertEquals(4, unconverted.size)
+        assertEquals(16, unconverted.size)
         val listed = unconvertedFile.readLines().filter { it.isNotBlank() && !it.startsWith("#") }
         assertEquals(listed.sorted(), listed, "one folder per line, sorted")
         assertTrue('\u2014' !in unconvertedFile.readText() && "-".repeat(2) !in unconvertedFile.readText())
@@ -176,12 +176,14 @@ class ProfilesTest {
     // homePossible); pinned, so a new one is a reviewed decision.
     @Test fun theProfilesWithNoKnownStockLauncher() {
         val none = BundledProfileSource.bundled.profiles.filter { it.stockLaunchers.isEmpty() && it.platform != Platform.FIRE_OS && it.platform != Platform.TCL_CN }
-        assertEquals(setOf("stellamore-t950s", "xiaomi-mitv-astp1"), none.map { it.id }.toSet())
+        assertEquals(setOf("challenger-32t22bt", "freebox-player-pop", "google-tv-streamer-4k-kirkwood", "hisense-e5q-pro", "kalley-43g200",
+            "stellamore-t950s", "verizon-stream-tv", "vidda-mt9653", "xiaomi-mitv-ansp0", "xiaomi-mitv-astp1", "xiaomi-mitv-mffu0"), none.map { it.id }.toSet())
     }
 
-    // RF-PROFILES-63 P8: where two profiles score the same for a TV, the resolver takes the first id.
-    // Every such TV is pinned here with the winner its curation note intends, and any new tie fails,
-    // so a renamed or new upstream folder can never flip a reviewed resolution silently.
+    // RF-PROFILES-63 P8: where two profiles score the same for a TV, the longer fingerprint prefix wins
+    // (ruling 1), and a pair still level goes to the first id. Every such TV is pinned here with the
+    // winner its curation note intends, and any new level pair fails, so a renamed or new upstream
+    // folder can never flip a reviewed resolution silently.
     @Test fun everyTieTheResolverSettlesIsPinned() {
         val source = BundledProfileSource()
         fun facts(model: String, device: String, brand: String, sdk: Int, fingerprint: String = "", manufacturer: String = brand) =
@@ -216,6 +218,26 @@ class ProfilesTest {
             facts("Smart TV", "C06", "TCL", 30, "TCL/C06_2K_GB/C06:11/AR2101/AR14:user/release-keys") to "hitachi-cdh-le32smart21",
             facts("Smart TV", "C06", "TCL", 30, "TCL/C06_2K_GB/C06:11/AR2101/AR20:user/release-keys") to "tcl-40s5400a",
             facts("Smart TV", "G07", "TCL", 30) to "tcl-g07-google-tv",
+            // v2.5.0 TCL lists: each build to its own list by the longer fingerprint prefix.
+            facts("BeyondTV2", "BeyondTV", "TCL", 28, "TCL/BeyondTV2/BeyondTV:9/PPR1.180610.011/AP06:user/release-keys") to "tcl-55c715",
+            facts("BeyondTV2", "BeyondTV", "TCL", 30, "TCL/BeyondTV2/BeyondTV:11/PPR1.180610.011/AR05:user/release-keys") to "tcl-55c815",
+            facts("Smart TV Pro", "BeyondTV4", "TCL", 30, "TCL/G03_4K_GB/BeyondTV4:11/RP1A.200622.001/AR09:user/release-keys") to "tcl-g03-google-tv",
+            facts("Smart TV Pro", "BeyondTV4", "TCL", 30, "TCL/G03_4K_GB/BeyondTV4:11/RP1A.200622.001/AR11:user/release-keys") to "tcl-65c725",
+            facts("unknown", "G10", "TCL", 31, "TCL/G10_4K_GB/G10:12/STT2.230203.001/x") to "tcl-55p7k",
+            // FFalcon and TCL China sets share device and firmware; the brand tells them apart, and an
+            // FFalcon set that reports TCL as its maker gets its own list by the id.
+            facts("unknown", "tcl_mt5879_cn", "FFALCON", 30, manufacturer = "TCL") to "ffalcon-65s585c-pro",
+            facts("unknown", "tcl_mt5879_cn", "TCL", 30) to "tcl-q10g-pro",
+            facts("BRAVIA 4K GB", "BRAVIA_ATV2", "Sony", 28, "Sony/BRAVIA_ATV2_EU/BRAVIA_ATV2:9/PTT1.190515.001.S52/x") to "sony-kd-55xe8596",
+            facts("BRAVIA 4K GB", "BRAVIA_ATV2", "Sony", 28, "Sony/BRAVIA_ATV2_EU/BRAVIA_ATV2:9/PTT1.190515.001.S62/x") to "sony-bravia-4k-gb",
+            // The Vidda and Hisense VIDAA_TV lists are one build; a Vidda set that reports Hisense as its
+            // maker gets the Hisense list, the subset that keeps the stock home, by the id.
+            facts("VIDAA_TV", "MT9653", "Vidda", 30, manufacturer = "Hisense") to "hisense-e5q-pro",
+            facts("VIDAA_TV", "MT9999", "Hisense", 30) to null,
+            facts("VIDAA_TV", "MT9653", "Vidda", 30) to "vidda-mt9653",
+            // The BYINTEK T5 Max is the Wanbo X5 Pro stick sold under another name: the brand decides.
+            facts("4K Google TV Stick", "YYT", "BYINTEK", 34, manufacturer = "SkyworthDigital") to "byintek-t5-max",
+            facts("4K Google TV Stick", "YYT", "SkyworthDigital", 34) to "wanbo-x5-pro",
             facts("Smart TV", "unknown", "TCL", 30) to null,
             // The shipped tcl-65c725 and tcl-g05-google-tv still match the family name alone and tie;
             // the earlier id order stands until the resolver policy (ruling 1). tcl-43c645 is parked.
@@ -229,15 +251,14 @@ class ProfilesTest {
         for (pr in profiles) {
             val m = pr.match
             val own = facts(m.models.firstOrNull() ?: "unknown", m.devices.firstOrNull() ?: "unknown", m.brand!!, m.sdkMin ?: 30, (m.fingerprintPrefix ?: "") + "x")
-            val scored = profiles.mapNotNull { o -> BundledProfileSource.score(o, own)?.let { it to o.id } }
-            val top = scored.maxOf { it.first }
+            val scored = profiles.mapNotNull { o -> BundledProfileSource.score(o, own)?.let { (it to BundledProfileSource.specificity(o)) to o.id } }
+            val top = scored.map { it.first }.maxWith(compareBy<Pair<Int, Int>>({ it.first }, { it.second }))
             scored.filter { it.first == top }.map { it.second }.toSet().takeIf { it.size > 1 }?.let { ties += it }
             assertEquals(if (pr.id == "tcl-g10-google-tv") "tcl-55s470g" else pr.id, winner(own), pr.id)
         }
-        assertEquals(setOf(
-            setOf("sony-bravia-4k-gb", "sony-bravia-4k-gb-us"), setOf("sony-bravia-4k-vh2", "sony-kd-55x85j"),
-            setOf("tcl-55s470g", "tcl-g10-google-tv"), setOf("tcl-65c735", "tcl-g05-google-tv"), setOf("tcl-c755-google-tv", "tcl-qm6k-google-tv"),
-        ), ties)
+        // The fingerprint prefix settles the BRAVIA_ATV2, BRAVIA_VH2, G05 and G08 pairs (pinned above);
+        // tcl-g10-google-tv is the one true duplicate.
+        assertEquals(setOf(setOf("tcl-55s470g", "tcl-g10-google-tv")), ties)
     }
 
     @Test fun malformedFilesFailWithTheLine() {
@@ -250,7 +271,7 @@ class ProfilesTest {
 
     @Test fun bundledProfilesEqualAFreshParse() {
         val bundle = BundledProfileSource.bundled
-        assertEquals("69c93b6", bundle.upstreamCommit)
+        assertEquals("9071ec8", bundle.upstreamCommit)
         assertEquals(examples.map { it.folder }, bundle.profiles.map { it.id })
         for (e in examples) assertEquals(DebloatTxtParser.parse(e.debloatTxt, e.folder), bundle.profiles.first { it.id == e.folder }, e.folder)
         assertEquals(SureSetGenerator.generate(bundle.profiles), bundle.sureSets)
@@ -279,6 +300,55 @@ class ProfilesTest {
             assertTrue(KnownLaunchers.TVLAUNCHER in s.stockLaunchers)
         }
         println("sure sets: " + sets.joinToString { s -> "${s.brand}=" + s.groups.flatMap { it.packages }.joinToString("/") { it.name.value } })
+    }
+
+    // RF-SAFETY-250 (d): TCL Live registers a TV input, and TV inputs are never default-off, so every
+    // list that names it asks first and the TCL sure set leaves it out.
+    @Test fun tclLiveIsAlwaysAnAskRow() {
+        val live = p("com.tcl.channelplus")
+        val profiles = BundledProfileSource.bundled.profiles
+        val listing = profiles.filter { pr -> pr.groups.any { g -> g.packages.any { it.name == live } } }
+        assertTrue(listing.map { it.id }.containsAll(listOf("tcl-g05-google-tv", "tcl-g10-google-tv", "tcl-qm6k-google-tv")), listing.map { it.id }.toString())
+        for (pr in listing) {
+            val groups = pr.groups.filter { g -> g.packages.any { it.name == live } }
+            assertTrue(groups.none { it.default == GroupDefault.DISABLE }, "${pr.id}: ${groups.map { it.id }}")
+        }
+        val tcl = SureSetGenerator.generate(profiles).single { it.brand.equals("TCL", ignoreCase = true) }
+        assertTrue(tcl.groups.flatMap { it.packages }.none { it.name == live })
+    }
+
+    // RF-LAUNCHER-250 F1: the tuner input drivers the shipped lists name are never switched off; S3
+    // shows them under "We keep these" instead of a row the run would refuse anyway.
+    @Test fun knownTunerInputDriversAreNeverDisable() {
+        val all = BundledProfileSource.bundled.profiles.associateBy { it.id }
+        assertTrue(all.getValue("sony-bravia-ae2").neverDisable.containsAll(listOf(p("com.mediatek.dtv.tvinput.atsctuner"), p("com.sony.dtv.tvinput.atsc3tuner"))))
+        assertTrue(all.getValue("prismplus-q65-ultra-r10g").neverDisable.containsAll(listOf(p("com.realtek.dtmb"), p("com.realtek.tv.atsc"), p("com.realtek.tv.isdb"))))
+    }
+
+    // Safety rule 8 (0.2.0): nothing that accessibility, the remote or remote pairing needs is ever
+    // off by default, in a shipped list or a brand sure set: accessibility services and TalkBack, the
+    // phone remote and the remote's services, pairing. Such rows are ask rows (or never-disable).
+    @Test fun noAccessibilityRemoteOrPairingPackageIsDefaultOff() {
+        val facts = BundledFactsTable()
+        val words = Regex("talkback|accessib|marvin|remote|pairing|autopair|btservice|bluetooth|(^|_)rcu(_|$)|keyhandler|globalkey|virtualkey|fivekey|smartkey|keyintercept|inputkey")
+        // Named like the remote but not it: settings downloaded from Amazon's servers.
+        val notTheRemote = setOf(p("com.amazon.device_remote_config_sync_service"))
+        fun guarded(pkg: PackageName): Boolean = pkg !in notTheRemote &&
+            (facts.lookup(pkg)?.category == "accessibility" || pkg.value.split('.').drop(1).any { words.containsMatchIn(it.lowercase()) })
+        val offenders = mutableListOf<String>()
+        val profiles = BundledProfileSource.bundled.profiles
+        for (pr in profiles) for (g in pr.groups.filter { it.default == GroupDefault.DISABLE }) for (e in g.packages)
+            if (guarded(e.name) && e.name !in pr.neverDisable) offenders += "${pr.id} ${e.name.value} (${g.id})"
+        for (sure in SureSetGenerator.generate(profiles)) for (g in sure.groups) for (e in g.packages)
+            if (guarded(e.name)) offenders += "sure set ${sure.brand} ${e.name.value}"
+        assertEquals(emptyList(), offenders, "default-off accessibility, remote or pairing packages")
+        val all = profiles.associateBy { it.id }
+        fun askRow(id: String, pkg: String) = all.getValue(id).groups.single { g -> g.packages.any { it.name == p(pkg) } }.default
+        for (id in listOf("google-chromecast-gtv-4k", "tcl-g05-google-tv", "tcl-g10-google-tv", "xiaomi-mi-box-s", "google-tv-streamer-4k-kirkwood"))
+            assertEquals(GroupDefault.ASK, askRow(id, "com.google.android.marvin.talkback"), id)
+        assertEquals(GroupDefault.ASK, askRow("tcl-g10-google-tv", "com.google.android.tv.remote.service"))
+        for (id in listOf("google-chromecast-gtv-4k", "google-tv-streamer-4k-kirkwood"))
+            assertEquals(GroupDefault.ASK, askRow(id, "com.google.android.tv.remotecontrol.logging"), id)
     }
 
     @Test fun resolveExactThenBrandThenNone() = runBlocking<Unit> {

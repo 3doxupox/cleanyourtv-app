@@ -11,7 +11,7 @@
 #           scripts/verify-release.sh (apksigner: v2 and v3, one signer, the certificate in
 #           docs/release-signer.sha256; apksigcopier compare: the signed APK is exactly this
 #           unsigned build plus a signature; scripts/check-apk.py). Run it on the tag:
-#             gh workflow run release.yml --ref v0.1.0 -f release_tag=v0.1.0
+#             gh workflow run release.yml --ref v0.2.0 -f release_tag=v0.2.0
 #
 # Every action is pinned by commit; bump them by a reviewed change.
 name: release
@@ -22,7 +22,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: "Verify the signed APK of this GitHub Release (for example v0.1.0) against this run's build"
+        description: "Verify the signed APK of this GitHub Release (for example v0.2.0) against this run's build"
         required: false
         default: ""
 

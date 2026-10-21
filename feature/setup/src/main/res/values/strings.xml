@@ -82,6 +82,12 @@
     <string name="stop_tv_refuses_home_body">{brand} only allows its own. We\'ll switch off the adverts and tracking, which is most of the win.</string>
     <string name="found_home_old_android">The new home screen needs Android 8 or newer, so this TV keeps its own. We\'ll still switch off the adverts and tracking, which is most of the win.</string>
     <string name="found_home_unknown_stock">We don\'t know this TV\'s own home screen well enough to swap it safely, so it stays. We\'ll still switch off the adverts and tracking.</string>
+    <!-- RF-SAFETY-250: home screen switches skipped up front for safety, shown in place of the home screen row -->
+    <string name="found_home_wizard_wifi">This TV\'s Wi-Fi was saved by its setup wizard. The new home screen needs the wizard off, which would forget the Wi-Fi, and with the wizard left on the TV can crash. So it keeps its own home screen. We\'ll still switch off the adverts and tracking. To swap it later, forget and re-add the network in Settings, or use a cable, then run Setup again.</string>
+    <string name="found_home_wizard_wifi_unknown">We couldn\'t check who saved this TV\'s Wi-Fi. The new home screen needs the setup wizard off, which could forget the Wi-Fi, and with the wizard left on the TV can crash. So it keeps its own home screen. We\'ll still switch off the adverts and tracking.</string>
+    <string name="found_home_casting">On this Google device the new home screen needs the setup wizard off, and without it casting from phones stops working after every restart. So it keeps its own home screen. We\'ll still switch off the adverts and tracking.</string>
+    <string name="found_home_boot_loop">On this TV family the setup wizard comes back at every restart, and with the TV\'s own home screen off that can stop the TV starting up. So it keeps its own home screen. We\'ll still switch off the adverts and tracking.</string>
+    <string name="found_home_wizard_stays_on">We don\'t know this TV well enough to switch its setup wizard off, and with the wizard left on and the TV\'s own home screen off, the TV can crash. So it keeps its own home screen. We\'ll still switch off the adverts and tracking.</string>
 
     <!-- S3a Customise sheet -->
     <string name="customise_title">Customise</string>
@@ -262,6 +268,8 @@
     <string name="done_restore_saved">Restore point saved on this phone ({date})</string>
     <string name="done_debug_note">Debugging on the TV switches off when you tap Finish</string>
     <string name="done_skipped">{name} wouldn\'t switch off; it\'s harmless.</string>
+    <!-- RF-LAUNCHER-250 F1 (owner copy): a switch-off the TV refused because the app runs the TV's inputs, on Done and in Manage -->
+    <string name="kept_tv_input">{name}. Kept: it runs the TV\'s HDMI and tuner inputs.</string>
     <string name="done_skipped_many">{count, plural, one {# thing wouldn\'t switch off; it\'s harmless.} other {# things wouldn\'t switch off; they\'re harmless.}}</string>
     <string name="done_mibox_usb">Your USB port is powered again.</string>
     <string name="done_add_card_title">Add a card to the home screen</string>

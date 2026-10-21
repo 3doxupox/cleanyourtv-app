@@ -15,6 +15,8 @@ import tv.cleanyour.core.model.SnapshotReason
 import tv.cleanyour.core.ops.FailurePolicy
 import tv.cleanyour.core.ops.ShellRenderer
 import tv.cleanyour.core.planner.Choices
+import tv.cleanyour.core.planner.WizardWifi
+import tv.cleanyour.core.planner.HomeSwitchRisk
 import tv.cleanyour.core.planner.DefaultPlanner
 import tv.cleanyour.core.planner.Plan
 import tv.cleanyour.core.planner.PlanRequest
@@ -68,13 +70,16 @@ class WhatWeFoundMatchesThePlanTest {
     // The Setup request SetupMachine.replan sends for a first visit in Simple: nothing kept, nothing
     // extra, the auto-picked dock (or the one given), the launcher and the switch when the TV allows
     // them, and (RFC-DOCK-1) the dock and look encoded by the same helper replan uses.
+    // RF-SAFETY-250: like replan, no install, look or switch where HomeSwitchRisk says so (the Wi-Fi
+    // answer as a TV that could not tell gives it).
     private fun plan(snapshot: Snapshot, chosenDock: List<PackageName>? = null): Pair<Plan, ProfileResolution> {
         val res = profiles.resolveNow(snapshot.facts)
         val profile = (res as? ProfileResolution.Exact)?.profile
+        val possible = HomeSwitchRisk.of(snapshot.facts, profile, snapshot, WizardWifi.UNKNOWN) == null
         val dock = chosenDock ?: DockRanking.pick(profile, snapshot.packages.keys, snapshot.hdmi.isNotEmpty(), profile?.liveTv, "en")
-        val choices = Choices(emptySet(), emptySet(), dock, null, installLauncher = true, takeover = true, replaceLauncherSigner = false, keepDebuggingOn = false)
+        val choices = Choices(emptySet(), emptySet(), dock, null, installLauncher = possible, takeover = possible, replaceLauncherSigner = false, keepDebuggingOn = false)
         val look = runBlocking { Look.encode(ConfigEncoder.Codec, blobs, null, dock, cards = false) }   // RFC-CARDS-1: a first visit
-        val r = planner.plan(PlanRequest.Setup(res, choices, launcher, Level.SIMPLE, look.config, look.wallpaper, curtain), snapshot, facts, emptyList())
+        val r = planner.plan(PlanRequest.Setup(res, choices, launcher, Level.SIMPLE, look.config.takeIf { possible }, look.wallpaper.takeIf { possible }, curtain), snapshot, facts, emptyList())
         return assertIs<PlanResult.Ok>(r, r.toString()).plan to res
     }
 
@@ -187,9 +192,22 @@ class WhatWeFoundMatchesThePlanTest {
         assertTrue(plan.summary.switchOffPackages.none { it in alreadyOff })
     }
 
+    // RF-SAFETY-250: a TV no profile knows keeps its switch only without a setup wizard that is on.
+    private val wizard = PackageName("com.google.android.tungsten.setupwraith")
+    private fun Snapshot.withoutWizard(): Snapshot = copy(packages = packages - wizard).let { it.copy(contentHash = tv.cleanyour.core.store.SnapshotCodec.hash(it)) }
+    private fun assertTheCleanUpAlone(snapshot: Snapshot) {
+        assertTrue(wizard in snapshot.packages)
+        val (plan, _) = plan(snapshot)
+        assertS3AgreesWithThePlan(plan)
+        assertTrue(plan.sections.isEmpty(), "no home screen switch while the wizard stays on")
+        assertTrue(plan.steps.none { it.op is Op.SetHome || it.op == Op.Disable(Samples.stockLauncher.pkg) })
+    }
+
     @Test fun unknownModel() {
         val facts = Samples.miTvFacts().copy(brand = "Acme", manufacturer = "Acme", model = "ACME-55", device = "acme55", fingerprint = "acme/acme55:9/x")
-        val snapshot = Samples.snapshot(facts = facts, packages = Samples.miTvPackages(emptySet()))
+        val withWizard = Samples.snapshot(facts = facts, packages = Samples.miTvPackages(emptySet()))
+        assertTheCleanUpAlone(withWizard)
+        val snapshot = withWizard.withoutWizard()
         val (plan, res) = plan(snapshot)
         assertIs<ProfileResolution.None>(res)
         assertS3AgreesWithThePlan(plan)
@@ -200,7 +218,8 @@ class WhatWeFoundMatchesThePlanTest {
 
     @Test fun unknownXiaomiModelWithTheBrandSureSet() {
         val facts = Samples.miTvFacts().copy(model = "MiTV-UNKNOWN", device = "unknown")
-        val (plan, res) = plan(Samples.snapshot(facts = facts, packages = Samples.miTvPackages(emptySet())))
+        assertTheCleanUpAlone(Samples.snapshot(facts = facts, packages = Samples.miTvPackages(emptySet())))
+        val (plan, res) = plan(Samples.snapshot(facts = facts, packages = Samples.miTvPackages(emptySet())).withoutWizard())
         assertIs<ProfileResolution.BrandSureSet>(res)
         assertS3AgreesWithThePlan(plan)
     }
@@ -211,7 +230,10 @@ class WhatWeFoundMatchesThePlanTest {
         // What the probe read: Android TV home is HOME, FallbackHome the other claimant, nothing off.
         assertEquals(Component(PackageName("com.google.android.tvlauncher"), ".HomeScreen"), snapshot.home.resolved)
         assertTrue(snapshot.packages.values.none { it.enabled == EnabledState.DISABLED_USER })
-        val (plan, res) = plan(snapshot)
+        // The image's setup wizard is on: no profile, so the clean-up alone. With it off (as S05 and
+        // S09 switch it off on the emulator) the switch as before.
+        assertTheCleanUpAlone(snapshot)
+        val (plan, res) = plan(snapshot.withoutWizard())
         assertTrue(res !is ProfileResolution.Exact, "the emulator is an unknown model")
         assertS3AgreesWithThePlan(plan)
 

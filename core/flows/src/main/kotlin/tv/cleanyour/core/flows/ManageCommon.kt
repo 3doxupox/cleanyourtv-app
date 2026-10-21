@@ -46,7 +46,8 @@ sealed interface ManageEffect {
     data object HapticDouble : ManageEffect
 }
 
-enum class SnackKind { PUT_BACK, SWITCHED_OFF, HOME_SAVED, MODULE_REMOVED, EXPORT_SAVED, EXPORT_FAILED, FAILED, HOME_UPDATED }
+enum class SnackKind { PUT_BACK, SWITCHED_OFF, HOME_SAVED, MODULE_REMOVED, EXPORT_SAVED, EXPORT_FAILED, FAILED, HOME_UPDATED,
+    KEPT_TV_INPUT }   // RF-LAUNCHER-250 F1: a switch-off the live check kept because it runs the TV's inputs
 
 // What a write in the Manage family is doing, for the narration row and the disabled buttons.
 sealed interface Busy {
@@ -88,7 +89,7 @@ class ManageDeps(
     val clock: Clock,
     val copy: FlowCopy,
     val encoder: ConfigEncoder = ConfigEncoder.Codec,
-    val appVersion: String = "0.1.0",
+    val appVersion: String = "0.2.0",
     val openWrites: OpenWrites = OpenWrites(),   // one per graph, shared by every Manage machine (R5-W8 O2)
 ) {
     fun tv(id: TvId): Tv? = tvs.tvs.value.firstOrNull { it.id == id }

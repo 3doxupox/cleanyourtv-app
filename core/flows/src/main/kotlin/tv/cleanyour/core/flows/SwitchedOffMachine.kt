@@ -67,7 +67,10 @@ class SwitchedOffMachine(
             send(BusyOn(null))
             load()
             when (r) {
-                is WriteResult.Done -> effect(ManageEffect.Snackbar(kind, d.nameOf(pkg), undo, pkg))
+                // RF-LAUNCHER-250 F1: kept because it runs the TV's inputs; nothing to undo.
+                is WriteResult.Done -> if (kind == SnackKind.SWITCHED_OFF && r.finished.skipped.isNotEmpty() && d.ledger.keptTvInputs(r.plan.id).isNotEmpty())
+                    effect(ManageEffect.Snackbar(SnackKind.KEPT_TV_INPUT, d.nameOf(pkg), false))
+                else effect(ManageEffect.Snackbar(kind, d.nameOf(pkg), undo, pkg))
                 WriteResult.GateCancelled, WriteResult.NoTv, is WriteResult.Paused -> {}   // Paused: the open-run card shows (O2)
                 else -> effect(ManageEffect.Snackbar(SnackKind.FAILED, d.nameOf(pkg), false))
             }

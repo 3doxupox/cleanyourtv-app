@@ -17,7 +17,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-PIN=69c93b66a75c70a9e386adff327b6a51c12addc5
+PIN=9071ec8d2f41826778f6b4c7f5f42dadc22f5b22
 . scripts/lib/forge.sh
 SECRETS="${SECRETS:-$CYT_SECRETS/cleanyourtv-launcher}"
 IMAGE="eclipse-temurin:17-jdk"
@@ -65,7 +65,10 @@ build() {
       \$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \"platforms;android-34\" \"build-tools;$BUILD_TOOLS\" >/dev/null
       echo sdk.dir=\$ANDROID_HOME > local.properties
       chmod +x gradlew
-      ./gradlew assembleRelease --no-daemon --no-build-cache --console=plain -q -Dorg.gradle.jvmargs=-Xmx1536m
+      # Launcher 2.5 can build under another application ID (gradle property launcherApplicationId, upstream
+      # #377). The app pins com.gathin.tvhome, so name it here and check the badging below.
+      ./gradlew assembleRelease --no-daemon --no-build-cache --console=plain -q -Dorg.gradle.jvmargs=-Xmx1536m \
+        -PlauncherApplicationId=com.gathin.tvhome
       ls -l app/build/outputs/apk/release/
     '" </dev/null
 }
@@ -96,7 +99,9 @@ echo "==> sign both builds with the launcher release key (in memory), compare an
     echo \"identical after signing: yes\"
     mv /src/signed-a.apk /src/cleanyourtv-launcher.apk
     \$BT/apksigner verify --verbose --print-certs /src/cleanyourtv-launcher.apk | grep -E \"^Verified using|^Signer #1 certificate (DN|SHA-256)|^Number of signers\"
-    \$BT/aapt2 dump badging /src/cleanyourtv-launcher.apk | head -1
+    badging=\$(\$BT/aapt2 dump badging /src/cleanyourtv-launcher.apk | head -1)
+    echo \"\$badging\"
+    printf %s \"\$badging\" | grep -q \"^package: name=.com[.]gathin[.]tvhome. \" || { echo \"not the com.gathin.tvhome package\" >&2; exit 1; }
     sha256sum /src/cleanyourtv-launcher.apk; stat -c \"size %s\" /src/cleanyourtv-launcher.apk
   '"
 

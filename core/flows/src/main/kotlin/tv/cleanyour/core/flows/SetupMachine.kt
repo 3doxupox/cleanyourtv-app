@@ -47,6 +47,7 @@ import tv.cleanyour.core.model.TvId
 import tv.cleanyour.core.model.WizardDraft
 import tv.cleanyour.core.planner.Choices
 import tv.cleanyour.core.planner.DefaultPlanner
+import tv.cleanyour.core.planner.HomeSwitchRisk
 import tv.cleanyour.core.planner.Plan
 import tv.cleanyour.core.planner.PlanKind
 import tv.cleanyour.core.planner.PlanRequest
@@ -89,8 +90,10 @@ data class ThemeOption(val id: String, val name: String, val description: String
 enum class Reconnect { TRYING, BACK, GAVE_UP }
 enum class Finishing { SWITCHING, DONE }
 
-// Why S3 offers no new home screen (RF-PROFILES-63 P1, P2); NONE when the switch is offered.
-enum class HomeBlock { NONE, TV_REFUSES, OLD_ANDROID, UNKNOWN_HOME }
+// Why S3 offers no new home screen (RF-PROFILES-63 P1, P2); NONE when the switch is offered. The
+// last five are the switches skipped up front for safety (RF-SAFETY-250, HomeSwitchRisk).
+enum class HomeBlock { NONE, TV_REFUSES, OLD_ANDROID, UNKNOWN_HOME, WIZARD_WIFI, WIZARD_WIFI_UNKNOWN, CASTING, BOOT_LOOP,
+    WIZARD_STAYS_ON }
 
 // Presentation details the frozen SetupState has no field for (RFC-W8-2). Never a source of truth:
 // everything here is derived from the state, the plan, the draft or a live call.
@@ -119,6 +122,7 @@ data class SetupExtras(
     val restartSlow: Boolean = false,            // UX 4.8 at 3 minutes
     val restartReenabled: Int = 0,               // "2 things came back on after the restart; switched off again."
     val doneLines: List<String> = emptyList(),   // refused ops named on Done (UX 4.14)
+    val doneKept: List<String> = emptyList(),    // RF-LAUNCHER-250 F1: switch-offs kept because they run the TV's inputs
     val restorePointPushed: Boolean = false,     // D44
     val dock: List<AppChoice> = emptyList(),     // D4 row and the dock sheet (S3b): the dock, then Row 2 and Row 3
     val apps: List<AppChoice> = emptyList(),     // installed apps for the dock sheet
@@ -616,19 +620,27 @@ class SetupMachine(
 
     private fun profile(): Profile? = (resolution as? ProfileResolution.Exact)?.profile
 
-    private fun homePossible(): Boolean = homeBlock() == HomeBlock.NONE
-
     // Why the new home screen is not offered: the TV refuses other home screens (UX 4.6); it runs an
     // Android older than the launcher's (RF-PROFILES-63 P1: the clean-up only, no install, look,
-    // curtain or switch); or its profile knows no stock launcher the switch could hand Home back to
-    // (P2: the clean-up only, instead of a plan the planner refuses as a whole).
-    private fun homeBlock(): HomeBlock {
+    // curtain or switch); the switch is known to be unsafe on it (RF-SAFETY-250: the MOKA family's
+    // boot loop, casting on Google's own hardware); its profile knows no stock launcher the switch
+    // could hand Home back to (P2: the clean-up only, instead of a plan the planner refuses as a
+    // whole); or the setup wizard has to stay on for the Wi-Fi (D3) while the switch needs it off.
+    private fun homeBlock(snap: Snapshot, wifi: WizardWifi): HomeBlock {
         val f = deviceFacts ?: return HomeBlock.NONE
         val p = profile()
+        // Already ours (a re-run): there is no switch to skip, as in the planner's takeover.
+        val ours = snap.home.resolved?.pkg == deps.launcherPin.bundled().pkg
+        val risk = if (ours) null else HomeSwitchRisk.of(f, p, snap, wifi)
         return when {
             f.installRefusal || p?.platform == Platform.FIRE_OS || p?.platform == Platform.TCL_CN -> HomeBlock.TV_REFUSES
             f.sdk < DefaultPlanner.TV_MIN_SDK -> HomeBlock.OLD_ANDROID
+            risk == HomeSwitchRisk.Risk.BOOT_LOOP -> HomeBlock.BOOT_LOOP
+            risk == HomeSwitchRisk.Risk.CASTING -> HomeBlock.CASTING
             p != null && p.stockLaunchers.isEmpty() -> HomeBlock.UNKNOWN_HOME
+            risk == HomeSwitchRisk.Risk.WIZARD_WIFI -> HomeBlock.WIZARD_WIFI
+            risk == HomeSwitchRisk.Risk.WIZARD_WIFI_UNKNOWN -> HomeBlock.WIZARD_WIFI_UNKNOWN
+            risk == HomeSwitchRisk.Risk.WIZARD_STAYS_ON -> HomeBlock.WIZARD_STAYS_ON
             else -> HomeBlock.NONE
         }
     }
@@ -646,14 +658,16 @@ class SetupMachine(
         val theme = draft.themeId?.let { id -> deps.themes.bundled().firstOrNull { it.id == id } }
         val columns = DockLayers.columnsOf(theme?.doc)
         val dock = DockLayers.trim(draft.dock ?: deps.dock.pick(profile(), snap.packages.keys, snap.hdmi.isNotEmpty(), profile()?.liveTv, deps.locale()), columns)
-        val possible = homePossible()
+        val wifi = wizardWifi(s, snap)
+        val block = homeBlock(snap, wifi)
+        val possible = block == HomeBlock.NONE
         val choices = Choices(
             kept = draft.kept, extraOff = draft.extraOff, dock = dock,
             theme = theme,
             installLauncher = possible, takeover = possible,
             replaceLauncherSigner = installed?.signer?.let { it != launcher.signer } ?: false,
             keepDebuggingOn = draft.keepDebuggingOn,
-            wizardWifi = wizardWifi(s, snap),
+            wizardWifi = wifi,
         )
         // RFC-DOCK-1: the same config.json Manage's ApplyTheme would push for this dock and look, so
         // the plan, its hash and "Show commands" carry it. Only when the switch is possible: without
@@ -681,7 +695,7 @@ class SetupMachine(
                 deps.log.line("setup: plan ready, ${r.plan.steps.size} steps, ${r.plan.steps.count { it.op is Op.Disable }} to switch off, " +
                     "level ${draft.level}, dock ${dock.size}, ${apps.size} dock candidates")
                 mutableExtras.update {
-                    it.copy(commands = commandsOf(r.plan), unknownModel = res !is ProfileResolution.Exact, homePossible = possible, homeBlock = homeBlock(),
+                    it.copy(commands = commandsOf(r.plan), unknownModel = res !is ProfileResolution.Exact, homePossible = possible, homeBlock = block,
                         noScreenLock = !deps.screenLock.available(), draft = draft, dock = dock.map { p -> AppChoice(p, label(p)) }, apps = apps,
                         dockColumns = columns)
                 }
@@ -881,7 +895,11 @@ class SetupMachine(
             plan != null -> plan.steps.count { it.op is Op.Disable } - skipped.count { it.op is Op.Disable }
             else -> 0
         }
-        val skippedNames = skipped.mapNotNull { (it.op as? Op.Disable)?.pkg }.map { nameOfPkg(it) }
+        // RF-LAUNCHER-250 F1: a package the live check kept because it runs the TV's inputs gets its
+        // own line on Done, never the generic "it's harmless" one.
+        val kept = plan?.let { deps.ledger.keptTvInputs(it.id) }.orEmpty()
+        val keptNames = skipped.filter { it.index in kept }.mapNotNull { (it.op as? Op.Disable)?.pkg }.map { nameOfPkg(it) }
+        val skippedNames = skipped.filter { it.index !in kept }.mapNotNull { (it.op as? Op.Disable)?.pkg }.map { nameOfPkg(it) }
         val p = profile()
         val recommended = p == null || Quirk.HOME_TAKEOVER_SETUPWRAITH in p.quirks || p.tested?.rebootTested != true
         val restorePointAt = deps.snapshots.latest(tvId)?.takenAtMs ?: deps.clock.nowMs()
@@ -901,7 +919,7 @@ class SetupMachine(
         setupHome?.takeIf { (pushedDigest, _) -> pushedDigest == digest }?.let { (_, choice) ->
             deps.homePrefs?.let { prefs -> attempt { prefs.save(tvId, choice) } }
         }
-        mutableExtras.update { it.copy(doneLines = skippedNames) }
+        mutableExtras.update { it.copy(doneLines = skippedNames, doneKept = keptNames) }
         send(Ev.ShowDone(tvId, DoneSummary(off, homeOn, restorePointAt, skippedNames, recommended)))
         session?.let { s -> mutableExtras.update { it.copy(restorePointPushed = deps.restorePoint.write(done, s, p)) } }
     }
@@ -1226,11 +1244,18 @@ class SetupMachine(
         return (wraith != null && wraith in claimants) || claimants.any { "setupwraith" in it.value.lowercase() }
     }
 
+    // A launcher of someone else's that answers Home. Not one: the setup wizard, the settings apps,
+    // com.android.provision, and a vendor's FallbackHome (com.tcl.keycustomfunctionservice/.FallbackHome),
+    // a placeholder the firmware shows when no launcher is enabled (upstream #435).
     private fun otherLauncherName(): String? {
         val stock = profile()?.stockLaunchers?.map { it.pkg }.orEmpty().toSet()
         val wraith = profile()?.setupWraith
-        val other = snapshot?.home?.claimants?.map { it.component.pkg }
-            ?.firstOrNull { it != Launcher.pkg && it !in stock && it != wraith && "setupwraith" !in it.value.lowercase() && "settings" !in it.value.lowercase() }
+        val other = snapshot?.home?.claimants?.map { it.component }
+            ?.filter { !it.cls.endsWith("FallbackHome") }?.map { it.pkg }
+            ?.firstOrNull {
+                it != Launcher.pkg && it !in stock && it != wraith && it.value != "com.android.provision" &&
+                    "setupwraith" !in it.value.lowercase() && "settings" !in it.value.lowercase()
+            }
             ?: return null
         return nameOfPkg(other)
     }

@@ -138,6 +138,24 @@ owning stream supplies bodies):
   Not frozen, added after review: `SavedWifiOwners.savedWifi(session): SavedWifi` (replacing the
   owners set), `AdbProber(..., known)`, `CopyKey.STOP_HOME_SETUPWRAITH_WIFI_UNKNOWN_BODY`,
   `HomeScreenState.tvSideSettings`.
+- `core.spec.LauncherConfigDoc` gains `launchActions, appLabels, appBanners, inputKeyKeycodes,
+  appKeys, cinematicHome, wallpaperRotationMinutes, wallpaperDim, raceCalendar` (nullable, defaulted
+  null) and `EffectiveConfig` the same nine non-null (the three maps as `Map<String, String>`,
+  `raceCalendar: List<LauncherRace>`), defaulted to launcher v2.5.0's `config.xml` values, after the
+  RFC-W4-2 fields and marked `// RFC-W4-3`; 5.7 gains `data class LauncherRace(round, name, place,
+  sessions)` and `data class LauncherRaceSession(name, start)` (applied on launcher250 2026-10-21, for
+  review; RFCS.md carries the RFC). App-design edits for the lead (not made on the branch):
+  PRODUCT-SPEC 5.7 (an RFC-W4-3 paragraph like RFC-W4-2's, and "built from v2.5.0") and SECURITY V1
+  (the key services sentence in LAUNCHER-250-PLAN section 1).
+  Made on release020 (RF-LAUNCHER-250 F6; the app-design folder has no history): PRODUCT-SPEC 5.7
+  (the RFC-W4-3 paragraph with `LauncherRace` and `LauncherRaceSession`, "built from v2.5.0", the
+  six-columns to four-tiles cut), SECURITY V1 (the key services sentence, ThemeProvider) and 3.3 (the
+  `accessibility_enabled 0` step of the restore and "Stop here" finishing it), LAUNCHER-250-PLAN
+  sections 2 and 5. Not frozen, listed for the record: `core.planner.HomeSwitchRisk`, the `HomeBlock`
+  values `WIZARD_WIFI`, `WIZARD_WIFI_UNKNOWN`, `CASTING` and `BOOT_LOOP` (RF-SAFETY-250),
+  `SetupExtras.doneKept`, `SnackKind.KEPT_TV_INPUT`, `RunLedger.keptTvInputs`,
+  `DefaultEngine.PROTECTED` and `KEPT_TV_INPUT` (RF-LAUNCHER-250 F1), the `:e2e:emulatorTestTheme` task,
+  HomeBlock `WIZARD_STAYS_ON` (RF-SAFETY-250), `AppGraph.versionOf` (the app version from the APK; 0.2.0, versionCode 2).
 
 Added because the section 5 prose names it: `core.probe.ProbeException(stage, detail)` (R0: 7).
 

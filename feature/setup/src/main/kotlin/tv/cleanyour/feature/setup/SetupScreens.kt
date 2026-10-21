@@ -210,10 +210,16 @@ fun FoundScreen(state: SetupState.Found, extras: SetupExtras, actions: SetupActi
             }
             TextActionRow(row, stringResource(R.string.found_home_change), { actions.intent(SetupIntent.Open(Sheet.DOCK)) }, Modifier.padding(top = 8.dp))
         } else {
-            // RF-PROFILES-63 P1, P2: an older Android, or a home screen we do not know, says so plainly.
+            // RF-PROFILES-63 P1, P2: an older Android, or a home screen we do not know, says so plainly;
+            // RF-SAFETY-250: so does a switch skipped up front for safety.
             val line = when (extras.homeBlock) {
                 HomeBlock.OLD_ANDROID -> stringResource(R.string.found_home_old_android)
                 HomeBlock.UNKNOWN_HOME -> stringResource(R.string.found_home_unknown_stock)
+                HomeBlock.WIZARD_WIFI -> stringResource(R.string.found_home_wizard_wifi)
+                HomeBlock.WIZARD_WIFI_UNKNOWN -> stringResource(R.string.found_home_wizard_wifi_unknown)
+                HomeBlock.CASTING -> stringResource(R.string.found_home_casting)
+                HomeBlock.BOOT_LOOP -> stringResource(R.string.found_home_boot_loop)
+                HomeBlock.WIZARD_STAYS_ON -> stringResource(R.string.found_home_wizard_stays_on)
                 else -> msg(R.string.stop_tv_refuses_home_body, "brand" to (extras.tvName ?: ""))
             }
             Banner(line, BannerTone.INFO, Modifier.padding(top = 16.dp))
@@ -574,6 +580,7 @@ fun DoneScreen(state: SetupState.Done, extras: SetupExtras, actions: SetupAction
                 state = if (finishing == Finishing.SWITCHING) CheckState.PENDING else CheckState.DONE,
             )
         }
+        for (name in extras.doneKept) Body(msg(R.string.kept_tv_input, "name" to name), Modifier.padding(start = 4.dp, top = 12.dp))
         when {
             s.skipped.size == 1 -> Body(msg(R.string.done_skipped, "name" to s.skipped.single()), Modifier.padding(start = 4.dp, top = 12.dp))
             s.skipped.size > 1 -> Body(msg(R.string.done_skipped_many, "count" to s.skipped.size), Modifier.padding(start = 4.dp, top = 12.dp))

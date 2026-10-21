@@ -92,6 +92,47 @@ class LauncherConfigCodecTest {
         assertTrue("keycode 19, 66" in ok("{\"settings_key_keycodes\": [19, 66, 19]}").warnings.single())
     }
 
+    // RFC-W4-3: the nine keys launcher v2.5.0 added, read as Config.java reads them.
+    @Test fun theV25KeysAreModelled() {
+        val r = ok("{\"launch_actions\": [\" com.telekom.onetv.tv.pl=com.telekom.onetv.tv.pl.action.PROGRAM_GUIDE \"], " +
+            "\"app_labels\": [\"com.telekom.onetv.tv.pl=TV\", \"com.telekom.onetv.tv.pl=Live\"], \"app_banners\": [\"com.telekom.onetv.tv.pl=banner_tv\"], " +
+            "\"input_key_keycodes\": [192], \"app_keys\": [\"190:com.google.android.youtube.tv\"], \"cinematic_home\": true, " +
+            "\"wallpaper_rotation_minutes\": 30, \"wallpaper_dim\": 40, \"race_calendar\": [{\"round\": 18, \"name\": \"United States Grand Prix\", " +
+            "\"place\": \"Austin\", \"sessions\": [{\"name\": \"Race\", \"start\": \"2026-10-25T19:00:00Z\"}, {\"name\": \"fp1\", \"start\": \"2026-10-23T17:30:00Z\"}]}]}")
+        assertEquals(emptyList(), r.warnings)
+        val e = LauncherConfigCodec.effective(r.doc, LauncherConfigCodec.builtInDefaults)
+        assertEquals(mapOf("com.telekom.onetv.tv.pl" to "com.telekom.onetv.tv.pl.action.PROGRAM_GUIDE"), e.launchActions)
+        assertEquals(mapOf("com.telekom.onetv.tv.pl" to "Live"), e.appLabels, "a later entry for a package wins")
+        assertEquals(mapOf("com.telekom.onetv.tv.pl" to "banner_tv"), e.appBanners)
+        assertEquals(listOf(192) to listOf("190:com.google.android.youtube.tv"), e.inputKeyKeycodes to e.appKeys)
+        assertEquals(Triple(true, 30, 40), Triple(e.cinematicHome, e.wallpaperRotationMinutes, e.wallpaperDim))
+        assertEquals(listOf(LauncherRace(18, "United States Grand Prix", "Austin", listOf(
+            LauncherRaceSession("FP1", "2026-10-23T17:30:00Z"), LauncherRaceSession("RACE", "2026-10-25T19:00:00Z")))), e.raceCalendar)
+        // Our own encoding reads back the same, and an older push (no new keys) is unchanged.
+        assertEquals(r.doc, ok(LauncherConfigCodec.encode(r.doc).decodeToString()).doc)
+        assertEquals("{\n  \"columns\": 6\n}\n", LauncherConfigCodec.encode(LauncherConfigDoc(columns = 6)).decodeToString())
+        // What the launcher skips, it says so.
+        val bad = ok("{\"launch_actions\": [\"no equals\", \"=x\", \"Not A Package=x\"], \"app_banners\": [\"a.b=banner_none\"], " +
+            "\"app_keys\": [\"x:a.b\", \"190:\", \"0:a.b\"], \"wallpaper_dim\": 91, \"race_calendar\": [{\"sessions\": [{\"name\": \"FP1\", \"start\": \"tomorrow\"}]}]}")
+        assertEquals(10, bad.warnings.size, bad.warnings.joinToString("\n"))
+        assertEquals(emptyList(), LauncherConfigCodec.effective(bad.doc, LauncherConfigCodec.builtInDefaults).raceCalendar)
+        assertFailsWith<IllegalArgumentException> { LauncherConfigCodec.encode(LauncherConfigDoc(appKeys = listOf(" 190:a.b"))) }
+        assertFailsWith<IllegalArgumentException> { LauncherConfigCodec.encode(LauncherConfigDoc(wallpaperDim = 91)) }
+        assertFailsWith<IllegalArgumentException> {
+            LauncherConfigCodec.encode(LauncherConfigDoc(raceCalendar = listOf(LauncherRace(1, "x", "y", listOf(LauncherRaceSession("fp1", "2026-10-23T17:30:00Z"))))))
+        }
+    }
+
+    // SECURITY.md V1: with launcher 2.5's key services on (InputKeyService, HomeKeyService), a
+    // navigation button in input_key_keycodes or app_keys is taken in every app.
+    @Test fun navigationKeysInTheKeyServicesWarn() {
+        val r = ok("{\"input_key_keycodes\": [192, 23], \"app_keys\": [\"KEYCODE_DPAD_CENTER:a.b\", \"4:a.b\", \"190:a.b\"]}")
+        assertEquals(2, r.warnings.size, r.warnings.toString())
+        assertTrue("keycode 23" in r.warnings[0] && "input switcher" in r.warnings[0], r.warnings[0])
+        assertTrue("keycode 23, 4" in r.warnings[1] && "any app" in r.warnings[1], r.warnings[1])
+        assertEquals(emptyList(), ok("{\"input_key_keycodes\": [192], \"app_keys\": [\"KEYCODE_BUTTON_3:a.b\"]}").warnings)
+    }
+
     @Test fun festivalLikeFestivalJava() {
         fun e(json: String) = LauncherConfigCodec.effective(ok(json).doc, LauncherConfigCodec.builtInDefaults)
         assertEquals("", e("{\"festival\": \"x\", \"festival_until\": \"2026-02-30\"}").festival)

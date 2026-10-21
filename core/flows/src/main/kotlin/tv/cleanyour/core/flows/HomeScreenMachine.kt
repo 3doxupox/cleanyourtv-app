@@ -74,8 +74,12 @@ class HomeScreenMachine(
         if (before.busy != null && event is HomeScreenIntent) return
         when (event) {
             is HomeScreenIntent.SetDock -> scope.launch { apply(event.dock, after.themeId) }
-            is HomeScreenIntent.SetTheme -> scope.launch { apply(after.dock.map { it.pkg }, event.id) }
-            HomeScreenIntent.RestoreMine -> scope.launch { apply(after.dock.map { it.pkg }, after.themeId) }
+            // RF-LAUNCHER-250 F4: a new look and "Restore mine" push the dock as it was saved, as
+            // ModulesMachine does, not the list as the TV shows it now (an app since gone or switched
+            // off would drop out and change dock_apps, and the TV's own dock edit would stop applying,
+            // upstream #340). Only SetDock changes the list.
+            is HomeScreenIntent.SetTheme -> scope.launch { apply(savedDock() ?: after.dock.map { it.pkg }, event.id) }
+            HomeScreenIntent.RestoreMine -> scope.launch { apply(savedDock() ?: after.dock.map { it.pkg }, after.themeId) }
             HomeScreenIntent.PreviewStock -> after.stock?.let { stock -> scope.launch { send(Preview(writer.preview(tvId, PlanRequest.UseStockHome(stock)))) } }
             HomeScreenIntent.UseStock -> after.stock?.let { stock -> scope.launch { useStock(stock) } }
             HomeScreenIntent.PreviewUpdate -> scope.launch { previewUpdate() }
@@ -163,6 +167,8 @@ class HomeScreenMachine(
     }
 
     private fun theme(id: String?) = id?.let { d.themes.bundled().firstOrNull { t -> t.id == it } }
+
+    private suspend fun savedDock(): List<PackageName>? = d.homePrefs.load(tvId)?.dock
 
     // Dock and look go to the TV as one config.json (LauncherConfigCodec), pushed by an ApplyTheme
     // plan; the digest we wrote is remembered so the next connect can warn on drift. dock_apps is

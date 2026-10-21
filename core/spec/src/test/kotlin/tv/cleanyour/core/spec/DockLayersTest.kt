@@ -11,6 +11,32 @@ import kotlin.test.assertNull
 class DockLayersTest {
     private fun apps(n: Int) = List(n) { PackageName("com.example.app$it") }
 
+    // Launcher 2.5 keeps a dock or tile order set on the TV (Edit dock, Reorder; files/order.txt)
+    // only while dock_apps is the same list (Order.ranks), so a new look must write the same
+    // dock_apps for the same dock: the Home screen note promises that a new look keeps it.
+    @Test fun aNewLookWritesTheSameDockApps() {
+        val looks = BundledThemeSource().bundled().map { it.doc } + LauncherConfigDoc()
+        for (n in listOf(1, 4, 8, 12)) {
+            val written = looks.map { DockLayers.applyTo(it, apps(n)).dockApps }
+            assertEquals(listOf(apps(n)), written.distinct(), "$n apps")
+        }
+    }
+
+    // RF-LAUNCHER-250 F4: up to 12 apps every look writes the same dock_apps. Six columns holds up
+    // to 18 (the dock and two rows of six); a four-tile look holds 12, so a longer dock is cut to its
+    // first 12 there and the TV's own dock edit for the longer list no longer applies (upstream #340).
+    @Test fun aDockOfMoreThanTwelveAppsIsCutByAFourTileLook() {
+        val looks = BundledThemeSource().bundled().associateBy { it.id }
+        val six = looks.getValue("six-columns").doc
+        assertEquals(6, DockLayers.columnsOf(six))
+        for (n in listOf(13, 18)) {
+            assertEquals(apps(n), DockLayers.applyTo(six, apps(n)).dockApps, "$n apps under Six columns")
+            for (id in listOf("default", "aurora")) assertEquals(apps(12), DockLayers.applyTo(looks.getValue(id).doc, apps(n)).dockApps, "$n apps under $id")
+            assertEquals(apps(12), DockLayers.applyTo(LauncherConfigDoc(), apps(n)).dockApps)
+        }
+        assertEquals(apps(18), DockLayers.applyTo(six, apps(20)).dockApps, "never a fourth row")
+    }
+
     @Test fun theListIsCutIntoRowsOfColumns() {
         assertEquals(emptyList(), DockLayers.rows(apps(0), 4))
         assertEquals(listOf(apps(3)), DockLayers.rows(apps(3), 4))

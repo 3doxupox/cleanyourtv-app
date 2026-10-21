@@ -7,8 +7,8 @@ Reads the output of
 adds the SHA-256 of each artifact from gradle/verification-metadata.xml. No Gradle plugin, so
 the build itself and its verification metadata stay unchanged.
 
-  sbom.py deps.txt --verification gradle/verification-metadata.xml --version 0.1.0 \
-      --apk-sha256 HEX -o cleanyourtv-0.1.0.cdx.json
+  sbom.py deps.txt --verification gradle/verification-metadata.xml --version 0.2.0 \
+      --apk-sha256 HEX -o cleanyourtv-0.2.0.cdx.json
 
 Deterministic: components sorted, the timestamp taken from SOURCE_DATE_EPOCH. Stdlib only.
 """

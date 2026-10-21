@@ -11,8 +11,8 @@ private fun resourceBytes(path: String): ByteArray? = BundledProfileSource::clas
 
 // Profiles shipped inside the APK (D28), converted at build time from the pinned upstream
 // examples. resolve(): an exact profile by model or device (with brand, SDK range and
-// fingerprint prefix when the profile sets them), else the brand sure set (D26), else None with
-// the generic stock launcher allowlist.
+// fingerprint prefix when the profile sets them; the highest score, then the longest fingerprint
+// prefix), else the brand sure set (D26), else None with the generic stock launcher allowlist.
 class BundledProfileSource(private val bundle: ProfileBundle = bundled) : ProfileSource {
     override suspend fun all(): List<Profile> = bundle.profiles
 
@@ -22,7 +22,7 @@ class BundledProfileSource(private val bundle: ProfileBundle = bundled) : Profil
 
     fun resolveNow(facts: DeviceFacts): ProfileResolution {
         val exact = bundle.profiles.mapNotNull { p -> score(p, facts)?.let { it to p } }
-            .sortedWith(compareByDescending<Pair<Int, Profile>> { it.first }.thenBy { it.second.id })
+            .sortedWith(compareByDescending<Pair<Int, Profile>> { it.first }.thenByDescending { specificity(it.second) }.thenBy { it.second.id })
             .firstOrNull()?.second
         if (exact != null) return ProfileResolution.Exact(exact)
         val sure = bundle.sureSets.firstOrNull { it.brand.equals(facts.brand, ignoreCase = true) || it.brand.equals(facts.manufacturer, ignoreCase = true) }
@@ -35,6 +35,11 @@ class BundledProfileSource(private val bundle: ProfileBundle = bundled) : Profil
             val bytes = resourceBytes(ProfileBundleJson.RESOURCE) ?: error("profiles.json missing from the :core:spec resources")
             ProfileBundleJson.decode(bytes.decodeToString())
         }
+
+        // RF-PROFILES-63 ruling 1: of two profiles with the same score, the one whose fingerprint
+        // prefix is longer names the firmware more exactly and wins (none counts as 0); only a pair
+        // that is still level falls back to the id, and ProfilesTest pins every such pair.
+        fun specificity(p: Profile): Int = p.match.fingerprintPrefix?.length ?: 0
 
         // 3 for model and device, 2 for the model, 1 for the device; null when it does not match.
         fun score(p: Profile, f: DeviceFacts): Int? {

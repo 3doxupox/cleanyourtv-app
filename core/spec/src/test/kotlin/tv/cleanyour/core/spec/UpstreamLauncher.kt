@@ -11,7 +11,9 @@ import org.w3c.dom.Element
 
 // Runs the real upstream Config.java against a folder that plays the launcher's external files
 // dir, with resource values read from the matching config.xml. `pinned` is the launcher the app
-// bundles (v2.4.0, Config.java and Festival.java copied from the submodule at build time); the
+// bundles (v2.5.0: Config.java and Festival.java copied from the submodule at build time,
+// WallpaperRotation.java and RaceWeekend.java vendored in the test sources and checked against
+// the submodule); the
 // other is launcher 2.0 (main 1bbf0c9, vendored in the test sources), the model of a TV that has
 // not been updated yet.
 class UpstreamLauncher(val pinned: Boolean, private val dir: File) {
@@ -20,7 +22,7 @@ class UpstreamLauncher(val pinned: Boolean, private val dir: File) {
         else File(javaClass.getResource("/upstream/config-1bbf0c9.xml")!!.toURI()),
     )
 
-    // The launcher's private launcher_settings (v2.4.0): the choices made on the TV. It lives as
+    // The launcher's private launcher_settings (v2.4.0 and later): the choices made on the TV. It lives as
     // long as this launcher, as it does on a TV, so a test can make a choice and push after it.
     val choices = MemoryPreferences()
 
@@ -52,12 +54,13 @@ class UpstreamLauncher(val pinned: Boolean, private val dir: File) {
     }
 
     // The EffectiveConfig the launcher starts from with no overlay (Config.load's resource reads).
-    // Launcher 2.0 does not read the keys v2.4.0 added; it gets the built-in values for them.
+    // Launcher 2.0 does not read the keys v2.4.0 and v2.5.0 added; it gets the built-in values for them.
     fun defaults(): EffectiveConfig {
         @Suppress("UNCHECKED_CAST")
         fun list(k: String) = (values.getValue(k) as Array<String>).toList()
         fun s(k: String) = (values.getValue(k) as String).javaTrim()
         fun b(k: String) = values.getValue(k) as Boolean
+        fun map(k: String) = list(k).mapNotNull { ConfigCodecImpl.packageMapEntry(it.javaTrim()) }.toMap()
         val base = EffectiveConfig(
             dockApps = list("dock_apps"), hiddenApps = list("hidden_apps"), liveTvPackage = s("live_tv_package"),
             liveTvAction = s("live_tv_action"), sourcePanelService = s("source_panel_service"), sourcePanelAction = s("source_panel_action"),
@@ -75,6 +78,9 @@ class UpstreamLauncher(val pinned: Boolean, private val dir: File) {
             appLibrary = b("app_library"), skyIntensity = values.getValue("sky_intensity") as Int,
             settingsKeyKeycodes = (values.getValue("settings_key_keycodes") as IntArray).toList(),
             settingsKeyPanel = b("settings_key_panel"),
+            launchActions = map("launch_actions"), appLabels = map("app_labels"), appBanners = map("app_banners"),
+            inputKeyKeycodes = (values.getValue("input_key_keycodes") as IntArray).toList(),
+            appKeys = list("app_keys").map { it.javaTrim() }.filter { it.isNotEmpty() }, cinematicHome = b("cinematic_home"),
         )
     }
 
