@@ -63,7 +63,7 @@
       "liveTv": "com.amazon.tv.livetv",
       "setupWraith": null,
       "quirks": [],
-      "neverDisable": ["com.amazon.tv.launcher", "com.amazon.firehomestarter", "com.amazon.tv.ime", "com.amazon.venezia", "com.amazon.tigris", "com.amazon.vizzini", "com.amazon.tv.livetv", "com.amazon.tv.settings.v2", "com.mediatek.tvinput", "com.amazon.cast.sink", "com.apple.airplay.amazon.airplay"],
+      "neverDisable": ["com.amazon.tv.launcher", "com.amazon.firehomestarter", "com.amazon.tv.ime", "com.amazon.venezia", "com.amazon.tigris", "com.amazon.vizzini", "com.amazon.tv.livetv", "com.amazon.tv.settings.v2", "com.mediatek.tvinput", "com.amazon.cast.sink", "com.apple.airplay.amazon.airplay", "com.amazon.wifilocker"],
       "suggestedDock": [],
       "tested": { "by": "maxhayim (PR #394)", "firmware": "Fire OS 7.7.1.7 (PS7717.5741N)", "daysLivedWith": null, "rebootTested": false },
       "groups": {
@@ -131,7 +131,7 @@
       "liveTv": null,
       "setupWraith": null,
       "quirks": [],
-      "neverDisable": ["com.amazon.tv.launcher", "com.amazon.firehomestarter", "com.amazon.tv.ime", "com.amazon.venezia", "com.amazon.tigris", "com.amazon.vizzini", "com.amazon.logan", "com.amazon.tv.oobe", "com.amazon.tv.forcedotaupdater.v2", "com.amazon.firebat", "com.amazon.tv.support", "com.amazon.tv.matter", "com.amazon.tv.ottssocompanionapp", "com.amazon.imp", "com.amazon.adep", "com.amazon.platform.fdra", "com.amazon.tv.turnstile", "com.amazon.tv.consents", "com.amazon.ssm", "com.amazon.ssmsys", "com.amazon.tiramisubootsupport", "com.amazon.d3"],
+      "neverDisable": ["com.amazon.tv.launcher", "com.amazon.firehomestarter", "com.amazon.tv.ime", "com.amazon.venezia", "com.amazon.tigris", "com.amazon.vizzini", "com.amazon.logan", "com.amazon.tv.oobe", "com.amazon.tv.forcedotaupdater.v2", "com.amazon.firebat", "com.amazon.tv.support", "com.amazon.tv.matter", "com.amazon.tv.ottssocompanionapp", "com.amazon.imp", "com.amazon.adep", "com.amazon.platform.fdra", "com.amazon.tv.turnstile", "com.amazon.tv.consents", "com.amazon.ssm", "com.amazon.ssmsys", "com.amazon.tiramisubootsupport", "com.amazon.d3", "com.amazon.ftv.screensaver"],
       "suggestedDock": [],
       "tested": { "by": "Mateus Lecchi (PR #466)", "firmware": "Fire OS 8.1.8.5 (RS8185.3891N)", "daysLivedWith": null, "rebootTested": true },
       "groups": {
@@ -326,7 +326,7 @@
         "com.mediatek.tv.freeviewplay": { "category": "streaming", "ask": true },
         "com.smartdevice.tv.aircast": { "category": "casting", "ask": true },
         "com.google.android.backdrop": { "category": "screensaver", "ask": true },
-        "com.google.android.tvrecommendations": { "category": "ads", "ask": false },
+        "com.google.android.tvrecommendations": { "category": "ads", "ask": true },
         "com.google.android.syncadapters.calendar": { "category": "other", "ask": false }
       }
     },
@@ -471,7 +471,7 @@
       "stockLaunchers": [],
       "liveTv": "com.tcl.tv",
       "setupWraith": null,
-      "quirks": [],
+      "quirks": ["SETTLE_BEFORE_REBOOT"],
       "neverDisable": ["com.tcl.cyberui", "com.tcl.tv", "com.tcl.settings", "com.tcl.systemserver", "com.tcl.ttvs", "com.tcl.TFDS.service", "com.sohu.inputmethod.sogou.tv", "com.tcl.appmarket2", "com.tcl.guard", "com.tcl.ui_mediaCenter", "com.tcl.autopair", "com.tcl.tcl_bt_rcu_service", "com.tcl.providers.config", "com.tcl.initsetup", "com.android.packageinstaller"],
       "suggestedDock": [],
       "tested": { "by": "codertesla (PR #335)", "firmware": "RQ3A.210705.001/2026012200", "daysLivedWith": null, "rebootTested": true },
@@ -502,7 +502,7 @@
       "liveTv": "net.oqee.androidtv",
       "setupWraith": null,
       "quirks": [],
-      "neverDisable": ["net.oqee.launcher", "net.oqee.androidtv", "org.dtvkit.inputsource", "fr.freebox.fbxdtvkit", "com.nes.dtvkitdatabackup", "com.nes.blerc", "fr.freebox.bleirlearner", "com.nes.tvglobalkeyhandler", "com.nes.freeboxburnkey", "fr.freebox.fbx8am.externalauth", "fr.freebox.fbxservices", "fr.freebox.fbx8lc.canalsubscriptionservice", "fr.freebox.fbx8lc.fbxcustomization", "fr.freebox.fbxshortcutsettings", "fr.freebox.fbx8lc.fbxupdater", "com.nes.remoteota.one", "com.nes.remoteota.three"],
+      "neverDisable": ["net.oqee.launcher", "net.oqee.androidtv", "org.dtvkit.inputsource", "fr.freebox.fbxdtvkit", "com.nes.dtvkitdatabackup", "com.nes.blerc", "fr.freebox.bleirlearner", "com.nes.tvglobalkeyhandler", "com.nes.freeboxburnkey", "fr.freebox.fbx8am.externalauth", "fr.freebox.fbxservices", "fr.freebox.fbx8lc.canalsubscriptionservice", "fr.freebox.fbx8lc.fbxcustomization", "fr.freebox.fbxshortcutsettings", "fr.freebox.fbx8lc.fbxupdater", "com.nes.remoteota.one", "com.nes.remoteota.three", "com.google.android.apps.mediashell"],
       "suggestedDock": [],
       "tested": { "by": "malo-gx (PR #366)", "firmware": "QTT8.201201.002.v10.5.66", "daysLivedWith": null, "rebootTested": false },
       "groups": {
@@ -621,13 +621,13 @@
       }
     },
     "hisense-e5q-pro": {
-      "match": { "models": ["VIDAA_TV"], "devices": ["MT9653"], "brand": "Hisense", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
+      "match": { "models": [], "devices": ["MT9653"], "brand": "Hisense", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
       "platform": "ANDROID_TV",
       "stockLaunchers": [],
       "liveTv": "com.jamdeo.tv.livetv",
       "setupWraith": null,
       "quirks": [],
-      "neverDisable": ["com.jamdeo.tv.vod", "com.jamdeo.tv.livetv", "com.jamdeo.tv.service", "com.hisense.tv.inputs", "com.hisense.tv.baseservice", "com.hisense.tv.tiletransition", "com.hisense.bluetoothpair", "com.sohu.inputmethod.sogou.tv", "com.hisense.padinputmethod", "com.hisense.raycodereceiver", "com.hisense.uifac", "com.hisense.systeminfo", "com.hisense.hiservice", "com.hisense.aiod", "com.hisense.aiservice", "com.keylab.speech.core.vidaa", "com.vt.mic.service", "com.vt.point.remoteservice", "com.dolby.android.audio.service", "com.dolby.android.audio.calibration", "com.jamdeo.updateservice", "com.hisense.playerupdate"],
+      "neverDisable": ["com.jamdeo.tv.vod", "com.jamdeo.tv.livetv", "com.jamdeo.tv.service", "com.hisense.tv.inputs", "com.hisense.tv.baseservice", "com.hisense.tv.tiletransition", "com.hisense.bluetoothpair", "com.sohu.inputmethod.sogou.tv", "com.hisense.padinputmethod", "com.hisense.raycodereceiver", "com.hisense.uifac", "com.hisense.systeminfo", "com.hisense.hiservice", "com.hisense.aiod", "com.hisense.aiservice", "com.keylab.speech.core.vidaa", "com.vt.mic.service", "com.vt.point.remoteservice", "com.dolby.android.audio.service", "com.dolby.android.audio.calibration", "com.jamdeo.updateservice", "com.hisense.playerupdate", "com.hisense.usbupgrade"],
       "suggestedDock": [],
       "tested": { "by": "nzjiance2 (PR #358)", "firmware": "02.02.70.01", "daysLivedWith": null, "rebootTested": true },
       "groups": {
@@ -951,7 +951,8 @@
         "com.android.mgstv": { "category": "streaming", "ask": true },
         "com.google.android.syncadapters.calendar": { "category": "other", "ask": false },
         "com.android.providers.calendar": { "category": "other", "ask": true },
-        "com.google.android.backdrop": { "category": "screensaver", "ask": true }
+        "com.google.android.backdrop": { "category": "screensaver", "ask": true },
+        "com.google.android.tvrecommendations": { "category": "ads", "ask": true }
       }
     },
     "kalley-43g200": {
@@ -1232,7 +1233,7 @@
       "quirks": [],
       "neverDisable": ["com.smartdevice.livetv", "com.mediatek.tvinput", "com.mediatek.tv.agent", "com.mediatek.tv.service", "com.mediatek.network", "com.mediatek.hotkey.dispatcher", "com.mediatek.OledFuctionService", "com.mediatek.partner.netflix", "com.mstar.netflixobserver", "com.smartdevice.duplebluetooth", "com.smartdevice.factory", "com.google.android.tungsten.setupwraith", "com.google.android.tv.remote.service", "com.google.android.leanbacklauncher.partnercustomizer"],
       "suggestedDock": [],
-      "tested": { "by": "caesar-nomad (PR #346)", "firmware": "QTG3.200617.002", "daysLivedWith": null, "rebootTested": false },
+      "tested": { "by": "Caesar (PR #346)", "firmware": "QTG3.200617.002", "daysLivedWith": null, "rebootTested": false },
       "groups": {
         "Skyworth retail demo, shop promos, auto-installs and first-run leftovers": { "category": "demo", "ask": false },
         "Skyworth content, ads and telemetry": { "category": "ads", "ask": false },
@@ -1440,7 +1441,7 @@
       "quirks": [],
       "neverDisable": ["org.droidtv.playtv", "org.droidtv.xtv", "org.droidtv.channels", "org.droidtv.hdmiservice", "org.droidtv.tv.tptvservice", "org.droidtv.tvsystemui", "org.droidtv.tvpowermanagerservice", "org.droidtv.GlobalKey", "org.droidtv.settings", "org.droidtv.homeintentresolver", "org.droidtv.eum", "org.droidtv.aurora", "org.droidtv.nettvbrowser", "com.vewd.core.browserui", "org.droidtv.contentexplorer", "org.droidtv.oad", "com.easy.oad", "org.droidtv.networkwizard", "org.droidtv.nettvregistration", "com.google.android.tv.remote.service", "org.droidtv.fastip", "org.droidtv.exoplayerservice", "org.droidtv.usbbreakin", "org.droidtv.dlna", "org.droidtv.ambihuecommon", "com.mediatek.backgrounddetection"],
       "suggestedDock": [],
-      "tested": { "by": "Martin Horsk\u00fd (PR #439)", "firmware": "STT2.230526.001", "daysLivedWith": null, "rebootTested": false },
+      "tested": { "by": "Martin Horsk\u00fd (PR #439)", "firmware": "STT2.230526.001", "daysLivedWith": null, "rebootTested": true },
       "groups": {
         "TP Vision telemetry. org.droidtv.gel runs inside the candeebug process. 17 TV components bind": { "category": "tracking", "ask": false },
         "Philips content promos and the app gallery. Nothing persistent binds these; nettvrecommender is": { "category": "ads", "ask": false },
@@ -2324,43 +2325,6 @@
         "com.google.android.backdrop": { "category": "screensaver", "ask": true }
       }
     },
-    "tcl-55c725": {
-      "match": { "models": ["Smart TV Pro"], "devices": ["BeyondTV4"], "brand": "TCL", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": "TCL/G03_4K_GB/" },
-      "platform": "GOOGLE_TV",
-      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
-      "liveTv": "com.tcl.tv",
-      "setupWraith": "com.google.android.tungsten.setupwraith",
-      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
-      "neverDisable": ["com.tcl.providers.config", "com.tcl.initsetup", "com.tcl.system.server", "com.tcl.tcl_bt_rcu_service", "com.tcl.autopair", "com.tcl.tvinput", "com.tcl.tv", "com.tcl.settings", "com.tcl.inputmethod.international", "com.tcl.suspension", "com.tcl.micmanager", "com.google.android.tv.assistant", "com.tcl.xian.StartandroidService", "com.tcl.versionUpdateApp", "com.google.android.tv.remote.service"],
-      "suggestedDock": [],
-      "tested": { "by": "angelusgi (PR #504)", "firmware": "RP1A.200622.001 (V8-R51MT05-LF1V620)", "daysLivedWith": null, "rebootTested": true },
-      "groups": {
-        "TCL and Google content, ads and promos": { "category": "ads", "ask": false },
-        "Background services not needed": { "category": "other", "ask": false },
-        "Preloaded apps": { "category": "preloads", "ask": false },
-        "Google TV setup wizard: claims Home once launcherx is disabled. On Ethernet there is no Wi-Fi to lose.": { "category": "home", "ask": false }
-      },
-      "packages": {
-        "com.tcl.channelplus": { "category": "ads", "ask": true },
-        "com.tcl.partnercustomizer": { "category": "brand", "ask": true },
-        "com.tcl.esticker": { "category": "demo", "ask": false },
-        "com.tcl.bi": { "category": "tracking", "ask": false },
-        "com.google.android.partnersetup": { "category": "tracking", "ask": false },
-        "com.google.android.feedback": { "category": "tracking", "ask": false },
-        "org.chromium.webview_shell": { "category": "preloads", "ask": false },
-        "com.tcl.android.webview": { "category": "other", "ask": true },
-        "com.tcl.guard": { "category": "tracking", "ask": false },
-        "com.tcl.keyhelp": { "category": "brand", "ask": true },
-        "com.tcl.useragreement": { "category": "other", "ask": true },
-        "com.google.android.videos": { "category": "streaming", "ask": true },
-        "com.google.android.marvin.talkback": { "category": "accessibility", "ask": true },
-        "com.tcl.ui_mediaCenter": { "category": "preloads", "ask": true },
-        "com.tcl.MultiScreenInteraction_TV": { "category": "casting", "ask": true },
-        "tv.wuaki.apptv": { "category": "streaming", "ask": true },
-        "com.tcl.dashboard": { "category": "brand", "ask": true },
-        "com.google.android.apps.tv.dreamx": { "category": "screensaver", "ask": true }
-      }
-    },
     "tcl-55c815": {
       "match": { "models": ["BeyondTV2"], "devices": ["BeyondTV"], "brand": "TCL", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": "TCL/BeyondTV2/BeyondTV:11/" },
       "platform": "ANDROID_TV",
@@ -3081,7 +3045,7 @@
       }
     },
     "vidda-mt9653": {
-      "match": { "models": ["VIDAA_TV"], "devices": ["MT9653"], "brand": "Vidda", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
+      "match": { "models": [], "devices": ["MT9653"], "brand": "Vidda", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
       "platform": "ANDROID_TV",
       "stockLaunchers": [],
       "liveTv": "com.jamdeo.tv.livetv",
@@ -3411,7 +3375,8 @@
       "packages": {
         "com.android.smspush": { "category": "preloads", "ask": false },
         "com.xiaomi.mitv.tvmanager": { "category": "brand", "ask": true },
-        "com.xiaomi.gamecenter.sdk.service.mibox": { "category": "brand", "ask": true }
+        "com.xiaomi.gamecenter.sdk.service.mibox": { "category": "brand", "ask": true },
+        "com.mitv.alarmcenter": { "category": "other", "ask": true }
       }
     },
     "xiaomi-mitv-astp1": {
@@ -3650,7 +3615,7 @@
       "quirks": ["REENABLED_AT_BOOT"],
       "neverDisable": ["com.mediatek.wwtv.tvcenter", "mitv.service", "com.google.android.tv.remote.service"],
       "suggestedDock": [],
-      "tested": { "by": "Martin Trajkovski (PR #223)", "firmware": "PI.7524", "daysLivedWith": null, "rebootTested": false },
+      "tested": { "by": "Martin Trajkovski (PR #223), alessandrodauria (PR #494)", "firmware": "PI.7524", "daysLivedWith": null, "rebootTested": false },
       "groups": {
         "Xiaomi + Google telemetry": { "category": "tracking", "ask": false },
         "PatchWall, content rows, sponsored rows": { "category": "ads", "ask": false },

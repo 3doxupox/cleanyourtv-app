@@ -16,6 +16,7 @@ amazon-fire-tv-afttiff43	(header)	the header's kept list (Alexa core, casting, L
 amazon-fire-tv-afttiff43	(launcher)	Fire OS: the clean-up only; the app does not offer the home screen here
 amazon-fire-tv-afttiff43	(match)	model AFTTIFF43 and device brandenburg from the header; brand Amazon as on the other Fire TV profiles
 amazon-fire-tv-afttiff43	com.amazon.tahoe	Amazon Kids, a parental control; ask row as on insignia-ns55f301na25
+amazon-fire-tv-afttiff43	com.amazon.wifilocker	not a package line here; kept out of the Amazon sure set, since no Fire TV smart TV list switched it off and joining a new network with it off was not tested
 amazon-fire-tv-stick-4k-2018	(launcher)	Fire OS: the clean-up only; the app does not offer the home screen here
 amazon-fire-tv-stick-4k-2018	com.amazon.franktvinput	the live TV input behind the Live tab; TV inputs are never default-off, so it is an ask row
 amazon-fire-tv-stick-4k-2018	com.amazon.hedwig	Fire TV Channels, which also registers a Live input; ask row
@@ -28,6 +29,7 @@ amazon-fire-tv-stick-4k-2023	(header)	the header's kept list (home starter, Apps
 amazon-fire-tv-stick-4k-2023	(launcher)	Fire OS: the clean-up only; the app does not offer the home screen here
 amazon-fire-tv-stick-4k-2023	(match)	model AFTKM and device karat from the header; brand Amazon as on the other Fire TV profiles
 amazon-fire-tv-stick-4k-2023	com.amazon.franktvinput	the live TV input behind the Live tab; TV inputs are never default-off, so it is an ask row
+amazon-fire-tv-stick-4k-2023	com.amazon.ftv.screensaver	the plain screensaver the header keeps; never-disable
 amazon-fire-tv-stick-4k-2023	com.amazon.hedwig	Fire TV Channels, which also registers a Live input; ask row as on amazon-fire-tv-stick-4k-2018
 amazon-fire-tv-stick-4k-2023	com.amazon.tahoe	Amazon Kids, a parental control; ask row
 amazon-fire-tv-stick-4k-2023	com.amazon.tv.easyupgrade	Software updates ask row as on amazon-fire-tv-stick-4k-2018 and insignia-ns55f301na25, although this header calls it upgrade promos (RF-PROFILES-63 P7)
@@ -74,6 +76,7 @@ byintek-t5-max	com.sdt.producttest	factory test apps; other brands keep their fa
 cecotec-shandao	(match)	the header gives the manufacturer vestel and the family model Android TV; the profile matches device shandao with the maker; toshiba-cosmos-android-tv and jvc-android-tv-menlo are other Vestel devices
 cecotec-shandao	com.google.android.tungsten.setupwraith	not listed and kept by the header (it may own the saved Wi-Fi); only FallbackHome also claims Home here, so the meta names no wizard
 cecotec-shandao	com.google.android.tvrecommendations	default-off as listed; the header says it is only safe once the new launcher owns Home and tvlauncher is off (RF-PROFILES-63 P14 is the open owner call)
+cecotec-shandao	com.google.android.tvrecommendations	ask row: the header says switching it off is only safe once the new launcher owns Home, and without it the Play Store cannot show a Google sign-in notice (RF-PROFILES-63 P14)
 cecotec-shandao	com.google.android.videos	the Google TV app holds purchased films; ask row (streaming)
 cecotec-shandao	com.mediatek.tv.freeviewplay	Freeview Play on UK-market firmware; a UK owner uses it, so it is an ask row (streaming)
 cecotec-shandao	fusion.android.tv.demo	ask row: on the same Vestel platform the jvc-android-tv-menlo header found it receives the remote's Input key, and this header did not check the Input key or pairing with it off (RF-PROFILES-63 P6)
@@ -100,6 +103,7 @@ eko-2k-google-tv-tennoji	(match)	the brand EKO and device tennoji come from the 
 eko-2k-google-tv-tennoji	com.google.android.tungsten.setupwraith	the header says it owned the Wi-Fi saved at setup (forget and re-join first); the takeover's Wi-Fi guard skips it while it owns the network
 eko-2k-google-tv-tennoji	com.google.android.videos	the Google TV app holds purchased films; ask row (streaming)
 eko-2k-google-tv-tennoji	com.mstar.android.tv.disclaimercustomization	the hisense-hg9 list keeps it (first-boot legal text); ask row
+ffalcon-65s585c-pro	(header)	the header says to wait at least 10 seconds after the clean-up before a reboot, or the states revert (SETTLE_BEFORE_REBOOT)
 ffalcon-65s585c-pro	(launcher)	TCL China firmware: the home screen is TCL's own (com.tcl.cyberui) and the firmware refuses other home screens and sideloading; the clean-up only
 ffalcon-65s585c-pro	(match)	device tcl_mt5879_cn, the same device and build as tcl-q10g-pro, told apart by the brand: a set that reports TCL gets tcl-q10g-pro, one that reports FFalcon (as brand or maker) gets this list; the tie is pinned in ProfilesTest
 ffalcon-65s585c-pro	(match)	brand inferred, confirm with getprop: FFalcon; a wrong guess fails closed (the set gets tcl-q10g-pro, the list for the same firmware)
@@ -112,9 +116,10 @@ freebox-player-pop	(launcher)	the stock home is OQEE (net.oqee.launcher), not on
 freebox-player-pop	(match)	device fbx8am from the header
 freebox-player-pop	(match)	brand inferred, confirm with getprop: Freebox; a wrong guess fails closed (the profile never matches)
 freebox-player-pop	com.droidlogic.readlog	an Amlogic log dumper, but the header leaves the com.droidlogic system services alone and the app protects that family by name; ask row
+freebox-player-pop	com.google.android.apps.mediashell	commented out with KEEP in the list: Spotify Connect from a phone wakes Spotify through it; never-disable
 freebox-player-pop	com.google.android.tungsten.setupwraith	not a package line here; the header says it owns a Wi-Fi network saved at setup, so it stays on (protected by name anyway)
 freebox-player-pop	com.google.android.tvrecommendations	default-off as listed, as everywhere for now (RF-PROFILES-63 P14, owner call)
-google-chromecast-gtv-4k	com.google.android.tungsten.setupwraith	v2.5.0 header (upstream #361, #422): the Cast receiver reads its device credentials from the wizard, so with the wizard off casting from phones fails after the next reboot; the home screen switch here costs casting (owner decision open)
+google-chromecast-gtv-4k	com.google.android.tungsten.setupwraith	v2.5.0 header (upstream #361, #422): the Cast receiver reads its device credentials from the wizard, so with the wizard off casting from phones fails after the next reboot; the home screen switch here costs casting (still open)
 google-tv-streamer-4k-kirkwood	(header)	the header's kept list: the Cast receiver, the phone remote and both remote firmware updaters
 google-tv-streamer-4k-kirkwood	(launcher)	the stock home is launcherx, left out of stockLaunchers on purpose, so the app gives the clean-up only: the switch needs the setup wizard off, which here takes the Cast receiver's credentials with it after every reboot (upstream #361, #422), and while the wizard owns the saved Wi-Fi (as on the tested unit) the Wi-Fi guard keeps it on, its RecoveryActivity then claims Home and system_server crash-loops every 47 s (#506); revisit when the switch can skip such TVs up front and restore casting (RF-PROFILES-63 P11)
 google-tv-streamer-4k-kirkwood	(match)	device kirkwood from the header; brand google as on google-chromecast-gtv-4k
@@ -134,6 +139,8 @@ hisense-e5q-pro	(header)	the updaters the header keeps on purpose, and the never
 hisense-e5q-pro	(launcher)	the stock home is com.jamdeo.tv.vod (VIDAA), not one of the home screens the app knows; the list keeps it too, so the app gives the clean-up only
 hisense-e5q-pro	(match)	model VIDAA_TV and device MT9653 from the header; vidda-mt9653 is the same build sold as Vidda, so the brand tells them apart, and a Vidda set that reports Hisense as its maker gets this list (the tie is pinned in ProfilesTest)
 hisense-e5q-pro	(match)	brand inferred, confirm with getprop: Hisense; a wrong guess fails closed (the profile never matches)
+hisense-e5q-pro	(match)	device MT9653 and the brand only: the header calls VIDAA_TV the internal model, a name the whole VIDAA family may share
+hisense-e5q-pro	com.hisense.usbupgrade	not a package line here; the header keeps it with the other updaters so firmware updates still arrive, so it is never-disable
 hisense-e5q-pro	com.jamdeo.tv.fte	the first-run wizard; run again after a factory reset, and it may own the Wi-Fi saved at setup (vidda-mt9653 checked its own unit), so it is an ask row
 hisense-e5q-pro	com.vt.ambiencephoto	the ambience-photo screensaver; screensavers are ask rows
 hisense-hg9	(match)	brand inferred, confirm with getprop: Hisense; a wrong guess fails closed (the profile never matches)
@@ -170,13 +177,13 @@ jvc-android-tv-menlo	(match)	the header gives ro.product.brand Jvc (manufacturer
 jvc-android-tv-menlo	com.android.mgstv	Mango TV, a streaming app; ask row
 jvc-android-tv-menlo	com.android.providers.calendar	calendar storage for apps is an ask row, as on hisense-u75-hengshan and panasonic-4ktv-jup
 jvc-android-tv-menlo	com.google.android.tvrecommendations	default-off as listed; the header says it is only safe once the new launcher owns Home and tvlauncher is off (RF-PROFILES-63 P14 is the open owner call)
+jvc-android-tv-menlo	com.google.android.tvrecommendations	ask row: the header says switching it off is only safe once the new launcher owns Home, and without it the Play Store cannot show a Google sign-in notice (RF-PROFILES-63 P14)
 jvc-android-tv-menlo	com.google.android.videos	the Google TV app holds purchased films; ask row (streaming)
 jvc-android-tv-menlo	com.mstar.android.tv.disclaimercustomization	the hisense-hg9 list keeps it (first-boot legal text); ask row
 kalley-43g200	(header)	the KEEP block at the end of the file (updaters, key handlers, remote, Realtek TV stack) is in the curated never-disable list
 kalley-43g200	(launcher)	launcherx must never be switched off on this set: the firmware turns the setup wizard back on at every boot and its RecoveryActivity then boot-loops the TV (a USB reflash was needed once), so stockLaunchers is empty and Setup gives the clean-up only; both stay never-disable
 kalley-43g200	(match)	the header names the maker MOKA and the device R3_GTV but not the Kalley brand string, so the profile matches on the maker; kalley-r10g is a different device (R10G)
 kalley-43g200	com.apps.wifihotspot	a Wi-Fi hotspot service; network setup is never default-off, ask row as on prismplus-q65-ultra-r10g
-kalley-43g200	com.realtek.leanbacklauncher.partnercustomizer	default-off as listed: the header rebooted after each group with Home, HDMI, Assistant and casting working
 kalley-43g200	com.realtek.leanbacklauncher.partnercustomizer	ask row: the app keeps the stock home here, and compac-atv-r2 found this customizer supplies the stock home's Inputs button
 kalley-r10g	(match)	same R10G hardware as prismplus-q65-ultra-r10g; this profile needs the TV to report the brand Kalley, and the PRISM+ one matches on the maker MOKA
 kalley-r10g	(match)	brand inferred, confirm with getprop: Kalley; a wrong guess fails closed (the profile never matches)
@@ -189,6 +196,7 @@ motorola-swtv-24ae-fhd	(launcher)	the remote's Settings button sends KEYCODE_NOT
 motorola-swtv-24ae-fhd	(match)	brand inferred, confirm with getprop: Motorola (the header calls it a Skyworth OEM build, so the manufacturer may be Skyworth); a wrong guess fails closed (the profile never matches)
 motorola-swtv-24ae-fhd	com.google.android.tungsten.setupwraith	the header warns it owns the Wi-Fi saved at setup and deleting it drops the TV off the network; the takeover's Wi-Fi guard skips it then
 motorola-swtv-24ae-fhd	com.smartdevice.leanbacklauncher.customizer	configures the stock home; the header reports no test with it off, so it is an ask row (RF-PROFILES-63 P16)
+mtc-uk-2k-android-tv	(header)	dumpsys is disabled on this firmware (Service dumps disabled due to hung system process); the app reads the TV with dumpsys, so it may stop with a read failure here before changing anything
 mtc-uk-2k-android-tv	(launcher)	the header names no Live TV app; liveTv is left unset
 mtc-uk-2k-android-tv	(match)	the header gives the codename tabata but no brand string; an MTC build of the JVC UK firmware family
 mtc-uk-2k-android-tv	(match)	brand inferred, confirm with getprop: MTC; a wrong guess fails closed (the profile never matches)
@@ -255,6 +263,7 @@ philips-65pus8102	com.opera.sdk.example	on Sony sets this package is the built-i
 philips-65pus8102	org.droidtv.nettvregistration	the philips-50pus8517 header files it with the firmware update packages; Software updates row
 philips-65pus8102	org.droidtv.tv.frameworklogger	added in v2.5.0 (upstream #483): reboot reasons and update records for the Philips logger; default-off as listed, in the telemetry group
 philips-75pus8505	(header)	the DO NOT DISABLE block sits at the end of the file, where the keep-list reader does not look, so its names and those of the philips-50pus8517 block it points to are in the curated never-disable list; the reader picks up org.droidtv.fastip from the intro, plus a harmless org.droidtv leftover
+philips-75pus8505	(header)	rebootTested: the header reports what came back after the next reboot with the list applied
 philips-75pus8505	(match)	same board, firmware and fingerprint as philips-tpm191e, which is refused in its favour; model TPM191E and device PH9M_EA_5599 from the header
 philips-75pus8505	com.google.android.tvrecommendations	default-off as listed; the header notes it also owns the system notification panel and should go after the stock launcher (RF-PROFILES-63 P14)
 philips-75pus8505	com.phorus.playfi.softap	Play-Fi's soft access point helper (network plumbing); ask row as on philips-55oled707
@@ -334,7 +343,7 @@ tcl-43s5k	com.tcl.partnercustomizer	ask row: the header tested the Input key but
 tcl-43s5k	com.tcl.ttvs	commented out by the list: the header says it is TCL's analytics and also the firmware updater; never-disable
 tcl-50ep680	com.tcl.copydatatotv	tcl-beyondtv2 keeps it (boot hooks, role unclear); ask row
 tcl-50ep680	com.tcl.dashboard	other TCL lists keep it; ask row
-tcl-55c715	(match)	model BeyondTV2 on device BeyondTV, Android 9, AP06; the fingerprint prefix is inferred from the header's model, device and build and the product name in tcl-beyondtv2-latin-america's fingerprint, confirm with getprop; a wrong guess fails closed. On AP06 it ties tcl-beyondtv2-latin-america (tested on AP08) and wins by id, which is the intended result
+tcl-55c715	(match)	model BeyondTV2 on device BeyondTV, Android 9, AP06; the fingerprint prefix is inferred from the header's model, device and build and the product name in tcl-beyondtv2-latin-america's fingerprint, confirm with getprop; a wrong guess fails closed. On AP06 it outranks tcl-beyondtv2-latin-america (tested on AP08) by the longer fingerprint prefix
 tcl-55c715	com.tcl.android.webview	a WebView build (Google's is the active provider here); ask row as on tcl-beyondtv-rt2851
 tcl-55c715	com.tcl.appmarket2	TCL's app store, carries a package installer service; ask row
 tcl-55c715	com.tcl.copydatatotv	tcl-beyondtv2 and the Thomson list keep it; ask row
@@ -345,22 +354,11 @@ tcl-55c715	com.tcl.useragreement	tcl-55s470g and tcl-c755 keep it (setup screens
 tcl-55c715	com.tcl.usercenter	the TCL account, re-enabled at every boot per the header; ask row as on the other TCL lists
 tcl-55c715	com.tcl.versionUpdateApp	TCL's firmware updater, filed under off by choice; Software updates ask row
 tcl-55c715	com.tcl.videoplayer	the header's Also kept paragraph (players for Live TV info and screen-off audio, UpdatePeripheral, rc.ota) is added to never-disable (RF-PROFILES-63 P19)
-tcl-55c725	(launcher)	the README says the remote's Netflix, YouTube, Prime Video, TV, gear and number keys only worked with launcherx; the launcher's HomeKeyService with app_keys brings them back, the Input key works without help
-tcl-55c725	(match)	model Smart TV Pro and device BeyondTV4 are shared with tcl-65c725 (tvlauncher, product not given); the G03_4K_GB product prefix from this header keeps the tvlauncher sets on tcl-65c725 unless they report the same product. On G03_4K_GB it ties tcl-65c725 and wins by id, which is the intended result
-tcl-55c725	com.google.android.tungsten.setupwraith	the header says it claims Home once launcherx is off; this unit ran on Ethernet, so Wi-Fi ownership was not checked; the takeover's Wi-Fi guard skips it while it owns the network
-tcl-55c725	com.google.android.videos	the Google TV app holds purchased films; ask row on a Google TV set (RF-PROFILES-63 P17)
-tcl-55c725	com.tcl.android.webview	the header says TV Settings and TCL apps still work without it, but a WebView build is an ask row as on tcl-beyondtv-rt2851 and tcl-g07
-tcl-55c725	com.tcl.channelplus	TCL Live registers a TV input (tcl-g07 header); ask row
-tcl-55c725	com.tcl.dashboard	the stock quick settings panel; newer TCL Google TVs keep it for inputs, the Input key here uses com.tcl.suspension; ask row
-tcl-55c725	com.tcl.keyhelp	remote virtual keys; tcl-65c725 disables it but most TCL lists keep it (tcl-g03 leaves it alone on this build); ask row
-tcl-55c725	com.tcl.partnercustomizer	ask row: the header does not say the remote's T key was tested (RF-PROFILES-63 P5)
-tcl-55c725	com.tcl.useragreement	tcl-55s470g and tcl-c755 keep it (setup screens), tcl-g03 leaves it alone on this build; ask row
-tcl-55c725	com.tcl.versionUpdateApp	the header's never-disable list and the README's kept on purpose updater and phone remote (it carries the mic on other TCL sets) are added to never-disable (RF-PROFILES-63 P19)
 tcl-55c815	(match)	model BeyondTV2 on device BeyondTV, Android 11; the SDK keeps it apart from tcl-beyondtv2-latin-america (Android 9) and the model from tcl-50ep680 (BeyondTV, Android 11); fingerprint prefix from the header
 tcl-55c815	com.google.android.tungsten.setupwraith	not listed: the header keeps it because it owns a saved Wi-Fi network on this unit (never-disable from the header)
 tcl-55c815	com.tcl.copydatatotv	tcl-beyondtv2 and the Thomson list keep it; ask row
 tcl-55c815	com.tcl.guard	the header's Deliberately NOT disabled paragraph (guard, partnercustomizer for the T key, useragreement, remote, setup and input services, usercenter, the updater) is added to never-disable (RF-PROFILES-63 P19)
-tcl-55p7k	(match)	device G10 with the product prefix G10_4K_GB (non-US G10, as the c755 and qm6k split does for G08); on that product it ties tcl-55s470g and tcl-g10-google-tv (US product) and wins by id, which is the intended result
+tcl-55p7k	(match)	device G10 with the product prefix G10_4K_GB (non-US G10, as the c755 and qm6k split does for G08); on that product it outranks tcl-55s470g and tcl-g10-google-tv (US product) by the fingerprint prefix
 tcl-55p7k	com.google.android.tungsten.setupwraith	the header says it claims Home once launcherx is off, as on the other G10 sets; it goes with the home screen switch, where the Wi-Fi guard applies
 tcl-55p7k	com.tcl.channelplus	TCL Live registers a TV input (tcl-g07 header); ask row
 tcl-55p7k	com.tcl.partnercustomizer	ask row: the header does not say the remote's T key was tested (RF-PROFILES-63 P5)
@@ -383,7 +381,7 @@ tcl-c755-google-tv	(match)	G08 sold outside the US (product G08_4K_GB); the fing
 tcl-c755-google-tv	com.tcl.channelplus	TCL Live registers a TV input (tcl-g07 header); TV inputs are never default-off, so it is an ask row
 tcl-c755-google-tv	com.tcl.ttvs	the header calls it tracking and says updates come through Play here, but tcl-qm6k-google-tv (same G08 board) keeps it and other TCL lists say it hosts the firmware updater; tracking ask row
 tcl-g03-google-tv	(launcher)	the remote's gear button (keycode 4077) only worked with launcherx; the header brings it back with the launcher's HomeKeyService and settings_key_keycodes, the Input key works without help
-tcl-g03-google-tv	(match)	model Smart TV Pro and device BeyondTV4 as tcl-55c725 and tcl-65c725, same product and software as tcl-55c725; the full AR09 fingerprint from the header wins AR09 sets over tcl-55c725 (prefix TCL/G03_4K_GB/) and tcl-65c725 (none) by the longer prefix
+tcl-g03-google-tv	(match)	model Smart TV Pro and device BeyondTV4 as tcl-65c725 (no prefix); the full AR09 fingerprint from the header wins AR09 sets by the longer prefix, and other G03_4K_GB builds stay on tcl-65c725 (the parked tcl-55c725 is the same software)
 tcl-g03-google-tv	com.google.android.tungsten.setupwraith	the header says it claims Home once launcherx is off and owned the Wi-Fi saved at setup on this unit until the network was joined again in Settings; it goes with the home screen switch, where the Wi-Fi guard skips it while it owns the network
 tcl-g03-google-tv	com.tcl.android.webview	a WebView build (Google's stays the provider); ask row as on tcl-beyondtv-rt2851 and tcl-g07
 tcl-g03-google-tv	com.tcl.channelplus	TCL Live registers a TV input (tcl-g07 header); ask row
@@ -435,6 +433,7 @@ thomson-t32rtl6000	com.apps.wifihotspot	a Wi-Fi hotspot service; network setup i
 thomson-t32rtl6000	com.google.android.apps.nbu.smartconnect.tv	a data-saver VPN service; ask row as on the Hitachi and Panasonic profiles
 thomson-t32rtl6000	com.realtek.leanbacklauncher.partnercustomizer	configures the stock home; the header reports no test with it off, so it is an ask row (RF-PROFILES-63 P16)
 thomson-t32rtl6000	com.vewd.core.service	Vewd may also run HbbTV here; ask row as on sony-bravia-4k-vh21
+toshiba-cosmos-android-tv	(header)	the header once found enabled_accessibility_services cleared after standby, which would stop the launcher's key services until they are switched on again
 toshiba-cosmos-android-tv	(match)	as the header asks, the profile matches the Vestel firmware (brand and manufacturer Vestel, device yeoksam, fingerprint prefix Vestel/Cosmos170/yeoksam:11/), not the Toshiba badge; the model Cosmos names the Vestel platform, so it is not a key
 toshiba-cosmos-android-tv	com.google.android.apps.nbu.smartconnect.tv	registers a VPN service; tcl-g07 leaves it alone as unclear; ask row
 toshiba-cosmos-android-tv	com.google.android.leanbacklauncher.partnercustomizer	never-disable: on this MediaTek Android TV 11 platform it provides the tvlauncher.widget provider com.mediatek.tv.service needs after a reboot (chiq-ai-pont, hitachi-65qledsm20); the list was not reboot-tested (RF-PROFILES-63 P4)
@@ -453,6 +452,7 @@ vidda-mt9653	(header)	the list's own Do NOT disable block (live TV, TV services,
 vidda-mt9653	(launcher)	the stock home is JuUI (com.jamdeo.tv.vod), not one of the home screens the app knows, so the app gives the clean-up only and the TV keeps its own home
 vidda-mt9653	(match)	model VIDAA_TV and device MT9653 from the header; hisense-e5q-pro is the same build sold as Hisense, so the brand tells them apart
 vidda-mt9653	(match)	brand inferred, confirm with getprop: Vidda; a wrong guess fails closed (the profile never matches, and a set that reports Hisense gets hisense-e5q-pro, the subset of this list for the same build)
+vidda-mt9653	(match)	device MT9653 and the brand only: VIDAA_TV is the internal model name of the VIDAA family
 vidda-mt9653	com.hisense.autotest	factory tools; other brands keep their factory menus, so it is an ask row
 vidda-mt9653	com.hisense.service.ad	default-off as listed: an ad service whose accessibility service watched the screen; not an accessibility aid
 vidda-mt9653	com.hisense.usbupgrade	firmware updates from USB; hisense-e5q-pro keeps it for updates; Software updates row
@@ -474,7 +474,7 @@ xgimi-mogo-2	com.google.android.apps.nbu.smartconnect.tv	off by choice in the li
 xgimi-mogo-3-pro	(header)	factory tools; other brands keep their factory menus, so the group is an ask row
 xgimi-mogo-3-pro	(header)	the header's DO NOT DISABLE block (the parser reads it) plus nothing else; its names that are not package lines here protect Expert switch-offs and the sure sets
 xgimi-mogo-3-pro	(match)	model G0035 and device altai from the header; brand XGIMI as on xgimi-horizon-s-pro, confirm with getprop, a wrong guess fails closed
-xgimi-mogo-3-pro	com.google.android.apps.tv.launcherx	the header says XGIMI's xrmservice switches the stock home back on at most remote keys; the app's switch does not set the launcher's app keys or stock home redirect, so Home may go back to Google TV after such a key (reported to the owner)
+xgimi-mogo-3-pro	com.google.android.apps.tv.launcherx	the header says XGIMI's xrmservice switches the stock home back on at most remote keys; the app's switch does not set the launcher's app keys or stock home redirect, so Home may go back to Google TV after such a key (a follow-up for the switch)
 xgimi-mogo-3-pro	com.google.android.tungsten.setupwraith	the header says its RecoveryActivity claims Home at priority 1 and that on this unit the Wi-Fi saved at setup belonged to it: the takeover's Wi-Fi guard (D3) then keeps it on
 xgimi-mogo-3-pro	com.google.android.tv.remote.service	the phone remote, off by choice in the list; on some sets it also carries the remote's mic button, so it is an ask row
 xgimi-mogo-3-pro	com.google.android.videos	the Google TV app holds purchased films; ask row on Google TV (RF-PROFILES-63 P17)
@@ -487,6 +487,7 @@ xiaomi-mitv-afmu0	com.xiaomi.mitv.mediaexplorer	listed under preloaded apps; it 
 xiaomi-mitv-ansp0	(header)	mitv.service, the payment apps, the updater, the TV player and the HDMI input service are in the curated never-disable list (the header says not to touch them)
 xiaomi-mitv-ansp0	(launcher)	the stock home is PatchWall (com.mitv.tvhome), not a known launcher, so Setup gives the clean-up only; PatchWall stays never-disable (disabling it leaves a black FallbackHome)
 xiaomi-mitv-ansp0	(match)	model MiTV-ANSP0 and device jobs from the header, China firmware
+xiaomi-mitv-ansp0	com.mitv.alarmcenter	alarms and reminders, also those set with Xiao Ai voice (xiaomi-mitv-mffu0 makes it an ask row); ask row
 xiaomi-mitv-ansp0	com.mitv.gallery	default-off as listed: the header checked that USB browsing still works without this tile
 xiaomi-mitv-ansp0	com.mitv.screensaver	screensaver ask row; the header says switch it off only after another screensaver is set, which the clean-up alone does not do
 xiaomi-mitv-ansp0	com.xiaomi.gamecenter.sdk.service.mibox	Xiaomi store games may need it for sign-in, so it is an ask row as on xiaomi-mitv-astp1

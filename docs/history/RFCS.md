@@ -302,8 +302,8 @@ every tie the resolver settles by id. P9 the facts pass and the brand-inferred n
 
 ## RF-PROFILES-250: the profiles from upstream v2.5.0 (branch profiles250)
 
-Done on profiles250: the submodule and the profile build at v2.5.0 (9071ec8); 43 new profiles (132
-in all, 46 brands) and 15 upstream folders refused or parked in unconverted.txt with reasons;
+Done on profiles250: the submodule and the profile build at v2.5.0 (9071ec8); 42 new profiles (131
+in all, 46 brands) and 16 upstream folders refused or parked in unconverted.txt with reasons;
 corrections to the shipped lists from v2.5.0 (onn 4K ambient mode, the 65PUS8102 FrameworkLogger,
 the G07 and MSSP3 notes, the Chromecast casting note); the MediaTek and Realtek home customizers
 ask rows on haier-h32s80efx, jmgo-n1s-holan and sanyo-atv-r2, the Xiaomi smart panel on
@@ -333,3 +333,9 @@ and fails on any pair still level other than tcl-g10-google-tv. Open, for the ow
   tcl-43s5k gear, tcl-55c725, tcl-g03-google-tv, motorola-swtv-24ae-fhd); XGIMI MoGo 3 Pro's
   xrmservice switches the stock home back on at its remote keys unless the launcher's app keys and
   stock home redirect are set.
+- P19 on the v2.5.0 profiles: some header keep names are still not in never-disable (Fire TV
+  casting and Silk names given in short form, the VIDAA and Xiaomi casting and NAS stacks, Gboard on
+  oneplus, verizon, sharp and jvc, Assistant on the Streamer and MoGo 2); no plan changes today.
+- mtc-uk-2k-android-tv: dumpsys is disabled on that firmware, and the app reads the TV with
+  dumpsys; expect a read failure there until the probe has a fallback.
+- tcl-55c725 is parked: its product prefix alone would take tcl-65c725's tvlauncher sets.

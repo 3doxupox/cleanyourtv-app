@@ -25,7 +25,7 @@ class ProfilesTest {
 
     @Test fun everyConvertedUpstreamExampleParsesWithCuratedMetadata() {
         assertEquals(147, upstream.size)
-        assertEquals(132, examples.size)
+        assertEquals(131, examples.size)
         for (e in examples) {
             val profile = DebloatTxtParser.parse(e.debloatTxt, e.folder)
             assertEquals(e.folder, profile.id)
@@ -60,7 +60,7 @@ class ProfilesTest {
     @Test fun theUnconvertedListIsPinnedToTheSubmodule() {
         val meta = ProfileMeta.decode(File(Fixtures.repoRoot, "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json").readText())
         assertEquals(upstream.map { it.folder }.filter { it !in meta.profiles }.toSet(), unconverted)
-        assertEquals(15, unconverted.size)
+        assertEquals(16, unconverted.size)
         val listed = unconvertedFile.readLines().filter { it.isNotBlank() && !it.startsWith("#") }
         assertEquals(listed.sorted(), listed, "one folder per line, sorted")
         assertTrue('\u2014' !in unconvertedFile.readText() && "-".repeat(2) !in unconvertedFile.readText())
@@ -222,7 +222,7 @@ class ProfilesTest {
             facts("BeyondTV2", "BeyondTV", "TCL", 28, "TCL/BeyondTV2/BeyondTV:9/PPR1.180610.011/AP06:user/release-keys") to "tcl-55c715",
             facts("BeyondTV2", "BeyondTV", "TCL", 30, "TCL/BeyondTV2/BeyondTV:11/PPR1.180610.011/AR05:user/release-keys") to "tcl-55c815",
             facts("Smart TV Pro", "BeyondTV4", "TCL", 30, "TCL/G03_4K_GB/BeyondTV4:11/RP1A.200622.001/AR09:user/release-keys") to "tcl-g03-google-tv",
-            facts("Smart TV Pro", "BeyondTV4", "TCL", 30, "TCL/G03_4K_GB/BeyondTV4:11/RP1A.200622.001/AR11:user/release-keys") to "tcl-55c725",
+            facts("Smart TV Pro", "BeyondTV4", "TCL", 30, "TCL/G03_4K_GB/BeyondTV4:11/RP1A.200622.001/AR11:user/release-keys") to "tcl-65c725",
             facts("unknown", "G10", "TCL", 31, "TCL/G10_4K_GB/G10:12/STT2.230203.001/x") to "tcl-55p7k",
             // FFalcon and TCL China sets share device and firmware; the brand tells them apart, and an
             // FFalcon set that reports TCL as its maker gets its own list by the id.
@@ -233,6 +233,7 @@ class ProfilesTest {
             // The Vidda and Hisense VIDAA_TV lists are one build; a Vidda set that reports Hisense as its
             // maker gets the Hisense list, the subset that keeps the stock home, by the id.
             facts("VIDAA_TV", "MT9653", "Vidda", 30, manufacturer = "Hisense") to "hisense-e5q-pro",
+            facts("VIDAA_TV", "MT9999", "Hisense", 30) to null,
             facts("VIDAA_TV", "MT9653", "Vidda", 30) to "vidda-mt9653",
             // The BYINTEK T5 Max is the Wanbo X5 Pro stick sold under another name: the brand decides.
             facts("4K Google TV Stick", "YYT", "BYINTEK", 34, manufacturer = "SkyworthDigital") to "byintek-t5-max",

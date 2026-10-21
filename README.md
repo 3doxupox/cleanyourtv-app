@@ -73,8 +73,8 @@ workflow's verify job) checks that the published APK is exactly that build plus 
 
 ## Supported TVs
 
-- **132 TV profiles** from the community lists in the upstream launcher repository (v2.5.0): 46
-  brands, among them TCL (25 models, Hitachi's TCL build included), Sony (17), Xiaomi (17),
+- **131 TV profiles** from the community lists in the upstream launcher repository (v2.5.0): 46
+  brands, among them TCL (24 models, Hitachi's TCL build included), Sony (17), Xiaomi (17),
   Hisense, Philips, Amazon Fire TV, Panasonic, XGIMI, BenQ, NVIDIA Shield, Skyworth, Haier, CHiQ,
   onn, Google, Vestel-made sets (JVC, Toshiba, Cecotec) and the Freebox Player, on Android TV,
   Google TV, Fire OS and TCL's China builds. Some sets get the clean-up only and keep their own

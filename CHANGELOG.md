@@ -5,9 +5,9 @@ All notable changes to the app. Versions follow [semantic versioning](https://se
 ## Unreleased (0.2.0)
 
 ### TV lists
-- Matches the TV against 132 community tested profiles from 46 brands, up from 89 and 27, from
-  the upstream lists of launcher v2.5.0: 43 new ones, among them the first Fire OS 8 list (Fire
-  TV Stick 4K, 2023), three more Fire TV devices, seven more TCL sets, the Google TV Streamer,
+- Matches the TV against 131 community tested profiles from 46 brands, up from 89, from
+  the upstream lists of launcher v2.5.0: 42 new ones, among them the first Fire OS 8 list (Fire
+  TV Stick 4K, 2023), three more Fire TV devices, six more TCL sets, the Google TV Streamer,
   XGIMI MoGo 2 and MoGo 3 Pro, Xiaomi's China sets on PatchWall and HyperOS 3, Hisense and Vidda
   VIDAA sets, the Freebox Player POP, and first lists from AIWA, BYINTEK, Cecotec, Challenger,
   Compac, EKO, FFalcon, JVC, Kogan, Motorola, MTC, Polytron, SHARP, Tele System and Verizon.
@@ -22,7 +22,7 @@ All notable changes to the app. Versions follow [semantic versioning](https://se
   more TVs.
 - When two profiles match a TV equally, the one whose firmware fingerprint is named more exactly
   wins, so lists for neighbouring firmware builds each reach their own TVs.
-- Fifteen upstream lists are not shipped, each with its reason in
+- Sixteen upstream lists are not shipped, each with its reason in
   `core/spec/upstream-feedback/unconverted.txt`: duplicates of a shipped list, lists with nothing
   the app can match on, and a TCL China set whose network debugging needs a computer after every
   reboot.
