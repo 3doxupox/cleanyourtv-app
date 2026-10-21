@@ -299,3 +299,37 @@ every tie the resolver settles by id. P9 the facts pass and the brand-inferred n
   correct but fragile.
 - Ruling 1: a resolver policy instead of the id order (score, then the more specific match, then an
   explicit `supersedes`, then a test failure); tcl-g10-google-tv marked superseded, not removed.
+
+## RF-PROFILES-250: the profiles from upstream v2.5.0 (branch profiles250)
+
+Done on profiles250: the submodule and the profile build at v2.5.0 (9071ec8); 43 new profiles (132
+in all, 46 brands) and 15 upstream folders refused or parked in unconverted.txt with reasons;
+corrections to the shipped lists from v2.5.0 (onn 4K ambient mode, the 65PUS8102 FrameworkLogger,
+the G07 and MSSP3 notes, the Chromecast casting note); the MediaTek and Realtek home customizers
+ask rows on haier-h32s80efx, jmgo-n1s-holan and sanyo-atv-r2, the Xiaomi smart panel on
+xiaomi-mitv-astp1. Ruling 1 in part: of two profiles with the same score the longer fingerprint
+prefix wins (`BundledProfileSource.specificity`), then the id; ProfilesTest pins every resolution
+and fails on any pair still level other than tcl-g10-google-tv. Open, for the owner or later work:
+- P11 is live on more TVs: on Google TV sets whose setup wizard owns the saved Wi-Fi (tcl-43s5k,
+  tcl-g03-google-tv, xgimi-mogo-3-pro, eko-2k-google-tv-tennoji, byintek-t5-max and others), D3
+  keeps the wizard on while launcherx is switched off, and v2.5.0 documents the wizard then claiming
+  Home and system_server crash-looping (upstream #506). Skip the switch up front in that case.
+- Casting: on Google's own hardware the Cast receiver reads its credentials from the setup wizard
+  (#361, #422), so the switch costs casting after every reboot. google-tv-streamer-4k-kirkwood is
+  the clean-up only for that reason; google-chromecast-gtv-4k still offers the switch (owner call).
+- MOKA Google TV sets: kalley-43g200's firmware brings the wizard back at every boot and the set
+  boot-looped with launcherx off; it is the clean-up only. kalley-r10g and
+  prismplus-q65-ultra-r10g are the same family with the switch; an unknown MOKA set takes the
+  generic path. A planner guard for this family is worth considering.
+- `com.tcl.channelplus` (TCL Live, a TV input) is default-off on tcl-g05-google-tv,
+  tcl-g10-google-tv and tcl-qm6k-google-tv and so in the TCL sure set; the live TV input check
+  protects it at run time, but the rows should be ask rows (P20).
+- Ruling 1, the rest: an explicit `supersedes` for true duplicates; the parked AR14 C06 lists
+  (tcl-32s5400a, tcl-l40s66e) and BeyondTV2 AR05 (tcl-beyondtv2-android-11) wait on it or on the
+  owner preferring them.
+- Parked for getprop from the contributors: sony-kd-49x8307c (fingerprint), tcl-32l5a, byintek-u4,
+  vision-2024vision43stv.
+- P15 candidates from v2.5.0 headers: remote app keys that only launcherx answered (onn 4K Plus,
+  tcl-43s5k gear, tcl-55c725, tcl-g03-google-tv, motorola-swtv-24ae-fhd); XGIMI MoGo 3 Pro's
+  xrmservice switches the stock home back on at its remote keys unless the launcher's app keys and
+  stock home redirect are set.
