@@ -458,6 +458,50 @@ class EngineTest {
         assertTrue(!h.tv.isOff(driver))
     }
 
+    // RF-LAUNCHER-250 F3: "Stop here" on a run cut off inside the accessibility restore (upstream
+    // #424: clear the list, accessibility off, write the list back, accessibility on) first runs the
+    // rest of it, so the TV is never left with no accessibility services and accessibility off.
+    @Test fun stopHereFinishesAnAccessibilityRestoreFirst() = runTest(timeout = TEST_TIMEOUT) {
+        val h = Harness(this)
+        val list = "com.gathin.tvhome/com.gathin.tvhome.HomeKeyService:com.google.android.marvin.talkback/.TalkBackService"
+        h.tv.settings[SettingKey.ENABLED_ACCESSIBILITY] = list
+        h.tv.settings[SettingKey.ACCESSIBILITY_ENABLED] = "1"
+        val engine = h.engine()
+        val plan = h.opsPlan(Op.Settle(1), Op.SettingsPut(SettingKey.ENABLED_ACCESSIBILITY, null), Op.SettingsPut(SettingKey.ACCESSIBILITY_ENABLED, "0"),
+            Op.Settle(1), Op.SettingsPut(SettingKey.ENABLED_ACCESSIBILITY, list), Op.SettingsPut(SettingKey.ACCESSIBILITY_ENABLED, "1"))
+        // The connection drops as the list is written back: the TV has no services and accessibility off.
+        h.tv.dropOnLine = { it.contains("'put'") && it.contains("'enabled_accessibility_services'") }
+        engine.start(plan, h.tv, plan.hash, h.pass())
+        h.settle(engine)
+        assertEquals(PauseReason.CONNECTION_LOST, (engine.runState(h.tv.tvId).value as RunState.Paused).reason)
+        assertNull(h.tv.settings[SettingKey.ENABLED_ACCESSIBILITY])
+        assertEquals("0", h.tv.settings[SettingKey.ACCESSIBILITY_ENABLED])
+        // Still offline: Stop here waits for the TV.
+        engine.abandon(h.tv.tvId); h.settle(engine)
+        assertIs<RunState.Paused>(engine.runState(h.tv.tvId).value)
+        h.tv.dropOnLine = null; h.tv.reconnect()
+        engine.abandon(h.tv.tvId); h.settle(engine)
+        assertEquals(RunStatus.ABANDONED, (engine.runState(h.tv.tvId).value as RunState.Finished).status)
+        assertEquals(list, h.tv.settings[SettingKey.ENABLED_ACCESSIBILITY])
+        assertEquals("1", h.tv.settings[SettingKey.ACCESSIBILITY_ENABLED])
+        assertEquals("end:ABANDONED", h.types(plan).last())
+        // A run stopped before the restore began is given up at once, as before.
+        val h2 = Harness(this)
+        h2.tv.settings[SettingKey.ENABLED_ACCESSIBILITY] = list
+        h2.tv.settings[SettingKey.ACCESSIBILITY_ENABLED] = "1"
+        val e2 = h2.engine()
+        val p2 = h2.opsPlan(Op.Disable(h2.debloat[0]), Op.Settle(1), Op.SettingsPut(SettingKey.ENABLED_ACCESSIBILITY, null),
+            Op.SettingsPut(SettingKey.ACCESSIBILITY_ENABLED, "0"), Op.Settle(1), Op.SettingsPut(SettingKey.ENABLED_ACCESSIBILITY, list), Op.SettingsPut(SettingKey.ACCESSIBILITY_ENABLED, "1"))
+        h2.tv.dropOnLine = { it.contains("'disable-user'") }
+        e2.start(p2, h2.tv, p2.hash, h2.pass())
+        h2.settle(e2)
+        h2.tv.dropOnLine = null; h2.tv.reconnect()
+        e2.abandon(h2.tv.tvId); h2.settle(e2)
+        assertEquals(RunStatus.ABANDONED, (e2.runState(h2.tv.tvId).value as RunState.Finished).status)
+        assertEquals(0, h2.tv.execs("settings put"), "nothing of the restore was run")
+        assertEquals(list, h2.tv.settings[SettingKey.ENABLED_ACCESSIBILITY])
+    }
+
     @Test fun onlyTheRequestedPermissionsBlockCounts() {
         fun dump(vararg lines: String) = "Packages:\n  Package [com.example.tv] (1a2b3c):\n" + lines.joinToString("") { "    $it\n" }
         assertTrue(PackageDump.requestsTvInputHardware(dump("requested permissions:", "  android.permission.TV_INPUT_HARDWARE", "install permissions:")))

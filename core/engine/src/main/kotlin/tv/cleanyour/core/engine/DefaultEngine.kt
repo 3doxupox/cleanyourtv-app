@@ -24,6 +24,7 @@ import tv.cleanyour.core.model.ProbeKind
 import tv.cleanyour.core.model.Profile
 import tv.cleanyour.core.model.ReadArg
 import tv.cleanyour.core.model.Sha256
+import tv.cleanyour.core.model.SettingKey
 import tv.cleanyour.core.model.ShellLine
 import tv.cleanyour.core.model.Snapshot
 import tv.cleanyour.core.model.SnapshotReason
@@ -659,15 +660,51 @@ class DefaultEngine(
         val run = runs[tvId] ?: return
         if (flow(tvId).value !is RunState.Paused) return
         val open = run.plan.sections.firstOrNull { it.name in run.openSections }
-        if (open == null) { end(run, RunStatus.ABANDONED, run.home); return }
+        val restore = unfinishedAccessibilityRestore(run)
+        if (open == null && restore.isEmpty()) { end(run, RunStatus.ABANDONED, run.home); return }
         // An open section means the TV's own home screen may be off: step R runs before the run is
-        // given up. Without the TV there is nothing to run, so the run stays paused until it is back
-        // and resume or abandon runs step R then (R1).
+        // given up. A restore of the accessibility services cut off half way (upstream #424) leaves
+        // the TV with none, and accessibility off: its remaining steps run first too (RF-LAUNCHER-250
+        // F3). Without the TV there is nothing to run, so the run stays paused until it is back and
+        // resume or abandon runs them then (R1).
         if (run.session.state.value !is ConnectionState.Connected) return
         run.hold = run.session.hold()
         run.job = scope.launch {
-            guarded(run) { if (rollbackSection(run, open, HomeOutcome.CONNECTION_LOST)) end(run, RunStatus.ABANDONED, run.home) }
+            guarded(run) {
+                if (open != null && !rollbackSection(run, open, HomeOutcome.CONNECTION_LOST)) return@guarded
+                if (!finishAccessibilityRestore(run, restore)) return@guarded
+                end(run, RunStatus.ABANDONED, run.home)
+            }
         }
+    }
+
+    // The steps left of an accessibility restore the run has begun but not finished: from the clear
+    // of the service list to the write of accessibility_enabled 1 after it (DefaultPlanner.
+    // restoreAccessibility). Begun: the run has done a step of it or stopped inside it. Empty when
+    // the plan has none or it finished.
+    private fun unfinishedAccessibilityRestore(run: Run): List<Int> {
+        val steps = run.plan.steps
+        for (clear in steps.filter { it.op == Op.SettingsPut(SettingKey.ENABLED_ACCESSIBILITY, null) }) {
+            val last = steps.drop(clear.index + 1).firstOrNull { it.op == Op.SettingsPut(SettingKey.ACCESSIBILITY_ENABLED, "1") } ?: continue
+            val range = clear.index..last.index
+            if (last.index in run.done) continue
+            if (run.at in range || range.any { it in run.done }) return (clear.index + 1..last.index).filter { it !in run.done }
+        }
+        return emptyList()
+    }
+
+    // Runs those steps (typed, idempotent, CONTINUE); false when the TV went away, the run paused.
+    private suspend fun finishAccessibilityRestore(run: Run, restore: List<Int>): Boolean {
+        for (i in restore) {
+            val step = run.plan.steps[i]
+            run.at = i
+            when (val r = perform(run, i, step.op, step.rendered, step.prior)) {
+                Outcome.Ok -> { run.done += i; run.states[i] = NarrationState.DONE }
+                is Outcome.Lost -> { pause(run, PauseReason.CONNECTION_LOST, r.error); return false }
+                else -> { run.states[i] = NarrationState.SKIPPED }
+            }
+        }
+        return true
     }
 
     // Safety only (R0: 6): find the open run, run step R for an open section, re-verify the
