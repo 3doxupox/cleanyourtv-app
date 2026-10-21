@@ -55,6 +55,7 @@ keeps its own home screen or an app stays on.
 - TalkBack, the phone remote service and the remote's usage logger are a choice on every list that
   names them, never off by default, and a test keeps any accessibility, remote or pairing package
   from being off by default again.
+- The app has its real icon, a glass TV, in place of the placeholder outline.
 - The app takes its version from the installed APK, so Settings, diagnostics and "Check for
   updates" always name the version that runs.
 - Corrections from upstream: the onn 4K box keeps Google's ambient mode so the Google Photos
