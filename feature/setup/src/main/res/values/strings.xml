@@ -85,6 +85,7 @@
     <!-- RF-SAFETY-250: home screen switches skipped up front for safety, shown in place of the home screen row -->
     <string name="found_home_wizard_wifi">This TV\'s Wi-Fi was saved by its setup wizard. The new home screen needs the wizard off, which would forget the Wi-Fi, and with the wizard left on the TV can crash. So it keeps its own home screen. We\'ll still switch off the adverts and tracking. To swap it later, forget and re-add the network in Settings, or use a cable, then run Setup again.</string>
     <string name="found_home_wizard_wifi_unknown">We couldn\'t check who saved this TV\'s Wi-Fi. The new home screen needs the setup wizard off, which could forget the Wi-Fi, and with the wizard left on the TV can crash. So it keeps its own home screen. We\'ll still switch off the adverts and tracking.</string>
+    <string name="found_home_casting">On this Google device the new home screen needs the setup wizard off, and without it casting from phones stops working after every restart. So it keeps its own home screen. We\'ll still switch off the adverts and tracking.</string>
 
     <!-- S3a Customise sheet -->
     <string name="customise_title">Customise</string>

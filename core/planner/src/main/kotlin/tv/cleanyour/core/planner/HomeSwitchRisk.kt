@@ -17,12 +17,27 @@ object HomeSwitchRisk {
         // crash-loop (upstream #506, #422). OWNER: the wizard saved the Wi-Fi; UNKNOWN: the TV could not tell.
         WIZARD_WIFI("this TV's setup wizard saved its Wi-Fi, so the wizard has to stay on, and with it on the home screen switch can crash the TV"),
         WIZARD_WIFI_UNKNOWN("the TV could not say who saved its Wi-Fi, so its setup wizard has to stay on, and with it on the home screen switch can crash the TV"),
+        // Google's own hardware: the Cast receiver reads its credentials from the setup wizard, so the
+        // switch (which needs the wizard off) costs casting after every restart (upstream #361, #422).
+        CASTING("on this Google device the home screen switch needs the setup wizard off, and casting from phones then stops working after every restart"),
     }
+
+    // Google's own Google TV hardware, by maker and device: Chromecast with Google TV 4K (sabrina)
+    // and HD (boreal), the Google TV Streamer (kirkwood). The profiles for sabrina and kirkwood match
+    // the same keys; boreal is where upstream first saw the casting break.
+    val GOOGLE_MAKER = "google"
+    val GOOGLE_DEVICES: Set<String> = setOf("sabrina", "boreal", "kirkwood")
+    val CASTING_PROFILES: Set<String> = setOf("google-chromecast-gtv-4k", "google-tv-streamer-4k-kirkwood")
 
     // The first risk that applies, or null when the switch may be planned. `profile` is the exact
     // profile (null on a brand sure set or the generic path); `wizardWifi` the D3 answer.
-    @Suppress("UNUSED_PARAMETER")
-    fun of(facts: DeviceFacts, profile: Profile?, snapshot: Snapshot, wizardWifi: WizardWifi): Risk? = wizardWifiRisk(profile, snapshot, wizardWifi)
+    fun of(facts: DeviceFacts, profile: Profile?, snapshot: Snapshot, wizardWifi: WizardWifi): Risk? = when {
+        isGoogleHardware(facts) || profile?.id in CASTING_PROFILES -> Risk.CASTING
+        else -> wizardWifiRisk(profile, snapshot, wizardWifi)
+    }
+
+    fun isGoogleHardware(f: DeviceFacts): Boolean =
+        GOOGLE_DEVICES.any { it.equals(f.device, ignoreCase = true) } && (GOOGLE_MAKER.equals(f.brand, ignoreCase = true) || GOOGLE_MAKER.equals(f.manufacturer, ignoreCase = true))
 
     // With an exact profile, the wizard the switch would switch off (its setupWraith with the takeover
     // quirk) while D3 keeps it on: the TV said the wizard saved the Wi-Fi, or could not tell. Without

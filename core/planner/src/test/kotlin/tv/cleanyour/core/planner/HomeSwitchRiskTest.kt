@@ -1,5 +1,6 @@
 package tv.cleanyour.core.planner
 
+import tv.cleanyour.core.model.DeviceFacts
 import tv.cleanyour.core.model.EnabledState
 import tv.cleanyour.core.model.Op
 import tv.cleanyour.core.model.Profile
@@ -12,6 +13,7 @@ import tv.cleanyour.core.planner.PlannerFixtures.setup
 import tv.cleanyour.core.planner.PlannerFixtures.snapshot
 import tv.cleanyour.core.planner.PlannerFixtures.wizard
 import tv.cleanyour.core.spec.BundledProfileSource
+import tv.cleanyour.core.spec.ProfileResolution
 import tv.cleanyour.core.store.SnapshotCodec
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -22,8 +24,13 @@ import kotlin.test.assertTrue
 // TVs no profile matches. The planner refuses such a switch asked for anyway; the clean-up alone
 // is planned as usual.
 class HomeSwitchRiskTest {
+    private val source = BundledProfileSource()
     private val shipped: Map<String, Profile> = BundledProfileSource.bundled.profiles.associateBy { it.id }
     private val tv = snapshot()   // the reference TV, its setup wizard installed and on
+    private fun facts(device: String, brand: String, manufacturer: String = brand, sdk: Int = 34): DeviceFacts =
+        tv.facts.copy(device = device, brand = brand, manufacturer = manufacturer, model = "unknown", sdk = sdk)
+    private fun withFacts(f: DeviceFacts): Snapshot = tv.copy(facts = f).let { it.copy(contentHash = SnapshotCodec.hash(it)) }
+    private fun exact(f: DeviceFacts): Profile? = (source.resolveNow(f) as? ProfileResolution.Exact)?.profile
 
     // (a) The Google TV sets whose list switches the wizard off with the stock home: while the TV says
     // the wizard saved the Wi-Fi, or cannot tell, D3 keeps it on, so there is no switch.
@@ -55,6 +62,21 @@ class HomeSwitchRiskTest {
         assertTrue(Op.SetHome(PlannerFixtures.launcher) in plan(setup(profile = null, choices = choices(wizardWifi = WizardWifi.UNKNOWN))).steps.map { it.op })
         val noWizard = tv.copy(packages = tv.packages - wizard).let { it.copy(contentHash = SnapshotCodec.hash(it)) }
         assertNull(HomeSwitchRisk.of(noWizard.facts, null, noWizard, WizardWifi.OWNER))
+    }
+
+    // (b) Google's own hardware: the switch costs casting after every restart.
+    @Test fun googleHardwareGetsNoSwitch() {
+        for ((device, id) in listOf("sabrina" to "google-chromecast-gtv-4k", "kirkwood" to "google-tv-streamer-4k-kirkwood")) {
+            val f = facts(device, "google", "Google")
+            assertEquals(id, exact(f)?.id, device)
+            assertEquals(Risk.CASTING, HomeSwitchRisk.of(f, exact(f), withFacts(f), WizardWifi.NOT_OWNER), device)
+            assertEquals(listOf(Risk.CASTING.reason), refused(setup(profile = exact(f)), snapshot = withFacts(f)), device)
+        }
+        // The Chromecast HD has no profile and the same casting break.
+        assertEquals(Risk.CASTING, HomeSwitchRisk.of(facts("boreal", "google", "Google"), null, tv, WizardWifi.NOT_OWNER))
+        // Not by the maker alone (an emulator image says Google too), nor by the device name alone.
+        assertNull(HomeSwitchRisk.of(facts("generic_x86", "google", "Google"), null, tv, WizardWifi.NOT_OWNER))
+        assertNull(HomeSwitchRisk.of(facts("sabrina", "Acme"), null, tv, WizardWifi.NOT_OWNER))
     }
 
     // The reference TV keeps its switch.

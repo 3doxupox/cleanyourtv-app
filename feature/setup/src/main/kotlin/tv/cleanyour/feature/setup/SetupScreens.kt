@@ -217,6 +217,7 @@ fun FoundScreen(state: SetupState.Found, extras: SetupExtras, actions: SetupActi
                 HomeBlock.UNKNOWN_HOME -> stringResource(R.string.found_home_unknown_stock)
                 HomeBlock.WIZARD_WIFI -> stringResource(R.string.found_home_wizard_wifi)
                 HomeBlock.WIZARD_WIFI_UNKNOWN -> stringResource(R.string.found_home_wizard_wifi_unknown)
+                HomeBlock.CASTING -> stringResource(R.string.found_home_casting)
                 else -> msg(R.string.stop_tv_refuses_home_body, "brand" to (extras.tvName ?: ""))
             }
             Banner(line, BannerTone.INFO, Modifier.padding(top = 16.dp))

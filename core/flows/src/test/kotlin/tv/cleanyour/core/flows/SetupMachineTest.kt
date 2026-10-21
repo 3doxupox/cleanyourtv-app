@@ -1029,7 +1029,7 @@ class SetupMachineTest {
 
     // RF-SAFETY-250 with the shipped profiles: each TV below gets the clean-up alone and its own S3
     // line. The Google TV sets whose wizard the switch would switch off, when the TV says the wizard
-    // saved the Wi-Fi (and only then), and an unknown TV whose wizard saved the Wi-Fi.
+    // saved the Wi-Fi (and only then); Google's own hardware (casting); and an unknown TV whose wizard saved the Wi-Fi.
     @Test fun theSwitchIsSkippedUpFrontWhereItIsUnsafe() = runTest(timeout = 60.seconds) {
         val wizard = PackageName("com.google.android.tungsten.setupwraith")
         val shipped = tv.cleanyour.core.spec.BundledProfileSource.bundled.profiles.associateBy { it.id }
@@ -1043,6 +1043,9 @@ class SetupMachineTest {
                 add(Case(id, id, base, owns, HomeBlock.WIZARD_WIFI))
                 add(Case("$id, Wi-Fi saved by others", id, base, others, HomeBlock.NONE))
             }
+            add(Case("chromecast", "google-chromecast-gtv-4k", facts("sabrina", "google"), others, HomeBlock.CASTING))
+            add(Case("streamer", "google-tv-streamer-4k-kirkwood", facts("kirkwood", "google"), others, HomeBlock.CASTING))
+            add(Case("chromecast hd, no profile", null, facts("boreal", "google"), others, HomeBlock.CASTING))
             add(Case("unknown TV, wizard owns the Wi-Fi", null, base, owns, HomeBlock.WIZARD_WIFI))
             add(Case("unknown TV, Wi-Fi saved by others", null, base, others, HomeBlock.NONE))
         }

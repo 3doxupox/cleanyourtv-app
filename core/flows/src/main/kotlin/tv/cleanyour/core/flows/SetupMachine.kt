@@ -91,8 +91,8 @@ enum class Reconnect { TRYING, BACK, GAVE_UP }
 enum class Finishing { SWITCHING, DONE }
 
 // Why S3 offers no new home screen (RF-PROFILES-63 P1, P2); NONE when the switch is offered. The
-// last two are the switches skipped up front for safety (RF-SAFETY-250, HomeSwitchRisk).
-enum class HomeBlock { NONE, TV_REFUSES, OLD_ANDROID, UNKNOWN_HOME, WIZARD_WIFI, WIZARD_WIFI_UNKNOWN }
+// last three are the switches skipped up front for safety (RF-SAFETY-250, HomeSwitchRisk).
+enum class HomeBlock { NONE, TV_REFUSES, OLD_ANDROID, UNKNOWN_HOME, WIZARD_WIFI, WIZARD_WIFI_UNKNOWN, CASTING }
 
 // Presentation details the frozen SetupState has no field for (RFC-W8-2). Never a source of truth:
 // everything here is derived from the state, the plan, the draft or a live call.
@@ -620,9 +620,10 @@ class SetupMachine(
 
     // Why the new home screen is not offered: the TV refuses other home screens (UX 4.6); it runs an
     // Android older than the launcher's (RF-PROFILES-63 P1: the clean-up only, no install, look,
-    // curtain or switch); its profile knows no stock launcher the switch
+    // curtain or switch); the switch is known to be unsafe on it (RF-SAFETY-250: casting on Google's
+    // own hardware); its profile knows no stock launcher the switch
     // could hand Home back to (P2: the clean-up only, instead of a plan the planner refuses as a
-    // whole); or (RF-SAFETY-250) the setup wizard has to stay on for the Wi-Fi (D3) while the switch needs it off.
+    // whole); or the setup wizard has to stay on for the Wi-Fi (D3) while the switch needs it off.
     private fun homeBlock(snap: Snapshot, wifi: WizardWifi): HomeBlock {
         val f = deviceFacts ?: return HomeBlock.NONE
         val p = profile()
@@ -630,6 +631,7 @@ class SetupMachine(
         return when {
             f.installRefusal || p?.platform == Platform.FIRE_OS || p?.platform == Platform.TCL_CN -> HomeBlock.TV_REFUSES
             f.sdk < DefaultPlanner.TV_MIN_SDK -> HomeBlock.OLD_ANDROID
+            risk == HomeSwitchRisk.Risk.CASTING -> HomeBlock.CASTING
             p != null && p.stockLaunchers.isEmpty() -> HomeBlock.UNKNOWN_HOME
             risk == HomeSwitchRisk.Risk.WIZARD_WIFI -> HomeBlock.WIZARD_WIFI
             risk == HomeSwitchRisk.Risk.WIZARD_WIFI_UNKNOWN -> HomeBlock.WIZARD_WIFI_UNKNOWN
