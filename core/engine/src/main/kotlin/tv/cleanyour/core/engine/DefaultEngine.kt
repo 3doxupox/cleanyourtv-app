@@ -394,6 +394,7 @@ class DefaultEngine(
             }
             val live = liveState(target, dump, run.snapshot)
             val reason = Denylist.reason(target, live, run.profile, run.snapshot) ?: homeScreenReason(run, step, target)
+                ?: tvInputHardwareReason(run, step, dump)
             if (reason != null) {
                 journal.append(JournalRecord.Begin(run.plan.id, step.index, step.op, step.rendered.lines.map { it.text }, step.prior, clock.nowMs()))
                 journal.append(JournalRecord.Failed(run.plan.id, step.index, null, "protected: $reason", ""))
@@ -419,6 +420,19 @@ class DefaultEngine(
         if (!isHome) return null
         val inSection = run.plan.sections.any { it.name in run.openSections && step.index in it.from..it.to }
         return if (inSection) null else DefaultPlanner.REASON_HOME_SCREEN
+    }
+
+    // Upstream #421 (launcher v2.5.0's tools/disable.sh): a package that asks for TV_INPUT_HARDWARE is
+    // the layer under the HDMI, AV and tuner inputs, registered as an input or not. Switched off, a port
+    // still notices the cable but stays black until a full restore and a cold boot, so it is never
+    // switched off, whatever the profile says. The dump is the one read just above, so this costs no
+    // extra call. Only a switch-off is refused: putting a package back always goes through. The stock
+    // launcher and the wizard inside the open guarded section stay the takeover's own (the watchdog
+    // covers them), as for the home screen rule.
+    private fun tvInputHardwareReason(run: Run, step: Step, dump: String): String? {
+        if (step.op !is Op.Disable || !PackageDump.requestsTvInputHardware(dump)) return null
+        val inSection = run.plan.sections.any { it.name in run.openSections && step.index in it.from..it.to }
+        return if (inSection) null else Denylist.REASON_TV_INPUT
     }
 
     // Begin (forced) before the line is sent, Done or Failed before the next Begin.
