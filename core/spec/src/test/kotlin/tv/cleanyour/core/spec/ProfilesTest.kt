@@ -25,7 +25,7 @@ class ProfilesTest {
 
     @Test fun everyConvertedUpstreamExampleParsesWithCuratedMetadata() {
         assertEquals(147, upstream.size)
-        assertEquals(116, examples.size)
+        assertEquals(132, examples.size)
         for (e in examples) {
             val profile = DebloatTxtParser.parse(e.debloatTxt, e.folder)
             assertEquals(e.folder, profile.id)
@@ -60,7 +60,7 @@ class ProfilesTest {
     @Test fun theUnconvertedListIsPinnedToTheSubmodule() {
         val meta = ProfileMeta.decode(File(Fixtures.repoRoot, "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json").readText())
         assertEquals(upstream.map { it.folder }.filter { it !in meta.profiles }.toSet(), unconverted)
-        assertEquals(31, unconverted.size)
+        assertEquals(15, unconverted.size)
         val listed = unconvertedFile.readLines().filter { it.isNotBlank() && !it.startsWith("#") }
         assertEquals(listed.sorted(), listed, "one folder per line, sorted")
         assertTrue('\u2014' !in unconvertedFile.readText() && "-".repeat(2) !in unconvertedFile.readText())
@@ -176,8 +176,8 @@ class ProfilesTest {
     // homePossible); pinned, so a new one is a reviewed decision.
     @Test fun theProfilesWithNoKnownStockLauncher() {
         val none = BundledProfileSource.bundled.profiles.filter { it.stockLaunchers.isEmpty() && it.platform != Platform.FIRE_OS && it.platform != Platform.TCL_CN }
-        assertEquals(setOf("google-tv-streamer-4k-kirkwood", "hisense-e5q-pro", "kalley-43g200", "stellamore-t950s", "vidda-mt9653",
-            "xiaomi-mitv-ansp0", "xiaomi-mitv-astp1", "xiaomi-mitv-mffu0"), none.map { it.id }.toSet())
+        assertEquals(setOf("challenger-32t22bt", "freebox-player-pop", "google-tv-streamer-4k-kirkwood", "hisense-e5q-pro", "kalley-43g200",
+            "stellamore-t950s", "verizon-stream-tv", "vidda-mt9653", "xiaomi-mitv-ansp0", "xiaomi-mitv-astp1", "xiaomi-mitv-mffu0"), none.map { it.id }.toSet())
     }
 
     // RF-PROFILES-63 P8: where two profiles score the same for a TV, the longer fingerprint prefix wins
@@ -234,6 +234,9 @@ class ProfilesTest {
             // maker gets the Hisense list, the subset that keeps the stock home, by the id.
             facts("VIDAA_TV", "MT9653", "Vidda", 30, manufacturer = "Hisense") to "hisense-e5q-pro",
             facts("VIDAA_TV", "MT9653", "Vidda", 30) to "vidda-mt9653",
+            // The BYINTEK T5 Max is the Wanbo X5 Pro stick sold under another name: the brand decides.
+            facts("4K Google TV Stick", "YYT", "BYINTEK", 34, manufacturer = "SkyworthDigital") to "byintek-t5-max",
+            facts("4K Google TV Stick", "YYT", "SkyworthDigital", 34) to "wanbo-x5-pro",
             facts("Smart TV", "unknown", "TCL", 30) to null,
             // The shipped tcl-65c725 and tcl-g05-google-tv still match the family name alone and tie;
             // the earlier id order stands until the resolver policy (ruling 1). tcl-43c645 is parked.
