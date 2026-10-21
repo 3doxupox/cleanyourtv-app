@@ -154,7 +154,8 @@ owning stream supplies bodies):
   sections 2 and 5. Not frozen, listed for the record: `core.planner.HomeSwitchRisk`, the `HomeBlock`
   values `WIZARD_WIFI`, `WIZARD_WIFI_UNKNOWN`, `CASTING` and `BOOT_LOOP` (RF-SAFETY-250),
   `SetupExtras.doneKept`, `SnackKind.KEPT_TV_INPUT`, `RunLedger.keptTvInputs`,
-  `DefaultEngine.PROTECTED` and `KEPT_TV_INPUT` (RF-LAUNCHER-250 F1), the `:e2e:emulatorTestTheme` task.
+  `DefaultEngine.PROTECTED` and `KEPT_TV_INPUT` (RF-LAUNCHER-250 F1), the `:e2e:emulatorTestTheme` task,
+  HomeBlock `WIZARD_STAYS_ON` (RF-SAFETY-250), `AppGraph.versionOf` (the app version from the APK; 0.2.0, versionCode 2).
 
 Added because the section 5 prose names it: `core.probe.ProbeException(stage, detail)` (R0: 7).
 

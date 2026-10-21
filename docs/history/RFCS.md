@@ -478,7 +478,27 @@ refuses a switch asked for anyway with the same reason (`HomeSwitchRisk.Risk.rea
 - (d) `com.tcl.channelplus` (TCL Live, a TV input) is an ask row on tcl-g05-google-tv,
   tcl-g10-google-tv and tcl-qm6k-google-tv too, so it is out of the TCL sure set
   (`ProfilesTest.tclLiveIsAlwaysAnAskRow`); curation notes added.
-Open: the generic path still switches the stock home off with a setup wizard that claims Home and
-stays on (the wizard is never switched off without a profile); on Google TV 14 that is the same
-RecoveryActivity risk. A probe-time rule (no switch when the wizard is among the HOME claimants and
-no profile allows switching it off) is a candidate follow-up.
+- (a, closed for 0.2.0 by the owner) The generic path: without an exact profile the switch never
+  switches the setup wizard off, so whenever a setup wizard is on the TV the plan would switch the
+  stock home off while the wizard stays on, the same RecoveryActivity risk. Such a TV now gets the
+  clean-up alone, whatever the Wi-Fi answer (`HomeSwitchRisk.Risk.WIZARD_STAYS_ON`, HomeBlock
+  `WIZARD_STAYS_ON`, its own S3 line; the Wi-Fi line when the TV says the wizard saved the Wi-Fi).
+  A TV without a wizard, or with it off, keeps the switch, and a re-run on a TV whose home is
+  already ours is never held back. Tests: `HomeSwitchRiskTest.anUnknownTvWithItsSetupWizardOnGetsNoSwitch`,
+  `SetupMachineTest.theSwitchIsSkippedUpFrontWhereItIsUnsafe`. The emulator scenarios S05 and S09
+  (no profile matches the image) switch the image's wizard off before they plan, and on again after.
+- Safety rule 8 rows: TalkBack (google-chromecast-gtv-4k, tcl-g05-google-tv, tcl-g10-google-tv,
+  xiaomi-mi-box-s) and `com.google.android.tv.remote.service` (tcl-g10-google-tv) were already ask
+  rows through their accessibility and casting categories; the curated rows now say `ask: true`.
+  The scan of every shipped list and sure set found one more: `com.google.android.tv.remotecontrol.logging`
+  (google-chromecast-gtv-4k, google-tv-streamer-4k-kirkwood), off by default as telemetry, now an
+  ask row. `ProfilesTest.noAccessibilityRemoteOrPairingPackageIsDefaultOff` fails on any package of
+  the accessibility category or named like TalkBack, accessibility, the remote, pairing or the
+  remote's key services in a default-off group or a sure set (one named exception,
+  `com.amazon.device_remote_config_sync_service`, settings from Amazon's servers). The committed
+  protected-in-disable-groups report loses the two logger rows.
+Open:
+- The shared e2e wiring (`E2eWiring`) still returns null for every piece, so S01 to S05, S07 and S08
+  report PENDING in a full emulator session; only S06 and S09 build their real pieces themselves.
+  Wire it once (the real constructors, as AppGraph builds them) so the whole suite runs, and set
+  `CYT_E2E_REQUIRE_ALL=1` in the nightly job.
