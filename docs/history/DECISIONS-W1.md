@@ -147,6 +147,14 @@ owning stream supplies bodies):
   review; RFCS.md carries the RFC). App-design edits for the lead (not made on the branch):
   PRODUCT-SPEC 5.7 (an RFC-W4-3 paragraph like RFC-W4-2's, and "built from v2.5.0") and SECURITY V1
   (the key services sentence in LAUNCHER-250-PLAN section 1).
+  Made on release020 (RF-LAUNCHER-250 F6; the app-design folder has no history): PRODUCT-SPEC 5.7
+  (the RFC-W4-3 paragraph with `LauncherRace` and `LauncherRaceSession`, "built from v2.5.0", the
+  six-columns to four-tiles cut), SECURITY V1 (the key services sentence, ThemeProvider) and 3.3 (the
+  `accessibility_enabled 0` step of the restore and "Stop here" finishing it), LAUNCHER-250-PLAN
+  sections 2 and 5. Not frozen, listed for the record: `core.planner.HomeSwitchRisk`, the `HomeBlock`
+  values `WIZARD_WIFI`, `WIZARD_WIFI_UNKNOWN`, `CASTING` and `BOOT_LOOP` (RF-SAFETY-250),
+  `SetupExtras.doneKept`, `SnackKind.KEPT_TV_INPUT`, `RunLedger.keptTvInputs`,
+  `DefaultEngine.PROTECTED` and `KEPT_TV_INPUT` (RF-LAUNCHER-250 F1), the `:e2e:emulatorTestTheme` task.
 
 Added because the section 5 prose names it: `core.probe.ProbeException(stage, detail)` (R0: 7).
 
