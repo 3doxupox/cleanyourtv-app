@@ -65,10 +65,27 @@ tasks.register<Test>("emulatorTestCurtain") {
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     }
 }
+// RF-LAUNCHER-250 F7: the theme push scenario (S06, the accessibility restore) alone, for a short
+// session: scripts/emulator-on-forge.sh run 28 with ./gradlew :e2e:emulatorTestTheme after the separator.
+tasks.register<Test>("emulatorTestTheme") {
+    description = "The theme push scenario (S06) alone against a running Android TV emulator."
+    group = "verification"
+    testClassesDirs = emulatorTest.output.classesDirs
+    classpath = emulatorTest.runtimeClasspath
+    filter { includeTestsMatching("tv.cleanyour.e2e.scenarios.S06ThemePush") }
+    maxParallelForks = 1
+    maxHeapSize = "384m"
+    outputs.upToDateWhen { false }
+    testLogging {
+        events("passed", "skipped", "failed")
+        showStandardStreams = true
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
+}
 // The convention plugin gives every Test task a 5 minute timeout (a hung unit test must not hold
 // the forge lock). A scenario session is longer by design: S05 alone waits up to 10 minutes per
 // scenario. This action is registered after the plugin's, so it wins; the forge session and the
 // nightly job keep their own outer limits (SESSION_TIMEOUT_S, timeout-minutes).
-tasks.withType<Test>().matching { it.name == "emulatorTest" || it.name == "emulatorTestCurtain" }.configureEach {
+tasks.withType<Test>().matching { it.name == "emulatorTest" || it.name == "emulatorTestCurtain" || it.name == "emulatorTestTheme" }.configureEach {
     timeout.set(Duration.ofMinutes(35))
 }
