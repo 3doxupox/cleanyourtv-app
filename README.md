@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/banner.png" width="800" alt="Official app for Clean Your TV. Clean your TV from your phone. No laptop. No coding agent. Open the app on your Android phone, tap Start, and the ads and bloat are gone in about five minutes.">
+  <img src="docs/images/banner.png" width="800" alt="Community app for Clean Your TV. Clean your TV from your phone. No laptop. No coding agent. Open the app on your Android phone, tap Start, and the ads and bloat are gone in about five minutes.">
 </p>
 
 <p align="center">
@@ -9,7 +9,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-E8A84C?style=flat&labelColor=15181e" alt="MIT licence"></a>
 </p>
 
-<h3 align="center">The official phone app for <a href="https://github.com/Gathin23/cleanyourtv">Clean Your TV</a>.<br>Anyone can clean up their TV: no laptop, no coding agent, no cables.</h3>
+<h3 align="center">A community-built phone app for <a href="https://github.com/Gathin23/cleanyourtv">Clean Your TV</a>.<br>Anyone can clean up their TV: no laptop, no coding agent, no cables.</h3>
 
 <p align="center">
   <a href="https://github.com/udhaykumarbala/cleanyourtv-app/releases/latest"><b>Download</b></a> ·
@@ -106,12 +106,12 @@ the app. Add yours there by following its
 [contributing guide](https://github.com/Gathin23/cleanyourtv/blob/main/CONTRIBUTING.md), and the app
 picks it up in its next release. See also [CONTRIBUTING.md](CONTRIBUTING.md#propose-a-tv-profile).
 
-## Part of Clean Your TV
+## Built on Clean Your TV
 
 - The home screen is the [Clean Your TV launcher](https://github.com/Gathin23/cleanyourtv/tree/main/launcher)
   by [Gathin](https://github.com/Gathin23). The app carries it inside, built from its source.
-- New TV lists and launcher versions from Clean Your TV reach the app in its updates. News about
-  both comes from [@gathint](https://x.com/gathint).
+- New TV lists and launcher versions from Clean Your TV reach the app in its updates. The app is a
+  community project; news about Clean Your TV itself comes from [@gathint](https://x.com/gathint).
 - Something wrong in the app itself? [Open an issue here](https://github.com/udhaykumarbala/cleanyourtv-app/issues).
   Security issues: see [SECURITY.md](SECURITY.md).
 
