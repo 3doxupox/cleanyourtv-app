@@ -85,7 +85,9 @@ fun HomeScreen(state: HomeScreenState, onIntent: (HomeScreenIntent) -> Unit, onB
             ListRow(stringResource(R.string.home_row_look), subtitle = theme, onClick = if (busy == null) ({ lookOpen = true }) else null)
         }
         // Launcher 2.4: Launcher settings on the TV can override what the phone sent; the phone
-        // cannot read them, so the rows above show what config.json says.
+        // cannot read them, so the rows above show what config.json says. Launcher 2.5 also edits the
+        // dock on the TV (files/order.txt, kept while dock_apps stays the same), so the note says what
+        // a new look and a new dock do to it.
         // Only for a launcher that has those settings (2.4 and later; RF-LAUNCHER-240 F16).
         if (state.tvSideSettings) Body(stringResource(R.string.home_tv_changes_note), Modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp))
         state.updateTo?.let { version ->

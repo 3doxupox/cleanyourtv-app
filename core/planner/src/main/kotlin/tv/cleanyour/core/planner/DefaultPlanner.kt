@@ -559,8 +559,11 @@ class DefaultPlanner(
         // accessibility services (InputKeyService, HomeKeyService) from the enabled list and turns
         // accessibility off, so a remote button the launcher handled stops working. When the TV had
         // one of ours on, wait a second (Android drops them while the launcher restarts), clear the
-        // list, write it back and switch accessibility on, so they bind again. Typed, allowlisted
-        // settings steps (SECURITY 3.3) with the probed values, shown in Show commands.
+        // list and switch accessibility off, wait a second, write the list back and switch accessibility
+        // on, so they bind again. Typed, allowlisted settings steps (SECURITY 3.3) with the probed
+        // values, shown in Show commands. The off and on again is v2.5.0's step (upstream #424): some
+        // TVs (TCL Smart TV Pro G03, Android 11) keep the service in their crashed list after the
+        // force-stop and leave it unbound until accessibility itself goes off and on.
         //
         // Only when the TV had accessibility on (RF-LAUNCHER-240 F7): switching it on would bind every
         // service in the list, someone else's too, and an accessibility service reads the screen, so
@@ -573,6 +576,8 @@ class DefaultPlanner(
             val narration = "Switching the home screen's remote buttons back on"
             step(Op.Settle(1), null, group, narration, FailurePolicy.CONTINUE)
             step(Op.SettingsPut(SettingKey.ENABLED_ACCESSIBILITY, null), Prior(settingValue = list), group, narration, FailurePolicy.CONTINUE)
+            step(Op.SettingsPut(SettingKey.ACCESSIBILITY_ENABLED, "0"), Prior(settingValue = "1"), group, narration, FailurePolicy.CONTINUE)
+            step(Op.Settle(1), null, group, narration, FailurePolicy.CONTINUE)
             step(Op.SettingsPut(SettingKey.ENABLED_ACCESSIBILITY, list), Prior(settingValue = list), group, narration, FailurePolicy.CONTINUE)
             step(Op.SettingsPut(SettingKey.ACCESSIBILITY_ENABLED, "1"), Prior(settingValue = "1"), group, narration, FailurePolicy.CONTINUE)
         }

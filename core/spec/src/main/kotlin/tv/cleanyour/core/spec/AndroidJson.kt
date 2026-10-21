@@ -248,3 +248,84 @@ internal fun AValue.toJsonElement(): JsonElement = when (this) {
 
 // java.lang.String.trim(): strips every char up to U+0020, unlike Kotlin's whitespace trim.
 internal fun String.javaTrim(): String = trim { it <= ' ' }
+
+// JSONObject.optString and optInt for a value that is there (launcher v2.5.0 reads race_calendar
+// with them). optString gives String.valueOf of the value: a string as is, a number as Java prints
+// it, true or false, "null" for JSON null, and a list or an object as its compact JSON text
+// (JSONStringer). When that text cannot be written (a NaN in a list), toString is null and the
+// fallback is used, as on the TV.
+internal fun AValue?.androidOptString(fallback: String): String = when (this) {
+    null, AValue.Absent -> fallback
+    is AValue.Str -> v
+    is AValue.IntV -> v.toString()
+    is AValue.LongV -> v.toString()
+    is AValue.Dbl -> java.lang.Double.toString(v)
+    is AValue.Bool -> v.toString()
+    AValue.Null -> "null"
+    is AValue.Obj, is AValue.Arr -> StringBuilder().let { b -> if (stringer(this, b)) b.toString() else fallback }
+}
+
+// JSON.toInteger: a number's intValue(), a string through Double.parseDouble (then (int)), else the fallback.
+internal fun AValue?.androidOptInt(fallback: Int): Int = when (this) {
+    is AValue.IntV -> v
+    is AValue.LongV -> v.toInt()
+    is AValue.Dbl -> v.toInt()
+    is AValue.Str -> try { java.lang.Double.parseDouble(v).toInt() } catch (e: NumberFormatException) { fallback }
+    else -> fallback
+}
+
+// JSONStringer, compact: '"', '\' and '/' escaped, \t \b \n \r \f, other chars up to U+001F as
+// \u00XX; numbers by JSONObject.numberToString (whole doubles without ".0", -0.0 as "-0").
+// False when a double is NaN or infinite, which JSONStringer refuses.
+private fun stringer(v: AValue, b: StringBuilder): Boolean {
+    when (v) {
+        is AValue.Str -> stringerString(v.v, b)
+        is AValue.IntV -> b.append(v.v)
+        is AValue.LongV -> b.append(v.v)
+        is AValue.Dbl -> {
+            val d = v.v
+            if (d.isNaN() || d.isInfinite()) return false
+            when {
+                java.lang.Double.doubleToRawLongBits(d) == java.lang.Double.doubleToRawLongBits(-0.0) -> b.append("-0")
+                d == d.toLong().toDouble() -> b.append(d.toLong())
+                else -> b.append(java.lang.Double.toString(d))
+            }
+        }
+        is AValue.Bool -> b.append(v.v)
+        AValue.Null, AValue.Absent -> b.append("null")
+        is AValue.Arr -> {
+            b.append('[')
+            v.items.forEachIndexed { i, item -> if (i > 0) b.append(','); if (!stringer(item, b)) return false }
+            b.append(']')
+        }
+        is AValue.Obj -> {
+            b.append('{')
+            var first = true
+            for ((k, item) in v.map) {
+                if (!first) b.append(',')
+                first = false
+                stringerString(k, b)
+                b.append(':')
+                if (!stringer(item, b)) return false
+            }
+            b.append('}')
+        }
+    }
+    return true
+}
+
+private fun stringerString(s: String, b: StringBuilder) {
+    b.append('"')
+    for (c in s) {
+        when (c) {
+            '"', '\\', '/' -> b.append('\\').append(c)
+            '\t' -> b.append("\\t")
+            '\b' -> b.append("\\b")
+            '\n' -> b.append("\\n")
+            '\r' -> b.append("\\r")
+            '\u000C' -> b.append("\\f")
+            else -> if (c.code <= 0x1F) b.append("\\u").append(c.code.toString(16).padStart(4, '0')) else b.append(c)
+        }
+    }
+    b.append('"')
+}

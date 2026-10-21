@@ -138,6 +138,15 @@ owning stream supplies bodies):
   Not frozen, added after review: `SavedWifiOwners.savedWifi(session): SavedWifi` (replacing the
   owners set), `AdbProber(..., known)`, `CopyKey.STOP_HOME_SETUPWRAITH_WIFI_UNKNOWN_BODY`,
   `HomeScreenState.tvSideSettings`.
+- `core.spec.LauncherConfigDoc` gains `launchActions, appLabels, appBanners, inputKeyKeycodes,
+  appKeys, cinematicHome, wallpaperRotationMinutes, wallpaperDim, raceCalendar` (nullable, defaulted
+  null) and `EffectiveConfig` the same nine non-null (the three maps as `Map<String, String>`,
+  `raceCalendar: List<LauncherRace>`), defaulted to launcher v2.5.0's `config.xml` values, after the
+  RFC-W4-2 fields and marked `// RFC-W4-3`; 5.7 gains `data class LauncherRace(round, name, place,
+  sessions)` and `data class LauncherRaceSession(name, start)` (applied on launcher250 2026-10-21, for
+  review; RFCS.md carries the RFC). App-design edits for the lead (not made on the branch):
+  PRODUCT-SPEC 5.7 (an RFC-W4-3 paragraph like RFC-W4-2's, and "built from v2.5.0") and SECURITY V1
+  (the key services sentence in LAUNCHER-250-PLAN section 1).
 
 Added because the section 5 prose names it: `core.probe.ProbeException(stage, detail)` (R0: 7).
 

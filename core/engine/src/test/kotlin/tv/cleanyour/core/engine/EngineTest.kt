@@ -15,6 +15,7 @@ import tv.cleanyour.core.model.ShellLine
 import tv.cleanyour.core.model.SnapshotReason
 import tv.cleanyour.core.model.TvId
 import tv.cleanyour.core.ops.FailurePolicy
+import tv.cleanyour.core.ops.PackageDump
 import tv.cleanyour.core.planner.PlanRequest
 import tv.cleanyour.core.store.GateMethod
 import tv.cleanyour.testing.fixtures.Samples
@@ -436,6 +437,36 @@ class EngineTest {
             assertTrue(failed.error.contains("home screen"), failed.error)
             assertTrue(!h.tv.isOff(target), case)
         }
+    }
+
+    // Upstream #421 (launcher v2.5.0's disable step): a package that asks for TV_INPUT_HARDWARE drives
+    // the HDMI, AV and tuner inputs even when no input is registered for it, so the live check refuses
+    // to switch it off; a package that only holds it through others' lines, or puts one back, is fine.
+    @Test fun theLiveCheckRefusesToSwitchOffATvInputDriver() = runTest(timeout = TEST_TIMEOUT) {
+        val h = Harness(this)
+        val engine = h.engine()
+        val driver = h.debloat[0]
+        h.tv.requestedPermissions = mapOf(driver to listOf("android.permission.INTERNET", "android.permission.TV_INPUT_HARDWARE"))
+        val plan = h.opsPlan(Op.Disable(driver))
+        engine.start(plan, h.tv, plan.hash, h.pass())
+        h.settle(engine)
+        val paused = engine.runState(h.tv.tvId).value as RunState.Paused
+        assertEquals(AdbError.Policy.ProtectedPackage(driver), paused.error)
+        assertEquals(0, h.tv.execs("pm disable-user"), "the line was never sent")
+        val failed = h.records(plan).filterIsInstance<JournalRecord.Failed>().single()
+        assertTrue(failed.error.contains("TV input"), failed.error)
+        assertTrue(!h.tv.isOff(driver))
+    }
+
+    @Test fun onlyTheRequestedPermissionsBlockCounts() {
+        fun dump(vararg lines: String) = "Packages:\n  Package [com.example.tv] (1a2b3c):\n" + lines.joinToString("") { "    $it\n" }
+        assertTrue(PackageDump.requestsTvInputHardware(dump("requested permissions:", "  android.permission.TV_INPUT_HARDWARE", "install permissions:")))
+        assertTrue(PackageDump.requestsTvInputHardware(dump("requested permissions:", "  android.permission.TV_INPUT_HARDWARE: restricted=true")))
+        // Granted through a shared user, or printed in another block: not this package's own request.
+        assertTrue(!PackageDump.requestsTvInputHardware(dump("requested permissions:", "  android.permission.INTERNET", "install permissions:", "  android.permission.TV_INPUT_HARDWARE: granted=true")))
+        assertTrue(!PackageDump.requestsTvInputHardware(dump("requested permissions:", "User 0: installed=true", "  android.permission.TV_INPUT_HARDWARE")))
+        assertTrue(!PackageDump.requestsTvInputHardware(dump("requested permissions:", "  android.permission.TV_INPUT_HARDWARE_EXTRA")))
+        assertTrue(!PackageDump.requestsTvInputHardware(""))
     }
 
     // RFC-W8-5: the restart test is a plan of its own, journaled, and needs no credential pass.

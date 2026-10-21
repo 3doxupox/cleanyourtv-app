@@ -18,7 +18,10 @@ data class LauncherConfigDoc(val dockApps: List<PackageName>? = null, val hidden
     val dockRow: Boolean? = null, val reorderButton: Boolean? = null, val showStats: Boolean? = null,
     val appLibrary: Boolean? = null, val skyIntensity: Int? = null, val settingsKeyKeycodes: List<Int>? = null,
     val settingsKeyPanel: Boolean? = null, val festival: String? = null, val festivalUntil: String? = null,
-    val greeting: String? = null, val accentColor: String? = null)
+    val greeting: String? = null, val accentColor: String? = null,
+    val launchActions: List<String>? = null, val appLabels: List<String>? = null, val appBanners: List<String>? = null,  // RFC-W4-3
+    val inputKeyKeycodes: List<Int>? = null, val appKeys: List<String>? = null, val cinematicHome: Boolean? = null,
+    val wallpaperRotationMinutes: Int? = null, val wallpaperDim: Int? = null, val raceCalendar: List<LauncherRace>? = null)
 data class EffectiveConfig(val dockApps: List<String>, val hiddenApps: List<String>, val liveTvPackage: String, val liveTvAction: String,
     val sourcePanelService: String, val sourcePanelAction: String, val columns: Int, val rowsBelowDock: Int, val shamsiDate: Boolean,
     val vpnApp: String, val showHomeSettingsShortcut: Boolean, val backgroundColorArgb: Int, val wallpaper: Boolean,
@@ -28,7 +31,13 @@ data class EffectiveConfig(val dockApps: List<String>, val hiddenApps: List<Stri
     val dockRow: Boolean = true, val reorderButton: Boolean = false, val showStats: Boolean = false,
     val appLibrary: Boolean = false, val skyIntensity: Int = 0, val settingsKeyKeycodes: List<Int> = emptyList(),
     val settingsKeyPanel: Boolean = false, val festival: String = "", val festivalUntil: String = "",
-    val greeting: String = "", val accentColorArgb: Int = 0)
+    val greeting: String = "", val accentColorArgb: Int = 0,
+    val launchActions: Map<String, String> = emptyMap(), val appLabels: Map<String, String> = emptyMap(),  // RFC-W4-3
+    val appBanners: Map<String, String> = emptyMap(), val inputKeyKeycodes: List<Int> = emptyList(),
+    val appKeys: List<String> = emptyList(), val cinematicHome: Boolean = false, val wallpaperRotationMinutes: Int = 0,
+    val wallpaperDim: Int = 0, val raceCalendar: List<LauncherRace> = emptyList())
+data class LauncherRace(val round: Int, val name: String, val place: String, val sessions: List<LauncherRaceSession>)  // RFC-W4-3
+data class LauncherRaceSession(val name: String, val start: String)
 sealed interface DecodeResult { data class Ok(val doc: LauncherConfigDoc, val warnings: List<String>) : DecodeResult; data class Rejected(val reason: String) : DecodeResult }
 object LauncherConfigCodec {
     fun decode(bytes: ByteArray): DecodeResult = ConfigCodecImpl.decode(bytes)                       // Config.java semantics: 64 KB cap, BOM, per-key type and range

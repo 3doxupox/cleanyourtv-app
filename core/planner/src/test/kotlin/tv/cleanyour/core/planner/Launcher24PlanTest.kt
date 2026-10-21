@@ -137,12 +137,16 @@ class Launcher24PlanTest {
         val p = plan(PlanRequest.ApplyTheme(tv.cleanyour.core.spec.LauncherConfigDoc(), config, null), snapshot = with, planner = planner(transport))
         val restart = p.steps.indexOfFirst { it.op is Op.RestartHome }
         assertEquals(
-            listOf(Op.Settle(1), Op.SettingsPut(SettingKey.ENABLED_ACCESSIBILITY, null), Op.SettingsPut(SettingKey.ENABLED_ACCESSIBILITY, list),
-                Op.SettingsPut(SettingKey.ACCESSIBILITY_ENABLED, "1")),
+            listOf(Op.Settle(1), Op.SettingsPut(SettingKey.ENABLED_ACCESSIBILITY, null), Op.SettingsPut(SettingKey.ACCESSIBILITY_ENABLED, "0"),
+                Op.Settle(1), Op.SettingsPut(SettingKey.ENABLED_ACCESSIBILITY, list), Op.SettingsPut(SettingKey.ACCESSIBILITY_ENABLED, "1")),
             ops(p).drop(restart + 1),
         )
         assertTrue(p.steps.drop(restart + 1).all { it.onFailure == FailurePolicy.CONTINUE && it.group == DefaultPlanner.GROUP_THEME })
         assertEquals(list, p.steps[restart + 2].prior?.settingValue)
+        // Launcher 2.5's step (upstream #424): accessibility goes off with the list cleared, and on again
+        // after the list is back; the off step undoes to on.
+        assertEquals("1", p.steps[restart + 3].prior?.settingValue)
+        assertEquals(list, p.steps[restart + 5].prior?.settingValue)
         // Accessibility off on the TV (switched off, or a vendor build): nothing is switched on, so no
         // service in the list, ours or anyone's, is bound by the app (RF-LAUNCHER-240 F7).
         for (off in listOf("0", null)) {

@@ -1,12 +1,17 @@
 package com.gathin.tvhome.pinned;
 
-// Test stub: the resource ids upstream Config.java (v2.4.0) reads (values come from config.xml in the test).
+// Test stub: the resource ids upstream Config.java (v2.5.0) reads (values come from config.xml in the test).
 public final class R {
     private R() {}
     public static final class array {
         public static final int dock_apps = 0x7f010001;
         public static final int hidden_apps = 0x7f010002;
         public static final int settings_key_keycodes = 0x7f010003;
+        public static final int launch_actions = 0x7f010004;
+        public static final int app_labels = 0x7f010005;
+        public static final int app_banners = 0x7f010006;
+        public static final int input_key_keycodes = 0x7f010007;
+        public static final int app_keys = 0x7f010008;
     }
     public static final class string {
         public static final int live_tv_package = 0x7f020001;
@@ -36,5 +41,6 @@ public final class R {
         public static final int show_stats = 0x7f04000b;
         public static final int app_library = 0x7f04000c;
         public static final int settings_key_panel = 0x7f04000d;
+        public static final int cinematic_home = 0x7f04000e;
     }
 }

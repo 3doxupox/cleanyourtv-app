@@ -11,6 +11,17 @@ import kotlin.test.assertNull
 class DockLayersTest {
     private fun apps(n: Int) = List(n) { PackageName("com.example.app$it") }
 
+    // Launcher 2.5 keeps a dock or tile order set on the TV (Edit dock, Reorder; files/order.txt)
+    // only while dock_apps is the same list (Order.ranks), so a new look must write the same
+    // dock_apps for the same dock: the Home screen note promises that a new look keeps it.
+    @Test fun aNewLookWritesTheSameDockApps() {
+        val looks = BundledThemeSource().bundled().map { it.doc } + LauncherConfigDoc()
+        for (n in listOf(1, 4, 8, 12)) {
+            val written = looks.map { DockLayers.applyTo(it, apps(n)).dockApps }
+            assertEquals(listOf(apps(n)), written.distinct(), "$n apps")
+        }
+    }
+
     @Test fun theListIsCutIntoRowsOfColumns() {
         assertEquals(emptyList(), DockLayers.rows(apps(0), 4))
         assertEquals(listOf(apps(3)), DockLayers.rows(apps(3), 4))

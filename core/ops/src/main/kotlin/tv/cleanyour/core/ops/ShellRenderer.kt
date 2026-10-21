@@ -362,6 +362,25 @@ object PackageDump {
     fun isPersistent(dump: String): Boolean = FLAGS_RE.findAll(dump).any { m -> m.groupValues[1].split(' ').any { it == "PERSISTENT" } }
     fun isSystem(dump: String): Boolean = FLAGS_RE.findAll(dump).any { m -> m.groupValues[1].split(' ').any { it == "SYSTEM" } }
 
+    // Upstream #421 (tools/disable.sh, v2.5.0): the package itself asks for TV_INPUT_HARDWARE in a
+    // "requested permissions:" block, which runs until "install permissions:", "runtime permissions:",
+    // a "User N:" line or the next package. A shared user's permissions are printed elsewhere, so a
+    // vendor app that only shares a UID with an input driver does not count.
+    fun requestsTvInputHardware(dump: String): Boolean {
+        var inRequested = false
+        for (raw in dump.lineSequence()) {
+            val line = raw.trim()
+            when {
+                line == "requested permissions:" -> inRequested = true
+                line.endsWith("permissions:") || USER_RE.matches(line) || line.startsWith("Package [") -> inRequested = false
+                inRequested && (line == TV_INPUT_HARDWARE || line.startsWith("$TV_INPUT_HARDWARE:")) -> return true
+            }
+        }
+        return false
+    }
+    private const val TV_INPUT_HARDWARE = "android.permission.TV_INPUT_HARDWARE"
+    private val USER_RE = Regex("^User [0-9]+:.*")
+
     fun enabledState(dump: String): EnabledState? = when (enabledSetting(dump)) {
         0 -> EnabledState.DEFAULT
         1 -> EnabledState.ENABLED

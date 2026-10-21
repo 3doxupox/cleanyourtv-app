@@ -67,6 +67,7 @@ class ScriptedTv(initial: Snapshot = Samples.miTvSnapshot()) : TvSession {
     var installOutcome: InstallOutcome = InstallOutcome.Installed
     var persistentOverride: Set<PackageName> = emptySet()
     var startFails = false
+    var requestedPermissions: Map<PackageName, List<String>> = emptyMap()   // printed under "requested permissions:" in the package's dump
 
     override val tvId: TvId = initial.tvId
     override val identity: TvIdentity = TvIdentity(tvId, facts.serialLast4, facts.device, facts.model, facts.sdk, facts.adbSecure, facts.adbFeatures, 1024 * 1024)
@@ -100,7 +101,8 @@ class ScriptedTv(initial: Snapshot = Samples.miTvSnapshot()) : TvSession {
         val p = packages[pkg] ?: return ""
         val flags = buildList { if (p.system) add("SYSTEM"); add("HAS_CODE"); if (p.persistent || pkg in persistentOverride) add("PERSISTENT") }
         val enabled = when (p.enabled) { EnabledState.DEFAULT -> 0; EnabledState.ENABLED -> 1; EnabledState.DISABLED -> 2; EnabledState.DISABLED_USER -> 3 }
-        return "Packages:\n  Package [${pkg.value}] (1a2b3c):\n    versionCode=${p.versionCode} minSdk=21 targetSdk=28\n    flags=[ ${flags.joinToString(" ")} ]\n" +
+        val requested = requestedPermissions[pkg]?.let { l -> "    requested permissions:\n" + l.joinToString("") { "      $it\n" } + "    install permissions:\n" } ?: ""
+        return "Packages:\n  Package [${pkg.value}] (1a2b3c):\n    versionCode=${p.versionCode} minSdk=21 targetSdk=28\n    flags=[ ${flags.joinToString(" ")} ]\n" + requested +
             "    User 0: ceDataInode=1 installed=true hidden=false suspended=false stopped=false notLaunched=false enabled=$enabled instant=false virtual=false\n"
     }
 
