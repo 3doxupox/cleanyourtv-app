@@ -7,10 +7,6 @@
 # Each line below is either a v2.5.0 folder still to curate, or refused on purpose with the reason
 # after the folder name.
 aiwa-ai-pont-sa
-amazon-fire-tv-afttiff43
-amazon-fire-tv-stick-4k-2023
-amazon-fire-tv-stick-4k-max-2021
-amazon-fire-tv-stick-lite-2020
 byintek-t5-max
 byintek-u4
 cecotec-shandao
@@ -18,25 +14,16 @@ challenger-32t22bt
 compac-atv-r2
 eko-2k-google-tv-tennoji
 freebox-player-pop
-google-tv-streamer-4k-kirkwood
-hisense-e5q-pro
 jvc-android-tv-menlo
-kalley-43g200
-kogan-gtvu65kg
-motorola-swtv-24ae-fhd
 mtc-uk-2k-android-tv
 oneplus-tv-y1
-onn-4k-plus-2025
-panasonic-4ktv-0su
 philips-55pus7503    # refused: same device, firmware and fingerprint as philips-65pus8102, whose list contains every package of this one; the app resolves one profile per TV, so this list could never be picked (contributed by Iago Veiga, PR #209)
-philips-75pus8505
-philips-tpm191e
+philips-tpm191e    # refused: same board, firmware and fingerprint as philips-75pus8505 (Philips/PH9M_EA_5599/PH9M_EA_5599:12/STT2.230526.001/4215, model TPM191E), so the app could only ever pick one of the two; 75pus8505 is kept because every entry was checked on the TV with dumpsys and its header adds the SOURCES key (org.droidtv.fastip) and USB media keep list; the extra apps this list switches off (Prime Video, Google TV, Play Music, Play Games, TalkBack, DLNA) are owner choices, and DLNA is kept on 75pus8505 because the USB media app binds it (contributed by amadr-95, PR #334)
 polytron-2k-hayward
 portronics-beem-470    # refused: the firmware reports the generic Allwinner ADT-3 identity and the header says to match on a build string; the app matches on brand, model, device, SDK and fingerprint, so a profile would either never match or catch every device with that identity; v2.5.0 adds a vendor accessibility helper to the list (upstream #372), which does not change this
 redmi-mitv-antl0    # refused: Android 5.1.1 (SDK 22). The launcher needs Android 8 (SDK 26), and this firmware refuses pm disable for the shell, the only way the app switches an app off (the list works with pm hide instead); v2.5.0 adds notes for newer firmware (upstream #403), where the list was not re-tested
 sharp-aquos-tve21f
-sony-kd-49x8307c
-sony-kd-55xe8596
+sony-kd-49x8307c    # parked: same model string (BRAVIA 4K 2015), device (SVP-DTV15) and Android 7.0 as sony-kd-55x8509c, with only the firmware different (NRD91N.S44 here, S34 there); the app resolves one profile per TV and only the build fingerprint could tell the two lists apart, which the header does not give, so this list would take the shipped one's TVs by name order; ask the contributor for ro.build.fingerprint (contributed by Nunu00, PR #325)
 tcl-32l5a    # parked: same device C06, product C06_2K_GB and build AR2101 as tcl-40s5400a, with no fingerprint and no one-product model to tell them apart, so a profile would tie with that reboot-tested list on every C06 set and take it over by id; 8 of its 12 packages are in that list (the rest: two browsers, copydatatotv, t_solo) and the header states no testing; unpark with the set's ro.build.fingerprint and a testing note (contributed by DEVILxD5919, PR #520)
 tcl-32s5400a    # parked: same device, product and AR14 fingerprint (TCL/C06_2K_GB/C06:11/AR2101/AR14) as hitachi-cdh-le32smart21, which wins every tie by id, so this profile could never be picked; unpark if the resolver gains an explicit supersedes (RF-PROFILES-63 ruling 1) and the owner prefers this list for AR14 sets (contributed by Mrigank Utkarsh, PR #322)
 tcl-32s5k    # refused: the same 22 packages as tcl-40s5400a on the same device, product and build (C06, C06_2K_GB, AR2101), so C06 sets already get that profile and this one could never be picked (contributed by Tahsin Gül, PR #392)
@@ -46,13 +33,7 @@ tcl-beyondtv2-android-11    # parked: the same fingerprint (TCL/BeyondTV2/Beyond
 tcl-l40s66e    # parked: same device, product, software (LF1V030) and AR14 fingerprint as hitachi-cdh-le32smart21, which wins every tie by id, so this profile could never be picked; unpark if the resolver gains an explicit supersedes (RF-PROFILES-63 ruling 1) and the owner prefers this list for AR14 sets (contributed by lucasfarfa, PR #508)
 tcl-mt9655-cn-android14    # refused: network ADB opens only after adb tcpip 5555 from a computer over a USB cable and closes again at every reboot (the firmware's own switch offers TLS only, with no pairing), so the app could neither reach the TV nor undo its changes later without a computer; the firmware also refuses every APK install, so there is no new home screen either (contributed by moqilin258-commits, PR #498)
 telesystem-ont2hd
-thomson-t32rtl6000
 toshiba-cosmos-android-tv
 verizon-stream-tv
-vidda-mt9653
 vision-2024vision43stv
 vu-premium-fhd-43-hamamatsucho
-xgimi-mogo-2
-xgimi-mogo-3-pro
-xiaomi-mitv-ansp0
-xiaomi-mitv-mffu0

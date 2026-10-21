@@ -25,7 +25,7 @@ class ProfilesTest {
 
     @Test fun everyConvertedUpstreamExampleParsesWithCuratedMetadata() {
         assertEquals(147, upstream.size)
-        assertEquals(97, examples.size)
+        assertEquals(116, examples.size)
         for (e in examples) {
             val profile = DebloatTxtParser.parse(e.debloatTxt, e.folder)
             assertEquals(e.folder, profile.id)
@@ -60,7 +60,7 @@ class ProfilesTest {
     @Test fun theUnconvertedListIsPinnedToTheSubmodule() {
         val meta = ProfileMeta.decode(File(Fixtures.repoRoot, "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json").readText())
         assertEquals(upstream.map { it.folder }.filter { it !in meta.profiles }.toSet(), unconverted)
-        assertEquals(50, unconverted.size)
+        assertEquals(31, unconverted.size)
         val listed = unconvertedFile.readLines().filter { it.isNotBlank() && !it.startsWith("#") }
         assertEquals(listed.sorted(), listed, "one folder per line, sorted")
         assertTrue('\u2014' !in unconvertedFile.readText() && "-".repeat(2) !in unconvertedFile.readText())
@@ -176,7 +176,8 @@ class ProfilesTest {
     // homePossible); pinned, so a new one is a reviewed decision.
     @Test fun theProfilesWithNoKnownStockLauncher() {
         val none = BundledProfileSource.bundled.profiles.filter { it.stockLaunchers.isEmpty() && it.platform != Platform.FIRE_OS && it.platform != Platform.TCL_CN }
-        assertEquals(setOf("stellamore-t950s", "xiaomi-mitv-astp1"), none.map { it.id }.toSet())
+        assertEquals(setOf("google-tv-streamer-4k-kirkwood", "hisense-e5q-pro", "kalley-43g200", "stellamore-t950s", "vidda-mt9653",
+            "xiaomi-mitv-ansp0", "xiaomi-mitv-astp1", "xiaomi-mitv-mffu0"), none.map { it.id }.toSet())
     }
 
     // RF-PROFILES-63 P8: where two profiles score the same for a TV, the longer fingerprint prefix wins
@@ -227,6 +228,12 @@ class ProfilesTest {
             // FFalcon set that reports TCL as its maker gets its own list by the id.
             facts("unknown", "tcl_mt5879_cn", "FFALCON", 30, manufacturer = "TCL") to "ffalcon-65s585c-pro",
             facts("unknown", "tcl_mt5879_cn", "TCL", 30) to "tcl-q10g-pro",
+            facts("BRAVIA 4K GB", "BRAVIA_ATV2", "Sony", 28, "Sony/BRAVIA_ATV2_EU/BRAVIA_ATV2:9/PTT1.190515.001.S52/x") to "sony-kd-55xe8596",
+            facts("BRAVIA 4K GB", "BRAVIA_ATV2", "Sony", 28, "Sony/BRAVIA_ATV2_EU/BRAVIA_ATV2:9/PTT1.190515.001.S62/x") to "sony-bravia-4k-gb",
+            // The Vidda and Hisense VIDAA_TV lists are one build; a Vidda set that reports Hisense as its
+            // maker gets the Hisense list, the subset that keeps the stock home, by the id.
+            facts("VIDAA_TV", "MT9653", "Vidda", 30, manufacturer = "Hisense") to "hisense-e5q-pro",
+            facts("VIDAA_TV", "MT9653", "Vidda", 30) to "vidda-mt9653",
             facts("Smart TV", "unknown", "TCL", 30) to null,
             // The shipped tcl-65c725 and tcl-g05-google-tv still match the family name alone and tie;
             // the earlier id order stands until the resolver policy (ruling 1). tcl-43c645 is parked.
