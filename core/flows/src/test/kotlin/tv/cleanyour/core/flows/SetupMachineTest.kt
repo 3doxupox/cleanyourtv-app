@@ -1036,7 +1036,7 @@ class SetupMachineTest {
         val shipped = tv.cleanyour.core.spec.BundledProfileSource.bundled.profiles.associateBy { it.id }
         val owns = SavedWifi(true, 1, setOf("${wizard.value}:10031"))
         val others = SavedWifi(true, 1, setOf("android.uid.system:1000"))
-        data class Case(val name: String, val profile: String?, val facts: tv.cleanyour.core.model.DeviceFacts, val wifi: SavedWifi, val block: HomeBlock)
+        data class Case(val name: String, val profile: String?, val facts: tv.cleanyour.core.model.DeviceFacts, val wifi: SavedWifi, val block: HomeBlock, val wizardOn: Boolean = true)
         val base = Samples.miTvFacts().copy(sdk = 34, release = "14")
         fun facts(device: String, brand: String, manufacturer: String = brand, sdk: Int = 34) = base.copy(device = device, brand = brand, manufacturer = manufacturer, model = "unknown", sdk = sdk)
         val cases = buildList {
@@ -1052,8 +1052,12 @@ class SetupMachineTest {
             add(Case("prismplus-q65-ultra-r10g", "prismplus-q65-ultra-r10g", facts("R10G", "PRISMPLUS", "MOKA"), others, HomeBlock.BOOT_LOOP))
             add(Case("R10G on Android 15, no profile", null, facts("R10G", "PRISMPLUS", "MOKA", sdk = 35), others, HomeBlock.BOOT_LOOP))
             add(Case("unknown TV, wizard owns the Wi-Fi", null, base, owns, HomeBlock.WIZARD_WIFI))
-            add(Case("unknown TV, Wi-Fi saved by others", null, base, others, HomeBlock.NONE))
-            add(Case("Philips R8G, made by MOKA but not this family", null, facts("whitefield", "Philips", "MOKA"), others, HomeBlock.NONE))
+            // RF-SAFETY-250: with no profile the switch never switches the wizard off, so a wizard
+            // that is on means no switch, whatever the Wi-Fi answer; without one the switch goes ahead.
+            add(Case("unknown TV, Wi-Fi saved by others", null, base, others, HomeBlock.WIZARD_STAYS_ON))
+            add(Case("unknown TV, the Wi-Fi read failed", null, base, SavedWifi(false, 0, emptySet()), HomeBlock.WIZARD_STAYS_ON))
+            add(Case("unknown TV without a setup wizard", null, base, others, HomeBlock.NONE, wizardOn = false))
+            add(Case("Philips R8G, made by MOKA but not this family", null, facts("whitefield", "Philips", "MOKA"), others, HomeBlock.NONE, wizardOn = false))
         }
         for (c in cases) {
             val h = Harness()
@@ -1061,7 +1065,8 @@ class SetupMachineTest {
             h.prober.facts = c.facts
             h.prober.snapshotFor = { r ->
                 Samples.miTvSnapshot(reason = r).let { s ->
-                    s.copy(packages = s.packages + (wizard to tv.cleanyour.core.model.PackageState(tv.cleanyour.core.model.EnabledState.ENABLED, true, 1, null, false, false, null, false)))
+                    if (c.wizardOn) s.copy(packages = s.packages + (wizard to tv.cleanyour.core.model.PackageState(tv.cleanyour.core.model.EnabledState.ENABLED, true, 1, null, false, false, null, false)))
+                    else s.copy(packages = s.packages - wizard)
                 }.let { it.copy(contentHash = tv.cleanyour.core.store.SnapshotCodec.hash(it)) }
             }
             val profile = c.profile?.let { assertNotNull(shipped[it], it) }   // as shipped: the streamer and kalley-43g200 list no stock home

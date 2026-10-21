@@ -50,6 +50,9 @@ class S05TakeoverWithCrashingLauncher : E2eScenario() {
     }
 
     private suspend fun takeoverPlan(session: TvSession): Pair<Plan, Snapshot> {
+        // RF-SAFETY-250: no profile matches the emulator, so its setup wizard would stay on while the
+        // stock home goes off and the planner gives no switch; switched off here (and on again after).
+        oracle.shell("pm disable-user --user 0 com.google.android.tungsten.setupwraith")
         val base = baseline(session)
         snapshots.save(base)
         val profiles = need(E2eWiring.profiles(deps), "W4 ProfileSource (E2eWiring.profiles)")

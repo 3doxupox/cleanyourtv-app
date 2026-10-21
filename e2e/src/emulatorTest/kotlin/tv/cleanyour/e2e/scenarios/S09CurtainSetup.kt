@@ -147,6 +147,9 @@ class S09CurtainSetup : E2eScenario() {
     }
 
     private suspend fun setupPlan(session: tv.cleanyour.core.session.TvSession): Plan {
+        // RF-SAFETY-250: no profile matches the emulator, so its setup wizard would stay on while the
+        // stock home goes off and the planner gives no switch; switched off here (and on again after).
+        oracle.shell("pm disable-user --user 0 com.google.android.tungsten.setupwraith")
         val base = prober.snapshot(session, SnapshotReason.BASELINE)
         snapshots.save(base)
         val resolution = BundledProfileSource().resolve(base.facts)

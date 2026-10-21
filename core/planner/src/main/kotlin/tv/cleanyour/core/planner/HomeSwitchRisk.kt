@@ -17,6 +17,9 @@ object HomeSwitchRisk {
         // crash-loop (upstream #506, #422). OWNER: the wizard saved the Wi-Fi; UNKNOWN: the TV could not tell.
         WIZARD_WIFI("this TV's setup wizard saved its Wi-Fi, so the wizard has to stay on, and with it on the home screen switch can crash the TV"),
         WIZARD_WIFI_UNKNOWN("the TV could not say who saved its Wi-Fi, so its setup wizard has to stay on, and with it on the home screen switch can crash the TV"),
+        // A TV no profile knows: the switch never switches the setup wizard off, so it would stay on
+        // while the TV's own home screen goes off, the same RecoveryActivity risk (RF-SAFETY-250).
+        WIZARD_STAYS_ON("this TV's setup wizard would stay on while its own home screen goes off, and the wizard can then take the Home button and crash the TV"),
         // Google's own hardware: the Cast receiver reads its credentials from the setup wizard, so the
         // switch (which needs the wizard off) costs casting after every restart (upstream #361, #422).
         CASTING("on this Google device the home screen switch needs the setup wizard off, and casting from phones then stops working after every restart"),
@@ -55,18 +58,17 @@ object HomeSwitchRisk {
 
     // With an exact profile, the wizard the switch would switch off (its setupWraith with the takeover
     // quirk) while D3 keeps it on: the TV said the wizard saved the Wi-Fi, or could not tell. Without
-    // one the switch never touches the wizard, so only a TV that says outright that its wizard saved
-    // the Wi-Fi is held back (decided at probe time; a failed read keeps 0.1.0's behaviour there).
+    // one the switch never touches the wizard, so a setup wizard that is on stays on while the stock
+    // home goes off, whatever the Wi-Fi answer: no switch (the Wi-Fi line when the wizard saved it).
     private fun wizardWifiRisk(profile: Profile?, snapshot: Snapshot, wizardWifi: WizardWifi): Risk? {
-        if (wizardWifi == WizardWifi.NOT_OWNER) return null
-        val wizard: PackageName = if (profile != null) {
-            profile.setupWraith?.takeIf { Denylist.isWizardAllowed(it, profile) } ?: return null
-        } else {
-            if (wizardWifi != WizardWifi.OWNER) return null
-            snapshot.packages.keys.firstOrNull { it.value in Denylist.setupWizards } ?: return null
+        fun on(p: PackageName) = snapshot.packages[p]?.enabled.let { it != null && it != EnabledState.DISABLED_USER && it != EnabledState.DISABLED }
+        if (profile == null) {
+            val wizard = snapshot.packages.keys.firstOrNull { it.value in Denylist.setupWizards && on(it) } ?: return null
+            return if (wizardWifi == WizardWifi.OWNER && on(wizard)) Risk.WIZARD_WIFI else Risk.WIZARD_STAYS_ON
         }
-        val state = snapshot.packages[wizard] ?: return null
-        if (state.enabled == EnabledState.DISABLED_USER || state.enabled == EnabledState.DISABLED) return null
+        if (wizardWifi == WizardWifi.NOT_OWNER) return null
+        val wizard = profile.setupWraith?.takeIf { Denylist.isWizardAllowed(it, profile) } ?: return null
+        if (!on(wizard)) return null
         return if (wizardWifi == WizardWifi.OWNER) Risk.WIZARD_WIFI else Risk.WIZARD_WIFI_UNKNOWN
     }
 }

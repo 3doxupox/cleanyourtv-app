@@ -209,12 +209,15 @@ class PlannerTest {
         assertTrue(refused(setup(choices = choices(installLauncher = false))).any { it.contains("not installed") })
         val refusing = Samples.snapshot(facts = Samples.miTvFacts().copy(installRefusal = true), packages = Samples.miTvPackages(emptySet())).withSettings(emptyMap())
         assertTrue(refused(setup(), snapshot = refusing).any { it.contains("refuses") })
-        // A sure set has no profile but has stock launchers: the section still forms.
+        // A sure set has no profile but has stock launchers: the section still forms, on a TV without
+        // a setup wizard that is on (RF-SAFETY-250: with one, no switch).
+        val noWizard = snapshot().let { it.copy(packages = it.packages - PlannerFixtures.wizard) }.let { it.copy(contentHash = tv.cleanyour.core.store.SnapshotCodec.hash(it)) }
         val sure = PlanRequest.Setup(tv.cleanyour.core.spec.ProfileResolution.BrandSureSet("Xiaomi", profile().groups, listOf(stock)), choices(), artifact(), tv.cleanyour.core.model.Level.SIMPLE)
-        assertEquals(1, plan(sure).sections.size)
+        assertEquals(1, plan(sure, snapshot = noWizard).sections.size)
+        assertEquals(listOf(HomeSwitchRisk.Risk.WIZARD_STAYS_ON.reason), refused(sure))
         // An unknown model: launcher path only.
         val none = PlanRequest.Setup(tv.cleanyour.core.spec.ProfileResolution.None(listOf(stock)), choices(), artifact(), tv.cleanyour.core.model.Level.SIMPLE)
-        val p = plan(none)
+        val p = plan(none, snapshot = noWizard)
         assertTrue(ops(p).none { it is Op.Disable && it.pkg != stock.pkg })
         assertEquals(1, p.sections.size)
     }

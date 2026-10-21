@@ -27,6 +27,7 @@ class HomeSwitchRiskTest {
     private val source = BundledProfileSource()
     private val shipped: Map<String, Profile> = BundledProfileSource.bundled.profiles.associateBy { it.id }
     private val tv = snapshot()   // the reference TV, its setup wizard installed and on
+    private val noWizard = tv.copy(packages = tv.packages - wizard).let { it.copy(contentHash = SnapshotCodec.hash(it)) }
     private fun facts(device: String, brand: String, manufacturer: String = brand, sdk: Int = 34): DeviceFacts =
         tv.facts.copy(device = device, brand = brand, manufacturer = manufacturer, model = "unknown", sdk = sdk)
     private fun withFacts(f: DeviceFacts): Snapshot = tv.copy(facts = f).let { it.copy(contentHash = SnapshotCodec.hash(it)) }
@@ -52,16 +53,19 @@ class HomeSwitchRiskTest {
         assertNull(HomeSwitchRisk.of(tv.facts, PlannerFixtures.profile(), tv, WizardWifi.OWNER))
     }
 
-    // (a) The generic path never switches the wizard off; only a TV that says outright that its
-    // wizard saved the Wi-Fi (decided at probe time) gets no switch.
-    @Test fun anUnknownTvWhoseWizardSavedTheWifiGetsNoSwitch() {
+    // (a) The generic path never switches the wizard off, so a setup wizard that is on would stay on
+    // while the TV's own home screen goes off: no switch, whatever the Wi-Fi answer (the Wi-Fi line
+    // when the TV says the wizard saved it). Without a wizard, or with it off, the switch goes ahead.
+    @Test fun anUnknownTvWithItsSetupWizardOnGetsNoSwitch() {
         assertEquals(Risk.WIZARD_WIFI, HomeSwitchRisk.of(tv.facts, null, tv, WizardWifi.OWNER))
-        assertNull(HomeSwitchRisk.of(tv.facts, null, tv, WizardWifi.UNKNOWN), "a failed read keeps 0.1.0's behaviour on the generic path")
-        assertNull(HomeSwitchRisk.of(tv.facts, null, tv, WizardWifi.NOT_OWNER))
+        assertEquals(Risk.WIZARD_STAYS_ON, HomeSwitchRisk.of(tv.facts, null, tv, WizardWifi.UNKNOWN))
+        assertEquals(Risk.WIZARD_STAYS_ON, HomeSwitchRisk.of(tv.facts, null, tv, WizardWifi.NOT_OWNER))
         assertEquals(listOf(Risk.WIZARD_WIFI.reason), refused(setup(profile = null, choices = choices(wizardWifi = WizardWifi.OWNER))))
-        assertTrue(Op.SetHome(PlannerFixtures.launcher) in plan(setup(profile = null, choices = choices(wizardWifi = WizardWifi.UNKNOWN))).steps.map { it.op })
-        val noWizard = tv.copy(packages = tv.packages - wizard).let { it.copy(contentHash = SnapshotCodec.hash(it)) }
-        assertNull(HomeSwitchRisk.of(noWizard.facts, null, noWizard, WizardWifi.OWNER))
+        assertEquals(listOf(Risk.WIZARD_STAYS_ON.reason), refused(setup(profile = null, choices = choices(wizardWifi = WizardWifi.NOT_OWNER))))
+        for (w in WizardWifi.entries) assertNull(HomeSwitchRisk.of(noWizard.facts, null, noWizard, w), "$w")
+        val off = snapshot(disabled = setOf(wizard.value))
+        assertNull(HomeSwitchRisk.of(off.facts, null, off, WizardWifi.UNKNOWN), "a wizard already off stays off")
+        assertTrue(Op.SetHome(PlannerFixtures.launcher) in plan(setup(profile = null, choices = choices(wizardWifi = WizardWifi.UNKNOWN)), snapshot = noWizard).steps.map { it.op })
     }
 
     // (b) Google's own hardware: the switch costs casting after every restart.
@@ -75,8 +79,8 @@ class HomeSwitchRiskTest {
         // The Chromecast HD has no profile and the same casting break.
         assertEquals(Risk.CASTING, HomeSwitchRisk.of(facts("boreal", "google", "Google"), null, tv, WizardWifi.NOT_OWNER))
         // Not by the maker alone (an emulator image says Google too), nor by the device name alone.
-        assertNull(HomeSwitchRisk.of(facts("generic_x86", "google", "Google"), null, tv, WizardWifi.NOT_OWNER))
-        assertNull(HomeSwitchRisk.of(facts("sabrina", "Acme"), null, tv, WizardWifi.NOT_OWNER))
+        assertNull(HomeSwitchRisk.of(facts("generic_x86", "google", "Google"), null, noWizard, WizardWifi.NOT_OWNER))
+        assertNull(HomeSwitchRisk.of(facts("sabrina", "Acme"), null, noWizard, WizardWifi.NOT_OWNER))
     }
 
     // (c) The MOKA family: the wizard comes back at boot and the set can boot-loop. The three shipped
@@ -99,9 +103,9 @@ class HomeSwitchRiskTest {
         // Never by the maker alone or the device alone.
         val philips = facts("whitefield", "Philips", "MOKA")
         assertEquals("philips-r8g-google-tv", exact(philips.copy(model = "R8G"))?.id)
-        assertNull(HomeSwitchRisk.of(philips, null, tv, WizardWifi.NOT_OWNER))
-        assertNull(HomeSwitchRisk.of(facts("R10G", "Acme"), null, tv, WizardWifi.NOT_OWNER))
-        assertNull(HomeSwitchRisk.of(facts("R3_GTV", "Acme"), null, tv, WizardWifi.NOT_OWNER))
+        assertNull(HomeSwitchRisk.of(philips, null, noWizard, WizardWifi.NOT_OWNER))
+        assertNull(HomeSwitchRisk.of(facts("R10G", "Acme"), null, noWizard, WizardWifi.NOT_OWNER))
+        assertNull(HomeSwitchRisk.of(facts("R3_GTV", "Acme"), null, noWizard, WizardWifi.NOT_OWNER))
         // The clean-up alone is planned for the family, with the stock home and the wizard left alone.
         val f = facts("R10G", "Kalley", "MOKA")
         val clean = plan(setup(profile = exact(f), choices = choices(installLauncher = false, takeover = false)), snapshot = withFacts(f))

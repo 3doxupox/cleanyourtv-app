@@ -91,8 +91,9 @@ enum class Reconnect { TRYING, BACK, GAVE_UP }
 enum class Finishing { SWITCHING, DONE }
 
 // Why S3 offers no new home screen (RF-PROFILES-63 P1, P2); NONE when the switch is offered. The
-// last four are the switches skipped up front for safety (RF-SAFETY-250, HomeSwitchRisk).
-enum class HomeBlock { NONE, TV_REFUSES, OLD_ANDROID, UNKNOWN_HOME, WIZARD_WIFI, WIZARD_WIFI_UNKNOWN, CASTING, BOOT_LOOP }
+// last five are the switches skipped up front for safety (RF-SAFETY-250, HomeSwitchRisk).
+enum class HomeBlock { NONE, TV_REFUSES, OLD_ANDROID, UNKNOWN_HOME, WIZARD_WIFI, WIZARD_WIFI_UNKNOWN, CASTING, BOOT_LOOP,
+    WIZARD_STAYS_ON }
 
 // Presentation details the frozen SetupState has no field for (RFC-W8-2). Never a source of truth:
 // everything here is derived from the state, the plan, the draft or a live call.
@@ -628,7 +629,9 @@ class SetupMachine(
     private fun homeBlock(snap: Snapshot, wifi: WizardWifi): HomeBlock {
         val f = deviceFacts ?: return HomeBlock.NONE
         val p = profile()
-        val risk = HomeSwitchRisk.of(f, p, snap, wifi)
+        // Already ours (a re-run): there is no switch to skip, as in the planner's takeover.
+        val ours = snap.home.resolved?.pkg == deps.launcherPin.bundled().pkg
+        val risk = if (ours) null else HomeSwitchRisk.of(f, p, snap, wifi)
         return when {
             f.installRefusal || p?.platform == Platform.FIRE_OS || p?.platform == Platform.TCL_CN -> HomeBlock.TV_REFUSES
             f.sdk < DefaultPlanner.TV_MIN_SDK -> HomeBlock.OLD_ANDROID
@@ -637,6 +640,7 @@ class SetupMachine(
             p != null && p.stockLaunchers.isEmpty() -> HomeBlock.UNKNOWN_HOME
             risk == HomeSwitchRisk.Risk.WIZARD_WIFI -> HomeBlock.WIZARD_WIFI
             risk == HomeSwitchRisk.Risk.WIZARD_WIFI_UNKNOWN -> HomeBlock.WIZARD_WIFI_UNKNOWN
+            risk == HomeSwitchRisk.Risk.WIZARD_STAYS_ON -> HomeBlock.WIZARD_STAYS_ON
             else -> HomeBlock.NONE
         }
     }
