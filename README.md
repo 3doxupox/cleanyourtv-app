@@ -106,6 +106,8 @@ picks it up in its next release. See also [CONTRIBUTING.md](CONTRIBUTING.md#prop
   by [Gathin](https://github.com/Gathin23). The app carries it inside, built from its source.
 - New TV lists and launcher versions from Clean Your TV reach the app in its updates. The app is a
   community project; news about Clean Your TV itself comes from [@gathint](https://x.com/gathint).
+- The Clean Your TV name and the app's package IDs under `tv.cleanyour` (from `cleanyour.tv`) are
+  used with Gathin's permission.
 - Something wrong in the app itself? [Open an issue here](https://github.com/udhaykumarbala/cleanyourtv-app/issues).
   Security issues: see [SECURITY.md](SECURITY.md).
 
