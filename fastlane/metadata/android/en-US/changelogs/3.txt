@@ -1,0 +1,1 @@
+The same Clean Your TV app is now also published on Google Play and F-Droid, signed with the same key as the GitHub download, so an install from any of them updates from any other. Cleaning your TV works as before.
