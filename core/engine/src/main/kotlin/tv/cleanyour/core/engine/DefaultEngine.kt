@@ -286,8 +286,8 @@ class DefaultEngine(
                             finishWithSkips(run, HomeOutcome.VERIFY_FAILED, i + 1); return
                         }
                         // Issue #10: a switch-off outside the home screen switch that the live check
-                        // refused, or that the TV answered but kept on (its verify read still shows the
-                        // package on), changed nothing: it is a skip, whatever its policy, so the run
+                        // refused, or that the TV answered but kept on (its check read does not list it
+                        // and its package dump still shows it on, see disableChecked), changed nothing: it is a skip, whatever its policy, so the run
                         // goes on and Carry on never meets the same refusal again. Done names it
                         // ("wouldn't switch off; it's harmless").
                         step.op is Op.Disable && outcome is Outcome.Failed && keptOn(outcome.error) -> {
@@ -537,9 +537,9 @@ class DefaultEngine(
             requestsTvInputHardware = PackageDump.requestsTvInputHardware(dump))
     }
 
-    // A refusal that leaves the package as it was: the live check's (nothing was sent), or a verify
-    // read that still shows it on after the TV answered (some firmware, like the Xiaomi box of issue
-    // #10, says yes and keeps it on).
+    // A refusal that leaves the package as it was: the live check's (nothing was sent), or a package
+    // dump that still shows it on after the TV answered (some firmware, like the Xiaomi box of issue
+    // #10, says yes and keeps it on). A check read that errors is never one (disableChecked).
     private fun keptOn(error: AdbError): Boolean = error is AdbError.Policy.ProtectedPackage || error is AdbError.Policy.GuardFailed
 
     // Begin (forced) before the line is sent, Done or Failed before the next Begin.
@@ -595,10 +595,35 @@ class DefaultEngine(
             }
             null -> {}
         }
+        val check = rendered.verify
+        if (op is Op.Disable && check != null) return disableChecked(session, op, renderer.render(check), prior)
         val verifyOutput = rendered.verify?.let { read(session, renderer.render(it)) } ?: ownOutput
         return when (val v = renderer.check(op, verifyOutput, prior)) {
             VerifyResult.Ok -> installedApkCheck(session, op)
             is VerifyResult.Mismatch -> Outcome.Failed(AdbError.Policy.GuardFailed(-1, "expected ${v.expected}, got ${v.actual}"), "verify: expected ${v.expected}, got ${v.actual}")
+        }
+    }
+
+    // A switch-off's check read (pm list packages -d). A check read that errors is a failure, never
+    // a kept-on package: the step pauses as before. When the check read answers but does not list the
+    // package (an empty answer, or one that raced the write), the package's own dump is read once,
+    // the read the live check uses: switched off (DISABLED_USER or DISABLED) is done and recorded as
+    // a change, and only a dump that positively shows it enabled or default is the TV keeping it on
+    // (issue #10's GuardFailed, a skip outside the home screen switch). A dump that cannot be read,
+    // or shows no enabled state, is a failure too.
+    private suspend fun disableChecked(session: TvSession, op: Op.Disable, check: Rendered, prior: Prior?): Outcome {
+        val r = readResult(session, check) ?: return Outcome.Failed(AdbError.Transport.Protocol("no check read"), "verify: no check read")
+        if (r.exit != 0) return Outcome.Failed(AdbError.NonZeroExit(r.exit, r.stderr.take(4096)), "verify read: exit ${r.exit}")
+        val v = renderer.check(op, r.stdout, prior) as? VerifyResult.Mismatch ?: return Outcome.Ok
+        val d = readResult(session, renderer.render(Op.Read(ProbeKind.PACKAGE_DUMP, ReadArg.Pkg(op.pkg))))
+            ?: return Outcome.Failed(AdbError.Transport.Protocol("no package dump read"), "verify: no package dump read")
+        if (d.exit != 0) return Outcome.Failed(AdbError.NonZeroExit(d.exit, d.stderr.take(4096)), "verify: dumpsys package exit ${d.exit}")
+        val state = if (PackageDump.exists(op.pkg, d.stdout)) PackageDump.enabledState(d.stdout) else null
+        return when (state) {
+            EnabledState.DISABLED_USER, EnabledState.DISABLED -> Outcome.Ok
+            EnabledState.ENABLED, EnabledState.DEFAULT ->
+                Outcome.Failed(AdbError.Policy.GuardFailed(-1, "expected ${v.expected}, got ${v.actual}"), "verify: expected ${v.expected}, got ${v.actual}")
+            null -> Outcome.Failed(AdbError.Transport.Protocol("dumpsys package shows no enabled state"), "verify: dumpsys package shows no enabled state for ${op.pkg.value}")
         }
     }
 
