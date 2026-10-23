@@ -375,6 +375,27 @@ class SetupMachineTest {
         assertEquals(Finishing.DONE, m.extras.value.finishing)
     }
 
+    // STORES-PLAN 1: "Add a card" on Done opens Cards and modules in the full build; the Play build
+    // has no add-ons, so Done does not offer it and the intent goes nowhere.
+    @Test fun doneOffersAddACardOnlyWhenTheBuildHasAddOns() = runTest(timeout = 30.seconds) {
+        for (store in listOf(StoreRules.FULL, StoreRules.PLAY)) {
+            val h = Harness()
+            h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+            val m = h.setup(backgroundScope, store = store)
+            assertEquals(store.addOns, m.extras.value.addOns)
+            toFound(h, m)
+            m.dispatch(SetupIntent.MakeItClean); settle()
+            assertIs<SetupState.Done>(m.state.value)
+            assertEquals(store.addOns, m.extras.value.addOns)
+            m.effects.test {
+                m.dispatch(SetupIntent.AddCard); settle()
+                val navigations = drain().filterIsInstance<SetupEffect.Navigate>()
+                if (store.addOns) assertEquals(SetupEffect.Navigate("modules/${Samples.miTvId().value}"), navigations.single())
+                else assertTrue(navigations.isEmpty(), navigations.toString())
+            }
+        }
+    }
+
     // R5: a STALE pause leaves the run open; the machine ends it so the fresh plan can start.
     @Test fun aStaleRunIsEndedSoTheFreshPlanCanStart() = runTest(timeout = 30.seconds) {
         val h = Harness()

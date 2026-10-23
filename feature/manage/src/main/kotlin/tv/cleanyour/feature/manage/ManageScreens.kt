@@ -129,8 +129,11 @@ fun ManageScreen(state: ManageState, onIntent: (ManageIntent) -> Unit, modifier:
                 ListRow(stringResource(R.string.manage_row_home), subtitle = tv.dockNames.joinToString(", ").ifEmpty { null },
                     onClick = { onIntent(ManageIntent.Open(ManageSection.HOME_SCREEN)) })
                 ListDivider()
-                ListRow(stringResource(R.string.manage_row_cards), onClick = { onIntent(ManageIntent.Open(ManageSection.MODULES)) })
-                ListDivider()
+                // STORES-PLAN 1: the Play build has no add-ons, so no row that leads to them.
+                if (state.addOns) {
+                    ListRow(stringResource(R.string.manage_row_cards), onClick = { onIntent(ManageIntent.Open(ManageSection.MODULES)) })
+                    ListDivider()
+                }
                 ListRow(msg(R.string.manage_row_switched_off, "count" to tv.switchedOff), subtitle = stringResource(R.string.manage_row_switched_off_sub),
                     onClick = { onIntent(ManageIntent.Open(ManageSection.SWITCHED_OFF)) })
                 ListDivider()
@@ -374,16 +377,19 @@ fun AppSettingsScreen(state: AppSettingsState, onIntent: (AppSettingsIntent) -> 
                 else -> R.string.appsettings_key_wrapped
             }))
             if (state.keyFingerprint.isNotEmpty()) MonospaceBlock(listOf(state.keyFingerprint), Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp))
-            ListDivider()
-            val update = state.update
-            ListRow(stringResource(R.string.appsettings_check_updates), subtitle = when (update) {
-                UpdateCheck.Checking -> stringResource(R.string.appsettings_checking)
-                is UpdateCheck.Available -> msg(R.string.appsettings_update_available, "version" to update.version)
-                UpdateCheck.Latest -> stringResource(R.string.appsettings_up_to_date)
-                UpdateCheck.Failed -> stringResource(R.string.appsettings_update_error)
-                UpdateCheck.Idle -> null
-            }, trailing = if (update == UpdateCheck.Checking) ({ Spinner() }) else null,
-                onClick = { if (update is UpdateCheck.Available) onOpenRelease() else onIntent(AppSettingsIntent.CheckUpdates) })
+            // STORES-PLAN 1: the Play build is updated by Google Play and has no update check.
+            if (state.updateCheck) {
+                ListDivider()
+                val update = state.update
+                ListRow(stringResource(R.string.appsettings_check_updates), subtitle = when (update) {
+                    UpdateCheck.Checking -> stringResource(R.string.appsettings_checking)
+                    is UpdateCheck.Available -> msg(R.string.appsettings_update_available, "version" to update.version)
+                    UpdateCheck.Latest -> stringResource(R.string.appsettings_up_to_date)
+                    UpdateCheck.Failed -> stringResource(R.string.appsettings_update_error)
+                    UpdateCheck.Idle -> null
+                }, trailing = if (update == UpdateCheck.Checking) ({ Spinner() }) else null,
+                    onClick = { if (update is UpdateCheck.Available) onOpenRelease() else onIntent(AppSettingsIntent.CheckUpdates) })
+            }
         }
         ListGroup(Modifier.padding(top = 12.dp)) {
             ListRow(stringResource(R.string.appsettings_licences), onClick = { licences = true })
@@ -401,7 +407,7 @@ fun AppSettingsScreen(state: AppSettingsState, onIntent: (AppSettingsIntent) -> 
         }
     }
     if (licences) CytBottomSheet({ licences = false }) { LicencesContent() }
-    if (privacy) CytBottomSheet({ privacy = false }) { PrivacyContent() }
+    if (privacy) CytBottomSheet({ privacy = false }) { PrivacyContent(online = state.updateCheck || state.addOns) }
     state.diagnostics?.let { text ->
         CytBottomSheet({ onIntent(AppSettingsIntent.CloseDiagnostics) }) { DiagnosticsContent(text, onIntent) }
     }
@@ -423,9 +429,11 @@ internal fun ColumnScope.LicencesContent() {
 }
 
 @Composable
-internal fun ColumnScope.PrivacyContent() {
+internal fun ColumnScope.PrivacyContent(online: Boolean = true) {
     SheetHeader(stringResource(R.string.appsettings_privacy))
-    Body(stringResource(R.string.appsettings_privacy_text), Modifier.padding(top = 8.dp), color = CytTheme.colors.textPrimary)
+    // `online`: the build checks GitHub for updates or downloads add-ons from it (STORES-PLAN 1).
+    Body(stringResource(if (online) R.string.appsettings_privacy_text else R.string.appsettings_privacy_text_offline), Modifier.padding(top = 8.dp),
+        color = CytTheme.colors.textPrimary)
 }
 
 @Composable

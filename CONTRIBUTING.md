@@ -24,14 +24,32 @@ it the build stops and tells you to run `git submodule update --init`.
 
 | Command | What it runs |
 | :- | :- |
-| `./gradlew check` | the module graph rules, the build-logic tests, every unit test, Android Lint and the pin checks |
+| `./gradlew check` | the module graph rules, the build-logic tests, every unit test (the app's on both store flavours), Android Lint and the pin checks |
 | `./gradlew verifyRoborazziDebug` | the screenshot tests against the committed goldens |
-| `./gradlew :app:assembleDebug` | a debug APK in `app/build/outputs/apk/debug/` |
-| `./gradlew :app:assembleRelease :app:checkApkSizeRelease` | the release build through R8 and the 8 MB size gate |
+| `./gradlew :app:assembleDebug` | debug APKs of both flavours in `app/build/outputs/apk/full/debug/` and `.../play/debug/` |
+| `./gradlew :app:assembleFullRelease :app:bundlePlayRelease :app:checkApkSizeRelease` | the release APK (full) and AAB (play) through R8, and the 8 MB size gate on both flavours |
 | `python3 -m unittest discover -s scripts/tests -p 'test_*.py'` | the tests of the release and redaction scripts |
 
 CI (`.github/workflows/pr.yml`) runs all of these on every push and pull request; please run at
 least `check` before opening one.
+
+### Store flavours
+
+The app module has two product flavours (dimension `store`) built from the same code, with the
+same application ID, versionCode and signing certificate:
+
+- `full`, for GitHub and F-Droid: "Check for updates" asks GitHub for the latest release, the
+  optional add-ons (Cards and modules) download from GitHub, and software updates on the TV are
+  a choice in Customise. The default flavour.
+- `play`, for Google Play: no update check (Play updates the app), no add-on downloads (Play
+  allows no app downloads from outside Play), the TV's software updaters always stay on, and the
+  network security config names no host.
+
+The difference lives in `app/src/full` and `app/src/play` only: `Store.kt` (the ports AppGraph
+wires: the hosts, the update checker, the add-on fetcher, the rules the flows follow) and
+`res/xml/network_security_config.xml`. The screens read the rules from their state (`StoreRules`
+in `:core:flows`) and leave out what a build does not offer. Tests that only hold for one flavour
+go in `app/src/testFull` or `app/src/testPlay`. The version lives in `app/build.gradle.kts`.
 
 Optional helpers: `scripts/build-on-forge.sh` and the other `scripts/*-on-forge.sh` scripts run the
 same Gradle tasks, emulator sessions and release builds in throwaway Docker containers on a remote
@@ -115,8 +133,9 @@ output the issue template asks for; someone with the same TV may pick it up.
   for convenience.
 - **The watchdog stays in front of every home screen change.**
 - **Network.** The app talks to the chosen TV on the LAN and, on the user's action only, to the
-  GitHub hosts in `DownloadHosts` (the network security config lists the same). No analytics, no
-  crash reporting, no new hosts or permissions without an explicit review.
+  GitHub hosts in `DownloadHosts` (the full flavour's network security config lists the same; the
+  play flavour reaches no host at all). No analytics, no crash reporting, no new hosts or
+  permissions without an explicit review.
 - **Downloads are pinned.** Anything installed on a TV is checked by size, SHA-256 and signer
   (`:core:trust`) before it is installed. The bundled launcher and TV curtain are pinned in
   `Pins.kt` and checked at build time.
@@ -128,10 +147,61 @@ output the issue template asks for; someone with the same TV may pick it up.
 
 ## Releases (maintainers)
 
-Releases are built by `scripts/release-on-forge.sh`: two clean builds in the pinned container
-(`docker/repro`) must be byte identical, the APK is signed with the release key on the
-maintainer's machine only (apksigner, v2 and v3), and `scripts/verify-release.sh` checks the
-signature, the signer (`docs/release-signer.sha256`), `apksigcopier compare` against the unsigned
-build and the APK assertions of `scripts/check-apk.py`. CI never holds a key: on a `v*` tag,
-`.github/workflows/release.yml` builds the unsigned APK twice and publishes it as an artifact, and
-its verify job checks the signed APK attached to the GitHub Release against that build.
+One tag, three channels: every `vX.Y.Z` ships to GitHub and Google Play the same day and to
+F-Droid on its next build cycle, from the same commit, with the same versionCode and the same
+signing certificate (`docs/release-signer.sha256`), so an install from any channel updates from
+any other. GitHub and F-Droid get the `full` APK, Google Play the `play` AAB.
+
+1. Set `versionCode` and `versionName` in `app/build.gradle.kts`, add the CHANGELOG entry and the
+   short store notes (`fastlane/metadata/android/en-US/changelogs/<versionCode>.txt`, at most 500
+   characters; F-Droid and Google Play both read them), commit, and tag `vX.Y.Z`.
+2. `scripts/release-on-forge.sh` builds the release set: two clean builds of
+   `:app:assembleFullRelease` and `:app:bundlePlayRelease` in the pinned container
+   (`docker/repro`, `scripts/repro-build.sh`), each pair byte identical. On the maintainer's
+   machine only, the APK is signed with the release key (apksigner, v2 and v3) and the AAB with
+   the Play upload key (jarsigner). `scripts/verify-release.sh` then checks the APK (signature,
+   signer, `apksigcopier compare` against the unsigned build, `scripts/check-apk.py --flavour
+   full`) and the AAB (signature, upload signer, the unsigned build plus that signature,
+   `check-apk.py --flavour play`: the same permissions, no GitHub host, no update check). Output:
+   `dist/cleanyourtv-X.Y.Z.apk` and `.aab` with their checksums, evidence in
+   `dist/release-X.Y.Z/`. `--apk-only` signs the APK alone (no upload key yet); `--test-key`
+   proves the pipeline with throwaway keys.
+3. Push the tag, write the GitHub notes (`dist/release-X.Y.Z/RELEASE-NOTES.md` or `--notes`),
+   then `scripts/publish-release.sh vX.Y.Z` publishes: the GitHub release with the APK and its
+   checksum, the AAB and the store notes to Google Play through the Play Developer API
+   (`scripts/play-upload.py`; the internal track by default, `--track closed` for the closed test,
+   `--track production --rollout 0.2` for a staged rollout, `--draft` until the first release is
+   published from the Play Console), then the release workflow's verify job. `--dry-run` checks
+   every input and sends nothing.
+4. F-Droid needs nothing per release: it builds new tags itself and ships our signed APK when
+   its build matches.
+
+CI never holds a key or a credential: on a `v*` tag, `.github/workflows/release.yml` builds the
+unsigned APK and AAB twice each, compares them and publishes them as artifacts, and its verify job
+checks the signed APK attached to the GitHub Release against that build.
+
+Keys and credentials live outside the repository, under `$CYT_SECRETS` (see `scripts/lib/forge.sh`),
+and only the scripts read them:
+
+| Path under `$CYT_SECRETS` | What | Used by |
+| :- | :- | :- |
+| `cleanyourtv-release/release.p12`, `keystore-password.txt` | the release key (PKCS#12) and its password | `release-on-forge.sh` (the APK) |
+| `cleanyourtv-play-upload/upload.p12`, `keystore-password.txt` | the Play upload key (PKCS#12, RSA 2048 or more, alias `upload`) and its password | `release-on-forge.sh` (the AAB) |
+| `cleanyourtv-play/service-account.json` | a Google Cloud service account key with release rights on the app in the Play Console | `play-upload.py` (read only, never printed) |
+
+The Play upload key: Play App Signing holds the release key (uploaded once from the existing key,
+so Play installs share the certificate of the other channels), and a separate upload key signs
+what is uploaded. Make it once, keep it with the release key, and register its certificate in the
+Play Console (Setup, App signing):
+
+```bash
+keytool -genkeypair -keystore "$CYT_SECRETS/cleanyourtv-play-upload/upload.p12" -storetype PKCS12 \
+  -alias upload -keyalg RSA -keysize 4096 -validity 10000 -dname "CN=Clean Your TV upload key" \
+  -storepass:file "$CYT_SECRETS/cleanyourtv-play-upload/keystore-password.txt" \
+  -keypass:file "$CYT_SECRETS/cleanyourtv-play-upload/keystore-password.txt"
+keytool -exportcert -rfc -keystore "$CYT_SECRETS/cleanyourtv-play-upload/upload.p12" -alias upload \
+  -storepass:file "$CYT_SECRETS/cleanyourtv-play-upload/keystore-password.txt" > upload-cert.pem
+```
+
+`scripts/play-upload.py` uses only the Python standard library (it signs the OAuth request itself),
+so no extra package is needed.

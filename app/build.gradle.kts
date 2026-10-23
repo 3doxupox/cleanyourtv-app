@@ -4,6 +4,27 @@ plugins {
 }
 
 android {
+    // The app's version, in one place for every store flavour and for F-Droid's checkupdates
+    // (STORES-PLAN 0 and 3): GitHub, F-Droid and Google Play ship the same versionCode and versionName.
+    defaultConfig {
+        versionCode = 3
+        versionName = "0.3.0"
+    }
+    // STORES-PLAN 1: one codebase, two store builds, the same applicationId and signing certificate.
+    // `full` (GitHub and F-Droid) checks GitHub for a newer release and offers the optional add-ons;
+    // `play` (Google Play) has no update check, no add-on downloads, keeps the TV's software updaters
+    // on and names no GitHub host. The differences live in src/full and src/play (Store.kt and the
+    // network security config) and nowhere else.
+    flavorDimensions += "store"
+    productFlavors {
+        create("full") {
+            dimension = "store"
+            isDefault = true
+        }
+        create("play") {
+            dimension = "store"
+        }
+    }
     testOptions { unitTests { isIncludeAndroidResources = true } }
     lint {
         textReport = true
@@ -50,6 +71,26 @@ dependencies {
     testImplementation(libs.junit4)
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+}
+
+// :benchmark measures the full build (it asks for store=full); the play benchmark variant is not
+// built. Unit tests run on both flavours (testFullDebugUnitTest and testPlayDebugUnitTest under
+// `check`); the benchmark build type is release code with the debug key and gets no unit tests.
+androidComponents {
+    beforeVariants(selector().withBuildType("benchmark")) { variant ->
+        if (variant.productFlavors.contains("store" to "play")) variant.enable = false
+        variant.hostTests[com.android.build.api.variant.HostTestBuilder.UNIT_TEST_TYPE]?.enable = false
+    }
+}
+
+// Lint runs on the default flavour (full) with `lint`; the play sources and resources too.
+tasks.named("check") { dependsOn("lintPlayDebug") }
+
+// The size gate for every store build: the full APK and the play APK (its AAB holds the same code).
+tasks.register("checkApkSizeRelease") {
+    group = "verification"
+    description = "Fails when the fullRelease or the playRelease APK is larger than the size gate."
+    dependsOn("checkApkSizeFullRelease", "checkApkSizePlayRelease")
 }
 
 tasks.withType<Test>().configureEach {

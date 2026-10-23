@@ -115,7 +115,7 @@ class Harness(val clock: FakeClock = FakeClock(Samples.NOW_MS)) {
     var launchable: Set<PackageName>? = null
 
     fun setupDeps(dock: DockPicker = DockPicker { _, _, _, _, _ -> listOf(PackageName("com.netflix.ninja")) }, curtainPin: tv.cleanyour.core.trust.CurtainPin? = null,
-                  savedWifi: tv.cleanyour.core.probe.SavedWifiOwners? = null) = SetupDeps(
+                  savedWifi: tv.cleanyour.core.probe.SavedWifiOwners? = null, store: StoreRules = StoreRules.FULL) = SetupDeps(
         discovery, sessions, prober, profiles, facts, runner, engine, gate, tvs, snapshots, ledger,
         FakeLauncherPin(Samples.launcherArtifact()), themes, restorePoint, FakeRestoreNote(), sessionEnd, access, clock, KeyCopy,
         blobs = blobs, dock = dock, screenLock = { true }, diagnostics = { "diagnostics" },
@@ -124,9 +124,10 @@ class Harness(val clock: FakeClock = FakeClock(Samples.NOW_MS)) {
         homePrefs = HomePrefs(documents),
         curtainPin = curtainPin,
         savedWifi = savedWifi,
+        store = store,
     )
 
-    fun setup(scope: CoroutineScope, start: SetupStart = SetupStart.Fresh) = SetupMachine(setupDeps(), scope, start)
+    fun setup(scope: CoroutineScope, start: SetupStart = SetupStart.Fresh, store: StoreRules = StoreRules.FULL) = SetupMachine(setupDeps(store = store), scope, start)
 
     val registry = tv.cleanyour.testing.fixtures.FakeRegistry()
     val fetcher = tv.cleanyour.testing.fixtures.FakeArtifactFetcher(blobs)
@@ -144,14 +145,15 @@ class Harness(val clock: FakeClock = FakeClock(Samples.NOW_MS)) {
 
     fun manageDeps(fetcherSources: tv.cleanyour.core.registry.ArtifactFetcher = fetcher, encoder: ConfigEncoder = ConfigEncoder { "{}".encodeToByteArray() },
                    launcherPin: tv.cleanyour.core.trust.LauncherPin = FakeLauncherPin(Samples.launcherArtifact()),
-                   themes: tv.cleanyour.core.spec.ThemeSource = this.themes) = ManageDeps(
+                   themes: tv.cleanyour.core.spec.ThemeSource = this.themes, store: StoreRules = StoreRules.FULL,
+                   updates: UpdateChecker = UpdateChecker { "0.2.0" }) = ManageDeps(
         tvs = tvs, sessions = sessions, discovery = discovery, access = access, gate = gate, runner = runner, engine = engine,
         ledger = ledger, prober = prober, profiles = profiles, facts = facts, snapshots = snapshots, documents = documents,
         blobs = blobs, themes = themes, launcherPin = launcherPin, configTransport = configTransport,
         restorePoint = restorePoint, bundleWriter = bundleWriter, registry = registry, fetcher = fetcherSources, inspector = inspector,
         cardDetector = CardAnswerDetector { _, _ -> cardAnswer }, sessionEnd = sessionEnd, homePrefs = HomePrefs(documents),
-        appPrefs = AppPrefs(documents), keyInfo = keyInfo, updates = UpdateChecker { "0.2.0" }, diagnostics = Diagnostics { "redacted" },
-        clock = clock, copy = KeyCopy, encoder = encoder,
+        appPrefs = AppPrefs(documents), keyInfo = keyInfo, updates = updates, diagnostics = Diagnostics { "redacted" },
+        clock = clock, copy = KeyCopy, encoder = encoder, store = store,
     )
 
     // A TV this phone already set up, connected, with a stored snapshot.

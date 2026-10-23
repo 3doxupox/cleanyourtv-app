@@ -75,7 +75,8 @@ class AppGraphTest {
         assertIs<DocumentSnapshotStore>(g.seams.snapshots)
         assertIs<ZipRestoreBundleWriter>(g.seams.bundleWriter)
         assertIs<IndexRegistry>(g.seams.registry)
-        assertIs<InstallableOnlyFetcher>(g.seams.fetcher)
+        // The fetcher is the flavour's (FullStoreTest, PlayStoreTest); the graph uses this build's Store.
+        assertSame(Store, g.store)
         assertIs<MaterializedThemeSource>(g.seams.themes)
         assertSame(AppClock, g.clock)
         // One OpenWrites per graph, in the one ManageDeps.
@@ -141,12 +142,27 @@ class AppGraphTest {
         assertTrue(g.tvs.tvs.value.isEmpty())
     }
 
-    // W5 wiring note: the network security config names exactly DownloadHosts.ALL.
-    @Test fun theNetworkConfigNamesExactlyTheDownloadHosts() {
-        val root = File(System.getProperty("cleanyourtv.repoRoot") ?: error("no repo root"))
-        val xml = File(root, "app/src/main/res/xml/network_security_config.xml").readText()
-        val domains = Regex("<domain[^>]*>([^<]+)</domain>").findAll(xml).map { it.groupValues[1].trim() }.toSet()
-        assertEquals(DownloadHosts.ALL, domains)
-        assertTrue("cleartextTrafficPermitted=\"true\"" !in xml && "src=\"user\"" !in xml)
+    // W5 wiring note, per flavour (STORES-PLAN 1): this build's network security config names exactly
+    // its Store.hosts (DownloadHosts.ALL in the full build, none in the Play build), with system
+    // anchors only and no cleartext. Read from the merged resources of the variant under test.
+    @Test fun theNetworkConfigNamesExactlyTheStoreHosts() {
+        val domains = mutableSetOf<String>()
+        val attrs = mutableListOf<String>()
+        val xml = context.resources.getXml(R.xml.network_security_config)
+        var inDomain = false
+        while (xml.next() != org.xmlpull.v1.XmlPullParser.END_DOCUMENT) {
+            when (xml.eventType) {
+                org.xmlpull.v1.XmlPullParser.START_TAG -> {
+                    inDomain = xml.name == "domain"
+                    for (i in 0 until xml.attributeCount) attrs += "${xml.getAttributeName(i)}=${xml.getAttributeValue(i)}"
+                }
+                org.xmlpull.v1.XmlPullParser.TEXT -> if (inDomain) domains += xml.text.trim()
+                org.xmlpull.v1.XmlPullParser.END_TAG -> inDomain = false
+            }
+        }
+        assertEquals(Store.hosts, domains)
+        assertTrue(DownloadHosts.ALL.containsAll(Store.hosts))
+        assertTrue("cleartextTrafficPermitted=true" !in attrs && "src=user" !in attrs, attrs.toString())
+        assertTrue("src=system" in attrs, attrs.toString())
     }
 }

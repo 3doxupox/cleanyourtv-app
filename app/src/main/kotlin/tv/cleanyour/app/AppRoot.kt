@@ -95,7 +95,8 @@ fun startKey(d: StartDestination): Dest = when (d) {
 // Returns false when the app should be left instead. "returning" ("I've set up a TV before" on
 // Welcome) opens Manage on top of Welcome, so Back returns to Welcome; every other Manage route
 // (the wizard finished, a TV forgotten) replaces the stack.
-internal fun applyRoute(stack: MutableList<NavKey>, route: String, noTvs: Boolean): Boolean {
+// `addOns` false (the Play build, STORES-PLAN 1): "modules" leads nowhere, as no screen offers it.
+internal fun applyRoute(stack: MutableList<NavKey>, route: String, noTvs: Boolean, addOns: Boolean = Store.rules.addOns): Boolean {
     val parts = route.split('/')
     val id = parts.getOrNull(1)
     val dest: Dest? = when (parts[0]) {
@@ -103,7 +104,7 @@ internal fun applyRoute(stack: MutableList<NavKey>, route: String, noTvs: Boolea
         "returning" -> { stack.add(Dest.Manage(null)); return true }
         "setup" -> Dest.Setup(id)
         "resume" -> id?.let { t -> parts.getOrNull(2)?.let { p -> Dest.Setup(t, p) } }
-        "modules" -> id?.let { Dest.Modules(it) }
+        "modules" -> if (addOns) id?.let { Dest.Modules(it) } else null
         "home" -> if (id != null) Dest.Home(id) else null
         "switchedoff" -> id?.let { Dest.SwitchedOff(it) }
         "leftovers" -> id?.let { Dest.Leftovers(it) }
@@ -159,7 +160,7 @@ fun AppRoot(graph: AppGraph, start: Dest, onExit: () -> Unit) {
     val view = LocalView.current
     val scope = rememberCoroutineScope()
 
-    fun go(route: String) { if (!applyRoute(backStack, route, noTvs = graph.tvs.tvs.value.isEmpty())) onExit() }
+    fun go(route: String) { if (!applyRoute(backStack, route, noTvs = graph.tvs.tvs.value.isEmpty(), addOns = graph.store.rules.addOns)) onExit() }
 
     fun haptic(kind: Int) { view.performHapticFeedback(kind) }
     fun share(text: String) {
@@ -277,7 +278,7 @@ fun AppRoot(graph: AppGraph, start: Dest, onExit: () -> Unit) {
                     LaunchedEffect(m) { m.effects.collect { onManageEffect(it) } }
                     SecureWindow(state.confirm == AppConfirm.RESET_KEY)
                     AppSettingsScreen(state, m::dispatch, onBack = { go("back") },
-                        onOpenRelease = { scope.launch { onManageEffect(ManageEffect.OpenUrl(RELEASE_PAGE)) } })
+                        onOpenRelease = { graph.store.releasePage?.let { url -> scope.launch { onManageEffect(ManageEffect.OpenUrl(url)) } } })
                 }
             },
         )
@@ -295,8 +296,6 @@ fun AppRoot(graph: AppGraph, start: Dest, onExit: () -> Unit) {
         SnackbarHost(snack, Modifier.align(Alignment.BottomCenter).padding(16.dp))
     }
 }
-
-const val RELEASE_PAGE = "https://github.com/udhaykumarbala/cleanyourtv-app/releases"
 
 fun copyText(context: android.content.Context, text: String) {
     context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(ClipData.newPlainText("commands", text))

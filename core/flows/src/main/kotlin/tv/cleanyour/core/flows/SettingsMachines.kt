@@ -93,6 +93,10 @@ data class AppSettingsState(
     val keyBacking: String = "",
     val keyFingerprint: String = "",
     val update: UpdateCheck = UpdateCheck.Idle,
+    // STORES-PLAN 1: "Check for updates" exists only in the GitHub and F-Droid build, and the
+    // privacy line names GitHub only when the app can reach it (an update check or an add-on).
+    val updateCheck: Boolean = true,
+    val addOns: Boolean = true,
     val diagnostics: String? = null,     // the redacted preview, shown before the share sheet
     val confirm: AppConfirm? = null,
     val working: Boolean = false,
@@ -120,7 +124,7 @@ val APP_GATE_ID = TvId("0000000000000000")
 class AppSettingsMachine(
     private val d: ManageDeps,
     scope: CoroutineScope,
-) : Machine<AppSettingsState, AppSettingsIntent, ManageEffect>(AppSettingsState(), scope) {
+) : Machine<AppSettingsState, AppSettingsIntent, ManageEffect>(AppSettingsState(updateCheck = d.store.updateCheck, addOns = d.store.addOns), scope) {
 
     private data class Loaded(val s: AppSettingsState)
     private data class Update(val u: UpdateCheck)
@@ -135,6 +139,7 @@ class AppSettingsMachine(
                 launcherPkg = pin?.pkg?.value.orEmpty(), launcherVersion = pin?.versionName.orEmpty(),
                 launcherDigest = pin?.let { keyDigest12(it.sha256) }.orEmpty(),
                 keyBacking = attempt { d.keyInfo.backing }.getOrDefault(""), keyFingerprint = attempt { d.keyInfo.fingerprint }.getOrDefault(""),
+                updateCheck = d.store.updateCheck, addOns = d.store.addOns,
             )))
         }
     }
@@ -143,7 +148,7 @@ class AppSettingsMachine(
         is Loaded -> event.s.copy(update = state.update, diagnostics = state.diagnostics, confirm = state.confirm)
         is AppSettingsIntent.SetHaptics -> state.copy(prefs = state.prefs.copy(haptics = event.on))
         is AppSettingsIntent.SetLargeText -> state.copy(prefs = state.prefs.copy(largeTextFollowsSystem = event.on))
-        AppSettingsIntent.CheckUpdates -> state.copy(update = UpdateCheck.Checking)
+        AppSettingsIntent.CheckUpdates -> if (state.updateCheck) state.copy(update = UpdateCheck.Checking) else state
         is Update -> state.copy(update = event.u)
         is Diag -> state.copy(diagnostics = event.text)
         AppSettingsIntent.CloseDiagnostics -> state.copy(diagnostics = null)
@@ -156,7 +161,7 @@ class AppSettingsMachine(
     override fun handle(event: Any, before: AppSettingsState, after: AppSettingsState) {
         when (event) {
             is AppSettingsIntent.SetHaptics, is AppSettingsIntent.SetLargeText -> scope.launch { d.appPrefs.save(after.prefs) }
-            AppSettingsIntent.CheckUpdates -> if (before.update != UpdateCheck.Checking) scope.launch {
+            AppSettingsIntent.CheckUpdates -> if (d.store.updateCheck && before.update != UpdateCheck.Checking) scope.launch {
                 val v = attempt { d.updates.latestNewerThan(d.appVersion) }.getOrNull()
                 send(Update(when { v == null -> UpdateCheck.Failed; v.isEmpty() -> UpdateCheck.Latest; else -> UpdateCheck.Available(v) }))
             }

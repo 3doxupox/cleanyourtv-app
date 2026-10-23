@@ -30,6 +30,7 @@ data class ManageState(
     val offline: Boolean = false,     // "Lost the TV. Is it still on? Reconnect"
     val reconnecting: Boolean = false,
     val loading: Boolean = true,
+    val addOns: Boolean = true,       // STORES-PLAN 1: the "Cards and modules" row (off in the Play build)
 ) {
     val current: TvCard? get() = cards.firstOrNull { it.id == selected } ?: cards.firstOrNull()
 }
@@ -53,7 +54,7 @@ class ManageMachine(
     private val d: ManageDeps,
     scope: CoroutineScope,
     initial: TvId? = null,
-) : Machine<ManageState, ManageIntent, ManageEffect>(ManageState(selected = initial), scope) {
+) : Machine<ManageState, ManageIntent, ManageEffect>(ManageState(selected = initial, addOns = d.store.addOns), scope) {
 
     private data class Loaded(val cards: List<TvCard>)
     private data class Thumb(val tvId: TvId, val png: ByteArray?)
@@ -106,7 +107,7 @@ class ManageMachine(
                 send(Reconnected(ok))
                 if (ok) thumbnail()
             }
-            is ManageIntent.Open -> id?.let { effect(ManageEffect.Navigate("${event.section.key}/${it.value}")) }
+            is ManageIntent.Open -> if (event.section != ManageSection.MODULES || d.store.addOns) id?.let { effect(ManageEffect.Navigate("${event.section.key}/${it.value}")) }
             ManageIntent.SetUpAnother -> effect(ManageEffect.Navigate("setup"))
             ManageIntent.CleanAgain -> id?.let { effect(ManageEffect.Navigate("setup/${it.value}")) }
             ManageIntent.AppSettings -> effect(ManageEffect.Navigate("appsettings"))

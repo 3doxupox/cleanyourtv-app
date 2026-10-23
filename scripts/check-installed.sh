@@ -5,6 +5,7 @@
 # for the phone emulators in nightly.yml.
 #
 #   scripts/check-installed.sh [expected-apk-sha256]      # adb must reach exactly one device, or set ANDROID_SERIAL
+#   CYT_FLAVOUR=play scripts/check-installed.sh            # an install from Google Play (default: full)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 PKG=tv.cleanyour.app
@@ -19,7 +20,7 @@ echo "installed APK sha256: $sum"
 status=0
 if [ -n "$EXPECT" ] && [ "$sum" != "$EXPECT" ]; then echo "FAIL installed APK is not the release ($EXPECT)"; status=1; fi
 
-python3 scripts/check-apk.py "$TMP/base.apk" || status=1
+python3 scripts/check-apk.py "$TMP/base.apk" --flavour "${CYT_FLAVOUR:-full}" || status=1
 
 adb shell dumpsys package "$PKG" | tr -d '\r' > "$TMP/dumpsys.txt"
 flags=$(grep -m1 -E '^\s+pkgFlags=' "$TMP/dumpsys.txt" || true)

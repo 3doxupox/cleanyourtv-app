@@ -91,6 +91,7 @@ class ManageDeps(
     val encoder: ConfigEncoder = ConfigEncoder.Codec,
     val appVersion: String = "0.2.0",
     val openWrites: OpenWrites = OpenWrites(),   // one per graph, shared by every Manage machine (R5-W8 O2)
+    val store: StoreRules = StoreRules.FULL,     // STORES-PLAN 1: the update check and the add-ons of this build
 ) {
     fun tv(id: TvId): Tv? = tvs.tvs.value.firstOrNull { it.id == id }
 

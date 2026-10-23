@@ -127,6 +127,7 @@ data class SetupExtras(
     val dock: List<AppChoice> = emptyList(),     // D4 row and the dock sheet (S3b): the dock, then Row 2 and Row 3
     val apps: List<AppChoice> = emptyList(),     // installed apps for the dock sheet
     val dockColumns: Int = DockLayers.DEFAULT_COLUMNS,   // apps per row for the chosen look (DockLayers)
+    val addOns: Boolean = true,                  // STORES-PLAN 1: Done's "Add a card" (off in the Play build)
 )
 
 class SetupDeps(
@@ -168,6 +169,8 @@ class SetupDeps(
     // RFC-LAUNCHER-1 (D3): who saved the TV's Wi-Fi networks; the app's AdbProber answers it. Null,
     // or no answer, keeps the setup wizard on.
     val savedWifi: SavedWifiOwners? = prober as? SavedWifiOwners,
+    // STORES-PLAN 1: without add-ons (the Play build) Done offers no "Add a card".
+    val store: StoreRules = StoreRules.FULL,
 )
 
 // The first-run wizard, screens S1 to S5 (PRODUCT-SPEC 4, UX 2 and 4). One machine per wizard run,
@@ -179,7 +182,7 @@ class SetupMachine(
     private val start: SetupStart = SetupStart.Fresh,
 ) : Machine<SetupState, SetupIntent, SetupEffect>(initialState(start), scope), SetupActions {
 
-    private val mutableExtras = MutableStateFlow(SetupExtras())
+    private val mutableExtras = MutableStateFlow(SetupExtras(addOns = deps.store.addOns))
     val extras: StateFlow<SetupExtras> = mutableExtras.asStateFlow()
 
     // Live context of this wizard run. Only handlers touch it.
@@ -412,7 +415,7 @@ class SetupMachine(
             SetupIntent.UndoWhatWeDid -> scope.launch { undoWhatWeDid() }
             SetupIntent.Restart -> if (after is SetupState.Done && restartJob?.isActive != true) restartJob = scope.launch { restart(after) }
             SetupIntent.SaveRestoreNote -> scope.launch { restoreNote() }
-            SetupIntent.AddCard -> tvIdOf(after)?.let { effect(SetupEffect.Navigate("modules/${it.value}")) }
+            SetupIntent.AddCard -> if (deps.store.addOns) tvIdOf(after)?.let { effect(SetupEffect.Navigate("modules/${it.value}")) }
             SetupIntent.Finish -> if (after is SetupState.Done && mutableExtras.value.finishing == null) scope.launch { finish(after.tvId) }
             is Ev.Run -> onRun(before, event)
             is SetupIntent.StopAction -> onStopAction(after, event.action)

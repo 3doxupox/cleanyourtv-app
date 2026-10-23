@@ -32,6 +32,7 @@ import tv.cleanyour.core.ops.Rendered
 import tv.cleanyour.core.ops.UndoOrder
 import tv.cleanyour.core.spec.AppNames
 import tv.cleanyour.core.spec.FactsTable
+import tv.cleanyour.core.spec.ProfileCategory
 import tv.cleanyour.core.spec.ProfileResolution
 import tv.cleanyour.core.spec.ProfileSource
 import tv.cleanyour.core.store.Clock
@@ -57,6 +58,11 @@ import tv.cleanyour.core.store.IdGen
 // The TV curtain (RFC-CURTAIN-1): `curtainActivity` and `curtainReceiver` name the bundled curtain
 // app; `curtainSigner` is its pinned signer (null: unknown, then only a package whose signer the
 // snapshot reports as different is taken for someone else's). All defaulted, after `profiles`.
+//
+// `keepUpdatesOn` (STORES-PLAN 1, the Google Play build): every software updater stays on, found by
+// its name (ProfileCategory.isUpdater, D22) or by the profile's "updates" group. Setup shows it as
+// protected ("We keep these", with REASON_UPDATES), SwitchOff refuses it, and Setup and Leftovers
+// skip one an earlier full build had switched off. Off (the default), updates stay a choice (D22).
 class DefaultPlanner(
     private val clock: Clock,
     private val idGen: IdGen,
@@ -71,6 +77,7 @@ class DefaultPlanner(
     private val curtainActivity: Component = Component(PackageName(CURTAIN_PACKAGE), ".CurtainActivity"),
     private val curtainReceiver: Component = Component(PackageName(CURTAIN_PACKAGE), ".CueReceiver"),
     private val curtainSigner: Sha256? = null,
+    private val keepUpdatesOn: Boolean = false,
 ) : Planner {
 
     override fun plan(request: PlanRequest, snapshot: Snapshot, facts: FactsTable, journals: List<ChangeRecord>): PlanResult {
@@ -149,12 +156,17 @@ class DefaultPlanner(
 
         // Denylist plus the two planner-only rules: the TV's own home screens and the setup wizard
         // are only ever switched off inside the home screen switch (section 3.4).
-        fun protectedReason(pkg: PackageName, profile: Profile?, stockLaunchers: List<Component>): String? {
+        fun protectedReason(pkg: PackageName, profile: Profile?, stockLaunchers: List<Component>, groups: List<PackageGroup> = profile?.groups.orEmpty()): String? {
             Denylist.reason(pkg, state(pkg), profile, snapshot)?.let { return it }
             if (stockLaunchers.any { it.pkg == pkg } || isHomeScreen(pkg)) return REASON_HOME_SCREEN
             if (pkg.value in Denylist.setupWizards || profile?.setupWraith == pkg) return REASON_WIZARD_SECTION_ONLY
+            if (keptUpdater(pkg, groups)) return REASON_UPDATES
             return null
         }
+
+        // keepUpdatesOn: a software updater by its name (D22) or by its profile group.
+        fun keptUpdater(pkg: PackageName, groups: List<PackageGroup>): Boolean = keepUpdatesOn &&
+            (ProfileCategory.isUpdater(pkg) || groups.any { g -> g.id == ProfileCategory.UPDATES.id && g.packages.any { it.name == pkg } })
 
         // The TV's current HOME, whatever it is (R5-W4 O5: PatchWall on an unknown Xiaomi), and every
         // other HOME claimant: switched off only inside the home screen switch, never by a plain
@@ -192,7 +204,7 @@ class DefaultPlanner(
                     val pkg = entry.name
                     if (!installed(pkg) || pkg in covered) continue
                     covered += pkg
-                    val why = protectedReason(pkg, profile, stockLaunchers)
+                    val why = protectedReason(pkg, profile, stockLaunchers, packageGroups)
                     val wanted = when (group.default) {
                         GroupDefault.DISABLE -> pkg !in choices.kept
                         GroupDefault.ASK, GroupDefault.KEEP -> pkg in choices.extraOff && pkg !in choices.kept
@@ -210,7 +222,8 @@ class DefaultPlanner(
             val custom = mutableListOf<RowSummary>()
             for (pkg in choices.extraOff.sortedBy { it.value }) {
                 if (pkg in covered || !installed(pkg) || pkg in choices.kept) continue
-                val why = protectedReason(pkg, profile, stockLaunchers)
+                if (keptUpdater(pkg, packageGroups)) continue   // keepUpdatesOn: a choice an earlier full build kept
+                val why = protectedReason(pkg, profile, stockLaunchers, packageGroups)
                 if (why != null) { refuse("${name(pkg)} cannot be switched off: $why"); continue }
                 if (isOff(pkg)) continue
                 custom += RowSummary(pkg, name(pkg), description(pkg), off = true, protected = false, whyProtected = null)
@@ -518,6 +531,7 @@ class DefaultPlanner(
             curtainLeftover()   // RFC-CURTAIN-1
             for (pkg in expectedDisabled.sortedBy { it.value }) {
                 if (!installed(pkg) || isOff(pkg)) continue
+                if (keptUpdater(pkg, managedProfile?.groups.orEmpty())) continue   // keepUpdatesOn: an updater that came back on stays on
                 // After a TV update the stock launcher may be enabled and HOME again (R1): a leftover
                 // that is now a home screen is never switched off outside the home screen switch.
                 val why = protectedReason(pkg, managedProfile, managedStockLaunchers)   // R1 R-3: never_disable and the wizard quirk
@@ -785,6 +799,8 @@ class DefaultPlanner(
         const val DESCRIPTION_OLD_HOME = "The old home screen. Switched off only after the new one works."
         const val DESCRIPTION_WIZARD = "We switch it back on if you ever undo or reset the TV."
         const val REASON_SWITCH_PART = "part of the home screen switch; it comes back on if the switch is undone"
+        // STORES-PLAN 1 (keepUpdatesOn): the Google Play build keeps the TV's updaters on.
+        const val REASON_UPDATES = "it brings the TV's software and security updates, which this version of the app always keeps on"
 
         fun packageOf(op: Op): PackageName? = when (op) {
             is Op.Disable -> op.pkg

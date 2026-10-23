@@ -2,7 +2,7 @@
 """CycloneDX 1.5 SBOM of what is inside the APK (release.yml, ARCHITECTURE 6.8).
 
 Reads the output of
-  ./gradlew :app:dependencies --configuration releaseRuntimeClasspath
+  ./gradlew :app:dependencies --configuration fullReleaseRuntimeClasspath
 (the resolved runtime classpath of the release variant, which is what R8 packs into the APK) and
 adds the SHA-256 of each artifact from gradle/verification-metadata.xml. No Gradle plugin, so
 the build itself and its verification metadata stay unchanged.
@@ -61,7 +61,7 @@ def hashes(path):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("deps", help="output of :app:dependencies --configuration releaseRuntimeClasspath")
+    ap.add_argument("deps", help="output of :app:dependencies --configuration fullReleaseRuntimeClasspath")
     ap.add_argument("--verification", default="gradle/verification-metadata.xml")
     ap.add_argument("--version", required=True)
     ap.add_argument("--apk-sha256")
