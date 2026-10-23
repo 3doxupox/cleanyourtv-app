@@ -10,7 +10,8 @@ that you follow the [code of conduct](CODE_OF_CONDUCT.md). Security problems go 
 ## Development setup
 
 You need JDK 21 and the Android SDK (compile SDK 37, build tools 36; Gradle downloads what is
-missing once the licences are accepted). Linux or macOS.
+missing once the licences are accepted). Linux or macOS. Gradle never downloads a JDK: the JDK 21
+that runs Gradle is the toolchain of every module.
 
 ```bash
 git clone --recurse-submodules https://github.com/udhaykumarbala/cleanyourtv-app.git
@@ -135,3 +136,46 @@ signature, the signer (`docs/release-signer.sha256`), `apksigcopier compare` aga
 build and the APK assertions of `scripts/check-apk.py`. CI never holds a key: on a `v*` tag,
 `.github/workflows/release.yml` builds the unsigned APK twice and publishes it as an artifact, and
 its verify job checks the signed APK attached to the GitHub Release against that build.
+
+## F-Droid (maintainers)
+
+F-Droid builds the app from source with the recipe in `docs/fdroid/tv.cleanyour.app.yml` and
+publishes our own signed APK when its build is that APK minus the signature (`Binaries` and
+`AllowedAPKSigningKeys` in the recipe). After the one-time merge request to
+[fdroiddata](https://gitlab.com/fdroid/fdroiddata) (text in `docs/fdroid/MERGE-REQUEST.md`), a
+release reaches F-Droid by itself:
+
+1. F-Droid's update check sees the new `vX.Y.Z` tag and reads versionName and versionCode from the
+   app's build file.
+2. Its build server checks out the tag with the submodule, removes the two bundled TV APKs and runs
+   `scripts/fdroid-build-tv-apks.sh`, which builds the launcher (from `third_party/cleanyourtv`) and
+   `:tv:curtain` unsigned, puts the committed signature blocks from `android/platform/signatures/`
+   back on them with `apksigcopier patch` and checks the result against `Pins.kt`. Then it builds
+   the app's `full` release.
+3. It downloads `cleanyourtv-X.Y.Z.apk` from the GitHub Release and publishes it if
+   `apksigcopier compare` passes and the signer is the release certificate.
+
+So per release: keep the tag format `vX.Y.Z` and the asset name `cleanyourtv-X.Y.Z.apk`, and check
+the F-Droid build before F-Droid does. The `fdroid-check` job (`.github/workflows/fdroid.yml`) runs
+fdroidserver's `fdroid build` on the recipe in F-Droid's buildserver image on every tag and nightly,
+and compares the result with the Release's APK when there is one. Once the Release is published,
+run it on the tag: `gh workflow run fdroid.yml --ref vX.Y.Z`; it must say "match".
+
+When a bundled TV APK is rebuilt and re-signed (`scripts/build-launcher-on-forge.sh`,
+`scripts/build-curtain-on-forge.sh`), those scripts also refresh its signature block in
+`android/platform/signatures/`; commit the APK, the signature block and the `Pins.kt` change
+together. A stale signature block makes `scripts/fdroid-build-tv-apks.sh` fail.
+
+Run the check locally:
+
+```bash
+# Only the bundled TV APKs: rebuild both from source and check them against their pins
+# (JDK 21, the Android SDK and apksigcopier; the assets are rewritten with the same bytes).
+scripts/fdroid-build-tv-apks.sh
+
+# The whole F-Droid build, on a Linux x86_64 machine with Docker, from a normal clone (not a git
+# worktree). Mount a signed APK at /in/signed.apk to compare it; outputs land in dist/fdroid/.
+IMAGE=$(sed -n 's/^  FDROID_IMAGE: //p' .github/workflows/fdroid.yml)
+docker run --rm -v "$PWD":/seed:ro -v "$PWD/dist/fdroid":/out \
+  -v "$PWD/cleanyourtv-X.Y.Z.apk":/in/signed.apk:ro "$IMAGE" bash /seed/scripts/fdroid-check.sh vX.Y.Z
+```
