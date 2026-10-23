@@ -226,7 +226,9 @@ fun FoundScreen(
                 HomeBlock.OLD_ANDROID -> stringResource(R.string.found_home_old_android)
                 HomeBlock.UNKNOWN_HOME -> stringResource(R.string.found_home_unknown_stock)
                 HomeBlock.HOME_CHANGED -> stringResource(R.string.found_home_changed)
-                HomeBlock.WIZARD_WIFI -> stringResource(R.string.found_home_wizard_wifi)
+                // A TV no exact profile knows keeps its wizard on whoever saved the Wi-Fi, so the
+                // "forget and re-add the network" advice would not help there.
+                HomeBlock.WIZARD_WIFI -> stringResource(if (extras.unknownModel) R.string.found_home_wizard_wifi_unlisted else R.string.found_home_wizard_wifi)
                 HomeBlock.WIZARD_WIFI_UNKNOWN -> stringResource(R.string.found_home_wizard_wifi_unknown)
                 HomeBlock.CASTING -> stringResource(R.string.found_home_casting)
                 HomeBlock.BOOT_LOOP -> stringResource(R.string.found_home_boot_loop)

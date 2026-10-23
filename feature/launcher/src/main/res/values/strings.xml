@@ -45,6 +45,7 @@
     <string name="home_not_on_tv_casting">On this Google device the new home screen needs the setup wizard off, and then casting from phones stops working after every restart. So Setup left the home screen alone.</string>
     <string name="home_not_on_tv_boot_loop">On this TV family the setup wizard comes back at every restart, and with the TV\'s own home screen off the TV can fail to start. So Setup left the home screen alone.</string>
     <string name="home_not_on_tv_wizard_stays_on">We don\'t know this TV well enough to switch its setup wizard off, and with the wizard left on and the TV\'s own home screen off, the TV can crash. So Setup left the home screen alone.</string>
+    <string name="home_not_on_tv_home_changed">This TV\'s home screen was already changed, by another app or an earlier change, so Setup left it as it is and didn\'t add ours. The clean-up works without it.</string>
     <string name="home_not_on_tv_none">The new home screen isn\'t installed on this TV right now.</string>
     <string name="home_not_on_tv_next_wifi">To change this, forget the Wi-Fi network in the TV\'s Settings and add it again, or use a network cable. Then run Setup again.</string>
     <string name="home_not_on_tv_next_check">Running Setup again checks once more.</string>
