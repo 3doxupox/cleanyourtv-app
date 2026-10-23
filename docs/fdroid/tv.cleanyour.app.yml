@@ -11,7 +11,8 @@ AutoName: Clean Your TV
 
 RepoType: git
 Repo: https://github.com/udhaykumarbala/cleanyourtv-app.git
-Binaries: https://github.com/udhaykumarbala/cleanyourtv-app/releases/download/v%v/cleanyourtv-%v.apk
+Binaries: 
+  https://github.com/udhaykumarbala/cleanyourtv-app/releases/download/v%v/cleanyourtv-%v.apk
 
 Builds:
   - versionName: 0.3.0
@@ -28,10 +29,10 @@ Builds:
     rm:
       - android/platform/src/main/assets/bundled/cleanyourtv-launcher.apk
       - android/platform/src/main/assets/bundled/cleanyourtv-curtain.apk
+    prebuild: sed -i -e '/signingConfig signingConfigs.debug/d' ../third_party/cleanyourtv/launcher/app/build.gradle
     scanignore:
       - android/platform/signatures/cleanyourtv-launcher/APKSigningBlock
       - android/platform/signatures/cleanyourtv-curtain/APKSigningBlock
-    prebuild: sed -i -e '/signingConfig signingConfigs.debug/d' ../third_party/cleanyourtv/launcher/app/build.gradle
     build: bash ../scripts/fdroid-build-tv-apks.sh
 
 AllowedAPKSigningKeys: eaf7af3867bb29ff4bb038854842c93f42ffe4198a087e611cb18f925201cd65
