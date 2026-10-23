@@ -127,6 +127,7 @@ picks it up in its next release. See also [CONTRIBUTING.md](CONTRIBUTING.md#prop
 - Permissions: internet, network state, Wi-Fi multicast (to find the TV), a foreground service
   while it works on the TV, notifications and the screen lock prompt. No location, storage, camera
   or contacts.
+- The full policy: [PRIVACY.md](PRIVACY.md), also at [app.cleanyour.tv/privacy](https://app.cleanyour.tv/privacy/).
 </details>
 
 <details>
