@@ -2,6 +2,8 @@ package tv.cleanyour.core.planner
 
 import tv.cleanyour.core.model.DeviceFacts
 import tv.cleanyour.core.model.PackageName
+import tv.cleanyour.core.model.Platform
+import tv.cleanyour.core.model.Profile
 import tv.cleanyour.core.model.Snapshot
 
 // Firmware that refuses another home screen, told from the TV's own facts so that an unlisted set
@@ -39,4 +41,10 @@ object TclChina {
 
     fun isTclChina(facts: DeviceFacts): Boolean =
         !facts.hasGms && (facts.brand.trim().lowercase() in BRANDS || facts.manufacturer.trim().lowercase() in BRANDS)
+
+    // Whether the rule decides for this TV: only when no exact profile knows it, or the exact profile
+    // is a TCL_CN one. An exact TCL Android TV or Google TV profile keeps its own behaviour (a set
+    // whose Google services the probe could not see is not turned into a China-market one).
+    fun applies(facts: DeviceFacts, exact: Profile?): Boolean =
+        (exact == null || exact.platform == Platform.TCL_CN) && isTclChina(facts)
 }

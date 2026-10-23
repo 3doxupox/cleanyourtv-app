@@ -487,4 +487,17 @@ class PlannerTest {
         // Nor can Manage switch one off.
         assertTrue(refused(PlanRequest.SwitchOff(setOf(amazon.pkg)), snapshot = snap).single().contains(DefaultPlanner.REASON_FIRE_OS_HOME))
     }
+
+    // S4: the planner's backstop follows the same rule as SetupMachine.homeBlock. A TCL without Google
+    // services that an exact TCL Android TV profile knows keeps its home screen switch; with no exact
+    // profile, or a TCL_CN one, nothing of the new home screen is planned.
+    @Test fun theChinaTclBackstopKeepsAnExactAndroidTvProfilesSwitch() {
+        val snap = snapshot().let { it.copy(facts = it.facts.copy(brand = "TCL", manufacturer = "TCL", hasGms = false)) }
+            .let { it.copy(contentHash = tv.cleanyour.core.store.SnapshotCodec.hash(it)) }
+        val tcl = PlannerFixtures.profile().copy(id = "tcl-example", platform = tv.cleanyour.core.model.Platform.ANDROID_TV)
+        val p = plan(setup(tcl), snapshot = snap)
+        assertTrue(p.sections.isNotEmpty(), "the switch is planned")
+        assertEquals(listOf(DefaultPlanner.REASON_TV_REFUSES_HOME), refused(setup(null), snapshot = snap))
+        assertEquals(listOf(DefaultPlanner.REASON_TV_REFUSES_HOME), refused(setup(tcl.copy(platform = tv.cleanyour.core.model.Platform.TCL_CN)), snapshot = snap))
+    }
 }

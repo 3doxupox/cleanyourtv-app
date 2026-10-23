@@ -152,8 +152,10 @@ class DefaultPlanner(
 
         fun refuse(reason: String) { reasons += reason }
 
-        // Firmware that takes no other home screen, from the snapshot's facts and packages (FireOs, TclChina).
-        fun refusesOtherHomes(): Boolean = FireOs.isFireOs(snapshot.facts, snapshot) || TclChina.isTclChina(snapshot.facts)
+        // Firmware that takes no other home screen, from the snapshot's facts and packages (FireOs,
+        // TclChina). The China-market TCL rule stands in for a missing profile only: an exact TCL
+        // Android TV or Google TV profile keeps its own rules, as SetupMachine.homeBlock does.
+        fun refusesOtherHomes(profile: Profile?): Boolean = FireOs.isFireOs(snapshot.facts, snapshot) || TclChina.applies(snapshot.facts, profile)
         fun planned(op: Op): Boolean = steps.any { it.op == op }
         fun putBackPlanned(pkg: PackageName): Boolean = planned(Op.Enable(pkg)) || planned(Op.DefaultState(pkg))
 
@@ -248,7 +250,7 @@ class DefaultPlanner(
                 step(Op.Settle(settleSeconds), null, GROUP_LAUNCHER, "Giving the TV $settleSeconds seconds to settle", FailurePolicy.CONTINUE)
             }
             val refusedBefore = reasons.size
-            val launcherSteps = if (launcherNeeded) launcherInstall(req.launcher, choices.replaceLauncherSigner, stockLaunchers) else false
+            val launcherSteps = if (launcherNeeded) launcherInstall(req.launcher, choices.replaceLauncherSigner, stockLaunchers, profile) else false
             if (reasons.size > refusedBefore) return   // the launcher reason says it all; no second reason about the switch
             // RFC-DOCK-1: the dock (with its rows) and the look picked in the wizard, as one config.json,
             // only when the new home screen is (or will be) on the TV and the switch is chosen. After the
@@ -403,11 +405,11 @@ class DefaultPlanner(
 
         // D39 ladder: streaming install when the TV advertises `cmd`, else push to tmp and pm install.
         // Returns true when install steps were added (false when the pin is already installed).
-        fun launcherInstall(artifact: LauncherArtifact, replaceSigner: Boolean, stockLaunchers: List<Component>): Boolean {
+        fun launcherInstall(artifact: LauncherArtifact, replaceSigner: Boolean, stockLaunchers: List<Component>, profile: Profile?): Boolean {
             if (artifact.pkg != launcher.pkg) { refuse("the launcher artifact is ${artifact.pkg.value}, not ${launcher.pkg.value}"); return false }
             // Issue #2: Setup never asks for it on a TV that only allows its own home screen; this is
             // the defence in depth, from the TV's own facts so an unlisted Fire TV is caught too.
-            if (refusesOtherHomes()) { refuse(REASON_TV_REFUSES_HOME); return false }
+            if (refusesOtherHomes(profile)) { refuse(REASON_TV_REFUSES_HOME); return false }
             // RF-PROFILES-63 P1: Setup never asks for it below Android 8; this is the defence in depth.
             if (snapshot.facts.sdk < TV_MIN_SDK) { refuse(REASON_OLD_ANDROID); return false }
             val current = state(artifact.pkg)
@@ -450,7 +452,7 @@ class DefaultPlanner(
             if (snapshot.facts.sdk < TV_MIN_SDK) { refuse(REASON_OLD_ANDROID); return }
             // Issue #2: Fire OS (and a China-market TCL) refuses another home screen, told from the
             // TV's facts, whatever the profile resolution says.
-            if (refusesOtherHomes()) { refuse(REASON_TV_REFUSES_HOME); return }
+            if (refusesOtherHomes(profile)) { refuse(REASON_TV_REFUSES_HOME); return }
             // RF-SAFETY-250: the TVs where the switch is skipped up front (SetupMachine never asks for it).
             HomeSwitchRisk.of(snapshot.facts, profile, snapshot, wizardWifi)?.let { refuse(it.reason); return }
             val current = state(launcher.pkg)

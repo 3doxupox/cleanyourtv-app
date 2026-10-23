@@ -660,7 +660,7 @@ class SetupMachine(
         }
         val stockUnknown = !ours && stocks != null && snap.home.claimants.none { c -> stocks.any { it.pkg == c.component.pkg } }
         return when {
-            f.installRefusal || fireOs || p?.platform == Platform.TCL_CN || TclChina.isTclChina(f) -> HomeBlock.TV_REFUSES
+            f.installRefusal || fireOs || p?.platform == Platform.TCL_CN || TclChina.applies(f, p) -> HomeBlock.TV_REFUSES
             f.sdk < DefaultPlanner.TV_MIN_SDK -> HomeBlock.OLD_ANDROID
             risk == HomeSwitchRisk.Risk.BOOT_LOOP -> HomeBlock.BOOT_LOOP
             risk == HomeSwitchRisk.Risk.CASTING -> HomeBlock.CASTING
