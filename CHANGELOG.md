@@ -15,6 +15,9 @@ Fixes from the first public day of issues. Thank you to everyone who reported.
 - A launcher you installed yourself is never switched off. If the TV's home screen was already
   changed, by another app or an earlier change, Setup leaves it as it is and does the clean-up.
   Before, such a TV got "plan refused" on every try (issue #8).
+- On a TV without an exact list, the TV's own home screen now stays switched on during the new
+  home screen switch when it is a protected kind of app (one the TV keeps running, its keyboard or
+  its screensaver), instead of being switched off.
 - When there was nothing to change, Done now says "Nothing was changed" instead of "Your TV is
   ready" (issue #15).
 - On a TV the app has no list for, the setup wizard note no longer suggests re-adding the Wi-Fi,
