@@ -11,8 +11,7 @@ META = os.path.normpath(os.path.join(HERE, "..", "..", "fastlane", "metadata", "
 # Google Play's limits (F-Droid's are the same or looser).
 LIMITS = {"title.txt": 30, "short_description.txt": 80, "full_description.txt": 4000}
 CHANGELOG_LIMIT = 500
-# Links that resolve today. app.cleanyour.tv waits for its DNS record (RF-STORES-030 M1); the
-# github.io address redirects there once the custom domain is set, so it never goes dead.
+# Links that resolve today (RF-STORES-030 M1): the app's own GitHub Pages site and repo.
 URL_OK = re.compile(r"^https://(udhaykumarbala\.github\.io/cleanyourtv-app/|github\.com/udhaykumarbala/cleanyourtv-app)")
 URL = re.compile(r"https?://\S+|\b[a-z0-9.-]+\.(?:tv|com|io|org|dev)\b(?:/\S*)?", re.I)
 
