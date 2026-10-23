@@ -18,7 +18,7 @@ Before submitting:
    in the fdroiddata fork, and `fdroid build -v -l tv.cleanyour.app` if a build server is at hand.
 4. Fill in the template checklist (the boxes below), then paste everything from the title down.
 
----
+***
 
 Title: **New app: Clean Your TV**
 
