@@ -12,7 +12,7 @@ HOW IT WORKS IN THREE STEPS
 
 WHAT IT KEEPS
 
-The apps you use stay: Netflix, YouTube, Prime Video, live TV and the HDMI inputs. So do Wi-Fi, the remote, the keyboard, casting, the voice assistant and software updates, plus the parts Android needs to run. The app never touches them.
+The apps you use stay: Netflix, YouTube, Prime Video, live TV and the HDMI inputs. So do Wi-Fi, the remote, the keyboard and the parts Android needs to run; the app never touches them. Casting, the voice assistant and software updates stay on too, unless you choose to switch them off under Customise. The Google Play version always keeps software updates on.
 
 SAFE BY DESIGN
 
@@ -40,4 +40,4 @@ No accounts, no analytics, no tracking. The app talks to the TV you pick on your
 
 OPEN SOURCE
 
-Built by the community on Gathin's Clean Your TV, with permission, and released under the MIT licence. Source code, issues and the privacy policy: github.com/udhaykumarbala/cleanyourtv-app and app.cleanyour.tv.
+Built by the community on Gathin's Clean Your TV, with permission, and released under the MIT licence. Source code and issues: github.com/udhaykumarbala/cleanyourtv-app. Privacy policy: https://udhaykumarbala.github.io/cleanyourtv-app/privacy/
