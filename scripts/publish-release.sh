@@ -19,7 +19,7 @@
 # matches.
 #
 # Before anything is sent, every input is checked: the tag format, the tag exists here and on
-# GitHub and is the commit the set was built from (dist/release-X.Y.Z/NOTES.md), the version in
+# GitHub (the same tag object in both) and is the commit the set was built from (dist/release-X.Y.Z/NOTES.md), the version in
 # app/build.gradle.kts, the APK's checksum and signer (docs/release-signer.sha256), the AAB, the
 # notes, gh's login, and the Play inputs (play-upload.py --dry-run). --dry-run stops there and
 # makes no network call at all.
@@ -108,6 +108,10 @@ command -v gh >/dev/null || fail "gh (the GitHub CLI) is needed"
 gh auth status >/dev/null 2>&1 || fail "gh is not logged in (gh auth login)"
 REMOTE_TAG=$(gh api "repos/$REPO/git/ref/tags/$TAG" --jq .object.sha 2>/dev/null || true)
 [ -n "$REMOTE_TAG" ] || fail "tag $TAG is not on GitHub ($REPO); push it first: git push origin $TAG"
+# The same tag object as here (a lightweight tag: the same commit), so GitHub, Play and F-Droid all
+# get the commit this set was built from.
+LOCAL_TAG=$(git rev-parse "refs/tags/$TAG")
+[ "$REMOTE_TAG" = "$LOCAL_TAG" ] || fail "tag $TAG on GitHub is $REMOTE_TAG, here it is $LOCAL_TAG: the two tags differ; fix the tag before publishing"
 
 if [ "$SKIP_GITHUB" = 0 ]; then
   echo "==> 1. GitHub release $TAG"
