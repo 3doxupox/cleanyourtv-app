@@ -91,6 +91,23 @@ The project is split into small modules with one direction of dependency, checke
 Changing a rule, a public interface in `:core:model` or a pin is fine, but say so in the pull
 request and explain why; reviewers look at those first.
 
+## Reporting a problem or a new TV
+
+You don't need a computer or adb for either. The app makes the report, shows it to you first, and
+sends nothing itself: you copy it to GitHub, share it, or close the screen.
+
+- **Something went wrong.** Tap **Report a problem**, on the card that stopped you or in the app's
+  Settings, then **Copy and open GitHub**. The "Report a problem" form opens with the app version,
+  the phone and the TV filled in; paste the report into its last box and say in a few words what
+  happened. The report is the app's log with addresses, serial numbers, keys and codes removed.
+- **Your TV isn't listed.** When the app doesn't know your exact TV it is careful and says so. Tap
+  **Help add this TV** (on the "We found" screen, or the TV's Manage screen), then **Copy and open
+  GitHub**. The "Help add my TV" form opens with the model and Android version filled in; paste the
+  report. It lists the apps the TV came with; apps you installed are only counted.
+
+We read every report. For a new TV we make a list from the report, ask you to try it, and send it
+upstream once it works (below). How maintainers sort reports is in [docs/TRIAGE.md](docs/TRIAGE.md).
+
 ## Propose a TV profile
 
 The profiles come from the upstream launcher's community lists, so a new TV goes upstream first:
@@ -109,8 +126,8 @@ The profiles come from the upstream launcher's community lists, so a new TV goes
    tried). The build converts the list at build time and fails on anything it does not
    understand. Bundled launcher changes need the maintainer (the APK is re-signed).
 
-No upstream list yet? Open a "TV support request" issue with the model, Android version and the
-output the issue template asks for; someone with the same TV may pick it up.
+No upstream list yet? Open a "Help add my TV" issue with the app's report (above); someone with the
+same TV may pick it up.
 
 ## Commits and pull requests
 
@@ -143,8 +160,8 @@ output the issue template asks for; someone with the same TV may pick it up.
 - **No secrets and no personal data in the repository.** Never commit keys, keystores, passwords,
   tokens, or a real TV's serial, MAC or IP address. Captures from a real TV go through
   `scripts/import-mitv-capture.py` and `scripts/check-redaction.py` before they become fixtures.
-- **Logs and diagnostics are redacted.** Addresses, serials, keys and codes never reach a log line
-  or the diagnostics zip.
+- **Logs and reports are redacted.** Addresses, serials, keys and codes never reach a log line or
+  a report. A TV report names only the TV's system apps; the person's own apps are a count.
 
 ## Releases (maintainers)
 
