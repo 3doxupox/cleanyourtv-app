@@ -5,13 +5,16 @@
 #   scripts/build-launcher-on-forge.sh            # build twice, sign both, compare, copy into assets
 #
 # The upstream submodule must be checked out at PIN (third_party/cleanyourtv). Each build runs in a
-# fresh copy of the sources and a throwaway eclipse-temurin:17-jdk container (upstream uses AGP 8.5
-# and Gradle 8.9) under the same host lock as scripts/build-on-forge.sh. Reproducibility: upstream's
+# fresh copy of the sources and a throwaway eclipse-temurin:21-jdk container (upstream uses AGP 8.5
+# and Gradle 8.9; JDK 21 as F-Droid's buildserver uses, and launcher 2.5 builds byte for byte the same
+# on 17 and 21) under the same host lock as scripts/build-on-forge.sh. Reproducibility: upstream's
 # release build carries AGP's own signing block, so the raw APKs differ; both are re-signed with the
 # launcher key and the two signed APKs must be byte for byte identical before one is kept. Signing
 # runs in a third throwaway container: the keystore
 # and its password travel over the ssh stdin into the container's /dev/shm and never touch forge's
 # disk. Key custody: $CYT_SECRETS/cleanyourtv-launcher/ on the maintainer's machine only.
+# The signature block of the signed APK is extracted into android/platform/signatures/ for the F-Droid
+# rebuild (scripts/fdroid-build-tv-apks.sh); commit it with the APK.
 # After a rebuild, update PinnedLauncher in core/trust with the printed sha256, size and signer digest;
 # the verifyLauncherPin task fails the build until they agree.
 set -euo pipefail
@@ -20,7 +23,7 @@ cd "$(dirname "$0")/.."
 PIN=9071ec8d2f41826778f6b4c7f5f42dadc22f5b22
 . scripts/lib/forge.sh
 SECRETS="${SECRETS:-$CYT_SECRETS/cleanyourtv-launcher}"
-IMAGE="eclipse-temurin:17-jdk"
+IMAGE="eclipse-temurin:21-jdk"
 VOLUME="mitv-android-cache"
 BUILD_TOOLS="34.0.0"
 RUN_ID="cyt-launcher-$(date +%Y%m%d%H%M%S)-$$"
@@ -107,6 +110,7 @@ echo "==> sign both builds with the launcher release key (in memory), compare an
 
 mkdir -p "$(dirname "$OUT")"
 scp -q -i "$SSH_KEY" "$FORGE:$REMOTE_DIR/cleanyourtv-launcher.apk" "$OUT"
+forge_extract_signature "$REMOTE_DIR/cleanyourtv-launcher.apk" android/platform/signatures/cleanyourtv-launcher
 echo "==> $OUT"
 shasum -a 256 "$OUT"
 wc -c < "$OUT" | tr -d ' ' | sed 's/^/size /'

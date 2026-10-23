@@ -12,6 +12,8 @@
 # throwaway container, the keystore and its password over the ssh stdin into the container's /dev/shm,
 # never on forge's disk; v2 and v3 only. Key custody: $CYT_SECRETS/cleanyourtv-launcher/ on the
 # maintainer's machine only (scripts/lib/forge.sh). The signer digest must equal PinnedLauncher.SIGNER_SHA256 (same key, one pin).
+# The signature block of the signed APK is extracted into android/platform/signatures/ for the F-Droid
+# rebuild (scripts/fdroid-build-tv-apks.sh); commit it with the APK.
 # After a rebuild, update PinnedCurtain in core/trust with the printed size and sha256; the
 # verifyCurtainPin task fails the build until they agree.
 set -euo pipefail
@@ -110,6 +112,7 @@ echo "==> signer digest equals PinnedLauncher.SIGNER_SHA256"
 
 mkdir -p "$(dirname "$OUT")"
 scp -q -i "$SSH_KEY" "$FORGE:$BASE/cleanyourtv-curtain.apk" "$OUT"
+forge_extract_signature "$BASE/cleanyourtv-curtain.apk" android/platform/signatures/cleanyourtv-curtain
 echo "==> $OUT"
 shasum -a 256 "$OUT"
 wc -c < "$OUT" | tr -d ' ' | sed 's/^/size /'

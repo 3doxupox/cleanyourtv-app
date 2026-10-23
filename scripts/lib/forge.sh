@@ -34,3 +34,21 @@ forge_init() {
   LOCK="$FORGE_ROOT/.cyt-forge.lock"
   "${SSH[@]}" "mkdir -p '$FORGE_ROOT'" </dev/null
 }
+
+# forge_extract_signature <signed APK on the build host> <local directory>: `apksigcopier extract`
+# of a signed bundled APK into <local directory> (APKSigningBlock and APKSigningBlockOffset), in the
+# pinned docker/repro image. scripts/fdroid-build-tv-apks.sh puts that signature back on an unsigned
+# rebuild from source (the F-Droid path), so it must be refreshed whenever a bundled APK is re-signed.
+# Run from the repository root, after forge_init.
+forge_extract_signature() {
+  local apk=$1 dir=$2 image rdir name
+  image="cyt-build:$(shasum -a 256 docker/repro/Dockerfile | cut -c1-12)"
+  name=$(basename "$apk" .apk)
+  rdir="$(dirname "$apk")/signature-$name"
+  "${SSH[@]}" "docker image inspect '$image' >/dev/null 2>&1 || docker build -q -t '$image' -" < docker/repro/Dockerfile
+  "${SSH[@]}" "rm -rf '$rdir' && mkdir -p '$rdir' && docker run --rm -e OWNER=\$(id -u):\$(id -g) \
+    -v '$(dirname "$apk")':/w '$image' bash -euc 'apksigcopier extract /w/$name.apk /w/signature-$name; chown -R \$OWNER /w/signature-$name'" </dev/null
+  rm -rf "$dir" && mkdir -p "$dir"
+  scp -q -i "$SSH_KEY" -o BatchMode=yes "$FORGE:$rdir/APKSigningBlock" "$FORGE:$rdir/APKSigningBlockOffset" "$dir/"
+  echo "==> signature for the F-Droid rebuild: $dir"
+}
