@@ -74,8 +74,8 @@ dependencies {
 }
 
 // :benchmark measures the full build (it asks for store=full); the play benchmark variant is not
-// built. Unit tests run on the debug and release variants of both flavours; the benchmark build type
-// is release code with the debug key, so its unit tests would repeat the release ones.
+// built. Unit tests run on both flavours (testFullDebugUnitTest and testPlayDebugUnitTest under
+// `check`); the benchmark build type is release code with the debug key and gets no unit tests.
 androidComponents {
     beforeVariants(selector().withBuildType("benchmark")) { variant ->
         if (variant.productFlavors.contains("store" to "play")) variant.enable = false
