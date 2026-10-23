@@ -12,7 +12,7 @@ HOW IT WORKS IN THREE STEPS
 
 WHAT IT KEEPS
 
-The apps you use stay: Netflix, YouTube, Prime Video, live TV and the HDMI inputs. So do Wi-Fi, the remote, the keyboard and the parts Android needs to run; the app never touches them. Casting, the voice assistant and software updates stay on too, unless you choose to switch them off under Customise. The Google Play version always keeps software updates on.
+The apps you use stay: Netflix, YouTube, Prime Video, live TV and the HDMI inputs. So do Wi-Fi, the remote, the keyboard and the parts Android needs to run; the app never touches them. Casting, the voice assistant and software updates stay on too. You can still switch off casting or the voice assistant under Customise if you like.
 
 SAFE BY DESIGN
 
@@ -36,7 +36,7 @@ SUPPORTED TVS
 
 PRIVATE
 
-No accounts, no analytics, no tracking. The app talks to the TV you pick on your home network. The key your TV trusts stays in your phone's secure storage, and restore points stay on your phone. Diagnostics are shared only if you choose to share them, and only after you have seen a preview.
+No accounts, no analytics, no tracking. The app talks to the TV you pick on your home network. The version from GitHub and F-Droid contacts GitHub only when you ask it to: when you tap Check for updates, or when you choose to browse and add optional add-ons. The Google Play version makes no internet connections of its own. The key your TV trusts stays in your phone's secure storage, and restore points stay on your phone. Diagnostics are shared only if you choose to share them, and only after you have seen a preview.
 
 OPEN SOURCE
 

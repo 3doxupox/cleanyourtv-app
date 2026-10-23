@@ -55,6 +55,33 @@ class StoreText(unittest.TestCase):
         self.assertNotIn("now also published", notes)
         self.assertIn("privacy", notes)
 
+    def test_summary_passes_fdroid_lint(self):
+        # fdroidserver lint's Summary checks (fdroidserver/lint.py REGEX_CHECKS), plus our own rule
+        # that the summary does not talk to the reader as "your".
+        summary = read(os.path.join(META, "en-US", "short_description.txt"))
+        self.assertNotRegex(summary, re.compile(r".*\b(free software|open source)\b.*", re.I))
+        self.assertNotRegex(summary, re.compile(r".*((your|for).*android|android.*(app|device|client|port|version))", re.I))
+        self.assertNotRegex(summary, re.compile(r".*[a-z0-9][.!?]( |$)"))
+        self.assertNotRegex(summary, re.compile(r"\byour\b", re.I))
+        self.assertNotEqual(summary.lower(), read(os.path.join(META, "en-US", "title.txt")).lower())
+
+    def test_description_names_its_connections(self):
+        # F-Droid reviewers check that every connection is described; true for every channel.
+        text = read(os.path.join(META, "en-US", "full_description.txt"))
+        self.assertIn("contacts GitHub only when you ask it to", text)
+        self.assertIn("Check for updates", text)
+        self.assertIn("add-ons", text)
+        self.assertIn("The Google Play version makes no internet connections of its own", text)
+        for word in ("official", "ad blocker", "ad-blocker", "adblock"):
+            self.assertNotIn(word, text.lower())
+
+    def test_the_031_notes_are_true_on_every_channel(self):
+        notes = read(os.path.join(META, "en-US", "changelogs", "4.txt")).lower()
+        # Google Play has no add-ons: the note must not promise them.
+        self.assertIn("where add-ons are offered", notes)
+        self.assertNotIn("google play", notes)
+        self.assertNotIn("f-droid", notes)
+
 
 if __name__ == "__main__":
     unittest.main()
