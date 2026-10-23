@@ -2,6 +2,8 @@ package tv.cleanyour.app
 
 import android.util.Log
 import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import tv.cleanyour.core.flows.Diagnostics
 
 // SECURITY 4.6 and F13: everything the app logs goes through this redactor, and so does the
@@ -73,4 +75,5 @@ object CytLog {
 
 class LogDiagnostics(private val header: () -> String) : Diagnostics {
     override suspend fun redactedText(): String = Redactor.redact(header()) + "\n" + CytLog.snapshot()
+    override suspend fun clear() = withContext(Dispatchers.IO) { CytLog.clear() }
 }

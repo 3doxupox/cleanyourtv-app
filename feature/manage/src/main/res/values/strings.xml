@@ -117,6 +117,7 @@
     <string name="tvsettings_forget_explain">This deletes the record of this TV, its journals and its restore points from this phone. The TV itself is not changed, but you won\'t be able to undo from this phone afterwards.</string>
     <string name="tvsettings_forget_title">Forget {tv}?</string>
     <string name="tvsettings_forget_confirm">Forget this TV</string>
+    <string name="tvsettings_forget_busy">Setup is still working on this TV. Wait for it to finish or stop it first.</string>
 
     <!-- M8 App settings -->
     <string name="appsettings_title">App settings</string>
@@ -153,9 +154,10 @@
     <string name="appsettings_reset_key_title">Reset the key on this phone?</string>
     <string name="appsettings_reset_key_confirm">Reset my key</string>
     <string name="appsettings_delete_all">Delete everything</string>
-    <string name="appsettings_delete_all_note">Deletes every TV record, journal, restore point and the key from this phone. The TVs themselves are not changed, and you won\'t be able to undo from this phone afterwards.</string>
+    <string name="appsettings_delete_all_note">Deletes every TV record, journal, restore point, the app\'s diagnostics log and the key from this phone. The TVs themselves are not changed, and you won\'t be able to undo from this phone afterwards.</string>
     <string name="appsettings_delete_all_title">Delete everything on this phone?</string>
     <string name="appsettings_delete_all_confirm">Delete everything</string>
+    <string name="appsettings_delete_all_busy">Setup is still working on {tv}. Wait for it to finish or stop it first.</string>
 
 
     <!-- Stop and undo ask first (Confirmations): a question, one calm sentence, the verb and a way back -->

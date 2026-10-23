@@ -128,8 +128,12 @@ data class StoreRules(val updateCheck: Boolean = true, val addOns: Boolean = tru
 }
 
 // The redacted diagnostics text (SECURITY 4.6: IPs masked, serials and tokens replaced), shown to
-// the user before the share sheet. The app builds it from the redacting logger's ring.
-fun interface Diagnostics { suspend fun redactedText(): String }
+// the user before the share sheet. The app builds it from the redacting logger's ring. `clear`
+// deletes the log itself (its files and the ring), for "Delete everything".
+fun interface Diagnostics {
+    suspend fun redactedText(): String
+    suspend fun clear() {}
+}
 
 // One diagnostics line per wizard milestone (connect, probe, plan, run), so "Report a problem"
 // has something to show. The app writes them through its redacting logger; the machines never

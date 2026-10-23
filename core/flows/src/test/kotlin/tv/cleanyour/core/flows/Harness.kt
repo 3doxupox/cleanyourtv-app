@@ -111,6 +111,12 @@ class Harness(val clock: FakeClock = FakeClock(Samples.NOW_MS)) {
 
     // What the machines wrote to the diagnostics log, in order.
     val logLines = java.util.concurrent.CopyOnWriteArrayList<String>()
+    // The app's diagnostics log as Manage sees it; Delete everything clears it.
+    var diagnosticsClears = 0
+    val diagnostics = object : Diagnostics {
+        override suspend fun redactedText() = "redacted"
+        override suspend fun clear() { diagnosticsClears++ }
+    }
     // The launchable apps the TV reports (null: the TV could not say).
     var launchable: Set<PackageName>? = null
 
@@ -153,7 +159,7 @@ class Harness(val clock: FakeClock = FakeClock(Samples.NOW_MS)) {
         blobs = blobs, themes = themes, launcherPin = launcherPin, configTransport = configTransport,
         restorePoint = restorePoint, bundleWriter = bundleWriter, registry = registry, fetcher = fetcherSources, inspector = inspector,
         cardDetector = CardAnswerDetector { _, _ -> cardAnswer }, sessionEnd = sessionEnd, homePrefs = HomePrefs(documents),
-        appPrefs = AppPrefs(documents), keyInfo = keyInfo, updates = updates, diagnostics = Diagnostics { "redacted" },
+        appPrefs = AppPrefs(documents), keyInfo = keyInfo, updates = updates, diagnostics = diagnostics,
         clock = clock, copy = KeyCopy, encoder = encoder, store = store,
     )
 

@@ -2,6 +2,8 @@ package tv.cleanyour.core.flows
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import tv.cleanyour.core.engine.Engine
+import tv.cleanyour.core.engine.RunState
 import tv.cleanyour.core.model.Level
 import tv.cleanyour.core.model.TvId
 
@@ -61,7 +63,11 @@ class TvSettingsMachine(
 
     private suspend fun forget() {
         val tv = d.tv(tvId) ?: return
+        // A run still at work on this TV (step R included) is never cut off from here: its journal is
+        // what puts the TV's own home screen back. Wait for it, or stop it first.
+        if (d.engine.isWorking(tvId)) { send(Forgetting(false)); effect(ManageEffect.Snackbar(SnackKind.RUN_BUSY, tv.nickname, undo = false)); return }
         d.gate.pass(tvId, tv.nickname) ?: return send(Forgetting(false))
+        if (d.engine.isWorking(tvId)) { send(Forgetting(false)); effect(ManageEffect.Snackbar(SnackKind.RUN_BUSY, tv.nickname, undo = false)); return }
         send(Forgetting(true))
         // D7: closing the session ends it, so debugging goes off first if a write ran this session.
         attempt { d.sessionEnd.end(tvId) }
@@ -118,6 +124,14 @@ sealed interface AppSettingsIntent {
     data object DeleteEverything : AppSettingsIntent
 }
 
+// A run at work on the TV: running, waiting for the person's answer on the check screen, putting
+// the TV's own home screen back (step R) or re-reading the step it was in doubt about. Forget this TV
+// and Delete everything wait for it: they would delete the journal it is writing.
+internal fun Engine.isWorking(tvId: TvId): Boolean = when (runState(tvId).value) {
+    is RunState.Running, is RunState.AwaitingConfirm, is RunState.RollingBack, is RunState.InDoubt -> true
+    else -> false
+}
+
 // The app-level actions are gated against a placeholder TV id: the gate is per TV (5.13) and
 // "Reset my key" and "Delete everything" belong to no single TV.
 val APP_GATE_ID = TvId("0000000000000000")
@@ -170,6 +184,14 @@ class AppSettingsMachine(
         }
     }
 
+    // Delete everything waits for a run at work on any TV, as Forget this TV does.
+    private fun refusedWhileWorking(): Boolean {
+        val busy = d.tvs.tvs.value.firstOrNull { d.engine.isWorking(it.id) } ?: return false
+        send(Working(false))
+        effect(ManageEffect.Snackbar(SnackKind.RUN_BUSY_ANY, busy.nickname, undo = false))
+        return true
+    }
+
     // "Reset my key" (F2): every TV asks to trust this phone again.
     private suspend fun resetKey() {
         d.gate.passWithSubtitle(APP_GATE_ID, d.copy.text(CopyKey.GATE_SUBTITLE_RESET_KEY), forcePrompt = true) ?: return send(Working(false))
@@ -182,9 +204,12 @@ class AppSettingsMachine(
         send(Loaded(state.value.copy(keyFingerprint = attempt { d.keyInfo.fingerprint }.getOrDefault(""), keyBacking = attempt { d.keyInfo.backing }.getOrDefault(""))))
     }
 
-    // "Delete everything" (F13): every TV record, journal, restore point and cached download, and the key.
+    // "Delete everything" (F13): every TV record, journal, restore point and cached download, the key,
+    // and the app's diagnostics log.
     private suspend fun deleteEverything() {
+        if (refusedWhileWorking()) return
         d.gate.passWithSubtitle(APP_GATE_ID, d.copy.text(CopyKey.GATE_SUBTITLE_DELETE_ALL), forcePrompt = true) ?: return send(Working(false))
+        if (refusedWhileWorking()) return
         send(Working(true))
         attempt { d.sessionEnd.endAll() }   // D7: every session closes here
         attempt { d.sessions.closeAll() }
@@ -196,6 +221,7 @@ class AppSettingsMachine(
         attempt { d.documents.deleteTree("registry") }
         attempt { d.documents.delete("settings.txt") }
         attempt { d.keyInfo.reset() }
+        attempt { d.diagnostics.clear() }   // the app's own diagnostics log goes too
         d.gate.clear()
         send(Working(false))
         effect(ManageEffect.Navigate("welcome"))

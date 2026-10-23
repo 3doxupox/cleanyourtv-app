@@ -292,6 +292,54 @@ class ManageMachinesTest {
         assertTrue(result != StartResult.Refused(StartRefusal.RUN_OPEN), "$result")
     }
 
+    // S6: while a run is at work on the TV (running, on the check screen, in step R), Forget this TV
+    // and Delete everything are refused with a message; nothing is asked, deleted or abandoned.
+    @Test fun forgetAndDeleteEverythingWaitForARunAtWork() = runTest(timeout = 30.seconds) {
+        val plan = Harness().plan(listOf(Op.Disable(adPkg)), takeover = true)
+        val working = listOf(
+            RunState.Running(plan, 0, emptyList(), 10, null),
+            RunState.AwaitingConfirm(plan, plan.sections.single(), Samples.NOW_MS + 60_000, null, null),
+            RunState.RollingBack(plan, 1),
+        )
+        for (state in working) {
+            val h = Harness()
+            val tv = h.knownTv()
+            h.engine.emit(tv.id, state)
+            val forget = TvSettingsMachine(h.manageDeps(), backgroundScope, tv.id)
+            val app = AppSettingsMachine(h.manageDeps(), backgroundScope)
+            settle()
+            forget.effects.test {
+                forget.dispatch(TvSettingsIntent.AskForget)
+                forget.dispatch(TvSettingsIntent.Forget); settle()
+                assertEquals(ManageEffect.Snackbar(SnackKind.RUN_BUSY, tv.nickname, undo = false), drain().single(), "$state")
+            }
+            assertFalse(forget.state.value.forgetting || forget.state.value.confirmingForget)
+            app.effects.test {
+                app.dispatch(AppSettingsIntent.Ask(AppConfirm.DELETE_EVERYTHING))
+                app.dispatch(AppSettingsIntent.DeleteEverything); settle()
+                assertEquals(ManageEffect.Snackbar(SnackKind.RUN_BUSY_ANY, tv.nickname, undo = false), drain().single(), "$state")
+            }
+            assertNull(app.state.value.confirm)
+            assertTrue(h.credential.prompts.isEmpty(), "$state: nothing asked")
+            assertEquals(listOf(tv.id), h.tvs.tvs.value.map { it.id }, "$state: nothing deleted")
+            assertTrue(h.engine.calls.none { it is FakeEngine.Call.Abandon }, "$state: the run is not abandoned")
+            assertEquals(0, h.diagnosticsClears)
+            assertEquals(state, h.engine.runState(tv.id).value)
+        }
+    }
+
+    // S3: Delete everything deletes the app's diagnostics log too.
+    @Test fun deleteEverythingClearsTheDiagnosticsLog() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.knownTv()
+        val m = AppSettingsMachine(h.manageDeps(), backgroundScope)
+        settle()
+        m.dispatch(AppSettingsIntent.Ask(AppConfirm.DELETE_EVERYTHING))
+        m.dispatch(AppSettingsIntent.DeleteEverything); settle()
+        assertTrue(h.tvs.tvs.value.isEmpty())
+        assertEquals(1, h.diagnosticsClears)
+    }
+
     @Test fun resetMyKeyAlwaysPromptsAndClearsPasses() = runTest(timeout = 30.seconds) {
         val h = Harness()
         val tv = h.knownTv()
