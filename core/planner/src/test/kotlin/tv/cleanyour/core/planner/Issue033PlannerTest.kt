@@ -125,4 +125,23 @@ class Issue033PlannerTest {
         assertEquals(DefaultPlanner.REASON_HOME_SCREEN, SwitchOffRule.reason(PlannerFixtures.stock.pkg, snap.packages[PlannerFixtures.stock.pkg], profile, snap, profile.stockLaunchers))
         assertEquals(DefaultPlanner.REASON_WIZARD_SECTION_ONLY, SwitchOffRule.reason(PlannerFixtures.wizard, snap.packages[PlannerFixtures.wizard], profile, snap, profile.stockLaunchers))
     }
+
+    // Our own new home screen as Home is never "a home screen app you installed": the probe reads
+    // installedByUs false for every package, so the rule names our launcher. On the G07 with
+    // launcherx switched off, that is a re-run of Setup, never a home screen changed by the person.
+    @Test fun ourOwnLauncherIsNeverThePersonsLauncher() {
+        val g07 = Issue033.g07Snapshot()
+        val ours = Component(SwitchOffRule.OUR_LAUNCHER, ".MainActivity")
+        val snap = g07.copy(
+            packages = g07.packages - Issue033.personsLauncher.pkg +
+                (ours.pkg to tv.cleanyour.core.model.PackageState(tv.cleanyour.core.model.EnabledState.ENABLED, false, 1, null, false, false, null, installedByUs = false)),
+            home = tv.cleanyour.core.model.HomeResolution(ours, listOf(tv.cleanyour.core.model.HomeClaimant(ours, 0))),
+        )
+        val stocks = stocksOf(source.resolveNow(snap.facts))
+        kotlin.test.assertFalse(SwitchOffRule.isPersonsLauncher(ours.pkg, snap))
+        kotlin.test.assertFalse(StockHome.changedByPerson(snap, stocks))
+        assertEquals(DefaultPlanner.REASON_HOME_SCREEN, SwitchOffRule.reason(ours.pkg, snap.packages[ours.pkg], null, snap, stocks))
+        // The person's own launcher in the same place still is theirs.
+        assertTrue(SwitchOffRule.isPersonsLauncher(Issue033.personsLauncher.pkg, g07))
+    }
 }

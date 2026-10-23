@@ -25,6 +25,9 @@ import tv.cleanyour.core.spec.KnownLaunchers
 // switch off (section 3.4).
 object SwitchOffRule {
     const val REASON_YOUR_LAUNCHER = "it is a home screen app you installed, and we never switch those off"
+    // Our own new home screen, the planner's launcher package. The probe cannot tell who installed
+    // a package (installedByUs always reads false), so it is named here: never the person's.
+    val OUR_LAUNCHER = PackageName("com.gathin.tvhome")
 
     // The reason `pkg` may not be switched off, or null when it may. `state` is what the caller knows
     // of the package (the engine's live dump, the planner's snapshot); `snapshot` gives HOME, the
@@ -57,13 +60,15 @@ object SwitchOffRule {
         snapshot.home.resolved?.pkg == pkg || snapshot.home.claimants.any { it.component.pkg == pkg }
 
     // A home screen app the person installed (issue #8: Projectivy, Wolf and the like): HOME or a
-    // HOME claimant, not a system package, and not put there by this app. A package whose system
-    // flag is not known counts as theirs, the safe side (as the TV report does).
+    // HOME claimant, not a system package, not our own new home screen, and not put there by this
+    // app. A package whose system flag is not known counts as theirs, the safe side (as the TV
+    // report does).
     fun isPersonsLauncher(pkg: PackageName, snapshot: Snapshot, state: PackageState? = snapshot.packages[pkg]): Boolean {
         if (!isHomeScreen(pkg, snapshot)) return false
         // Google's and Amazon's own TV home screens are never the person's, even when an update put
         // them under /data and the system flag reads wrong.
         if (pkg in KnownLaunchers.byPackage) return false
+        if (pkg == OUR_LAUNCHER) return false
         val known = state ?: snapshot.packages[pkg]
         return known?.system != true && known?.installedByUs != true
     }

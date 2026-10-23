@@ -69,7 +69,7 @@ class DefaultPlanner(
     private val renderer: OpRenderer,
     private val configTransport: ConfigTransport,
     private val appVersion: String,
-    private val launcher: Component = Component(PackageName("com.gathin.tvhome"), ".MainActivity"),
+    private val launcher: Component = Component(SwitchOffRule.OUR_LAUNCHER, ".MainActivity"),
     private val confirmWindowMs: Long = 90_000L,
     private val watchdogSeconds: Int = WATCHDOG_SECONDS,
     private val settleSeconds: Int = 15,
