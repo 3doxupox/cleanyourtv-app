@@ -129,6 +129,7 @@ data class SetupExtras(
     val restartReenabled: Int = 0,               // "2 things came back on after the restart; switched off again."
     val doneLines: List<String> = emptyList(),   // refused ops named on Done (UX 4.14)
     val doneKept: List<String> = emptyList(),    // RF-LAUNCHER-250 F1: switch-offs kept because they run the TV's inputs
+    val doneNothing: Boolean = false,            // 0.3.3 (issue #15): the run changed nothing on the TV, so Done says so
     val restorePointPushed: Boolean = false,     // D44
     val dock: List<AppChoice> = emptyList(),     // D4 row and the dock sheet (S3b): the dock, then Row 2 and Row 3
     val apps: List<AppChoice> = emptyList(),     // installed apps for the dock sheet
@@ -964,7 +965,10 @@ class SetupMachine(
         setupHome?.takeIf { (pushedDigest, _) -> pushedDigest == digest }?.let { (_, choice) ->
             deps.homePrefs?.let { prefs -> attempt { prefs.save(tvId, choice) } }
         }
-        mutableExtras.update { it.copy(doneLines = skippedNames, doneKept = keptNames) }
+        // Issue #15: nothing switched off, no new home screen and no other change of this run (the
+        // TV curtain comes and goes, so it does not count): Done says plainly that nothing changed.
+        val changed = plan != null && deps.ledger.changes(tvId).any { c -> c.planId == plan.id && plan.steps.getOrNull(c.step)?.group != DefaultPlanner.GROUP_CURTAIN }
+        mutableExtras.update { it.copy(doneLines = skippedNames, doneKept = keptNames, doneNothing = off == 0 && !homeOn && !changed) }
         send(Ev.ShowDone(tvId, DoneSummary(off, homeOn, restorePointAt, skippedNames, recommended)))
         session?.let { s -> mutableExtras.update { it.copy(restorePointPushed = deps.restorePoint.write(done, s, p)) } }
     }

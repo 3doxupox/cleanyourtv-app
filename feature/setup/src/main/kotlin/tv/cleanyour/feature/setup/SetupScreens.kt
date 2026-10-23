@@ -593,8 +593,15 @@ fun DoneScreen(state: SetupState.Done, extras: SetupExtras, actions: SetupAction
     ) {
         val doneCd = stringResource(R.string.done_hero_cd)
         Box(Modifier.padding(top = 16.dp, start = 6.dp).semantics { contentDescription = doneCd }) { GlassCheckMark() }
-        ScreenTitle(stringResource(R.string.done_title), Modifier.padding(top = 22.dp), size = TitleSize.DISPLAY)
-        Lead(if (s.homeScreenOn) msg(R.string.done_body, "count" to s.switchedOff) else msg(R.string.done_body_no_home, "count" to s.switchedOff), Modifier.padding(top = 8.dp))
+        // Issue #15: a run that changed nothing says so, never "Your TV is ready" over "0 things".
+        val nothing = extras.doneNothing
+        ScreenTitle(stringResource(if (nothing) R.string.done_title_nothing else R.string.done_title), Modifier.padding(top = 22.dp), size = TitleSize.DISPLAY)
+        val lead = when {
+            nothing -> stringResource(if (extras.unknownModel) R.string.done_body_nothing_unknown else R.string.done_body_nothing)
+            s.homeScreenOn -> msg(R.string.done_body, "count" to s.switchedOff)
+            else -> msg(R.string.done_body_no_home, "count" to s.switchedOff)
+        }
+        Lead(lead, Modifier.padding(top = 8.dp))
         Column(Modifier.padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             CheckLine(msg(R.string.done_restore_saved, "date" to dateTime(s.restorePointAtMs, locale)))
             CheckLine(
@@ -607,7 +614,8 @@ fun DoneScreen(state: SetupState.Done, extras: SetupExtras, actions: SetupAction
             s.skipped.size == 1 -> Body(msg(R.string.done_skipped, "name" to s.skipped.single()), Modifier.padding(start = 4.dp, top = 12.dp))
             s.skipped.size > 1 -> Body(msg(R.string.done_skipped_many, "count" to s.skipped.size), Modifier.padding(start = 4.dp, top = 12.dp))
         }
-        RestartCard(state, extras, actions)
+        // Nothing changed, so there is nothing a restart could check.
+        if (!nothing) RestartCard(state, extras, actions)
         extras.card?.takeIf { it.case == StopCase.NOT_BACK_AFTER_RESTART }?.let { c ->
             // The card is the news: scroll it into view when it appears instead of leaving it
             // under the pinned Finish (R4-W8).

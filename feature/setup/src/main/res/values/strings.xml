@@ -264,6 +264,9 @@
 
     <!-- S5 Done -->
     <string name="done_title">Your TV is ready</string>
+    <string name="done_title_nothing">Nothing was changed</string>
+    <string name="done_body_nothing">There was nothing left to switch off, so your TV is just as it was.</string>
+    <string name="done_body_nothing_unknown">We weren\'t sure about anything on this TV, so it\'s just as it was. Help add this TV from Manage, and a later version can do more.</string>
     <string name="done_hero_cd">A clean home screen with a glass check mark</string>
     <string name="done_body">{count, plural, =0 {New home screen on. Everything can be put back.} one {# thing switched off. New home screen on. Everything can be put back.} other {# things switched off. New home screen on. Everything can be put back.}}</string>
     <string name="done_body_no_home">{count, plural, one {# thing switched off. Everything can be put back.} other {# things switched off. Everything can be put back.}}</string>

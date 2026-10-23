@@ -417,6 +417,9 @@ object SetupShots {
         Shot("done_without_home") { Setup(done(off = 16, home = false)) },
         Shot("done_skipped_one") { Setup(done(off = 22, skipped = listOf("Play Games"))) },
         Shot("done_skipped_many") { Setup(done(off = 20, skipped = listOf("Play Games", "Mi Cast", "Mi Home"))) },
+        // Issue #15: nothing to switch off and no home switch, on a TV we know and on one we don't.
+        Shot("done_nothing_changed") { Setup(done(off = 0, home = false, recommended = true), connected.copy(doneNothing = true)) },
+        Shot("done_nothing_changed_unknown") { Setup(done(off = 0, home = false, recommended = true), connected.copy(doneNothing = true, unknownModel = true)) },
         Shot("done_restarting") { Setup(done(restart = RestartState.Restarting(NOW))) },
         Shot("done_restarting_slow") { Setup(done(restart = RestartState.Restarting(NOW)), connected.copy(restartSlow = true)) },
         Shot("done_back_after_restart") { Setup(done(restart = RestartState.Back(72_000)), connected.copy(restartReenabled = 2)) },

@@ -1295,4 +1295,26 @@ class SetupMachineTest {
         assertEquals(HomeBlock.NONE, m2.extras.value.homeBlock)
     }
 
+    // Issue #15 (a Smarttech set no profile knows, the switch blocked): nothing to switch off and no
+    // home switch. Done says plainly that nothing was changed, never "Your TV is ready".
+    @Test fun issue15ARunThatChangedNothingSaysSoOnDone() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+        h.setupPlan = h.plan(emptyList())
+        val m = h.setup(backgroundScope)
+        toFound(h, m)
+        m.dispatch(SetupIntent.MakeItClean); settle()
+        val done = assertIs<SetupState.Done>(m.state.value)
+        assertEquals(0, done.summary.switchedOff)
+        assertTrue(m.extras.value.doneNothing)
+        // A run that switched things off is not "nothing".
+        val h2 = Harness()
+        h2.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+        val m2 = h2.setup(backgroundScope)
+        toFound(h2, m2)
+        m2.dispatch(SetupIntent.MakeItClean); settle()
+        assertEquals(2, assertIs<SetupState.Done>(m2.state.value).summary.switchedOff)
+        assertFalse(m2.extras.value.doneNothing)
+    }
+
 }
