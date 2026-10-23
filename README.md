@@ -164,6 +164,9 @@ A Kotlin and Jetpack Compose app that speaks ADB to the TV itself, with no compu
 releases are built and signed. How the app was designed and reviewed is in
 [docs/history](docs/history/README.md), and what changed in each version in [CHANGELOG.md](CHANGELOG.md).
 
+The app is developed with AI coding agents under human review: the maintainer set the design and
+reviewed and tested the app, and every change went through automated tests and review.
+
 ## Credits
 
 - [Clean Your TV](https://github.com/Gathin23/cleanyourtv) by [Gathin](https://github.com/Gathin23)
