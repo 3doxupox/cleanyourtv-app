@@ -171,6 +171,8 @@ class SetupDeps(
     val savedWifi: SavedWifiOwners? = prober as? SavedWifiOwners,
     // STORES-PLAN 1: without add-ons (the Play build) Done offers no "Add a card".
     val store: StoreRules = StoreRules.FULL,
+    // 0.3.2 B1: where the home screen switch decision is kept for the TV report; null keeps none.
+    val homeDecisions: HomeDecisions? = null,
 )
 
 // The first-run wizard, screens S1 to S5 (PRODUCT-SPEC 4, UX 2 and 4). One machine per wizard run,
@@ -212,6 +214,7 @@ class SetupMachine(
     private var wifiCard = false
     private val rejected = HashSet<String>()           // hosts answered "No" on the identity line, this run
     private var lastRunLog: String? = null
+    private var lastDecision: HomeDecision? = null
 
     private var discoveryJob: Job? = null
     private var pollJob: Job? = null
@@ -588,13 +591,13 @@ class SetupMachine(
             // dock sheet falls back to its own rule.
             launchable = deps.launchable?.let { q -> attempt { q.launchable(s) }.getOrNull() }
             deps.log.line("setup: probe done in ${maxOf(deps.clock.monotonicMs() - startedMs, 0)} ms, ${snap.packages.size} packages, " +
-                "${launchable?.size?.let { "$it launchable" } ?: "launchable unknown"}, profile ${if (res is ProfileResolution.Exact) "exact" else "none"}, sdk ${facts.sdk}")
+                "${launchable?.size?.let { "$it launchable" } ?: "launchable unknown"}, profile ${LogCodes.profile(res)}, ${LogCodes.tv(facts)}")
             val record = upsertTv(s, facts, res)
             tv = record
             replan(record)
         }
         ok.exceptionOrNull()?.let { e ->
-            deps.log.line("setup: probe failed ${(e as? AdbException)?.let { errorName(it.error) } ?: e::class.simpleName}")
+            deps.log.line("setup: probe failed ${LogCodes.of(e)}")
             val case = if (e is AdbException) StopCase.CONNECTION_LOST else StopCase.PROBE_FAILED
             send(Ev.Stop(tvId, card(case, null, args = mapOf("done" to 0, "total" to 0))))
         }
@@ -697,6 +700,14 @@ class SetupMachine(
                     .map { AppChoice(it, label(it)) }.sortedBy { it.name.lowercase() }
                 deps.log.line("setup: plan ready, ${r.plan.steps.size} steps, ${r.plan.steps.count { it.op is Op.Disable }} to switch off, " +
                     "level ${draft.level}, dock ${dock.size}, ${apps.size} dock candidates")
+                // 0.3.2 B3: why the home screen switch is or is not in the plan, once per change, and
+                // kept for the TV report (B1) that Manage makes without the TV.
+                val decision = HomeDecision.of(block, r.plan.sections.isNotEmpty(), snap.home.resolved?.pkg == launcher.pkg)
+                if (decision != lastDecision) {
+                    lastDecision = decision
+                    deps.log.line("setup: ${decision.line}")
+                    deps.homeDecisions?.let { store -> attempt { store.save(record.id, decision) } }
+                }
                 mutableExtras.update {
                     it.copy(commands = commandsOf(r.plan), unknownModel = res !is ProfileResolution.Exact, homePossible = possible, homeBlock = block,
                         noScreenLock = !deps.screenLock.available(), draft = draft, dock = dock.map { p -> AppChoice(p, label(p)) }, apps = apps,
@@ -811,7 +822,9 @@ class SetupMachine(
 
     private fun onRun(before: SetupState, ev: Ev.Run) {
         val label = runLabel(ev.state)
-        if (label != lastRunLog) { lastRunLog = label; deps.log.line("setup: run $label") }
+        val fresh = label != lastRunLog
+        // A pause is logged by its coroutine below, with the failed op from the journal (B3).
+        if (fresh) { lastRunLog = label; if (ev.state !is RunState.Paused) deps.log.line("setup: run $label") }
         when (val r = ev.state) {
             is RunState.Running -> mutableExtras.update { it.copy(rollingBack = false, chip = ChipState.WORKING) }
             is RunState.AwaitingConfirm -> if (before !is SetupState.Check) {
@@ -820,7 +833,7 @@ class SetupMachine(
                 mutableExtras.update { it.copy(highlightStop = false) }
             }
             is RunState.RollingBack -> mutableExtras.update { it.copy(rollingBack = true) }
-            is RunState.Paused -> scope.launch { onPaused(ev.tvId, r) }
+            is RunState.Paused -> scope.launch { if (fresh) deps.log.line("setup: run ${pauseLine(r)}"); onPaused(ev.tvId, r) }
             is RunState.Finished -> scope.launch { onFinished(ev.tvId, r) }
             else -> {}
         }
@@ -1065,8 +1078,10 @@ class SetupMachine(
         if (deps.engine.runState(id).value is RunState.Paused) attempt { deps.engine.abandon(id) }
     }
 
+    // 0.3.2 B2: the cards that offered "Share diagnostics" open the "Report a problem" preview, which
+    // shows the redacted text first and copies or shares it only when the person says so.
     private fun shareDiagnostics() {
-        scope.launch { effect(SetupEffect.Share(deps.diagnostics.redactedText())) }
+        effect(SetupEffect.Navigate(tvIdOf(state.value)?.let { "report/problem/${it.value}" } ?: "report/problem"))
     }
 
     // Done (S5)
@@ -1266,8 +1281,21 @@ class SetupMachine(
     private fun nameOfPkg(pkg: PackageName): String =
         AppNames.of(pkg, deps.facts, snapshot?.packages?.get(pkg)?.label)
 
-    // Type names and counts only: an AdbError's own text may carry ids, so it never reaches a log.
-    private fun errorName(e: AdbError): String = e::class.simpleName ?: "error"
+    // Stable codes only (LogCodes): an AdbError's own text may carry ids, so it never reaches a log,
+    // and a class name is R8's in a release build ("f3" in issue #2).
+    private fun errorName(e: AdbError): String = LogCodes.of(e)
+
+    // 0.3.2 B3: "paused STEP_FAILED at step 72: undo step failed: Enable com.amazon.tv.launcher:
+    // nonzero_exit(1) <stderr head>". The failed op comes from the run's journal; its stderr is one
+    // cleaned line (the app's redactor runs over the whole line too).
+    private suspend fun pauseLine(p: RunState.Paused): String {
+        val head = "paused ${p.reason} at step ${p.at}"
+        val failed = (if (p.reason == PauseReason.STEP_FAILED) attempt { deps.ledger.lastFailure(p.plan.id) }.getOrNull() else null)
+            ?: return runLabel(p)
+        val code = p.error?.let { errorName(it) } ?: failed.exit?.let { "nonzero_exit($it)" } ?: "failed"
+        val stderr = LogCodes.clean(failed.stderrHead, 160).takeIf { it.isNotEmpty() }?.let { " $it" }.orEmpty()
+        return "$head: ${if (failed.undo) "undo step failed" else "step failed"}: ${LogCodes.op(failed.op)}: $code$stderr"
+    }
 
     private fun runLabel(r: RunState): String = when (r) {
         is RunState.Running -> "running"

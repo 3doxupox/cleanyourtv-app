@@ -125,6 +125,7 @@ class Harness(val clock: FakeClock = FakeClock(Samples.NOW_MS)) {
         curtainPin = curtainPin,
         savedWifi = savedWifi,
         store = store,
+        homeDecisions = HomeDecisions(documents),
     )
 
     fun setup(scope: CoroutineScope, start: SetupStart = SetupStart.Fresh, store: StoreRules = StoreRules.FULL) = SetupMachine(setupDeps(store = store), scope, start)

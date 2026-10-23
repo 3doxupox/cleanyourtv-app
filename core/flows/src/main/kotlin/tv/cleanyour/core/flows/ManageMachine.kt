@@ -22,6 +22,8 @@ data class TvCard(
     val dockNames: List<String>,
     val restorePointAtMs: Long?,
     val debugging: DebugState,
+    // 0.3.2 B1: no exact profile and a stored snapshot, so "Help add this TV" can make its report.
+    val helpAddTv: Boolean = false,
 )
 
 data class ManageState(
@@ -48,6 +50,7 @@ sealed interface ManageIntent {
     data object SetUpAnother : ManageIntent
     data object CleanAgain : ManageIntent
     data object AppSettings : ManageIntent
+    data object HelpAddTv : ManageIntent
 }
 
 class ManageMachine(
@@ -68,12 +71,14 @@ class ManageMachine(
                     val run = d.engine.runState(tv.id).value
                     val off = d.ledger.switchedOffByUs(tv.id).size
                     val home = d.homePrefs.load(tv.id)
+                    val latest = d.snapshots.latest(tv.id)
                     TvCard(
                         id = tv.id, name = tv.nickname, room = tv.room, clean = off > 0, checkedAtMs = tv.lastSeenAt, level = tv.level,
                         chip = chipFor(states[tv.id]?.takeIf { d.access.live(tv.id) != null }, run, tv.debugging),
                         thumbnail = state.value.cards.firstOrNull { it.id == tv.id }?.thumbnail,
                         switchedOff = off, dockNames = home?.dock?.map { d.nameOf(it) }.orEmpty(),
-                        restorePointAtMs = d.snapshots.latest(tv.id)?.takenAtMs, debugging = tv.debugging,
+                        restorePointAtMs = latest?.takenAtMs, debugging = tv.debugging,
+                        helpAddTv = tv.profileId == null && latest != null,
                     )
                 }
                 send(Loaded(cards))
@@ -111,6 +116,7 @@ class ManageMachine(
             ManageIntent.SetUpAnother -> effect(ManageEffect.Navigate("setup"))
             ManageIntent.CleanAgain -> id?.let { effect(ManageEffect.Navigate("setup/${it.value}")) }
             ManageIntent.AppSettings -> effect(ManageEffect.Navigate("appsettings"))
+            ManageIntent.HelpAddTv -> id?.let { effect(ManageEffect.Navigate("report/tv/${it.value}")) }
             else -> {}
         }
     }
