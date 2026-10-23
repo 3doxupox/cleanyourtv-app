@@ -601,8 +601,11 @@ fun DoneScreen(state: SetupState.Done, extras: SetupExtras, actions: SetupAction
             )
         }
         ListGroup(Modifier.padding(top = 10.dp)) {
-            ListRow(stringResource(R.string.done_add_card_title), subtitle = stringResource(R.string.done_add_card_body), onClick = { actions.intent(SetupIntent.AddCard) })
-            ListDivider()
+            // STORES-PLAN 1: the Play build has no add-ons, so Done offers no card to add.
+            if (extras.addOns) {
+                ListRow(stringResource(R.string.done_add_card_title), subtitle = stringResource(R.string.done_add_card_body), onClick = { actions.intent(SetupIntent.AddCard) })
+                ListDivider()
+            }
             ListRow(stringResource(R.string.done_note_title), onClick = { actions.intent(SetupIntent.SaveRestoreNote) })
         }
         Gap(16.dp)

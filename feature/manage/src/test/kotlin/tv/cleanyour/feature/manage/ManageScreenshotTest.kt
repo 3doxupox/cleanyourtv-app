@@ -113,6 +113,8 @@ private val diagnostics = """
 
 private val tall = 1100.dp
 
+private val playSettings = appSettings().copy(updateCheck = false, addOns = false)
+
 object ManageShots {
     val all: List<Shot> = listOf(
         // M1 Manage
@@ -177,6 +179,12 @@ object ManageShots {
         Shot("appsettings_diagnostics") { SheetOver({ AppSettingsScreen(appSettings(), {}, {}, {}) }) { DiagnosticsContent(diagnostics) {} } },
         Shot("appsettings_reset_key") { SheetOver({ AppSettingsScreen(appSettings(), {}, {}, {}) }) { ConfirmContent(AppConfirm.RESET_KEY, working = false) {} } },
         Shot("appsettings_delete_all") { SheetOver({ AppSettingsScreen(appSettings(), {}, {}, {}) }) { ConfirmContent(AppConfirm.DELETE_EVERYTHING, working = false) {} } },
+
+        // The Google Play build (STORES-PLAN 1): no Cards and modules row (the add-ons entry), no
+        // Check for updates, and the privacy line without GitHub. Every other screen is the same.
+        Shot("play_manage_clean") { ManageScreen(manage().copy(addOns = false), {}) },
+        Shot("play_appsettings_idle", tall) { AppSettingsScreen(playSettings, {}, {}, {}) },
+        Shot("play_appsettings_privacy") { SheetOver({ AppSettingsScreen(playSettings, {}, {}, {}) }) { PrivacyContent(online = false) } },
     )
 }
 

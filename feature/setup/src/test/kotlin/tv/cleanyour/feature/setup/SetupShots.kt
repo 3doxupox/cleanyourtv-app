@@ -424,5 +424,7 @@ object SetupShots {
         },
         Shot("done_finishing") { Setup(done(), connected.copy(finishing = Finishing.SWITCHING)) },
         Shot("done_finished") { Setup(done(), connected.copy(chip = ChipState.DEBUGGING_OFF, finishing = Finishing.DONE)) },
+        // The Google Play build (STORES-PLAN 1): Done offers no card to add.
+        Shot("play_done_home_on") { Setup(done(), connected.copy(addOns = false)) },
     )
 }

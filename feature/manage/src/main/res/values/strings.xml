@@ -144,6 +144,7 @@
     <string name="appsettings_licence_bouncycastle">Bouncy Castle cryptography library: Bouncy Castle Licence</string>
     <string name="appsettings_privacy">Privacy</string>
     <string name="appsettings_privacy_text">Nothing leaves your network except downloads from github.com. GitHub sees your phone\'s address and a generic user agent.</string>
+    <string name="appsettings_privacy_text_offline">Nothing leaves your network. The app talks only to the TV you pick and makes no internet requests of its own.</string>
     <string name="appsettings_diagnostics">Share diagnostics</string>
     <string name="appsettings_diagnostics_preview_title">What we would share</string>
     <string name="appsettings_diagnostics_preview_body">A zip with the steps we ran and what the TV reported. Addresses, serial numbers, keys and codes are removed first. Nothing is sent until you choose where to share it.</string>
