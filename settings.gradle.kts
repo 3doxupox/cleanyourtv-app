@@ -7,9 +7,8 @@ pluginManagement {
     }
 }
 
-plugins {
-    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
-}
+// No toolchain resolver plugin (foojay): the JVM modules' JDK 21 toolchain is the JDK that runs
+// Gradle, so a build never downloads a JDK. F-Droid builds with Debian's openjdk-21 the same way.
 
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
