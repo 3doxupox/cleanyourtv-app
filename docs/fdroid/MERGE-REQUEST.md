@@ -12,8 +12,9 @@ Before submitting:
    `fdroid-check` workflow passed on that tag with "match" (`gh workflow run fdroid.yml --ref vX.Y.Z`
    after the Release is published).
 2. In the metadata, replace `commit: v0.3.0` with the full commit hash of the tag (fdroiddata wants
-   hashes, not tags), and versionName, versionCode, CurrentVersion and CurrentVersionCode if the
-   first F-Droid version is not 0.3.0.
+   hashes, not tags; `fdroid rewritemeta` in step 3 also drops the placeholder comment above it),
+   and versionName, versionCode, CurrentVersion and CurrentVersionCode if the first F-Droid version
+   is not 0.3.0.
 3. Run `fdroid readmeta`, `fdroid rewritemeta tv.cleanyour.app` and `fdroid lint tv.cleanyour.app`
    in the fdroiddata fork, and `fdroid build -v -l tv.cleanyour.app` if a build server is at hand.
 4. Fill in the template checklist (the boxes below), then paste everything from the title down.
