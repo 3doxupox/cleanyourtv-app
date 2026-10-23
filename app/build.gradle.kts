@@ -26,9 +26,11 @@ android {
         }
     }
     testOptions { unitTests { isIncludeAndroidResources = true } }
+    // A text report per linted variant (build/reports/lint-results-<variant>.txt). No shared
+    // textOutput: with two linted variants (fullDebug under `lint`, playDebug under `check`) their
+    // report copies raced for one file and failed `check` at random (RF-STORES-030 M3).
     lint {
         textReport = true
-        textOutput = file("stdout")
     }
 }
 
