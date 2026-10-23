@@ -37,25 +37,30 @@ git config --global --add safe.directory '*'
 export ANDROID_HOME=/opt/android-sdk LC_ALL=C.UTF-8
 
 COMMIT=$(git -C "$SEED" rev-parse --verify "$REF^{commit}")
-# versionName and versionCode as checkupdates reads them: app/build.gradle.kts, else the build-logic
-# convention plugin where they lived before 0.3.0.
+# versionName and versionCode as F-Droid's checkupdates reads them: the literals in
+# app/build.gradle.kts (there since 0.3.0, the first version with the store flavours).
+GRADLE_FILE=app/build.gradle.kts
 read_version() {
-  local f
-  for f in app/build.gradle.kts build-logic/convention/src/main/kotlin/AndroidConventionPlugins.kt; do
-    if git -C "$SEED" show "$COMMIT:$f" 2>/dev/null | grep -Eq '^[[:space:]]*versionCode[[:space:]]*=[[:space:]]*[0-9]+'; then
-      git -C "$SEED" show "$COMMIT:$f" | sed -n "s/^[[:space:]]*$1[[:space:]]*=[[:space:]]*\"\{0,1\}\([0-9A-Za-z.-]*\)\"\{0,1\}.*/\1/p" | head -1
-      return
-    fi
-  done
+  git -C "$SEED" show "$COMMIT:$GRADLE_FILE" 2>/dev/null \
+    | sed -n "s/^[[:space:]]*$1[[:space:]]*=[[:space:]]*\"\{0,1\}\([0-9A-Za-z.-]*\)\"\{0,1\}.*/\1/p" | head -1
 }
 VERSION_CODE=$(read_version versionCode)
 VERSION_NAME=$(read_version versionName)
-[ -n "$VERSION_CODE" ] && [ -n "$VERSION_NAME" ] || die "versionCode or versionName not found at $COMMIT"
-# The recipe names the `full` flavour (GitHub and F-Droid); a commit from before the flavours builds
-# the only release variant.
-FLAVOUR=yes
-git -C "$SEED" show "$COMMIT:app/build.gradle.kts" 2>/dev/null | grep -Eq 'create\("full"\)|"full"' && FLAVOUR=full
-echo "==> $APPID $VERSION_NAME ($VERSION_CODE) at $COMMIT, gradle flavour: $FLAVOUR"
+[ -n "$VERSION_CODE" ] && [ -n "$VERSION_NAME" ] || die "versionCode or versionName not found in $GRADLE_FILE at $COMMIT"
+# F-Droid ships the `full` flavour (STORES-PLAN 1), so this always builds it: Gradle task
+# assembleFullRelease, output app/build/outputs/apk/full/release/app-full-release-unsigned.apk.
+# The recipe must name the same flavour.
+FLAVOUR=full
+FULL_TASK=assembleFullRelease
+FULL_APK=app/build/outputs/apk/full/release/app-full-release-unsigned.apk
+python3 - "$RECIPE" "$FLAVOUR" <<'EOF'
+import sys, yaml
+recipe, flavour = sys.argv[1:]
+gradle = yaml.safe_load(open(recipe))['Builds'][-1].get('gradle')
+if gradle != [flavour]:
+    sys.exit(f"fdroid-check: the recipe's last build has gradle {gradle}, expected [{flavour}]")
+EOF
+echo "==> $APPID $VERSION_NAME ($VERSION_CODE) at $COMMIT, gradle flavour $FLAVOUR ($FULL_TASK)"
 
 if [ -z "${FDROIDSERVER_DIR:-}" ]; then
   FDROIDSERVER_DIR=/home/vagrant/fdroidserver
@@ -93,6 +98,12 @@ grep -E 'INFO: (Removing|Cleaned|Running|Ignoring|Building|Successfully)|ERROR|C
 
 UNSIGNED="$DATA/unsigned/${APPID}_${VERSION_CODE}.apk"
 [ -f "$UNSIGNED" ] || die "no unsigned APK at $UNSIGNED"
+# The build ran the full flavour's task, and its APK is the one fdroid build collected.
+grep -q "$FULL_TASK" "$OUT/fdroid-build.log" || die "fdroid build did not run $FULL_TASK"
+BUILT="$DATA/build/$APPID/$FULL_APK"
+[ -f "$BUILT" ] || die "no full flavour APK at $BUILT"
+cmp -s "$BUILT" "$UNSIGNED" || die "$UNSIGNED is not the full flavour's $FULL_APK"
+echo "==> the F-Droid build is $FULL_APK"
 NAME="${APPID}_${VERSION_CODE}-unsigned.apk"
 cp "$UNSIGNED" "$OUT/$NAME"
 ( cd "$OUT" && sha256sum "$NAME" | tee "$NAME.sha256" )

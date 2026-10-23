@@ -17,6 +17,7 @@ Binaries:
 Builds:
   - versionName: 0.3.0
     versionCode: 3
+    # Placeholder: at submission this becomes the full commit hash of the v0.3.0 tag.
     commit: v0.3.0
     subdir: app
     submodules: true
