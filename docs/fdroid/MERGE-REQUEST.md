@@ -54,7 +54,7 @@ Clean Your TV cleans up an Android TV or Google TV from an Android phone, over W
 * Issues: https://github.com/udhaykumarbala/cleanyourtv-app/issues
 * Releases: https://github.com/udhaykumarbala/cleanyourtv-app/releases
 * Changelog: https://github.com/udhaykumarbala/cleanyourtv-app/blob/HEAD/CHANGELOG.md
-* Website: https://udhaykumarbala.github.io/cleanyourtv-app/ (privacy policy: https://udhaykumarbala.github.io/cleanyourtv-app/privacy/)
+* Website: https://cleanyour.tv/app/android (privacy policy: https://cleanyour.tv/app/android/privacy)
 
 ### Please elaborate why you wrote this app. Please highlight the unique functions it provides over other similar apps in F-Droid.
 

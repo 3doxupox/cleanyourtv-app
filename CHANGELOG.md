@@ -15,6 +15,8 @@ A small update for F-Droid's inclusion rules. Nothing changes in how the app cle
   add-ons; the Google Play version makes none of its own. The short summary follows F-Droid's
   style.
 - The README says how the app is made: with AI coding agents, under the maintainer's review.
+- The app's page and privacy policy moved to https://cleanyour.tv/app/android and
+  https://cleanyour.tv/app/android/privacy.
 
 ## 0.3.0 (2026-10-24)
 

@@ -40,4 +40,4 @@ No accounts, no analytics, no tracking. The app talks to the TV you pick on your
 
 OPEN SOURCE
 
-Built by the community on Gathin's Clean Your TV, with permission, and released under the MIT licence. Source code and issues: github.com/udhaykumarbala/cleanyourtv-app. Privacy policy: https://udhaykumarbala.github.io/cleanyourtv-app/privacy/
+Built by the community on Gathin's Clean Your TV, with permission, and released under the MIT licence. Source code and issues: github.com/udhaykumarbala/cleanyourtv-app. Website: https://cleanyour.tv/app/android. Privacy policy: https://cleanyour.tv/app/android/privacy
