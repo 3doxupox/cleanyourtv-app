@@ -123,7 +123,8 @@ picks it up in its next release. See also [CONTRIBUTING.md](CONTRIBUTING.md#prop
   request at all.
 - The key the TV trusts lives in the phone's Android Keystore and never leaves the phone. Restore
   points stay on the phone unless you save a copy yourself.
-- "Share diagnostics" shows a preview first and removes addresses, serial numbers, keys and codes.
+- "Report a problem" and "Help add this TV" show the whole report first, remove addresses, serial
+  numbers, keys and codes, and send nothing themselves: you share it or post it on GitHub.
 - Permissions: internet, network state, Wi-Fi multicast (to find the TV), a foreground service
   while it works on the TV, notifications and the screen lock prompt. No location, storage, camera
   or contacts.
