@@ -21,6 +21,10 @@ data class RunEntry(val planId: PlanId, val kind: PlanKind, val createdAtMs: Lon
 // What a run's journal says so far: the counts for "14 of 23" and whether a HOME section is open.
 data class RunProgress(val doneSteps: Int, val doneDisables: Int, val openSection: Boolean, val ended: Boolean)
 
+// The op that failed last in a run, its exit code and the head of the TV's stderr; `undo` when it was
+// a step of step R (putting the TV's own home screen back).
+data class LastFailure(val op: Op, val exit: Int?, val stderrHead: String, val undo: Boolean)
+
 class RunLedger(private val store: DocumentStore, private val journal: Journal) {
 
     private fun path(tvId: TvId) = "tvs/${tvId.value}/runs.txt"
@@ -77,6 +81,27 @@ class RunLedger(private val store: DocumentStore, private val journal: Journal) 
     // inputs (RF-LAUNCHER-250 F1): Done and Manage name them with their own line.
     suspend fun keptTvInputs(planId: PlanId): Set<Int> =
         journal.read(planId).filterIsInstance<JournalRecord.Failed>().filter { it.error == DefaultEngine.KEPT_TV_INPUT }.map { it.i }.toSet()
+
+    // The newest failed op of a run, from its journal, for the pause line of the diagnostics log
+    // (0.3.2 B3). `undo` when it ran in step R: after a Rollback record and before the section closed
+    // or the run paused. A switch-off the live check kept (KEPT_TV_INPUT) is not a failure.
+    suspend fun lastFailure(planId: PlanId): LastFailure? {
+        var begun: JournalRecord.Begin? = null
+        var rollback = false
+        var last: LastFailure? = null
+        for (r in journal.read(planId)) {
+            when (r) {
+                is JournalRecord.Begin -> begun = r
+                is JournalRecord.Rollback -> rollback = true
+                is JournalRecord.Section, is JournalRecord.Paused -> rollback = false
+                is JournalRecord.Failed -> if (r.error != DefaultEngine.KEPT_TV_INPUT) {
+                    begun?.takeIf { it.i == r.i }?.let { last = LastFailure(it.op, r.exit, r.stderrHead, rollback) }
+                }
+                else -> {}
+            }
+        }
+        return last
+    }
 
     // The packages this app switched off and has not put back since, in the order they went off.
     suspend fun switchedOffByUs(tvId: TvId): List<PackageName> {

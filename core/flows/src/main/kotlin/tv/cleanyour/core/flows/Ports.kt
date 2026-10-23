@@ -131,9 +131,10 @@ data class StoreRules(val updateCheck: Boolean = true, val addOns: Boolean = tru
 // the user before the share sheet. The app builds it from the redacting logger's ring.
 fun interface Diagnostics { suspend fun redactedText(): String }
 
-// One diagnostics line per wizard milestone (connect, probe, plan, run), so "Share diagnostics"
+// One diagnostics line per wizard milestone (connect, probe, plan, run), so "Report a problem"
 // has something to show. The app writes them through its redacting logger; the machines never
-// pass a serial, an address or a package list, only outcomes, counts and type names.
+// pass a serial, an address or a package list, only outcomes, counts, stable codes (LogCodes), the
+// TV's model and device codename, and the one op that failed with its package (0.3.2 B3).
 fun interface FlowLog {
     fun line(text: String)
     companion object { val None = FlowLog {} }
