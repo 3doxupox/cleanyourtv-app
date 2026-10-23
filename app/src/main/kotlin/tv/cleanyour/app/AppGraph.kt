@@ -27,6 +27,7 @@ import tv.cleanyour.core.engine.Engine
 import tv.cleanyour.core.engine.FileJournal
 import tv.cleanyour.core.engine.FileOverlayTransport
 import tv.cleanyour.core.flows.AppForeground
+import tv.cleanyour.core.flows.AppAbout
 import tv.cleanyour.core.flows.AppPrefs
 import tv.cleanyour.core.flows.AppSettingsMachine
 import tv.cleanyour.core.flows.CardAnswerDetector
@@ -34,6 +35,7 @@ import tv.cleanyour.core.flows.ConfigEncoder
 import tv.cleanyour.core.flows.DockPicker
 import tv.cleanyour.core.flows.DocumentTvRepository
 import tv.cleanyour.core.flows.GateKeeper
+import tv.cleanyour.core.flows.HomeDecisions
 import tv.cleanyour.core.flows.HomePrefs
 import tv.cleanyour.core.flows.HomeScreenMachine
 import tv.cleanyour.core.flows.LeftoversMachine
@@ -42,6 +44,8 @@ import tv.cleanyour.core.flows.ManageMachine
 import tv.cleanyour.core.flows.ModulesMachine
 import tv.cleanyour.core.flows.OpenWrites
 import tv.cleanyour.core.flows.PlanRunner
+import tv.cleanyour.core.flows.ReportKind
+import tv.cleanyour.core.flows.ReportMachine
 import tv.cleanyour.core.flows.RestorePointMachine
 import tv.cleanyour.core.flows.RestorePointWriter
 import tv.cleanyour.core.flows.RunLedger
@@ -172,6 +176,10 @@ class AppGraph(context: Context, val appVersion: String = versionOf(context), va
     val appPrefs = AppPrefs(documents)
     val openWrites = OpenWrites()                          // one per graph (R5-W8 O2), held by the one ManageDeps
     val diagnostics = LogDiagnostics { "Clean Your TV $appVersion, Android ${android.os.Build.VERSION.SDK_INT}" }
+    // 0.3.2 B1, B2: what a report says about the app and the phone (no id of the phone: its maker,
+    // model and Android version, as a person would type them into the issue form).
+    val about = AppAbout(appVersion, store.flavour, phoneName(), "Android ${android.os.Build.VERSION.RELEASE}")
+    val homeDecisions = HomeDecisions(documents)
     val screenLock = ScreenLock { credentialGate.hasScreenLock() }
 
     // D12: one GET on user action (Settings, "Check for updates"), in the full build only.
@@ -188,6 +196,7 @@ class AppGraph(context: Context, val appVersion: String = versionOf(context), va
         homePrefs = homePrefs,
         curtainPin = curtainPin,   // RFC-CURTAIN-1
         store = store.rules,       // STORES-PLAN 1
+        homeDecisions = homeDecisions,   // 0.3.2 B1
     )
 
     val manageDeps = ManageDeps(
@@ -200,6 +209,7 @@ class AppGraph(context: Context, val appVersion: String = versionOf(context), va
         diagnostics = diagnostics, clock = clock, copy = copy, encoder = ConfigEncoder.Codec, appVersion = appVersion,
         openWrites = openWrites,
         store = store.rules,       // STORES-PLAN 1
+        about = about, homeDecisions = homeDecisions,   // 0.3.2 B1, B2
     )
 
     init {
@@ -220,6 +230,7 @@ class AppGraph(context: Context, val appVersion: String = versionOf(context), va
     fun restorePoint(scope: CoroutineScope, tvId: TvId) = RestorePointMachine(manageDeps, scope, tvId)
     fun tvSettings(scope: CoroutineScope, tvId: TvId) = TvSettingsMachine(manageDeps, scope, tvId)
     fun appSettings(scope: CoroutineScope) = AppSettingsMachine(manageDeps, scope)
+    fun report(scope: CoroutineScope, kind: ReportKind, tvId: TvId?) = ReportMachine(manageDeps, scope, kind, tvId)
 
     // Tests only; the process owns the graph otherwise.
     fun close() {
@@ -230,6 +241,13 @@ class AppGraph(context: Context, val appVersion: String = versionOf(context), va
     companion object {
         // The app's own versionName (app/build.gradle.kts sets it), so the diagnostics, the plans and
         // the update check never name an older release than the APK that runs.
+        // "Samsung SM-S921B": the maker (capitalised) and the model, without the maker twice.
+        fun phoneName(manufacturer: String = android.os.Build.MANUFACTURER.orEmpty(), model: String = android.os.Build.MODEL.orEmpty()): String {
+            val maker = manufacturer.trim().replaceFirstChar { it.uppercase() }
+            val m = model.trim()
+            return if (maker.isEmpty() || m.startsWith(maker, ignoreCase = true)) m else "$maker $m"
+        }
+
         fun versionOf(context: Context): String =
             runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: "unknown"
     }

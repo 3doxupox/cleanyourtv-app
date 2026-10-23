@@ -124,13 +124,16 @@ fun SetupFlow(
     modifier: Modifier = Modifier,
     onCopyCommands: (String) -> Unit = {},
     nowMs: () -> Long = System::currentTimeMillis,
+    // 0.3.2 B1, B2: the report preview is the app's own screen; these open it ("report/tv/<id>",
+    // "report/problem/<id>").
+    onRoute: (String) -> Unit = {},
 ) {
     when (state) {
         is SetupState.Probing -> ProbingScreen(state, extras, modifier)
-        is SetupState.Found -> FoundScreen(state, extras, actions, modifier, onCopyCommands)
+        is SetupState.Found -> FoundScreen(state, extras, actions, modifier, onCopyCommands, onHelpAddTv = { onRoute("report/tv/${state.tvId.value}") })
         is SetupState.Working -> WorkingScreen(state, extras, actions, modifier)
         is SetupState.Check -> CheckScreen(state, extras, actions, modifier, nowMs)
-        is SetupState.Stopped -> StoppedScreen(state, extras, actions, modifier)
+        is SetupState.Stopped -> StoppedScreen(state, extras, actions, modifier, onReport = { onRoute("report/problem/${state.tvId.value}") })
         is SetupState.Done -> DoneScreen(state, extras, actions, modifier)
         else -> {}
     }
@@ -156,7 +159,10 @@ fun ProbingScreen(state: SetupState.Probing, extras: SetupExtras, modifier: Modi
 
 // S3 What we found (D4, D17 grey line, UX 2 rules behind the numbers, UX 4.6).
 @Composable
-fun FoundScreen(state: SetupState.Found, extras: SetupExtras, actions: SetupActions, modifier: Modifier = Modifier, onCopyCommands: (String) -> Unit = {}) {
+fun FoundScreen(
+    state: SetupState.Found, extras: SetupExtras, actions: SetupActions, modifier: Modifier = Modifier, onCopyCommands: (String) -> Unit = {},
+    onHelpAddTv: () -> Unit = {},
+) {
     val summary = state.plan.summary
     // Every switch-off of the plan, the home screen switch's own included (round 3).
     val off = summary.switchOffCount
@@ -184,7 +190,11 @@ fun FoundScreen(state: SetupState.Found, extras: SetupExtras, actions: SetupActi
             ScreenTitle(msg(if (extras.unknownModel) R.string.found_unknown_title else R.string.found_title, "count" to 0), Modifier.padding(top = 8.dp))
             if (!extras.unknownModel) Body(stringResource(R.string.found_zero_body), Modifier.padding(start = 4.dp, top = 8.dp))
         }
-        if (extras.unknownModel) Body(stringResource(R.string.found_unknown_body), Modifier.padding(start = 4.dp, top = 12.dp))
+        if (extras.unknownModel) {
+            Body(stringResource(R.string.found_unknown_body), Modifier.padding(start = 4.dp, top = 12.dp))
+            // 0.3.2 B1: careful mode invites the person to help, next to the sentence that explains it.
+            TertiaryButton(stringResource(R.string.found_help_add_tv), onHelpAddTv)
+        }
         PlanSummaryCard(
             summary.groups.filter { it.off > 0 }.map { SummaryGroup(it.id, it.title, it.off) },
             stringResource(R.string.found_see_list), { actions.intent(SetupIntent.Open(Sheet.LIST)) }, Modifier.padding(top = 20.dp),
@@ -505,6 +515,12 @@ fun CheckScreen(state: SetupState.Check, extras: SetupExtras, actions: SetupActi
     }
 }
 
+// The stops worth a report: a step the TV refused, an install that failed, a probe that failed, a run
+// cut off by the app closing, and the old home screen put back after a lost connection. The cards
+// whose own button already opens the report (home screen unknown, "Something looked wrong", "Help
+// me") are not in it.
+private val REPORT_CASES = setOf(StopCase.STEP_FAILED, StopCase.INSTALL_FAILED, StopCase.PROBE_FAILED, StopCase.RESUME_AFTER_DEATH, StopCase.HOME_PUT_BACK)
+
 // The home cases: their card offers "Show details" with the run's lines (D21).
 private val HOME_CASES = setOf(
     StopCase.HOME_SETUPWRAITH, StopCase.HOME_OTHER_LAUNCHER, StopCase.HOME_UNKNOWN, StopCase.HOME_USER_SAID_NO,
@@ -513,7 +529,7 @@ private val HOME_CASES = setOf(
 
 // S4c, S4d, S4e: stop cards with a grey icon and the way out on the card (UX 4).
 @Composable
-fun StoppedScreen(state: SetupState.Stopped, extras: SetupExtras, actions: SetupActions, modifier: Modifier = Modifier) {
+fun StoppedScreen(state: SetupState.Stopped, extras: SetupExtras, actions: SetupActions, modifier: Modifier = Modifier, onReport: () -> Unit = {}) {
     val c = state.card
     var details by rememberSaveable { mutableStateOf(false) }
     // "Stop here" and "Undo what we did" ask first (Confirmations); the others act at once.
@@ -540,6 +556,10 @@ fun StoppedScreen(state: SetupState.Stopped, extras: SetupExtras, actions: Setup
         )
         if (c.case == StopCase.CONNECTION_LOST && extras.reconnect == Reconnect.BACK) {
             Banner(stringResource(R.string.stop_connection_lost_back), BannerTone.SUCCESS, Modifier.padding(top = 16.dp))
+        }
+        // 0.3.2 B2: a stop the person did not cause offers the report preview under the card.
+        if (c.case in REPORT_CASES) {
+            TertiaryButton(stringResource(R.string.stop_report), onReport, Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp))
         }
     }
     if (details) CytBottomSheet({ details = false }) { DetailsContent(extras.commands) }

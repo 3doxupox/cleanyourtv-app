@@ -42,6 +42,7 @@ sealed interface ManageEffect {
     data class Share(val text: String) : ManageEffect
     data class CreateDocument(val suggestedName: String) : ManageEffect   // SAF ACTION_CREATE_DOCUMENT
     data class OpenUrl(val url: String) : ManageEffect
+    data class Copy(val text: String) : ManageEffect                     // to the clipboard (0.3.2 B1, B2)
     data object HapticLight : ManageEffect
     data object HapticDouble : ManageEffect
 }
@@ -92,6 +93,10 @@ class ManageDeps(
     val appVersion: String = "0.2.0",
     val openWrites: OpenWrites = OpenWrites(),   // one per graph, shared by every Manage machine (R5-W8 O2)
     val store: StoreRules = StoreRules.FULL,     // STORES-PLAN 1: the update check and the add-ons of this build
+    // 0.3.2 B1, B2: the app, its build and the phone, for the reports; and the wizard's home screen
+    // switch decision for each TV (SetupMachine keeps it).
+    val about: AppAbout = AppAbout(appVersion, "full", "", ""),
+    val homeDecisions: HomeDecisions = HomeDecisions(documents),
 ) {
     fun tv(id: TvId): Tv? = tvs.tvs.value.firstOrNull { it.id == id }
 

@@ -125,6 +125,11 @@ fun ManageScreen(state: ManageState, onIntent: (ManageIntent) -> Unit, modifier:
             )
             // Navigation into the wizard, whose own "Make it clean" is the guarded action (R5-W8 O1).
             if (!tv.clean) PrimaryButton(stringResource(R.string.manage_clean_again), { onIntent(ManageIntent.CleanAgain) }, Modifier.padding(top = 16.dp), guardObscured = false)
+            // 0.3.2 B1: an unlisted TV (no exact profile) invites the person to help add it.
+            if (tv.helpAddTv) {
+                Banner(stringResource(R.string.manage_help_add_tv_banner), BannerTone.INFO, Modifier.padding(top = 16.dp),
+                    actionLabel = stringResource(R.string.manage_help_add_tv), onAction = { onIntent(ManageIntent.HelpAddTv) })
+            }
             ListGroup(Modifier.padding(top = 16.dp)) {
                 ListRow(stringResource(R.string.manage_row_home), subtitle = tv.dockNames.joinToString(", ").ifEmpty { null },
                     onClick = { onIntent(ManageIntent.Open(ManageSection.HOME_SCREEN)) })
@@ -184,12 +189,15 @@ internal fun ColumnScope.DebugStepContent(tvName: String, connecting: Boolean, o
 // refused, so the app lays this card over whatever screen asked. A setup run opens the wizard's
 // resume card instead, which owns the home screen check.
 @Composable
-fun OpenWriteSheet(open: OpenWrite, onAction: (OpenWriteAction) -> Unit, onOpenSetup: () -> Unit, onDismiss: () -> Unit) {
-    CytBottomSheet(onDismiss) { OpenWriteContent(open, onAction, onOpenSetup, onDismiss) }
+fun OpenWriteSheet(open: OpenWrite, onAction: (OpenWriteAction) -> Unit, onOpenSetup: () -> Unit, onDismiss: () -> Unit, onReport: () -> Unit = {}) {
+    CytBottomSheet(onDismiss) { OpenWriteContent(open, onAction, onOpenSetup, onDismiss, onReport = onReport) }
 }
 
 @Composable
-internal fun ColumnScope.OpenWriteContent(open: OpenWrite, onAction: (OpenWriteAction) -> Unit, onOpenSetup: () -> Unit, onDismiss: () -> Unit, initiallyAsking: OpenWriteAction? = null) {
+internal fun ColumnScope.OpenWriteContent(
+    open: OpenWrite, onAction: (OpenWriteAction) -> Unit, onOpenSetup: () -> Unit, onDismiss: () -> Unit,
+    initiallyAsking: OpenWriteAction? = null, onReport: () -> Unit = {},
+) {
     val setup = open.kind == PlanKind.SETUP
     val body = when {
         open.notTaken -> stringResource(R.string.openwrite_not_taken)
@@ -203,6 +211,8 @@ internal fun ColumnScope.OpenWriteContent(open: OpenWrite, onAction: (OpenWriteA
         StopCard(title, body,
             primaryLabel = stringResource(R.string.openwrite_open_setup), onPrimary = onOpenSetup,
             tertiaryLabel = stringResource(R.string.openwrite_later), onTertiary = onDismiss,
+            // 0.3.2 B2: a setup that would not finish is worth a report (issue #2).
+            detailsLabel = stringResource(R.string.openwrite_report), onDetails = onReport,
             primaryGuarded = false)   // navigation: it only opens the wizard's resume card
     } else {
         // "Undo what we did" and "Stop here" ask first, in this same sheet; the action is sent on yes.
@@ -396,7 +406,8 @@ fun AppSettingsScreen(state: AppSettingsState, onIntent: (AppSettingsIntent) -> 
             ListDivider()
             ListRow(stringResource(R.string.appsettings_privacy), onClick = { privacy = true })
             ListDivider()
-            ListRow(stringResource(R.string.appsettings_diagnostics), onClick = { onIntent(AppSettingsIntent.PreviewDiagnostics) })
+            ListRow(stringResource(R.string.appsettings_report), subtitle = stringResource(R.string.appsettings_report_note),
+                onClick = { onIntent(AppSettingsIntent.ReportProblem) })
         }
         ListGroup(Modifier.padding(top = 12.dp, bottom = 24.dp)) {
             ListRow(stringResource(R.string.appsettings_reset_key), subtitle = stringResource(R.string.appsettings_reset_key_note),
@@ -408,9 +419,6 @@ fun AppSettingsScreen(state: AppSettingsState, onIntent: (AppSettingsIntent) -> 
     }
     if (licences) CytBottomSheet({ licences = false }) { LicencesContent() }
     if (privacy) CytBottomSheet({ privacy = false }) { PrivacyContent(online = state.updateCheck || state.addOns) }
-    state.diagnostics?.let { text ->
-        CytBottomSheet({ onIntent(AppSettingsIntent.CloseDiagnostics) }) { DiagnosticsContent(text, onIntent) }
-    }
     state.confirm?.let { what ->
         CytBottomSheet({ onIntent(AppSettingsIntent.CancelConfirm) }) { ConfirmContent(what, state.working, onIntent) }
     }
@@ -434,13 +442,6 @@ internal fun ColumnScope.PrivacyContent(online: Boolean = true) {
     // `online`: the build checks GitHub for updates or downloads add-ons from it (STORES-PLAN 1).
     Body(stringResource(if (online) R.string.appsettings_privacy_text else R.string.appsettings_privacy_text_offline), Modifier.padding(top = 8.dp),
         color = CytTheme.colors.textPrimary)
-}
-
-@Composable
-internal fun ColumnScope.DiagnosticsContent(text: String, onIntent: (AppSettingsIntent) -> Unit) {
-    SheetHeader(stringResource(R.string.appsettings_diagnostics_preview_title), subtitle = stringResource(R.string.appsettings_diagnostics_preview_body))
-    MonospaceBlock(text.lines().take(200), Modifier.padding(top = 16.dp))
-    PrimaryButton(stringResource(R.string.appsettings_diagnostics_share), { onIntent(AppSettingsIntent.ShareDiagnostics) }, Modifier.padding(top = 20.dp))
 }
 
 @Composable

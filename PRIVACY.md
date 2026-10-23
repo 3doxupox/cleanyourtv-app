@@ -51,11 +51,23 @@ services.
 You can delete all of this at any time from the app's Settings, or by clearing the app's storage
 or uninstalling it in Android's settings.
 
-## Diagnostics
+## Reports you choose to share
 
-"Share diagnostics" is off until you use it. It shows you a preview of the report first, removes
-network addresses, serial numbers, keys and pairing codes, and sends nothing by itself: it opens
-Android's share sheet and you pick where it goes (a message, an email, a note), or you cancel.
+"Report a problem" and "Help add this TV" are off until you use them, and the app sends nothing by
+itself. Each one shows you the whole report first, as plain text, and then does only what you tap:
+
+- **Share** opens Android's share sheet and you pick where it goes (a message, an email, a note).
+- **Copy and open GitHub** copies the report to your phone's clipboard and opens the GitHub form
+  for it in your browser. The app makes no request itself, and nothing is posted until you paste
+  the report and post the form. A GitHub issue is public.
+
+Or you close the screen and nothing happens. "Report a problem" holds the app's own log with
+network addresses, serial numbers, keys and pairing codes removed, and a short summary of the TV.
+"Help add this TV" holds the TV's brand, model, Android version and build, how the app matched
+it, and the apps the TV came with; apps you installed yourself are only counted, never named. Both
+name the app version and your phone's model and Android version. Neither has the TV's serial
+number, its name or room, your network addresses or your Wi-Fi name. This is the same in the
+Google Play version.
 
 ## Permissions
 

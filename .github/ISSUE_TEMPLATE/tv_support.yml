@@ -1,55 +1,77 @@
-name: TV support request
-description: Ask for a TV model to get its own profile.
+name: Help add my TV
+description: Your TV isn't listed yet, or the app was careful with it. Tell us about it and we'll make a list for it.
+title: "TV support: "
 labels: ["tv-profile"]
 body:
   - type: markdown
     attributes:
       value: |
-        Profiles come from the community lists in the upstream launcher repository
-        (https://github.com/Gathin23/cleanyourtv, `examples/`). If you can, add your TV's list there first; see
-        CONTRIBUTING.md, "Propose a TV profile". This form is for TVs nobody has listed yet.
-        Do not paste the TV's serial number or any address.
+        Thank you for helping. Every TV someone reports makes the app better for the next person with the same TV.
+
+        **The app can fill this in for you.** In Clean Your TV, tap **Help add this TV**. You find it on the
+        "We found" screen while you set the TV up, and on the TV's Manage screen afterwards. Then tap
+        **Copy and open GitHub**: this form opens with the model filled in, and the report is on your clipboard.
+        Paste it into the "TV report" box below.
+
+        The report has the TV's model, its Android version and the apps it came with. Apps you installed
+        yourself are only counted, never named. It never has the TV's serial number, your network addresses
+        or your Wi-Fi name, and nothing is sent until you post this form. Please don't paste those yourself either.
   - type: input
     id: model
     attributes:
       label: TV brand and model
-      description: As printed on the TV or its box, for example "TCL 55C645".
+      description: As printed on the TV or its box, for example "Hisense 55A6H". The app fills this in.
     validations:
       required: true
   - type: input
     id: android
     attributes:
       label: Android version and firmware build
-      description: Settings, About on the TV (for example "Android 11, UKN6.260116.085").
+      description: Settings, About on the TV, for example "Android 11, RTM6.230109.155". The app fills this in.
     validations:
       required: true
-  - type: dropdown
+  - type: input
     id: platform
     attributes:
       label: Home screen the TV came with
-      options:
-        - Google TV
-        - Android TV (Leanback)
-        - Fire TV
-        - The maker's own launcher
-        - Not sure
+      description: Google TV, Android TV (Leanback), Fire TV, the maker's own launcher, or not sure. The app fills in its best guess; change it if it's wrong.
     validations:
-      required: true
+      required: false
+  - type: textarea
+    id: report
+    attributes:
+      label: TV report
+      description: Long-press in the box and choose Paste. The app copied the report when you tapped Copy and open GitHub.
+      render: text
+    validations:
+      required: false
   - type: textarea
     id: found
     attributes:
-      label: What the app showed
-      description: What did "We found" say for this TV? Did it use the careful brand fallback?
+      label: What the app did
+      description: Optional. What did the "We found" screen say? What did you hope it would switch off?
+    validations:
+      required: false
   - type: textarea
     id: packages
     attributes:
-      label: Package list (optional)
+      label: Package list from a computer (only without the app's report)
       description: |
-        From a computer with adb: `adb shell pm list packages -s` (system apps). Paste it, or attach it as a file.
+        No app report? From a computer with adb, `adb shell pm list packages -s` lists the system apps. Paste
+        it here, or attach it as a file.
       render: text
+    validations:
+      required: false
   - type: checkboxes
     id: offer
     attributes:
       label: Testing
       options:
-        - label: I can test a profile on this TV and live with it for a few days.
+        - label: I can try a list on this TV and live with it for a few days.
+  - type: markdown
+    attributes:
+      value: |
+        **What happens next.** We read every report. For a new TV we look at the apps it came with, make a list
+        of what is safe to switch off, and ask you to try it before anyone else gets it. Once it works, the list
+        also goes to the [Clean Your TV](https://github.com/Gathin23/cleanyourtv) project, so it helps people
+        without this app too. We reply here when the list is in a release.

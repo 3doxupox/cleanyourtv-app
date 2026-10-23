@@ -47,6 +47,7 @@ import kotlinx.serialization.Serializable
 import tv.cleanyour.core.flows.AppConfirm
 import tv.cleanyour.core.flows.DoorPhase
 import tv.cleanyour.core.flows.ManageEffect
+import tv.cleanyour.core.flows.ReportKind
 import tv.cleanyour.core.flows.Reach
 import tv.cleanyour.core.flows.SetupEffect
 import tv.cleanyour.core.flows.SetupStart
@@ -65,6 +66,7 @@ import tv.cleanyour.feature.manage.DebugStepSheet
 import tv.cleanyour.feature.manage.LeftoversScreen
 import tv.cleanyour.feature.manage.ManageScreen
 import tv.cleanyour.feature.manage.OpenWriteSheet
+import tv.cleanyour.feature.manage.ReportScreen
 import tv.cleanyour.feature.manage.SwitchedOffScreen
 import tv.cleanyour.feature.manage.TvSettingsScreen
 import tv.cleanyour.feature.modules.ModulesFlow
@@ -82,6 +84,8 @@ import tv.cleanyour.feature.setup.SetupFlow
     @Serializable data class Restore(val tvId: String) : Dest
     @Serializable data class TvSettings(val tvId: String) : Dest
     @Serializable data object AppSettings : Dest
+    // 0.3.2 B1, B2: the report preview; kind is ReportKind.key ("tv" or "problem").
+    @Serializable data class Report(val kind: String, val tvId: String? = null) : Dest
 }
 
 fun startKey(d: StartDestination): Dest = when (d) {
@@ -111,6 +115,7 @@ internal fun applyRoute(stack: MutableList<NavKey>, route: String, noTvs: Boolea
         "restore" -> id?.let { Dest.Restore(it) }
         "tvsettings" -> id?.let { Dest.TvSettings(it) }
         "appsettings" -> Dest.AppSettings
+        "report" -> id?.let { k -> ReportKind.of(k) }?.let { k -> if (k == ReportKind.TV && parts.getOrNull(2) == null) null else Dest.Report(k.key, parts.getOrNull(2)) }
         "back" -> return if (stack.size > 1) { stack.removeAt(stack.lastIndex); true } else false
         else -> null
     }
@@ -187,6 +192,7 @@ fun AppRoot(graph: AppGraph, start: Dest, onExit: () -> Unit) {
             is ManageEffect.Navigate -> go(e.key)
             is ManageEffect.Share -> share(e.text)
             is ManageEffect.OpenUrl -> runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(e.url))) }
+            is ManageEffect.Copy -> copyText(context, e.text, label = "report")
             ManageEffect.HapticLight -> haptic(HapticFeedbackConstants.CLOCK_TICK)
             ManageEffect.HapticDouble -> haptic(HapticFeedbackConstants.LONG_PRESS)
             is ManageEffect.CreateDocument -> onDocument(e.suggestedName)
@@ -218,7 +224,7 @@ fun AppRoot(graph: AppGraph, start: Dest, onExit: () -> Unit) {
                     BackHandler { if (!m.back()) { if (backStack.size > 1) backStack.removeAt(backStack.lastIndex) else onExit() } }
                     SecureWindow((state as? SetupState.OpenDoor)?.phase == DoorPhase.ALLOW)
                     if (isConnectState(state)) ConnectFlow(state, extras, m, onReturning = { go("returning") })
-                    else SetupFlow(state, extras, m, onCopyCommands = { copyText(context, it) })
+                    else SetupFlow(state, extras, m, onCopyCommands = { copyText(context, it) }, onRoute = { go(it) })
                 }
                 entry<Dest.Manage> { key ->
                     val m = rememberMachine("manage:${key.tvId}") { graph.manage(it, key.tvId?.let(::TvId)) }
@@ -272,6 +278,13 @@ fun AppRoot(graph: AppGraph, start: Dest, onExit: () -> Unit) {
                     LaunchedEffect(m) { m.effects.collect { onManageEffect(it) } }
                     TvSettingsScreen(state, m::dispatch, onBack = { go("back") })
                 }
+                entry<Dest.Report> { key ->
+                    val kind = ReportKind.of(key.kind) ?: ReportKind.PROBLEM
+                    val m = rememberMachine("report:${key.kind}:${key.tvId}") { graph.report(it, kind, key.tvId?.let(::TvId)) }
+                    val state by m.state.collectAsStateWithLifecycle()
+                    LaunchedEffect(m) { m.effects.collect { onManageEffect(it) } }
+                    ReportScreen(state, m::dispatch, onBack = { go("back") })
+                }
                 entry<Dest.AppSettings> {
                     val m = rememberMachine("appsettings") { graph.appSettings(it) }
                     val state by m.state.collectAsStateWithLifecycle()
@@ -288,7 +301,8 @@ fun AppRoot(graph: AppGraph, start: Dest, onExit: () -> Unit) {
             OpenWriteSheet(w,
                 onAction = { a -> graph.scope.launch { TvWriter(graph.manageDeps).resolveOpen(w.tvId, a) } },
                 onOpenSetup = { graph.manageDeps.openWrites.dismiss(); go("resume/${w.tvId.value}/${w.planId.value}") },
-                onDismiss = { graph.manageDeps.openWrites.dismiss() })
+                onDismiss = { graph.manageDeps.openWrites.dismiss() },
+                onReport = { graph.manageDeps.openWrites.dismiss(); go("report/problem/${w.tvId.value}") })
         }
         // M1a: any returning write that finds port 5555 closed shows the debugging step here.
         val reach by graph.access.reach.collectAsStateWithLifecycle()
@@ -297,8 +311,8 @@ fun AppRoot(graph: AppGraph, start: Dest, onExit: () -> Unit) {
     }
 }
 
-fun copyText(context: android.content.Context, text: String) {
-    context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(ClipData.newPlainText("commands", text))
+fun copyText(context: android.content.Context, text: String, label: String = "commands") {
+    context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(ClipData.newPlainText(label, text))
 }
 
 // Snackbar sentences for the Manage family (the screens own the copy, the app only formats it).

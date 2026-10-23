@@ -101,7 +101,6 @@ data class AppSettingsState(
     // privacy line names GitHub only when the app can reach it (an update check or an add-on).
     val updateCheck: Boolean = true,
     val addOns: Boolean = true,
-    val diagnostics: String? = null,     // the redacted preview, shown before the share sheet
     val confirm: AppConfirm? = null,
     val working: Boolean = false,
 )
@@ -112,9 +111,7 @@ sealed interface AppSettingsIntent {
     data class SetHaptics(val on: Boolean) : AppSettingsIntent
     data class SetLargeText(val on: Boolean) : AppSettingsIntent
     data object CheckUpdates : AppSettingsIntent
-    data object PreviewDiagnostics : AppSettingsIntent
-    data object ShareDiagnostics : AppSettingsIntent
-    data object CloseDiagnostics : AppSettingsIntent
+    data object ReportProblem : AppSettingsIntent     // 0.3.2 B2: the report preview, its own screen
     data class Ask(val what: AppConfirm) : AppSettingsIntent
     data object CancelConfirm : AppSettingsIntent
     data object ResetKey : AppSettingsIntent
@@ -132,7 +129,6 @@ class AppSettingsMachine(
 
     private data class Loaded(val s: AppSettingsState)
     private data class Update(val u: UpdateCheck)
-    private data class Diag(val text: String?)
     private data class Working(val on: Boolean)
 
     init {
@@ -149,13 +145,11 @@ class AppSettingsMachine(
     }
 
     override fun reduce(state: AppSettingsState, event: Any): AppSettingsState = when (event) {
-        is Loaded -> event.s.copy(update = state.update, diagnostics = state.diagnostics, confirm = state.confirm)
+        is Loaded -> event.s.copy(update = state.update, confirm = state.confirm)
         is AppSettingsIntent.SetHaptics -> state.copy(prefs = state.prefs.copy(haptics = event.on))
         is AppSettingsIntent.SetLargeText -> state.copy(prefs = state.prefs.copy(largeTextFollowsSystem = event.on))
         AppSettingsIntent.CheckUpdates -> if (state.updateCheck) state.copy(update = UpdateCheck.Checking) else state
         is Update -> state.copy(update = event.u)
-        is Diag -> state.copy(diagnostics = event.text)
-        AppSettingsIntent.CloseDiagnostics -> state.copy(diagnostics = null)
         is AppSettingsIntent.Ask -> state.copy(confirm = event.what)
         AppSettingsIntent.CancelConfirm -> state.copy(confirm = null)
         is Working -> state.copy(working = event.on, confirm = null)
@@ -169,8 +163,7 @@ class AppSettingsMachine(
                 val v = attempt { d.updates.latestNewerThan(d.appVersion) }.getOrNull()
                 send(Update(when { v == null -> UpdateCheck.Failed; v.isEmpty() -> UpdateCheck.Latest; else -> UpdateCheck.Available(v) }))
             }
-            AppSettingsIntent.PreviewDiagnostics -> scope.launch { send(Diag(d.diagnostics.redactedText())) }
-            AppSettingsIntent.ShareDiagnostics -> before.diagnostics?.let { effect(ManageEffect.Share(it)); send(Diag(null)) }
+            AppSettingsIntent.ReportProblem -> effect(ManageEffect.Navigate("report/problem"))
             AppSettingsIntent.ResetKey -> if (!before.working) scope.launch { resetKey() }
             AppSettingsIntent.DeleteEverything -> if (!before.working) scope.launch { deleteEverything() }
             else -> {}

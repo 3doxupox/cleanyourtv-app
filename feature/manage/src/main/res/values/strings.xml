@@ -72,6 +72,7 @@
     <string name="openwrite_stop">Stop here</string>
     <string name="openwrite_open_setup">Open the setup</string>
     <string name="openwrite_later">Not now</string>
+    <string name="openwrite_report">Report a problem</string>
 
     <!-- M4 Switched off -->
     <string name="switchedoff_title">{count, plural, other {Switched off (#)}}</string>
@@ -143,12 +144,10 @@
     <string name="appsettings_licence_apache">dadb and Shizuku code we adapted: Apache-2.0 notices</string>
     <string name="appsettings_licence_bouncycastle">Bouncy Castle cryptography library: Bouncy Castle Licence</string>
     <string name="appsettings_privacy">Privacy</string>
-    <string name="appsettings_privacy_text">Nothing leaves your network except downloads from github.com. GitHub sees your phone\'s address and a generic user agent.</string>
-    <string name="appsettings_privacy_text_offline">Nothing leaves your network. The app talks only to the TV you pick and makes no internet requests of its own.</string>
-    <string name="appsettings_diagnostics">Share diagnostics</string>
-    <string name="appsettings_diagnostics_preview_title">What we would share</string>
-    <string name="appsettings_diagnostics_preview_body">A zip with the steps we ran and what the TV reported. Addresses, serial numbers, keys and codes are removed first. Nothing is sent until you choose where to share it.</string>
-    <string name="appsettings_diagnostics_share">Share</string>
+    <string name="appsettings_privacy_text">Nothing leaves your network except downloads from github.com. GitHub sees your phone\'s address and a generic user agent. A report leaves the phone only when you copy, share or post it yourself.</string>
+    <string name="appsettings_privacy_text_offline">Nothing leaves your network. The app talks only to the TV you pick and makes no internet requests of its own. A report leaves the phone only when you copy, share or post it yourself.</string>
+    <string name="appsettings_report">Report a problem</string>
+    <string name="appsettings_report_note">See the report first, then share it or post it on GitHub</string>
     <string name="appsettings_reset_key">Reset my key</string>
     <string name="appsettings_reset_key_note">Every TV will ask to trust this phone again.</string>
     <string name="appsettings_reset_key_title">Reset the key on this phone?</string>
@@ -170,4 +169,21 @@
     <string name="confirm_undo_title">Undo the changes on the TV?</string>
     <string name="confirm_undo_body">We put back everything this change did, so the TV is as it was before. Nothing is deleted.</string>
     <string name="confirm_undo_button">Undo the changes</string>
+
+    <!-- 0.3.2 B1: an unlisted TV on Manage -->
+    <string name="manage_help_add_tv_banner">We haven\'t met this exact TV before, so we were careful with it. A short report from you helps us add it.</string>
+    <string name="manage_help_add_tv">Help add this TV</string>
+
+    <!-- 0.3.2 B1 and B2: the report preview -->
+    <string name="report_tv_title">Help add this TV</string>
+    <string name="report_tv_body">This report says what this TV is and which apps it came with, so we can make a list for it. Apps you installed yourself are only counted, never named.</string>
+    <string name="report_problem_title">Report a problem</string>
+    <string name="report_problem_body">This report has the steps we ran and a short summary of the TV, as plain text. Addresses, serial numbers, keys and codes are removed first.</string>
+    <string name="report_public">This is public if you post it on GitHub. The app sends nothing itself: you choose where it goes.</string>
+    <string name="report_preview_label">The report</string>
+    <string name="report_paste_hint">We copy the report, then open the form on GitHub. Paste it into the box that asks for it.</string>
+    <string name="report_copy_open">Copy and open GitHub</string>
+    <string name="report_share">Share</string>
+    <string name="report_loading">Making the report</string>
+    <string name="report_unavailable">We need to read this TV once before we can make its report. Set it up or connect to it, then try again.</string>
 </resources>

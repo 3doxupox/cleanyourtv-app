@@ -36,4 +36,30 @@ class NavigationTest {
         applyRoute(stack, "modules/0123456789abcdef", noTvs = false)
         assertEquals(if (Store.rules.addOns) 2 else 1, stack.size)
     }
+
+    // 0.3.2 B1, B2: the report preview opens on top and Back returns to the screen that asked.
+    @Test fun theReportRoutesOpenThePreviewOnTop() {
+        val stack = mutableListOf<NavKey>(Dest.Manage("0123456789abcdef"))
+        assertTrue(applyRoute(stack, "report/tv/0123456789abcdef", noTvs = false))
+        assertEquals(Dest.Report("tv", "0123456789abcdef"), stack.last())
+        applyRoute(stack, "back", noTvs = false)
+        applyRoute(stack, "report/problem/0123456789abcdef", noTvs = false)
+        assertEquals(Dest.Report("problem", "0123456789abcdef"), stack.last())
+        applyRoute(stack, "back", noTvs = false)
+        applyRoute(stack, "report/problem", noTvs = false)   // Settings: no TV named
+        assertEquals(Dest.Report("problem", null), stack.last())
+        applyRoute(stack, "back", noTvs = false)
+        // A TV report needs its TV, and an unknown kind opens nothing.
+        applyRoute(stack, "report/tv", noTvs = false)
+        applyRoute(stack, "report/zip/0123456789abcdef", noTvs = false)
+        assertEquals(listOf<NavKey>(Dest.Manage("0123456789abcdef")), stack)
+    }
+
+    // What a report says the phone is: the maker once, then the model.
+    @Test fun thePhoneNameNamesTheMakerOnce() {
+        assertEquals("Samsung SM-S921B", AppGraph.phoneName("samsung", "SM-S921B"))
+        assertEquals("Google Pixel 7", AppGraph.phoneName("Google", "Pixel 7"))
+        assertEquals("Google Pixel 7", AppGraph.phoneName("google", "Google Pixel 7"))   // not "Google Google Pixel 7"
+        assertEquals("SM-S921B", AppGraph.phoneName("", "SM-S921B"))
+    }
 }

@@ -22,6 +22,8 @@ import tv.cleanyour.core.flows.AppSettingsState
 import tv.cleanyour.core.flows.ChipState
 import tv.cleanyour.core.flows.LeftoversState
 import tv.cleanyour.core.flows.ManageState
+import tv.cleanyour.core.flows.ReportKind
+import tv.cleanyour.core.flows.ReportState
 import tv.cleanyour.core.flows.OffGroup
 import tv.cleanyour.core.flows.OffRow
 import tv.cleanyour.core.flows.OpenWrite
@@ -103,13 +105,63 @@ private fun tvSettings(level: Level = Level.SIMPLE, room: String? = "Living room
 private fun openWrite(kind: PlanKind = PlanKind.SWITCH_OFF, reason: PauseReason = PauseReason.CONNECTION_LOST, busy: Boolean = false, notTaken: Boolean = false) =
     OpenWrite(tvId, "Mi TV 4A", PlanId("01JAZ0000000000000000000"), kind, reason, busy, notTaken)
 
-private val diagnostics = """
-    clean-your-tv 0.1.0 diagnostics
-    tv: Mi TV 4A (model MiTV-AXSO0, Android TV 9)
-    address: [removed]  serial: [removed]
-    run 01JAZ0: SWITCH_OFF 6 steps, paused CONNECTION_LOST at step 4
-    step 1 pm disable-user com.mitv.patchwall: ok
+// 0.3.2 B1 and B2: the report preview with the text the report builder makes (TvReportTest has the
+// exact text; this is its shape, shortened).
+private val tvReport = """
+    Clean Your TV: TV report
+    App: 0.3.2 (full)
+    Phone: Samsung SM-S921B, Android 16
+
+    TV
+    Brand: Hisense
+    Manufacturer: Hisense
+    Model: 55A6H
+    Device: HiTV-MT9602
+    Android: 11 (SDK 30)
+    Build: Hisense/HE55A6H/HiTV-MT9602:11/RTM6.230109.155/155:user/release-keys
+    Google Play services: yes
+    Home screen it came with: Google TV
+    Read from the TV: 2026-10-23, before any change
+
+    Matching
+    Profile: brand set Hisense
+    Home switch: blocked WIZARD_STAYS_ON
+
+    Home screen
+    Resolves to: com.google.android.apps.tv.launcherx/.home.HomeActivity
+    Claimant: com.google.android.apps.tv.launcherx/.home.HomeActivity priority 2
+
+    System apps (3)
+    com.google.android.apps.tv.launcherx enabled
+    com.google.android.tungsten.setupwraith enabled
+    com.hisense.storedemo disabled-user, switched off by this app
+
+    Other apps: 14 (not named)
 """.trimIndent()
+
+private val problemReport = """
+    Clean Your TV: problem report
+    App: 0.3.2 (play)
+    Phone: Samsung SM-S921B, Android 16
+
+    TV
+    Brand: Insignia
+    Model: NS-55F501NA26
+    Device: mantis
+    Android: 9 (SDK 28)
+    Home screen it came with: Fire TV
+    Profile: brand set Amazon
+    Home switch: blocked TV_REFUSES
+    Apps: 255 system, 14 other
+
+    Diagnostics log (addresses, serial numbers, keys and codes removed)
+    Clean Your TV 0.3.2, Android 36
+    1792745068397 I setup: probe done in 5464 ms, 269 packages, profile brand set Amazon, tv Insignia NS-55F501NA26 (mantis) sdk 28
+    1792745323148 I setup: run paused STEP_FAILED at step 72: undo step failed: Enable com.amazon.tv.launcher: nonzero_exit(1)
+""".trimIndent()
+
+private fun report(kind: ReportKind, text: String = if (kind == ReportKind.TV) tvReport else problemReport) =
+    ReportState(kind, loading = false, text = text, url = "https://github.com/udhaykumarbala/cleanyourtv-app/issues/new", available = true)
 
 private val tall = 1100.dp
 
@@ -133,10 +185,18 @@ object ManageShots {
         Shot("manage_debugging_off") { ManageScreen(manage(card(chip = ChipState.DEBUGGING_OFF, debugging = DebugState.OFF)), {}) },
         Shot("manage_working") { ManageScreen(manage(card(chip = ChipState.WORKING)), {}) },
         Shot("manage_no_thumbnail") { ManageScreen(manage(card(thumbnail = false, room = null)), {}) },
+        // 0.3.2 B1: a TV no profile knows invites the person to help add it.
+        Shot("manage_help_add_tv", tall) { ManageScreen(manage(card().copy(helpAddTv = true)), {}) },
         Shot("manage_two_tvs", tall) {
             val other = card().copy(id = TvId("1111222233334444"), name = "Bedroom Chromecast", room = "Bedroom")
             ManageScreen(manage(others = listOf(other)), {})
         },
+
+        // 0.3.2 B1 and B2: the report preview
+        Shot("report_tv", tall) { ReportScreen(report(ReportKind.TV), {}, {}) },
+        Shot("report_problem", tall) { ReportScreen(report(ReportKind.PROBLEM), {}, {}) },
+        Shot("report_loading") { ReportScreen(ReportState(ReportKind.TV), {}, {}) },
+        Shot("report_unavailable") { ReportScreen(ReportState(ReportKind.TV, loading = false, available = false), {}, {}) },
 
         // M1a the debugging step for a returning write
         Shot("debugstep_waiting") { SheetOver({ ManageScreen(manage(), {}) }) { DebugStepContent("Mi TV 4A", connecting = false) {} } },
@@ -183,7 +243,6 @@ object ManageShots {
         Shot("appsettings_key_wrapped", tall) { AppSettingsScreen(appSettings(backing = "WRAPPED_SOFTWARE"), {}, {}, {}) },
         Shot("appsettings_licences") { SheetOver({ AppSettingsScreen(appSettings(), {}, {}, {}) }) { LicencesContent() } },
         Shot("appsettings_privacy") { SheetOver({ AppSettingsScreen(appSettings(), {}, {}, {}) }) { PrivacyContent() } },
-        Shot("appsettings_diagnostics") { SheetOver({ AppSettingsScreen(appSettings(), {}, {}, {}) }) { DiagnosticsContent(diagnostics) {} } },
         Shot("appsettings_reset_key") { SheetOver({ AppSettingsScreen(appSettings(), {}, {}, {}) }) { ConfirmContent(AppConfirm.RESET_KEY, working = false) {} } },
         Shot("appsettings_delete_all") { SheetOver({ AppSettingsScreen(appSettings(), {}, {}, {}) }) { ConfirmContent(AppConfirm.DELETE_EVERYTHING, working = false) {} } },
 
