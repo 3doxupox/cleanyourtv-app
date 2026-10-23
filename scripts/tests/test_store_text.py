@@ -46,8 +46,8 @@ class StoreText(unittest.TestCase):
     def test_no_em_dash_or_double_hyphen(self):
         for path in files():
             text = read(path)
-            self.assertNotIn("—", text, path)
-            self.assertNotIn("--", text, path)
+            self.assertNotIn("\u2014", text, path)
+            self.assertNotIn("-" * 2, text, path)
 
     def test_the_030_notes_are_true_on_every_channel(self):
         notes = read(os.path.join(META, "en-US", "changelogs", "3.txt")).lower()
