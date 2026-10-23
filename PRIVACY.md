@@ -23,9 +23,10 @@ network. The app reads the list of apps and the model of your TV, and it changes
 apps on the TV when you tell it to.
 
 **GitHub, only in the GitHub and F-Droid versions, and only when you ask.** The version you
-download from GitHub or F-Droid has two features that contact GitHub, and only after you tap
-for them: "Check for updates" makes one request for the latest release, and an optional add-on
-downloads from its GitHub release. GitHub sees the usual details of any web request (your IP
+download from GitHub or F-Droid has three features that contact GitHub, and only when you use
+them: "Check for updates" makes one request for the latest release, opening Cards and modules
+fetches the signed list of add-ons, and an optional add-on downloads from its GitHub release when
+you add it. GitHub sees the usual details of any web request (your IP
 address, for example) under [GitHub's privacy statement](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement).
 The app sends no identifier of its own. The home screen launcher and the TV progress screen are
 inside the app, so a normal clean-up makes no internet request at all.
