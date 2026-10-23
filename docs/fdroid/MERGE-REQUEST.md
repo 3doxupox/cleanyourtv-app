@@ -116,10 +116,8 @@ https://github.com/udhaykumarbala/cleanyourtv-app/blob/56802ac04c3917e5ece5a086e
 The app's own code is MIT. Its libraries are Apache License 2.0 (AndroidX, Kotlin and kotlinx) and
 MIT style (the Bouncy Castle licence), listed in `THIRD-PARTY-NOTICES`; the Outfit typeface is SIL
 Open Font License 1.1 (in the app and the launcher). The one picture taken from upstream is the "aurora" theme wallpaper
-(`themes/aurora/wallpaper.jpg`), added by the upstream author to his MIT repository; the upstream
-repository has no separate licence or credit for it.
-<!-- If Gathin's confirmation that the theme wallpapers are his own work under the repository's MIT
-licence is public by the time this is submitted, link it here. -->
+(`themes/aurora/wallpaper.jpg`). The upstream author made it himself and confirmed on 2026-10-23
+that it is under his repository's MIT licence, like the rest of it.
 
 ### How the app was made
 

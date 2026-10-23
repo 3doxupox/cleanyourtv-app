@@ -9,7 +9,8 @@ work. The full licence texts are linked or included below.
    built from that commit without changes and re-signed with this project's launcher key. The
    upstream repository's per TV clean-up lists, written by its community contributors, are
    converted into this app's TV profiles, and three of its themes (default, aurora with its
-   wallpaper picture, six-columns) are bundled as they are. Licence: MIT.
+   wallpaper picture, six-columns) are bundled as they are. Licence: MIT. The aurora wallpaper
+   is the upstream author's own work; he confirmed on 2026-10-23 that it is MIT like the rest.
 
      MIT License
 
