@@ -25,6 +25,10 @@ and checks:
   check-apk.py app.apk|app.aab [--flavour full|play] [--expect-cert HEX] [--unsigned]
                [--expect-version-code N] [--expect-version-name X.Y.Z]
                [--unsigned-build app-unsigned.aab] [--json out.json]
+  check-apk.py --print-permissions [--flavour full|play]
+
+--print-permissions prints the android.permission names a build of the flavour requests, one per
+line, sorted (scripts/check-installed.sh compares an installed app with them).
 
 The flavour defaults to full. Exit 0 when every check passes, 1 when one fails, 2 on a usage or
 tool error. Stdlib only.
@@ -74,6 +78,15 @@ GITHUB_HOSTS = {
 FLAVOURS = ("full", "play")
 # The full build's update check (src/full Store.kt); the play build must not carry it.
 RELEASE_CHECK = b"api.github.com/repos/"
+
+
+def expected_permissions(flavour):
+    """The permissions a build of this store flavour requests: D16, the same for full and play."""
+    if flavour not in FLAVOURS:
+        raise ValueError(f"unknown flavour {flavour}")
+    return set(D16)
+
+
 # AGP's dependency block in a bundle; dependenciesInfo.includeInBundle = false keeps it out.
 AAB_DEPENDENCY_BLOCK = "BUNDLE-METADATA/com.android.tools.build.libraries/dependencies.pb"
 
@@ -280,9 +293,9 @@ def bundle_signature(aab):
     return {"verified": verified, "error": (err or out).strip() if not verified else "", "certs": jar_certs(certs_out)}
 
 
-def main():
+def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("apk", help="an APK, or an AAB (the base module is checked)")
+    ap.add_argument("apk", nargs="?", help="an APK, or an AAB (the base module is checked)")
     ap.add_argument("--flavour", choices=FLAVOURS, default="full", help="store flavour of the build (default full)")
     ap.add_argument("--expect-cert", help="signer certificate SHA-256 (hex): the release key for an APK, the upload key for an AAB")
     ap.add_argument("--unsigned", action="store_true", help="skip the signature checks (unsigned build output)")
@@ -290,7 +303,17 @@ def main():
     ap.add_argument("--expect-version-name", help="the versionName the build must carry")
     ap.add_argument("--unsigned-build", help="AAB only: the unsigned build this signed bundle must equal, apart from its signature")
     ap.add_argument("--json", help="write the findings as JSON here")
-    a = ap.parse_args()
+    ap.add_argument("--print-permissions", action="store_true", help="print the permissions the flavour requests and exit")
+    a = ap.parse_args(argv)
+    if a.print_permissions:
+        for perm in sorted(expected_permissions(a.flavour)):
+            print(perm)
+        return 0
+    if not a.apk:
+        ap.error("an APK or AAB is required")
+    if not shutil.which("aapt2"):
+        print("error: aapt2 not on PATH (build-tools)", file=sys.stderr)
+        return 2
 
     checks = []
 
@@ -325,8 +348,9 @@ def main():
         check("not testOnly", "testOnly" not in b)
 
         perms = set(re.findall(r"^uses-permission: name='([^']+)'", b, re.M))
-        extra = sorted(perms - D16 - {OWN_SIGNATURE_PERMISSION})
-        missing = sorted(D16 - perms)
+        wanted = expected_permissions(a.flavour)
+        extra = sorted(perms - wanted - {OWN_SIGNATURE_PERMISSION})
+        missing = sorted(wanted - perms)
         check("permissions equal D16", not extra and not missing, f"extra={extra} missing={missing}")
         check("no forbidden permission", not (perms & NEVER), ",".join(sorted(perms & NEVER)))
 
@@ -387,7 +411,4 @@ def main():
 
 
 if __name__ == "__main__":
-    if not shutil.which("aapt2"):
-        print("error: aapt2 not on PATH (build-tools)", file=sys.stderr)
-        sys.exit(2)
     sys.exit(main())
