@@ -207,6 +207,29 @@ keytool -exportcert -rfc -keystore "$CYT_SECRETS/cleanyourtv-play-upload/upload.
 `scripts/play-upload.py` uses only the Python standard library (it signs the OAuth request itself),
 so no extra package is needed.
 
+Once, before the first Google Play release (decision D2, one certificate for every channel): give
+Play App Signing the existing release key instead of letting Google make a new one. In the Play
+Console (Test and release, App integrity, App signing) choose "Export and upload a key from Java
+keystore", download Google's PEPK tool and its encryption public key, and run the tool on the
+maintainer's machine only, where the release key lives; it asks for the keystore and key passwords
+itself, so they never appear on the command line:
+
+```bash
+java -jar pepk.jar --keystore="$CYT_SECRETS/cleanyourtv-release/release.p12" --alias=cleanyourtv \
+  --output=cleanyourtv-release-for-play.zip --include-cert --rsa-aes-encryption \
+  --encryption-key-path=encryption_public_key.pem
+```
+
+Upload the zip (it holds the key encrypted for Google only), then delete it. Check afterwards that
+the Console shows the app signing certificate SHA-256 of `docs/release-signer.sha256`, and register
+the upload key's certificate (`upload-cert.pem` above) on the same page.
+
+Google Play's first steps are by hand: the first bundle of a new app is uploaded in the Play
+Console (the API takes uploads only once the app has one), and until the app's first release is
+published there, `scripts/publish-release.sh` needs `--draft`. The first production release cannot
+be a staged rollout, so it takes `--track production --rollout 1`; staged rollouts (the default
+0.2) work from the second production release on.
+
 ## F-Droid (maintainers)
 
 F-Droid builds the app from source with the recipe in `docs/fdroid/tv.cleanyour.app.yml` and
