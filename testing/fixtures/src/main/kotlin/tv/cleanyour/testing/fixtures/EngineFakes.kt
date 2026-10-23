@@ -69,6 +69,9 @@ class FakeEngine(
     private val states = ConcurrentHashMap<TvId, MutableStateFlow<RunState>>()
     val calls = CopyOnWriteArrayList<Call>()
     var onStart: suspend FakeEngine.(Plan) -> Unit = { finish(it, RunStatus.COMPLETED) }
+    // What abandon does after it is recorded; by default the run ends ABANDONED. A test sets it to
+    // leave the run paused, as DefaultEngine does when step R cannot put the TV's own home back.
+    var onAbandon: suspend FakeEngine.(TvId) -> Unit = { id -> planOf(flow(id).value)?.let { finish(it, RunStatus.ABANDONED) } }
 
     private fun flow(tvId: TvId) = states.computeIfAbsent(tvId) { MutableStateFlow(RunState.Idle) }
     override fun runState(tvId: TvId): StateFlow<RunState> = flow(tvId).asStateFlow()
@@ -140,7 +143,7 @@ class FakeEngine(
 
     override suspend fun abandon(tvId: TvId) {
         calls += Call.Abandon(tvId)
-        planOf(flow(tvId).value)?.let { finish(it, RunStatus.ABANDONED) }
+        onAbandon(tvId)
     }
 
     companion object {

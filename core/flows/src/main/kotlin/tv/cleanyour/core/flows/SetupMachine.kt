@@ -47,7 +47,9 @@ import tv.cleanyour.core.model.TvId
 import tv.cleanyour.core.model.WizardDraft
 import tv.cleanyour.core.planner.Choices
 import tv.cleanyour.core.planner.DefaultPlanner
+import tv.cleanyour.core.planner.FireOs
 import tv.cleanyour.core.planner.HomeSwitchRisk
+import tv.cleanyour.core.planner.TclChina
 import tv.cleanyour.core.planner.Plan
 import tv.cleanyour.core.planner.PlanKind
 import tv.cleanyour.core.planner.PlanRequest
@@ -117,6 +119,7 @@ data class SetupExtras(
     val unknownModel: Boolean = false,           // UX 2 "We found 9 things we're sure about"
     val homePossible: Boolean = true,            // UX 4.6 TV refuses other home screens
     val homeBlock: HomeBlock = HomeBlock.NONE,   // why the switch is not offered, for S3's line (RF-PROFILES-63 P1, P2)
+    val fireTv: Boolean = false,                 // issue #2: a Fire OS set, so S3's TV_REFUSES line names Fire TV, not the panel's brand
     val staleNotice: Boolean = false,            // the TV changed under the plan; a new plan is shown
     val finishing: Finishing? = null,            // D7 "Switching debugging off... done."
     val restartSlow: Boolean = false,            // UX 4.8 at 3 minutes
@@ -629,18 +632,32 @@ class SetupMachine(
     // boot loop, casting on Google's own hardware); its profile knows no stock launcher the switch
     // could hand Home back to (P2: the clean-up only, instead of a plan the planner refuses as a
     // whole); or the setup wizard has to stay on for the Wi-Fi (D3) while the switch needs it off.
+    //
+    // Issue #2: the firmware's refusal is told from the TV's own facts too (FireOs, TclChina), so an
+    // unlisted Fire TV on a brand sure set gets no install and no takeover; and without an exact
+    // profile, a TV whose HOME claimants include none of the resolution's stock launchers gets the
+    // clean-up instead of a plan the planner refuses as a whole (issue #85). The Fire TV flag is
+    // set here too, for S3's line.
     private fun homeBlock(snap: Snapshot, wifi: WizardWifi): HomeBlock {
         val f = deviceFacts ?: return HomeBlock.NONE
         val p = profile()
+        val fireOs = p?.platform == Platform.FIRE_OS || FireOs.isFireOs(f, snap)
+        mutableExtras.update { it.copy(fireTv = fireOs) }
         // Already ours (a re-run): there is no switch to skip, as in the planner's takeover.
         val ours = snap.home.resolved?.pkg == deps.launcherPin.bundled().pkg
         val risk = if (ours) null else HomeSwitchRisk.of(f, p, snap, wifi)
+        val stocks = when (val r = resolution) {
+            is ProfileResolution.BrandSureSet -> r.stockLaunchers
+            is ProfileResolution.None -> r.stockLaunchers
+            else -> null
+        }
+        val stockUnknown = !ours && stocks != null && snap.home.claimants.none { c -> stocks.any { it.pkg == c.component.pkg } }
         return when {
-            f.installRefusal || p?.platform == Platform.FIRE_OS || p?.platform == Platform.TCL_CN -> HomeBlock.TV_REFUSES
+            f.installRefusal || fireOs || p?.platform == Platform.TCL_CN || TclChina.isTclChina(f) -> HomeBlock.TV_REFUSES
             f.sdk < DefaultPlanner.TV_MIN_SDK -> HomeBlock.OLD_ANDROID
             risk == HomeSwitchRisk.Risk.BOOT_LOOP -> HomeBlock.BOOT_LOOP
             risk == HomeSwitchRisk.Risk.CASTING -> HomeBlock.CASTING
-            p != null && p.stockLaunchers.isEmpty() -> HomeBlock.UNKNOWN_HOME
+            (p != null && p.stockLaunchers.isEmpty()) || stockUnknown -> HomeBlock.UNKNOWN_HOME
             risk == HomeSwitchRisk.Risk.WIZARD_WIFI -> HomeBlock.WIZARD_WIFI
             risk == HomeSwitchRisk.Risk.WIZARD_WIFI_UNKNOWN -> HomeBlock.WIZARD_WIFI_UNKNOWN
             risk == HomeSwitchRisk.Risk.WIZARD_STAYS_ON -> HomeBlock.WIZARD_STAYS_ON
@@ -1028,10 +1045,14 @@ class SetupMachine(
     }
 
     // "Stop here" and the install failure: keep what was done, abandon the rest, show Done truthfully.
+    // The engine's abandon returns once its step R has settled (A5, issue #2): Done only when the run
+    // really ended; a run still paused (the TV's own home screen is not back) shows its card again.
     private suspend fun abandonToDone() {
         val id = tvIdOf(state.value) ?: return
         val plan = deps.engine.runState(id).value.planOrNull()
         if (!abandonRun(id, plan?.id ?: (state.value as? SetupState.Stopped)?.card?.planId)) return
+        val after = deps.engine.runState(id).value
+        if (after is RunState.Paused) { onPaused(id, after); return }
         showDone(id, plan?.let { RunState.Finished(it, RunStatus.ABANDONED, emptyList(), null) }, homeOn = false)
     }
 

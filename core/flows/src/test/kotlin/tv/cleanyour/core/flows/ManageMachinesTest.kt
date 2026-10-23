@@ -12,6 +12,8 @@ import tv.cleanyour.core.model.AdbError
 import tv.cleanyour.core.model.EnabledState
 import tv.cleanyour.core.model.PackageState
 import tv.cleanyour.core.engine.RunStatus
+import tv.cleanyour.core.engine.StartRefusal
+import tv.cleanyour.core.engine.StartResult
 import tv.cleanyour.core.model.ArtifactRef
 import tv.cleanyour.core.model.ApkInfo
 import tv.cleanyour.core.model.LauncherState
@@ -265,6 +267,29 @@ class ManageMachinesTest {
         assertEquals(1, h.credential.prompts.size)
         assertTrue(h.tvs.tvs.value.isEmpty())
         assertTrue(h.documents.paths().none { it.startsWith("tvs/${tv.id.value}") })
+    }
+
+    // Issue #2 (A5): "Forget this TV" also ends the engine's paused run for that TV, after its records
+    // and journals are gone, so a stuck setup needs no force stop and a new Setup is not RUN_OPEN.
+    @Test fun forgetThisTvClearsTheOpenRunSoANewSetupIsNotRunOpen() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val tv = h.knownTv()
+        val stuck = h.plan(listOf(Op.Disable(adPkg)), takeover = true)
+        h.engine.emit(tv.id, RunState.Paused(stuck, 1, PauseReason.STEP_FAILED, AdbError.NonZeroExit(1, "refused")))
+        var goneFirst = false
+        h.engine.onAbandon = { id ->
+            goneFirst = h.tvs.tvs.value.none { it.id == id } && h.documents.paths().none { it.startsWith("tvs/${id.value}") }
+            emit(id, RunState.Idle)
+        }
+        val m = TvSettingsMachine(h.manageDeps(), backgroundScope, tv.id)
+        settle()
+        m.dispatch(TvSettingsIntent.Forget); settle()
+        assertTrue(h.engine.calls.any { it is FakeEngine.Call.Abandon && it.tvId == tv.id })
+        assertTrue(goneFirst, "the engine is told after the record and the journals are gone")
+        assertEquals(RunState.Idle, h.engine.runState(tv.id).value)
+        val fresh = h.plan(listOf(Op.Disable(adPkg)), id = "01FAKEPLAN0000000000000002")
+        val result = h.engine.start(fresh, h.session, fresh.hash, h.credential.mint(tv.id))
+        assertTrue(result != StartResult.Refused(StartRefusal.RUN_OPEN), "$result")
     }
 
     @Test fun resetMyKeyAlwaysPromptsAndClearsPasses() = runTest(timeout = 30.seconds) {

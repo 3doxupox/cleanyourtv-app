@@ -70,6 +70,10 @@ class TvSettingsMachine(
         d.ledger.forget(tvId)
         d.gate.forget(tvId)
         d.tvs.forget(tvId)
+        // Issue #2: the engine drops its in-memory run for this TV once the journal is gone (an
+        // abandon of a forgotten run needs no TV), so a stuck setup ends here without a force stop
+        // and a new Setup is not refused RUN_OPEN. After the record is gone, so nothing reconnects.
+        attempt { d.engine.abandon(tvId) }
         send(Forgetting(false))
         effect(ManageEffect.Navigate("home"))
     }
@@ -194,6 +198,7 @@ class AppSettingsMachine(
         for (tv in d.tvs.tvs.value) {
             d.documents.deleteTree("tvs/${tv.id.value}")
             d.tvs.forget(tv.id)
+            attempt { d.engine.abandon(tv.id) }   // as in Forget this TV: the engine drops a run whose journal is gone
         }
         attempt { d.documents.deleteTree("registry") }
         attempt { d.documents.delete("settings.txt") }
