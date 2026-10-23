@@ -31,7 +31,7 @@
 # Outputs in dist/: cleanyourtv-<version>.apk, .apk.sha256, .signer-sha256.txt (as before), and
 # cleanyourtv-<version>.aab, .aab.sha256, .aab.upload-signer-sha256.txt; the evidence (unsigned
 # builds and sha256s, R8 mappings of both flavours, apksigner, check-apk and check-aab output,
-# notes) in dist/release-<version>/.
+# notes) in dist/release-<version>/ (dist/release-<version>-TESTKEY/ with --test-key).
 #
 # Keys ($CYT_SECRETS, see scripts/lib/forge.sh), overridable one by one:
 #   CYT_RELEASE_KEYSTORE           default $CYT_SECRETS/cleanyourtv-release/release.p12 (PKCS#12)
@@ -143,7 +143,10 @@ echo "==> compare the two unsigned builds of each"
 "${SSH[@]}" "cd '$REMOTE' && sha256sum a/$APK_OUT b/$APK_OUT a/$AAB_OUT b/$AAB_OUT && cmp a/$APK_OUT b/$APK_OUT && cmp a/$AAB_OUT b/$AAB_OUT" </dev/null \
   || { echo "the two clean builds differ: not reproducible, nothing signed" >&2; exit 1; }
 
+# A --test-key run keeps its evidence apart, so it never wipes the evidence of a real run (which
+# scripts/publish-release.sh reads from dist/release-<version>/).
 DEST="dist/release-$VERSION"
+[ "$TEST_KEY" = 1 ] && DEST="dist/release-$VERSION-TESTKEY"
 rm -rf "$DEST" && mkdir -p "$DEST"
 scp -q -i "$SSH_KEY" -o BatchMode=yes "$FORGE:$REMOTE/a/$APK_OUT" "$DEST/$NAME-unsigned.apk"
 scp -q -i "$SSH_KEY" -o BatchMode=yes "$FORGE:$REMOTE/a/$AAB_OUT" "$DEST/$NAME-unsigned.aab"

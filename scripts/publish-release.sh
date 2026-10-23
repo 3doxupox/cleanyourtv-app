@@ -19,10 +19,10 @@
 # matches.
 #
 # Before anything is sent, every input is checked: the tag format, the tag exists here and on
-# GitHub (the same tag object in both) and is the commit the set was built from (dist/release-X.Y.Z/NOTES.md), the version in
-# app/build.gradle.kts, the APK's checksum and signer (docs/release-signer.sha256), the AAB, the
-# notes, gh's login, and the Play inputs (play-upload.py --dry-run). --dry-run stops there and
-# makes no network call at all.
+# GitHub (the same tag object in both) and is the commit the set was built from
+# (dist/release-X.Y.Z/NOTES.md), the version in app/build.gradle.kts, the APK's checksum and signer
+# (docs/release-signer.sha256), the AAB, the notes, gh's login, and the Play inputs (play-upload.py
+# --dry-run). --dry-run stops before gh's login and the tag on GitHub, and makes no network call.
 #
 # Credentials, read only, never printed: gh's own login for GitHub; the Play service account key
 # at $CYT_SECRETS/cleanyourtv-play/service-account.json (or CYT_PLAY_SERVICE_ACCOUNT), see

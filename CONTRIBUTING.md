@@ -166,7 +166,8 @@ any other. GitHub and F-Droid get the `full` APK, Google Play the `play` AAB.
    `check-apk.py --flavour play`: the same permissions, no GitHub host, no update check). Output:
    `dist/cleanyourtv-X.Y.Z.apk` and `.aab` with their checksums, evidence in
    `dist/release-X.Y.Z/`. `--apk-only` signs the APK alone (no upload key yet); `--test-key`
-   proves the pipeline with throwaway keys.
+   proves the pipeline with throwaway keys (evidence in `dist/release-X.Y.Z-TESTKEY/`, so a real
+   run's evidence stays).
 3. Push the tag, write the GitHub notes (`dist/release-X.Y.Z/RELEASE-NOTES.md` or `--notes`),
    then `scripts/publish-release.sh vX.Y.Z` publishes: the GitHub release with the APK and its
    checksum, the AAB and the store notes to Google Play through the Play Developer API
