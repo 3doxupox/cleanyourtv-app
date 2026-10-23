@@ -502,3 +502,61 @@ Open:
   report PENDING in a full emulator session; only S06 and S09 build their real pieces themselves.
   Wire it once (the real constructors, as AppGraph builds them) so the whole suite runs, and set
   `CYT_E2E_REQUIRE_ALL=1` in the nightly job.
+
+## RF-STORES-030: the store flavours and the 0.3.0 release set (approve with must-fixes, follow-ups)
+
+Review of the full and play flavours, the release set (APK and AAB), publish-release.sh and the
+F-Droid recipe before the 0.3.0 tag. Applied on release030:
+- M1: the 0.3.0 store notes (`fastlane/.../changelogs/3.txt`) and `full_description.txt` say only
+  what is true on every channel on release day, and link the privacy policy at its github.io
+  address, which works now and redirects to the custom domain once that is set.
+  `scripts/tests/test_store_text.py` checks the store limits, the links and the wording.
+- M2: the Play build offers no "updates go off" anywhere. `StoreRules.updatesOff` (false in PLAY)
+  reaches ManageDeps; at the Custom level Switched off leaves updater rows (by name or by the
+  "Software updates" group, `ProfileCategory.isUpdater(pkg, groups)`) out of the ask groups, and
+  putting one back offers no Undo. `StoreRulesTest.thePlayBuildOffersNoUpdatesOffInSwitchedOff`,
+  golden `play_switchedoff_custom`.
+- M3: app lint writes a text report per variant (no shared `textOutput`), so the full and play
+  report copies no longer race.
+- S1: Play Setup skips an updater that an earlier full build switched off instead of listing it
+  under "We keep these" (Manage's Switched off lists it with Put back).
+  `KeepUpdatesOnTest.thePlayBuildDoesNotListAnUpdaterThatIsAlreadyOffAsKept`.
+- S2: `scripts/fdroid-check.sh` builds the `full` flavour by name; run on the merged tree, its
+  unsigned APK equals the full APK of a test-key release build of the same commit
+  (FDROID-S2-build-evidence.md, section 6).
+- S3: MERGE-REQUEST.md names the libraries' licences and the 0.3.0 run.
+- L6, L14: CONTRIBUTING has the one-time Play App Signing export (PEPK), the first upload in the
+  Console and the first production release without a staged rollout.
+- L7: publish-release.sh requires the tag on GitHub to be the same tag object as the local one
+  (`scripts/tests/test_publish_release.py`).
+- L8: a `--test-key` release run keeps its evidence in `dist/release-X.Y.Z-TESTKEY/`.
+- L12: PRIVACY.md and the site's policy say that opening Cards and modules in the GitHub and
+  F-Droid versions fetches the add-on list from GitHub.
+- L13: the store description no longer says software updates are never touched.
+
+Open (low, none blocks 0.3.0):
+- L1: the play dex still holds the four `DownloadHosts.ALL` strings and the AAB still carries the
+  seed module index (`assets/bundled/index.json`, a github.com APK URL); nothing reads either in the
+  play build and the effective host list is empty. Give the host set to the flavour (the full
+  Store owns it, `:core:trust` takes it as a parameter), move `bundled/index.json*` and `keys.json*`
+  to `app/src/full/assets` (or null the seed in play), then add "no github string in the play dex
+  or assets" to `scripts/check-apk.py`.
+- L2: an open ADD_MODULE run left by a full build would resume in the play build after an app
+  switch mid run. On resume, end (not run) an ADD_MODULE plan when the build has no add-ons.
+- L3: add-ons installed by a full build cannot be removed from the play build (Cards and modules is
+  hidden). Show installed add-ons for removal only in play, or document "remove add-ons first".
+- L4: on Android 14 and newer, installing the GitHub APK over a Play install can show Android's
+  "update from this source?" prompt (update ownership). One line in the README's install notes.
+- L5: `play-upload.py publish()` (the live API sequence) has no test. Add one with a fake
+  `urlopen`: the five calls in order, delete on a failed track update, no delete after a commit.
+- L9: `check-installed.sh` with `CYT_FLAVOUR=play` runs the APK scheme checks (v2, v3, v1 off) on
+  a Play-signed base APK; Play's signing may not add v3. For play, check the signer certificate
+  against `docs/release-signer.sha256` instead of the schemes.
+- L10: CI names the unsigned bundle `$NAME-play-unsigned.aab`, release-on-forge `$NAME-unsigned.aab`;
+  align them.
+- L11: the permission for the name and package IDs is linked from this repository's README; a short
+  line by the upstream author himself (also confirming the aurora wallpaper licence) would settle
+  both for F-Droid's reviewers.
+- L15: code and docs cite the store plan's sections and decisions (D2, D3), which are not in the
+  repository; add a short DECISIONS entry (store flavours, keepUpdatesOn, one signing key and why)
+  so those references resolve.
