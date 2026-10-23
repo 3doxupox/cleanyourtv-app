@@ -23,6 +23,7 @@ import tv.cleanyour.core.flows.DoneSummary
 import tv.cleanyour.core.flows.HomeBlock
 import tv.cleanyour.core.flows.Finishing
 import tv.cleanyour.core.flows.NoSetupActions
+import tv.cleanyour.core.flows.NothingWhy
 import tv.cleanyour.core.flows.Reconnect
 import tv.cleanyour.core.flows.RestartState
 import tv.cleanyour.core.flows.SetupExtras
@@ -420,6 +421,9 @@ object SetupShots {
         // Issue #15: nothing to switch off and no home switch, on a TV we know and on one we don't.
         Shot("done_nothing_changed") { Setup(done(off = 0, home = false, recommended = true), connected.copy(doneNothing = true)) },
         Shot("done_nothing_changed_unknown") { Setup(done(off = 0, home = false, recommended = true), connected.copy(doneNothing = true, unknownModel = true)) },
+        // 0.3.3: every switch-off stayed on (issue #10 on a TV without an exact list), and Stop here before anything changed.
+        Shot("done_nothing_kept_on") { Setup(done(off = 0, home = false, skipped = listOf("PatchWall"), recommended = true), connected.copy(doneNothing = true, doneNothingWhy = NothingWhy.KEPT_ON, unknownModel = true)) },
+        Shot("done_nothing_stopped") { Setup(done(off = 0, home = false, recommended = true), connected.copy(doneNothing = true, doneNothingWhy = NothingWhy.STOPPED)) },
         Shot("done_restarting") { Setup(done(restart = RestartState.Restarting(NOW))) },
         Shot("done_restarting_slow") { Setup(done(restart = RestartState.Restarting(NOW)), connected.copy(restartSlow = true)) },
         Shot("done_back_after_restart") { Setup(done(restart = RestartState.Back(72_000)), connected.copy(restartReenabled = 2)) },

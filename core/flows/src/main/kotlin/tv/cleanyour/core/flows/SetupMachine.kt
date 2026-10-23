@@ -100,6 +100,11 @@ enum class Finishing { SWITCHING, DONE }
 enum class HomeBlock { NONE, TV_REFUSES, OLD_ANDROID, UNKNOWN_HOME, WIZARD_WIFI, WIZARD_WIFI_UNKNOWN, CASTING, BOOT_LOOP,
     WIZARD_STAYS_ON, HOME_CHANGED }
 
+// Why a run changed nothing, for Done's body (0.3.3): nothing was planned to switch off (on a TV
+// without an exact list, nothing we were sure about), every planned switch-off stayed on (the TV
+// kept it, or the live check did), or the run was stopped before anything changed.
+enum class NothingWhy { NOTHING_PLANNED, KEPT_ON, STOPPED }
+
 // Presentation details the frozen SetupState has no field for (RFC-W8-2). Never a source of truth:
 // everything here is derived from the state, the plan, the draft or a live call.
 data class SetupExtras(
@@ -130,6 +135,7 @@ data class SetupExtras(
     val doneLines: List<String> = emptyList(),   // refused ops named on Done (UX 4.14)
     val doneKept: List<String> = emptyList(),    // RF-LAUNCHER-250 F1: switch-offs kept because they run the TV's inputs
     val doneNothing: Boolean = false,            // 0.3.3 (issue #15): the run changed nothing on the TV, so Done says so
+    val doneNothingWhy: NothingWhy = NothingWhy.NOTHING_PLANNED,   // which "nothing was changed" body Done shows
     val restorePointPushed: Boolean = false,     // D44
     val dock: List<AppChoice> = emptyList(),     // D4 row and the dock sheet (S3b): the dock, then Row 2 and Row 3
     val apps: List<AppChoice> = emptyList(),     // installed apps for the dock sheet
@@ -936,9 +942,15 @@ class SetupMachine(
         val plan = f?.plan ?: setupPlan
         val progress = plan?.let { deps.ledger.progress(it.id) }
         val skipped = f?.skipped.orEmpty()
+        val planned = plan?.steps.orEmpty().filter { it.op is Op.Disable }
+        // A run that finished by itself and left no Done in the ledger counts its plan less its
+        // skips. "Stop here" (the run abandoned) counts only what the ledger shows: with no step
+        // done, nothing was switched off, whatever the plan said.
+        val stopped = f == null || f.status == RunStatus.ABANDONED
         val off = when {
             progress != null && progress.doneSteps > 0 -> progress.doneDisables
-            plan != null -> plan.steps.count { it.op is Op.Disable } - skipped.count { it.op is Op.Disable }
+            stopped -> 0
+            plan != null -> planned.size - skipped.count { it.op is Op.Disable }
             else -> 0
         }
         // RF-LAUNCHER-250 F1: a package the live check kept because it runs the TV's inputs gets its
@@ -965,10 +977,21 @@ class SetupMachine(
         setupHome?.takeIf { (pushedDigest, _) -> pushedDigest == digest }?.let { (_, choice) ->
             deps.homePrefs?.let { prefs -> attempt { prefs.save(tvId, choice) } }
         }
-        // Issue #15: nothing switched off, no new home screen and no other change of this run (the
-        // TV curtain comes and goes, so it does not count): Done says plainly that nothing changed.
-        val changed = plan != null && deps.ledger.changes(tvId).any { c -> c.planId == plan.id && plan.steps.getOrNull(c.step)?.group != DefaultPlanner.GROUP_CURTAIN }
-        mutableExtras.update { it.copy(doneLines = skippedNames, doneKept = keptNames, doneNothing = off == 0 && !homeOn && !changed) }
+        // Issue #15: nothing switched off, no new home screen and no other change of this run: Done
+        // says plainly that nothing changed. The TV curtain comes and goes, so it does not count,
+        // unless this run installed it and its removal did not go through: it is still on the TV.
+        val mine = plan?.let { pl -> deps.ledger.changes(tvId).filter { it.planId == pl.id } }.orEmpty()
+        fun curtain(step: Int) = plan?.steps?.getOrNull(step)?.group == DefaultPlanner.GROUP_CURTAIN
+        val curtainRemoval = plan?.steps?.lastOrNull { it.group == DefaultPlanner.GROUP_CURTAIN && it.op is Op.Uninstall }
+        val curtainInstalled = mine.any { curtain(it.step) && (it.op is Op.Install || it.op is Op.InstallStream) }
+        val curtainLeft = curtainInstalled && (curtainRemoval == null || mine.none { it.step == curtainRemoval.index })
+        val changed = mine.any { !curtain(it.step) } || curtainLeft
+        val why = when {
+            planned.isEmpty() -> NothingWhy.NOTHING_PLANNED
+            planned.all { p -> skipped.any { it.index == p.index } } -> NothingWhy.KEPT_ON
+            else -> NothingWhy.STOPPED
+        }
+        mutableExtras.update { it.copy(doneLines = skippedNames, doneKept = keptNames, doneNothing = off == 0 && !homeOn && !changed, doneNothingWhy = why) }
         send(Ev.ShowDone(tvId, DoneSummary(off, homeOn, restorePointAt, skippedNames, recommended)))
         session?.let { s -> mutableExtras.update { it.copy(restorePointPushed = deps.restorePoint.write(done, s, p)) } }
     }

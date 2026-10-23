@@ -42,6 +42,7 @@ import tv.cleanyour.core.flows.ChipState
 import tv.cleanyour.core.flows.Confirmations
 import tv.cleanyour.core.flows.Finishing
 import tv.cleanyour.core.flows.HomeBlock
+import tv.cleanyour.core.flows.NothingWhy
 import tv.cleanyour.core.flows.Reconnect
 import tv.cleanyour.core.flows.RestartState
 import tv.cleanyour.core.flows.SetupActions
@@ -599,7 +600,13 @@ fun DoneScreen(state: SetupState.Done, extras: SetupExtras, actions: SetupAction
         val nothing = extras.doneNothing
         ScreenTitle(stringResource(if (nothing) R.string.done_title_nothing else R.string.done_title), Modifier.padding(top = 22.dp), size = TitleSize.DISPLAY)
         val lead = when {
-            nothing -> stringResource(if (extras.unknownModel) R.string.done_body_nothing_unknown else R.string.done_body_nothing)
+            // "We weren't sure about anything" only when nothing was planned on a TV without an exact list.
+            nothing -> stringResource(when {
+                extras.doneNothingWhy == NothingWhy.KEPT_ON -> R.string.done_body_nothing_kept
+                extras.doneNothingWhy == NothingWhy.STOPPED -> R.string.done_body_nothing_stopped
+                extras.unknownModel -> R.string.done_body_nothing_unknown
+                else -> R.string.done_body_nothing
+            })
             s.homeScreenOn -> msg(R.string.done_body, "count" to s.switchedOff)
             else -> msg(R.string.done_body_no_home, "count" to s.switchedOff)
         }
