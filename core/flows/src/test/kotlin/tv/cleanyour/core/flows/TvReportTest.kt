@@ -114,6 +114,34 @@ class TvReportTest {
         assertTrue("Other apps: 2 (not named)" in text)
     }
 
+    // A launcher the person installed (Projectivy here) that claims HOME and is what HOME resolves to is
+    // never named, in the TV report or the problem report; the factory's own claimants and the
+    // launcher this app installs still are.
+    @Test fun aLauncherThePersonInstalledIsNeverNamed() {
+        val projectivy = Component(PackageName("com.spocky.projengmenu"), ".ui.home.MainActivity")
+        val pkgs = packages + mapOf(projectivy.pkg to pkg(EnabledState.ENABLED, false), Launcher.pkg to pkg(EnabledState.ENABLED, false))
+        val home = HomeResolution(projectivy, listOf(HomeClaimant(wraith, 1), HomeClaimant(projectivy, 3), HomeClaimant(launcherx, 2), HomeClaimant(Launcher.home, 3)))
+        val s = snapshot(pkgs = pkgs).copy(home = home)
+        val text = TvReport.text(input(s))
+        val problem = TvReport.problem(about, input(s), "log")
+        for (out in listOf(text, problem)) {
+            assertFalse("projengmenu" in out, out)
+            assertTrue("Resolves to: an app you installed (not named)\n" in out, out)
+            assertTrue(
+                "Claimant: com.gathin.tvhome/.MainActivity priority 3\n" +
+                    "Claimant: an app you installed (not named) priority 3\n" +
+                    "Claimant: com.google.android.apps.tv.launcherx/.home.HomeActivity priority 2\n" +
+                    "Claimant: com.google.android.tungsten.setupwraith/.SetupWraithActivity priority 1\n" in out,
+                out,
+            )
+        }
+        // A HOME package the probe never listed counts as the person's too.
+        val unknown = Component(PackageName("ca.dstudio.atvlauncher.free"), ".MainActivity")
+        val t2 = TvReport.text(input(snapshot().copy(home = HomeResolution(unknown, listOf(HomeClaimant(unknown, 1))))))
+        assertFalse("atvlauncher" in t2, t2)
+        assertTrue("Claimant: an app you installed (not named) priority 1" in t2, t2)
+    }
+
     // Never the serial, the TV id (derived from it), the TV's name for itself, its inputs, labels or
     // an address, in the report or in the link.
     @Test fun noPersonalValueIsInTheReportOrTheLink() {

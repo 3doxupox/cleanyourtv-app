@@ -12,7 +12,7 @@ import tv.cleanyour.core.model.TvId
 import tv.cleanyour.core.spec.ProfileResolution
 import tv.cleanyour.core.store.DocumentStore
 
-// 0.3.2 B1 and B2 (ISSUES-032-PLAN): the plain text reports a person can post on GitHub or send
+// 0.3.2: the plain text reports a person can post on GitHub or send
 // themselves, built from what this phone already stored (the probe snapshot), so no TV connection is
 // needed. The app itself sends nothing: the preview screen copies or shares the text, and opens the
 // issue form in the browser only when the person taps it.
@@ -24,8 +24,9 @@ import tv.cleanyour.core.store.DocumentStore
 // (DeviceFacts.serialLast4), its id (TvId is derived from the serial), its name and room, every
 // address, the saved Wi-Fi, the settings the probe read (device_name is the person's own words),
 // the input names, the key and every code. Apps the person installed are only counted: their names
-// say something about the person, the factory's system apps do not. A package whose system flag the
-// probe could not read counts as the person's (the safe side).
+// say something about the person, the factory's system apps do not. That holds for the HOME lines
+// too: a launcher the person installed is named only as "an app you installed". A package whose
+// system flag the probe could not read counts as the person's (the safe side).
 //
 // The text is English on purpose: it is for the maintainers, and a fixed shape keeps it easy to
 // read and to compare. Sections and lines keep a fixed order (packages by name, claimants by
@@ -140,10 +141,16 @@ object TvReport {
         appendLine("Home switch: ${input.home?.line?.removePrefix("home switch ") ?: "not recorded"}")
         appendLine()
         appendLine("Home screen")
-        appendLine("Resolves to: ${s.home.resolved?.flat ?: "nothing (or the chooser)"}")
-        val claimants = s.home.claimants.sortedWith(compareByDescending<tv.cleanyour.core.model.HomeClaimant> { it.priority }.thenBy { it.component.flat })
+        appendLine("Resolves to: ${s.home.resolved?.let { named(s, it) } ?: "nothing (or the chooser)"}")
+        // Named ones first by priority and name, then the person's own apps by priority only, so the
+        // order never depends on a name the report leaves out.
+        val claimants = s.home.claimants.sortedWith(
+            compareByDescending<tv.cleanyour.core.model.HomeClaimant> { it.priority }
+                .thenBy { if (nameable(s, it.component.pkg)) 0 else 1 }
+                .thenBy { if (nameable(s, it.component.pkg)) it.component.flat else "" },
+        )
         if (claimants.isEmpty()) appendLine("Claimants: none")
-        for (c in claimants) appendLine("Claimant: ${c.component.flat} priority ${c.priority}")
+        for (c in claimants) appendLine("Claimant: ${named(s, c.component)} priority ${c.priority}")
         val system = s.packages.filter { it.value.system }.toSortedMap(compareBy { it.value })
         val others = s.packages.size - system.size
         appendLine()
@@ -159,6 +166,15 @@ object TvReport {
             appendLine("Apps: ${system.size} system, $others other")
         }
     }
+
+    // A HOME activity is named only when it belongs to a system package the probe read as one, or to
+    // the launcher this app installs. Any other launcher (Projectivy, Wolf and the like) is an app the
+    // person chose, so it stays unnamed like every other app of theirs.
+    const val NOT_NAMED = "an app you installed (not named)"
+
+    private fun nameable(s: Snapshot, pkg: PackageName): Boolean = pkg == Launcher.pkg || s.packages[pkg]?.system == true
+
+    private fun named(s: Snapshot, c: tv.cleanyour.core.model.Component): String = if (nameable(s, c.pkg)) c.flat else NOT_NAMED
 
     private fun state(e: EnabledState): String = when (e) {
         EnabledState.ENABLED -> "enabled"

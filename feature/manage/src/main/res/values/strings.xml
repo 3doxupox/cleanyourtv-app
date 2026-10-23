@@ -178,7 +178,7 @@
     <string name="report_tv_title">Help add this TV</string>
     <string name="report_tv_body">This report says what this TV is and which apps it came with, so we can make a list for it. Apps you installed yourself are only counted, never named.</string>
     <string name="report_problem_title">Report a problem</string>
-    <string name="report_problem_body">This report has the steps we ran and a short summary of the TV, as plain text. Addresses, serial numbers, keys and codes are removed first.</string>
+    <string name="report_problem_body">This report has the steps we ran and a short summary of the TV, as plain text. Addresses, serial numbers, keys and codes are removed first. The steps can name apps we switched off or tried to.</string>
     <string name="report_public">This is public if you post it on GitHub. The app sends nothing itself: you choose where it goes.</string>
     <string name="report_preview_label">The report</string>
     <string name="report_paste_hint">We copy the report, then open the form on GitHub. Paste it into the box that asks for it.</string>
