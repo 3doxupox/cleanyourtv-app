@@ -95,9 +95,14 @@ class ModulesMachine(
     private data class Showing(val id: String?)
     private var detectJob: Job? = null
 
+    // STORES-PLAN 1: the Play build has no add-ons. Nothing leads here then (Manage and Done hide
+    // their rows); should anything still open it, the list is not refreshed and nothing is added
+    // or updated.
+    private val addOns = d.store.addOns
+
     init {
         scope.launch { d.registry.index.collect { load() } }
-        scope.launch { if (d.registry.index.value is IndexState.Empty) attempt { d.registry.refresh() } }
+        if (addOns) scope.launch { if (d.registry.index.value is IndexState.Empty) attempt { d.registry.refresh() } }
     }
 
     override fun reduce(state: ModulesState, event: Any): ModulesState = when (event) {
@@ -118,10 +123,10 @@ class ModulesMachine(
     override fun handle(event: Any, before: ModulesState, after: ModulesState) {
         val installing = before.install.let { it != null && it !is InstallStep.Shown && it !is InstallStep.Hidden && it !is InstallStep.Failed }
         when (event) {
-            ModulesIntent.Refresh -> scope.launch { attempt { d.registry.refresh() } }
-            is ModulesIntent.Add -> if (!installing) scope.launch { install(event.id) }
-            is ModulesIntent.Update -> if (!installing) scope.launch { update(event.id) }
-            ModulesIntent.ConfirmUpdate -> before.consent?.let { c -> send(Consent(null)); scope.launch { install(c.moduleId) } }
+            ModulesIntent.Refresh -> if (addOns) scope.launch { attempt { d.registry.refresh() } }
+            is ModulesIntent.Add -> if (addOns && !installing) scope.launch { install(event.id) }
+            is ModulesIntent.Update -> if (addOns && !installing) scope.launch { update(event.id) }
+            ModulesIntent.ConfirmUpdate -> if (addOns) before.consent?.let { c -> send(Consent(null)); scope.launch { install(c.moduleId) } }
             is ModulesIntent.Remove -> if (before.removing == null) scope.launch { remove(event.id) }
             is ModulesIntent.ShowCard -> if (!installing && before.removing == null && before.showing == null) scope.launch { showCard(event.id) }
             is ModulesIntent.Answered -> answered(event.answer)
