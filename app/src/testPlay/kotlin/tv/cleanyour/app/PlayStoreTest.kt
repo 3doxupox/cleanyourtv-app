@@ -2,6 +2,7 @@ package tv.cleanyour.app
 
 import android.app.Application
 import android.os.Looper
+import androidx.navigation3.runtime.NavKey
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -94,6 +95,28 @@ class PlayStoreTest {
         idle()
         assertFalse(manage.state.value.addOns)
         assertFalse(g.setupDeps.store.addOns)
+    }
+
+    // F-Droid Inclusion Policy (security 5): the add-on page says, before the first download, that
+    // add-ons come from their authors' GitHub releases outside any app store. The Play build has no
+    // add-ons, so no screen that carries that line can open: no route reaches the modules screens,
+    // Done offers no "Add a card" and Manage no "Cards and modules".
+    @Test fun theAddOnNoticeIsNeverShown() {
+        assertTrue(context.getString(tv.cleanyour.feature.modules.R.string.module_outside_store).contains("F-Droid"))
+        val tv = "0123456789abcdef"
+        for (start in listOf<NavKey>(Dest.Manage(tv), Dest.Setup(tv))) {
+            val stack = mutableListOf(start)
+            for (route in listOf("modules/$tv", "modules")) {
+                assertTrue(applyRoute(stack, route, noTvs = false), route)
+                assertEquals(listOf(start), stack, route)
+            }
+        }
+        val g = graph()
+        assertFalse(g.store.rules.addOns)
+        assertFalse(g.setupDeps.store.addOns)
+        val manage = g.manage(g.scope, null)
+        idle()
+        assertFalse(manage.state.value.addOns)
     }
 
     @Test fun noGithubHostIsReachable() = runBlocking {

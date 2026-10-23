@@ -81,6 +81,8 @@
     <string name="module_report">Report a problem</string>
     <string name="module_hero_badge">Its card on your TV</string>
     <string name="module_add">Add to {tv}</string>
+    <!-- Shown before the first add-on download (F-Droid Inclusion Policy, security item 5). -->
+    <string name="module_outside_store">Add-ons are downloaded from their authors\' GitHub releases, outside any app store, and are not built or checked by F-Droid.</string>
     <string name="module_add_turns_cards_on">Adding it turns cards on for this TV\'s home screen; the TV asks before the card shows.</string>
     <string name="module_paused_reason">Paused by the maintainers: {reason}</string>
     <string name="module_install_adding">Adding {name}...</string>

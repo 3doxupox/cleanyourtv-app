@@ -260,6 +260,10 @@ internal fun DetailScreen(d: ModuleDetail, tvName: String, onIntent: (ModulesInt
             badge = if (m.type == "card") stringResource(R.string.module_hero_badge) else null)
         ScreenTitle(m.name, Modifier.padding(top = 16.dp))
         Body(m.description, Modifier.padding(top = 4.dp))
+        // F-Droid Inclusion Policy (security 5): before the first download, say where add-ons come
+        // from. Back declines with one tap, as Add accepts with one, and nothing downloads before
+        // the credential prompt that follows Add.
+        if (!paused && !d.installed) Body(stringResource(R.string.module_outside_store), Modifier.padding(top = 8.dp))
         // RFC-CARDS-1: the add's plan also turns the TV's cards on; say so before the person taps it.
         if (cardsOff && !paused && !d.installed) Body(stringResource(R.string.module_add_turns_cards_on), Modifier.padding(top = 8.dp), color = c.textPrimary)
         FlowRow(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
