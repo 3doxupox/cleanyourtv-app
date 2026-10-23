@@ -2,6 +2,20 @@
 
 All notable changes to the app. Versions follow [semantic versioning](https://semver.org/).
 
+## 0.3.0 (unreleased)
+
+### Google Play, F-Droid and GitHub
+- The app now comes in two builds from the same code, with the same app ID, version and signing
+  key, so an install from one channel updates from another: the GitHub and F-Droid build, as
+  before, and a Google Play build.
+- The Google Play build is updated by Google Play, so it has no "Check for updates". It downloads
+  no add-ons (Cards and modules and Done's "Add a card" are not shown), makes no internet request
+  of its own, and always keeps the TV's software updaters on: they are listed under "We keep
+  these" instead of being a choice in Customise. Everything else is the same.
+- One release now builds both reproducibly: the APK for GitHub and F-Droid and the bundle for
+  Google Play, each built twice and compared byte for byte, and checked for the same permissions
+  and, in the Play bundle, no GitHub host and no update check.
+
 ## 0.2.0 (2026-10-21)
 
 Launcher 2.5 and 42 more TV lists (131 in all), with stricter safety: the home screen switch is
