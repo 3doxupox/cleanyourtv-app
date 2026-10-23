@@ -1084,13 +1084,18 @@ class SetupMachineTest {
             val h = Harness()
             h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
             h.prober.facts = c.facts
+            val profile = c.profile?.let { assertNotNull(shipped[it], it) }   // as shipped: the streamer and kalley-43g200 list no stock home
+            // The profile's own stock home answers Home (issue #8: a TV whose stock home is not a
+            // claimant gets the clean-up alone, UNKNOWN_HOME, before any of these risks).
+            val stock = profile?.stockLaunchers?.firstOrNull() ?: Samples.stockLauncher
             h.prober.snapshotFor = { r ->
                 Samples.miTvSnapshot(reason = r).let { s ->
-                    if (c.wizardOn) s.copy(packages = s.packages + (wizard to tv.cleanyour.core.model.PackageState(tv.cleanyour.core.model.EnabledState.ENABLED, true, 1, null, false, false, null, false)))
-                    else s.copy(packages = s.packages - wizard)
+                    val withStock = s.copy(packages = s.packages + (stock.pkg to tv.cleanyour.core.model.PackageState(tv.cleanyour.core.model.EnabledState.ENABLED, true, 1, null, false, false, null, false)),
+                        home = tv.cleanyour.core.model.HomeResolution(stock, listOf(tv.cleanyour.core.model.HomeClaimant(stock, 2))))
+                    if (c.wizardOn) withStock.copy(packages = withStock.packages + (wizard to tv.cleanyour.core.model.PackageState(tv.cleanyour.core.model.EnabledState.ENABLED, true, 1, null, false, false, null, false)))
+                    else withStock.copy(packages = withStock.packages - wizard)
                 }.let { it.copy(contentHash = tv.cleanyour.core.store.SnapshotCodec.hash(it)) }
             }
-            val profile = c.profile?.let { assertNotNull(shipped[it], it) }   // as shipped: the streamer and kalley-43g200 list no stock home
             h.profiles.resolver = { _, _ -> profile?.let { tv.cleanyour.core.spec.ProfileResolution.Exact(it) } ?: tv.cleanyour.core.spec.ProfileResolution.None(listOf(Samples.stockLauncher)) }
             val m = SetupMachine(h.setupDeps(savedWifi = { c.wifi }), backgroundScope, SetupStart.Fresh)
             toFound(h, m)
@@ -1244,4 +1249,50 @@ class SetupMachineTest {
         assertEquals(StopCase.STEP_FAILED, assertIs<SetupState.Stopped>(m.state.value).card.case)
         assertEquals(2, h.logLines.count { it.startsWith("setup: run paused") }, h.logLines.joinToString("\n"))
     }
+
+    // Issue #8 (TCL G07, exact profile tcl-g07-google-tv): launcherx, the profile's stock home, is
+    // switched off and Home answers to a launcher the person installed. 0.3.2 asked the planner for
+    // the switch, the planner found no stock home among the claimants and refused the whole plan
+    // ("plan refused" after every probe). Now the wizard asks the planner's StockHome first: the
+    // home screen was already changed, so S3 says so and the real planner makes the clean-up alone.
+    @Test fun issue8AHomeScreenAlreadyChangedGetsTheCleanUpAlone() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+        h.prober.facts = tv.cleanyour.testing.fixtures.Issue033.g07Facts()
+        h.prober.snapshotFor = { r -> tv.cleanyour.testing.fixtures.Issue033.g07Snapshot(r) }
+        val source = tv.cleanyour.core.spec.BundledProfileSource()
+        h.profiles.resolver = { f, _ -> source.resolveNow(f) }
+        val planner = tv.cleanyour.core.planner.DefaultPlanner(h.clock, tv.cleanyour.testing.fixtures.FakeIdGen(), tv.cleanyour.core.ops.ShellRenderer(),
+            tv.cleanyour.testing.fixtures.FakeConfigTransport(), "0.3.3")
+        h.planner.respond = { request, snap -> planner.plan(request, snap, h.facts, emptyList()) }
+        val m = h.setup(backgroundScope)
+        toFound(h, m)
+        val found = assertIs<SetupState.Found>(m.state.value, h.logLines.joinToString("\n"))
+        assertEquals(HomeBlock.HOME_CHANGED, m.extras.value.homeBlock)
+        assertFalse(m.extras.value.homePossible)
+        val setup = h.planner.requests.filterIsInstance<PlanRequest.Setup>().last()
+        assertIs<tv.cleanyour.core.spec.ProfileResolution.Exact>(setup.resolution)
+        assertFalse(setup.choices.takeover)
+        assertFalse(setup.choices.installLauncher)
+        assertTrue(found.plan.sections.isEmpty())
+        assertTrue(found.plan.steps.none { it.op == Op.Disable(tv.cleanyour.testing.fixtures.Issue033.personsLauncher.pkg) })
+        assertTrue(h.logLines.none { it == "setup: plan refused" }, h.logLines.joinToString("\n"))
+        assertTrue(h.logLines.any { it == "setup: home switch blocked HOME_CHANGED" }, h.logLines.joinToString("\n"))
+        // The same TV with launcherx still a claimant gets the switch as before.
+        val h2 = Harness()
+        h2.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+        h2.prober.facts = tv.cleanyour.testing.fixtures.Issue033.g07Facts()
+        val lx = tv.cleanyour.testing.fixtures.Issue033.launcherx
+        h2.prober.snapshotFor = { r ->
+            tv.cleanyour.testing.fixtures.Issue033.g07Snapshot(r).let { snap ->
+                snap.copy(packages = snap.packages + (lx.pkg to snap.packages.getValue(lx.pkg).copy(enabled = tv.cleanyour.core.model.EnabledState.ENABLED)),
+                    home = tv.cleanyour.core.model.HomeResolution(lx, listOf(tv.cleanyour.core.model.HomeClaimant(lx, 2)) + snap.home.claimants))
+            }
+        }
+        h2.profiles.resolver = { f, _ -> source.resolveNow(f) }
+        val m2 = SetupMachine(h2.setupDeps(savedWifi = { tv.cleanyour.core.probe.SavedWifi(listed = true, networks = 1, owners = setOf("android.uid.system:1000")) }), backgroundScope)
+        toFound(h2, m2)
+        assertEquals(HomeBlock.NONE, m2.extras.value.homeBlock)
+    }
+
 }

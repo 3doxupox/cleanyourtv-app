@@ -257,6 +257,8 @@ object SetupShots {
         // RF-PROFILES-63 P1 and P2: Android 7 (the clean-up only), and a profile with no known stock home.
         Shot("found_home_old_android") { Setup(found(noHomePlan), connected.copy(tvName = "Sony KD-55X8509C", homePossible = false, homeBlock = HomeBlock.OLD_ANDROID)) },
         Shot("found_home_unknown_stock") { Setup(found(noHomePlan), connected.copy(tvName = "Mi TV ASTP1", homePossible = false, homeBlock = HomeBlock.UNKNOWN_HOME)) },
+        // Issue #8: Home answers to a launcher the person installed; the TV's own home screen is off.
+        Shot("found_home_changed") { Setup(found(noHomePlan), connected.copy(tvName = "TCL Smart TV", homePossible = false, homeBlock = HomeBlock.HOME_CHANGED)) },
         Shot("found_starting") { Setup(found(), connected.copy(starting = true)) },
         // D36 (RF-LAUNCHER-240 F1): the plan replaces a home screen app signed with another key.
         Shot("found_replaces_launcher") { Setup(found(fullPlan.copy(summary = fullPlan.summary.copy(replacesLauncher = true)))) },

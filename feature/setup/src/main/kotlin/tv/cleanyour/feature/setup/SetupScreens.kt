@@ -225,6 +225,7 @@ fun FoundScreen(
             val line = when (extras.homeBlock) {
                 HomeBlock.OLD_ANDROID -> stringResource(R.string.found_home_old_android)
                 HomeBlock.UNKNOWN_HOME -> stringResource(R.string.found_home_unknown_stock)
+                HomeBlock.HOME_CHANGED -> stringResource(R.string.found_home_changed)
                 HomeBlock.WIZARD_WIFI -> stringResource(R.string.found_home_wizard_wifi)
                 HomeBlock.WIZARD_WIFI_UNKNOWN -> stringResource(R.string.found_home_wizard_wifi_unknown)
                 HomeBlock.CASTING -> stringResource(R.string.found_home_casting)
