@@ -165,8 +165,7 @@ class DefaultPlanner(
         }
 
         // keepUpdatesOn: a software updater by its name (D22) or by its profile group.
-        fun keptUpdater(pkg: PackageName, groups: List<PackageGroup>): Boolean = keepUpdatesOn &&
-            (ProfileCategory.isUpdater(pkg) || groups.any { g -> g.id == ProfileCategory.UPDATES.id && g.packages.any { it.name == pkg } })
+        fun keptUpdater(pkg: PackageName, groups: List<PackageGroup>): Boolean = keepUpdatesOn && ProfileCategory.isUpdater(pkg, groups)
 
         // The TV's current HOME, whatever it is (R5-W4 O5: PatchWall on an unknown Xiaomi), and every
         // other HOME claimant: switched off only inside the home screen switch, never by a plain
@@ -210,8 +209,11 @@ class DefaultPlanner(
                         GroupDefault.ASK, GroupDefault.KEEP -> pkg in choices.extraOff && pkg !in choices.kept
                     }
                     // Already asleep: nothing to switch off and nothing to keep, so the row would
-                    // only make S3 count what the plan never does (emulator run, round 3).
-                    if (why == null && isOff(pkg)) continue
+                    // only make S3 count what the plan never does (emulator run, round 3). The same
+                    // for an updater keepUpdatesOn protects that is off already (an earlier full
+                    // build switched it off): "We keep these" would be untrue, and Manage's Switched
+                    // off still lists it with Put back (RF-STORES-030 S1).
+                    if ((why == null || why == REASON_UPDATES) && isOff(pkg)) continue
                     val off = why == null && wanted
                     rows += RowSummary(pkg, name(pkg), description(pkg), off, why != null, why)
                     if (off) { disable(pkg, group.id); disabled++ }

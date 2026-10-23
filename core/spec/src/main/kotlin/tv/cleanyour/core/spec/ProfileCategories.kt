@@ -2,6 +2,7 @@ package tv.cleanyour.core.spec
 
 import tv.cleanyour.core.model.Component
 import tv.cleanyour.core.model.GroupDefault
+import tv.cleanyour.core.model.PackageGroup
 import tv.cleanyour.core.model.PackageName
 
 // The fixed set of plan groups every converted profile uses, in the order the plan shows them
@@ -67,6 +68,12 @@ enum class ProfileCategory(val id: String, private val title: String, private va
         // D22: a firmware updater is a "Software updates" row wherever upstream filed it.
         private val UPDATER_SEGMENT = Regex("^(update|updates|updater|updateservice|upgrade|remoteupgrade|ota|fota|usbota|systemupdate|otaupdate)$", RegexOption.IGNORE_CASE)
         fun isUpdater(pkg: PackageName): Boolean = pkg.value.split('.').drop(1).any { UPDATER_SEGMENT.matches(it) }
+
+        // A software updater by its name, or by its place in a profile's "Software updates" group:
+        // the rows the Google Play build always keeps on (the planner's keepUpdatesOn, and the
+        // Switched off screen, which then offers no Off pill for them).
+        fun isUpdater(pkg: PackageName, groups: List<PackageGroup>): Boolean =
+            isUpdater(pkg) || groups.any { g -> g.id == UPDATES.id && g.packages.any { it.name == pkg } }
     }
 }
 

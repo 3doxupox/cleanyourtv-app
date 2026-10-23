@@ -63,6 +63,20 @@ class KeepUpdatesOnTest {
         assertEquals(disabled(full), disabled(p))
     }
 
+    @Test fun thePlayBuildDoesNotListAnUpdaterThatIsAlreadyOffAsKept() {
+        // RF-STORES-030 S1: an earlier full build switched ota off. The Play build's Setup neither
+        // switches it back on nor lists it under "We keep these" (it is not kept, it is off);
+        // Manage's Switched off lists it with Put back. helper, still on, is kept and says why.
+        val off = on.copy(enabled = EnabledState.DISABLED_USER)
+        val asleep = snapshot(disabled = setOf(ota.value), extra = mapOf(ota to off, helper to on, fota to on))
+        val p = plan(setup(profile = prof, choices = choices(extraOff = setOf(ota, helper))), asleep, planner = planner(true))
+        val rows = p.summary.groups.first { it.id == "updates" }.rows
+        assertEquals(listOf(helper), rows.map { it.pkg })
+        assertTrue(rows.single().protected && rows.single().whyProtected == DefaultPlanner.REASON_UPDATES)
+        assertTrue(p.steps.none { DefaultPlanner.packageOf(it.op) == ota }, p.steps.toString())
+        assertTrue(p.summary.groups.none { g -> g.rows.any { it.pkg == ota } })
+    }
+
     @Test fun thePlayBuildRefusesToSwitchAnUpdaterOffAndLeavesOneThatCameBack() {
         val refused = planner(true).plan(PlanRequest.SwitchOff(setOf(ota)), snap, PlannerFixtures.facts, emptyList())
         assertTrue(refused is PlanResult.Refused && refused.reasons.single().contains(DefaultPlanner.REASON_UPDATES), refused.toString())
