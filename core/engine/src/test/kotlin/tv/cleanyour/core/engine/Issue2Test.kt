@@ -10,8 +10,10 @@ import tv.cleanyour.core.model.HomeResolution
 import tv.cleanyour.core.model.Op
 import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.model.PackageState
+import tv.cleanyour.core.model.PlanId
 import tv.cleanyour.core.model.RemoteDir
 import tv.cleanyour.core.model.RunToken
+import tv.cleanyour.core.model.TvId
 import tv.cleanyour.core.planner.DefaultPlanner
 import tv.cleanyour.core.planner.GuardedSection
 import tv.cleanyour.core.planner.Plan
@@ -168,6 +170,28 @@ class Issue2Test {
         assertEquals(DefaultEngine.PROTECTED + DefaultPlanner.REASON_FIRE_OS_HOME, failed.error)
         assertEquals(listOf("section:ARMED", "section:ROLLED_BACK"), h.types(plan).filter { it.startsWith("section") })
         assertTrue(h.types(plan).none { it.startsWith("paused") })
+    }
+
+    // Only a journal with no records is a forgotten run: one that is merely not listed as open (as
+    // in the moment between end() writing End and dropping the run) is never dropped. Here openRuns
+    // never lists the run, and abandon still runs step R and leaves the run paused, not Idle.
+    @Test fun aRunWhoseJournalStillHasRecordsIsNeverDropped() = runTest(timeout = TEST_TIMEOUT) {
+        val h = Harness(this)
+        val unlisted = object : Journal by h.journal {
+            override suspend fun openRuns(tvId: TvId): List<PlanId> = emptyList()
+        }
+        val engine = h.engine(journal = unlisted)
+        val plan = h.setupPlan()
+        assertEquals(StartResult.Started, engine.start(plan, h.tv, plan.hash, h.pass()))
+        advanceTimeBy(20_000); runCurrent()
+        assertIs<RunState.AwaitingConfirm>(engine.runState(h.tv.tvId).value)
+        h.tv.refuse = { it == h.stock.pkg }
+        engine.rejectHome(h.tv.tvId)
+        assertIs<RunState.Paused>(h.settle(engine))
+        val rollbacks = h.types(plan).count { it.startsWith("rollback") }
+        engine.abandon(h.tv.tvId)
+        assertIs<RunState.Paused>(h.settle(engine), "not dropped: step R ran again and could not finish")
+        assertEquals(rollbacks + 1, h.types(plan).count { it.startsWith("rollback") })
     }
 
     // A5: "Forget this TV" deletes the TV's journals; the engine then drops its paused run from memory

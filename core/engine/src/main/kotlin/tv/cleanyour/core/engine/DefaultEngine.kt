@@ -394,8 +394,8 @@ class DefaultEngine(
     }
 
     // One op of step R, like perform, with the state check: when an op is refused or fails, its
-    // target is read through the op's own verify read (VerifyHome reads itself) and checked by the
-    // renderer; if it holds (the package enabled, HOME on the stock launcher, no watchdog left), Done
+    // target is read (targetHolds: a read that proves the state, never an empty or failed one); if it
+    // holds (the package enabled, HOME on the stock launcher, no watchdog left), Done
     // (verified) is journaled instead of Failed, so the change records see the item as put back.
     private suspend fun performStepR(run: Run, index: Int, op: Op, rendered: Rendered): Outcome {
         journal.append(JournalRecord.Begin(run.plan.id, index, op, rendered.lines.map { it.text }, null, clock.nowMs()))
@@ -425,12 +425,45 @@ class DefaultEngine(
         return if (held) Outcome.Ok else outcome
     }
 
-    // Whether an op's target state already holds on the TV: a real read, the op's verify read
-    // (Enable: pm list packages -d; SetHome: the HOME resolver) or, for VerifyHome, its own line,
-    // checked by the renderer like any verify.
+    // Whether an op's target state already holds on the TV, from a read that proves it: the read must
+    // answer exit 0 with output that shows the state, so a read that errors or prints nothing never
+    // holds (a refused pm enable of a package that stays off must stay a Failed record).
+    // Enable: the package's own dumpsys, which must show the package and its enabled state as
+    // ENABLED or DEFAULT. SetHome and VerifyHome: the HOME resolver, which must name the component.
+    // KillWatchdog: pgrep, whose documented answer for "no such process" is exit 1 with nothing on
+    // stdout or stderr; any other exit or any stderr is an error. Anything else: its verify read,
+    // exit 0, output, and the renderer's check.
     private suspend fun targetHolds(session: TvSession, op: Op, rendered: Rendered): Boolean {
-        val probe = rendered.verify?.let { renderer.render(it) } ?: rendered.takeIf { it.privilege == Privilege.READ && it.transfer == null } ?: return false
-        return renderer.check(op, read(session, probe), null) == VerifyResult.Ok
+        when (op) {
+            is Op.Enable -> {
+                val r = readResult(session, renderer.render(Op.Read(ProbeKind.PACKAGE_DUMP, ReadArg.Pkg(op.pkg)))) ?: return false
+                if (r.exit != 0 || !PackageDump.exists(op.pkg, r.stdout)) return false
+                val state = PackageDump.enabledState(r.stdout)
+                return state == EnabledState.ENABLED || state == EnabledState.DEFAULT
+            }
+            is Op.KillWatchdog -> {
+                val probe = rendered.verify?.let { renderer.render(it) } ?: return false
+                val r = readResult(session, probe) ?: return false
+                val none = r.exit == 1 && r.stdout.isBlank() && r.stderr.isBlank()
+                return none || (r.exit == 0 && renderer.check(op, r.stdout, null) == VerifyResult.Ok)
+            }
+            else -> {
+                val probe = rendered.verify?.let { renderer.render(it) } ?: rendered.takeIf { it.privilege == Privilege.READ && it.transfer == null } ?: return false
+                val r = readResult(session, probe) ?: return false
+                return r.exit == 0 && r.stdout.isNotBlank() && renderer.check(op, r.stdout, null) == VerifyResult.Ok
+            }
+        }
+    }
+
+    // A read's last answer with its exit code and stderr (read() keeps only stdout); null when the
+    // read has no line. Every earlier line must answer exit 0 as well.
+    private suspend fun readResult(session: TvSession, rendered: Rendered): ExecResult? {
+        var last: ExecResult? = null
+        for (line in rendered.lines) {
+            if (last != null && last.exit != 0) return last
+            last = send(session, line, ExecSpec(timeoutMs = rendered.timeoutMs, stdoutCap = rendered.stdoutCap, retry = RetryClass.IDEMPOTENT_READ))
+        }
+        return last
     }
 
     private fun undoes(rollbackOp: Op, stepOp: Op): Boolean = when (rollbackOp) {
@@ -723,7 +756,9 @@ class DefaultEngine(
     // could not put the TV's own home screen back (A5, issue #2). A run whose journal is gone ("Forget
     // this TV" deleted it) is dropped from memory at once, without the TV.
     override suspend fun abandon(tvId: TvId) {
-        if (dropIfForgotten(tvId)) return
+        // Under the start lock, so a start between putting its run in memory and journaling its
+        // PlanStart is never mistaken for a forgotten run.
+        if (startLock.withLock { dropIfForgotten(tvId) }) return
         val run = runs[tvId] ?: return
         if (flow(tvId).value !is RunState.Paused) return
         val open = run.plan.sections.firstOrNull { it.name in run.openSections }
@@ -748,13 +783,16 @@ class DefaultEngine(
     }
 
     // "Forget this TV" deletes the TV's journals (SettingsMachines.forget): a run of this engine whose
-    // journal is no longer open is dropped from memory, its work cancelled and its hold closed, and
-    // the TV's state goes back to Idle, so a new Setup is never refused RUN_OPEN and no force stop is
-    // needed. Internal to the engine; the frozen Engine interface is unchanged. True when one was dropped.
+    // journal is gone is dropped from memory, its work cancelled and its hold closed, and the TV's
+    // state goes back to Idle, so a new Setup is never refused RUN_OPEN and no force stop is needed.
+    // Only a journal with no records at all counts as forgotten: one that merely is no longer open
+    // (end() has just written its End) is left to end() itself. Callers hold the start lock, so a
+    // start that has not journaled its PlanStart yet is never dropped. Internal to the engine; the
+    // frozen Engine interface is unchanged. True when one was dropped.
     private suspend fun dropIfForgotten(tvId: TvId): Boolean {
         val run = runs[tvId] ?: return false
-        val open = try { journal.openRuns(tvId) } catch (e: CancellationException) { throw e } catch (e: Exception) { return false }
-        if (run.plan.id in open) return false
+        val records = try { journal.read(run.plan.id) } catch (e: CancellationException) { throw e } catch (e: Exception) { return false }
+        if (records.isNotEmpty()) return false
         if (!runs.remove(tvId, run)) return false
         run.job?.cancel()
         run.hold?.close(); run.hold = null

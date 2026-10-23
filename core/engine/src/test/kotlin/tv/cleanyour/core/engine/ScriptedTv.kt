@@ -68,6 +68,7 @@ class ScriptedTv(initial: Snapshot = Samples.miTvSnapshot()) : TvSession {
     var persistentOverride: Set<PackageName> = emptySet()
     var startFails = false
     var requestedPermissions: Map<PackageName, List<String>> = emptyMap()   // printed under "requested permissions:" in the package's dump
+    var answer: ((String) -> ExecResult?)? = null              // a scripted answer for a line (normalized), before the model's own
 
     override val tvId: TvId = initial.tvId
     override val identity: TvIdentity = TvIdentity(tvId, facts.serialLast4, facts.device, facts.model, facts.sdk, facts.adbSecure, facts.adbFeatures, 1024 * 1024)
@@ -110,6 +111,7 @@ class ScriptedTv(initial: Snapshot = Samples.miTvSnapshot()) : TvSession {
         val line = Recording.normalize(lineText)
         val tokens = line.split(' ')
         fun pkg(i: Int) = PackageName(tokens[i])
+        answer?.invoke(line)?.let { return it }
         return when {
             line.startsWith("pm disable-user --user 0 ") -> setEnabled(pkg(4), EnabledState.DISABLED_USER)
             line.startsWith("pm enable --user 0 ") -> setEnabled(pkg(4), EnabledState.ENABLED)

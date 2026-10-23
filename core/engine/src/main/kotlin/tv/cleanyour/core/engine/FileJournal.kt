@@ -68,7 +68,8 @@ class FileJournal(
     }
 
     override suspend fun read(planId: PlanId): List<JournalRecord> = withContext(io) {
-        val f = locate(planId) ?: return@withContext emptyList()
+        // A journal whose file is gone (Forget this TV deleted the TV's folder) reads as empty.
+        val f = locate(planId)?.takeIf { it.isFile } ?: return@withContext emptyList()
         parse(f.readBytes())
     }
 

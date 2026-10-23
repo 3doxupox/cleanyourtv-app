@@ -11,6 +11,7 @@ import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.model.Quirk
 import tv.cleanyour.core.ops.Watchdog
 import tv.cleanyour.core.planner.Plan
+import tv.cleanyour.core.session.ExecResult
 import tv.cleanyour.core.session.InstallOutcome
 import tv.cleanyour.testing.fixtures.Samples
 import kotlin.test.Test
@@ -393,6 +394,88 @@ class SectionTest {
         assertEquals(listOf("section:ARMED", "section:ROLLED_BACK"), types.filter { it.startsWith("section") })
         assertTrue("failed${wizardOff.index}" in types.drop(types.indexOf("rollback${section.from}")), "the refusal is journaled as a skip")
         assertTrue(types.none { it.startsWith("paused") })
+    }
+
+    // S2: a step R read that errors or prints nothing is no evidence. The TV refuses the wizard's pm
+    // enable, and the read that would show it back on answers with an error, with nothing, or with
+    // exit 0 and no such package: the refusal stays a Failed record, the wizard's switch-off stays a
+    // change record (so Manage still offers to put it back), and the section still closes once the
+    // stock home is verified.
+    @Test fun aStepRReadThatErrorsOrPrintsNothingNeverHolds() = runTest(timeout = TEST_TIMEOUT) {
+        val answers = listOf(
+            ExecResult(1, "", "Error: dumpsys failed", false, 1),
+            ExecResult(255, "Package [com.google.android.tungsten.setupwraith]\n    User 0: enabled=1\n", "Error", false, 1),
+            ExecResult(0, "", "", false, 1),
+        )
+        for (bad in answers) {
+            val h = Harness(this)
+            val quirky = h.profile(setOf(Quirk.HOME_TAKEOVER_SETUPWRAITH), h.wizard)
+            h.profiles = tv.cleanyour.testing.fixtures.FakeProfileSource(listOf(quirky))
+            val engine = h.engine()
+            val plan = h.setupPlan(profile = quirky)
+            val section = plan.sections.single()
+            val wizardOff = plan.steps.single { it.op == Op.Disable(h.wizard) }
+            openCheckScreen(h, engine, plan)
+            h.tv.refuse = { it == h.wizard }
+            // Both reads a step R check could use answer badly once step R runs.
+            h.tv.answer = { line -> if (line == "dumpsys package ${h.wizard.value}" || line == "pm list packages -d") bad else null }
+            engine.rejectHome(h.tv.tvId)
+            val fin = assertIs<RunState.Finished>(h.settle(engine), "$bad")
+            assertEquals(HomeOutcome.USER_SAID_NO, fin.home)
+            val records = h.records(plan)
+            val afterRollback = records.drop(records.indexOfFirst { it is JournalRecord.Rollback })
+            assertTrue(afterRollback.any { it is JournalRecord.Failed && it.i == wizardOff.index }, "$bad: the refusal is kept")
+            assertTrue(afterRollback.none { it is JournalRecord.Done && it.i == wizardOff.index }, "$bad: never journaled as put back")
+            assertTrue(ChangeRecords.fromJournal(records).any { it.op == Op.Disable(h.wizard) }, "$bad: the switch-off is still a change")
+            assertEquals(listOf("section:ARMED", "section:ROLLED_BACK"), h.types(plan).filter { it.startsWith("section") })
+        }
+    }
+
+    // S2: SetHome refused, and the HOME resolver answers with an error (though it prints the stock
+    // launcher) or with nothing: that never holds, so the TV's own home screen is not taken as back
+    // and the run pauses with the section open.
+    @Test fun aRefusedSetHomeWithAFailedOrEmptyReadPauses() = runTest(timeout = TEST_TIMEOUT) {
+        for (bad in listOf(ExecResult(1, "${Samples.stockLauncher.flat}\n", "Error", false, 1), ExecResult(0, "", "", false, 1))) {
+            val h = Harness(this)
+            val engine = h.engine()
+            val plan = h.setupPlan()
+            openCheckScreen(h, engine, plan)
+            h.tv.answer = { line ->
+                when {
+                    line.startsWith("cmd package set-home-activity --user 0 ${h.stock.flat}") -> ExecResult(1, "", "Error: refused", false, 1)
+                    line.startsWith("cmd package resolve-activity") -> bad
+                    else -> null
+                }
+            }
+            engine.rejectHome(h.tv.tvId)
+            val paused = assertIs<RunState.Paused>(h.settle(engine), "$bad")
+            assertEquals(PauseReason.STEP_FAILED, paused.reason)
+            assertEquals(listOf("section:ARMED"), h.types(plan).filter { it.startsWith("section") }, "$bad: not ROLLED_BACK")
+        }
+    }
+
+    // S2: KillWatchdog's check is pgrep, whose "no such process" is exit 1 with no output; an error
+    // (another exit, or stderr) is no evidence, so the refused pkill stays a Failed record. It is not a
+    // must-succeed op, so the section still closes.
+    @Test fun aKillWatchdogCheckThatErrorsIsAFailedRecord() = runTest(timeout = TEST_TIMEOUT) {
+        val h = Harness(this)
+        val engine = h.engine()
+        val plan = h.setupPlan()
+        openCheckScreen(h, engine, plan)
+        h.tv.answer = { line ->
+            when {
+                line.startsWith("pkill -f ") -> ExecResult(2, "", "pkill: bad pattern", false, 1)
+                line.startsWith("pgrep -f ") -> ExecResult(2, "", "pgrep: bad pattern", false, 1)
+                else -> null
+            }
+        }
+        engine.rejectHome(h.tv.tvId)
+        assertIs<RunState.Finished>(h.settle(engine))
+        val records = h.records(plan)
+        val afterRollback = records.drop(records.indexOfFirst { it is JournalRecord.Rollback })
+        val kill = afterRollback.indexOfFirst { it is JournalRecord.Begin && it.op is Op.KillWatchdog }
+        assertTrue(kill >= 0 && afterRollback[kill + 1] is JournalRecord.Failed, "$afterRollback")
+        assertEquals(listOf("section:ARMED", "section:ROLLED_BACK"), h.types(plan).filter { it.startsWith("section") })
     }
 
     // R1: giving up a paused run with an open section puts the TV's own home screen back first, and
