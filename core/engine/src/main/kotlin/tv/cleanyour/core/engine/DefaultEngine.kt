@@ -40,6 +40,7 @@ import tv.cleanyour.core.ops.Transfer
 import tv.cleanyour.core.ops.VerifyResult
 import tv.cleanyour.core.model.Component
 import tv.cleanyour.core.planner.DefaultPlanner
+import tv.cleanyour.core.planner.FireOs
 import tv.cleanyour.core.planner.GuardedSection
 import tv.cleanyour.core.planner.Plan
 import tv.cleanyour.core.planner.PlanKind
@@ -127,6 +128,7 @@ class DefaultEngine(
     // ---- start, gate, hash -------------------------------------------------------------------------
 
     override suspend fun start(plan: Plan, session: TvSession, confirmed: Sha256, pass: GatePass?): StartResult = startLock.withLock {
+        dropIfForgotten(plan.tvId)
         val current = flow(plan.tvId).value
         if (current !is RunState.Idle && current !is RunState.Finished) return StartResult.Refused(StartRefusal.RUN_OPEN)
         if (journal.openRuns(plan.tvId).isNotEmpty()) return StartResult.Refused(StartRefusal.RUN_OPEN)
@@ -362,19 +364,25 @@ class DefaultEngine(
     // sections), and a failure to put the TV's own home screen back is never recorded as ROLLED_BACK:
     // the run pauses with the error, the section stays open, and continue, undo or resume try again
     // (SECURITY 3.5: undo failures are shown, never hidden) (R1).
+    //
+    // Undo is state-based, never command-based (issue #2): a refused or failed op of step R whose
+    // target already holds on the TV (the package enabled, HOME on the stock launcher) is journaled
+    // done and verified. Once VerifyHome passes, the TV's own home screen is back, so a refusal before
+    // it (Fire OS refuses pm enable of its protected launcher) is a skip, its Failed record kept; the
+    // run pauses only when the TV's own home screen is really not back.
     private suspend fun rollbackSection(run: Run, section: GuardedSection, outcome: HomeOutcome): Boolean {
         flow(run.plan.tvId).value = RunState.RollingBack(run.plan, section.from)
         journal.append(JournalRecord.Rollback(run.plan.id, section.from))
-        var failed: AdbError? = null
+        var failed: AdbError? = null   // the first failure since the last VerifyHome that passed
         for (op in section.rollback) {
             if (!StepR.allows(op, section)) continue
             val undone = run.plan.steps.firstOrNull { it.index in section.from..section.to && undoes(op, it.op) }?.index ?: -1
             val rendered = try { renderer.render(op) } catch (e: RenderRefused) { continue }
-            when (val r = perform(run, undone, op, rendered, null)) {
+            when (val r = performStepR(run, undone, op, rendered)) {
                 is Outcome.Lost -> { pause(run, PauseReason.CONNECTION_LOST, r.error); return false }
                 is Outcome.Refused -> if (StepR.mustSucceed(op) && failed == null) failed = AdbError.NonZeroExit(r.exit, r.stderr.take(4096))
                 is Outcome.Failed -> if (StepR.mustSucceed(op) && failed == null) failed = r.error
-                Outcome.Ok -> {}
+                Outcome.Ok -> if (op is Op.VerifyHome) failed = null
             }
         }
         if (failed != null) { pause(run, PauseReason.STEP_FAILED, failed); return false }
@@ -383,6 +391,46 @@ class DefaultEngine(
         run.closedSections += section.name
         run.home = outcome
         return true
+    }
+
+    // One op of step R, like perform, with the state check: when an op is refused or fails, its
+    // target is read through the op's own verify read (VerifyHome reads itself) and checked by the
+    // renderer; if it holds (the package enabled, HOME on the stock launcher, no watchdog left), Done
+    // (verified) is journaled instead of Failed, so the change records see the item as put back.
+    private suspend fun performStepR(run: Run, index: Int, op: Op, rendered: Rendered): Outcome {
+        journal.append(JournalRecord.Begin(run.plan.id, index, op, rendered.lines.map { it.text }, null, clock.nowMs()))
+        val started = clock.monotonicMs()
+        val outcome = try {
+            dispatch(run, op, rendered, null)
+        } catch (e: AdbException) {
+            if (e.error.isLost()) Outcome.Lost(e.error) else Outcome.Failed(e.error, e.error.toString())
+        }
+        val held = when {
+            outcome == Outcome.Ok || outcome is Outcome.Lost -> false
+            else -> try {
+                targetHolds(run.session, op, rendered)
+            } catch (e: AdbException) {
+                if (e.error.isLost()) return Outcome.Lost(e.error)   // in doubt: no Done, no Failed; resume runs step R again
+                false
+            }
+        }
+        val ms = clock.monotonicMs() - started
+        when {
+            outcome == Outcome.Ok -> journal.append(JournalRecord.Done(run.plan.id, index, 0, verified = true, ms = ms))
+            held -> journal.append(JournalRecord.Done(run.plan.id, index, (outcome as? Outcome.Refused)?.exit ?: 0, verified = true, ms = ms))
+            outcome is Outcome.Refused -> journal.append(JournalRecord.Failed(run.plan.id, index, outcome.exit, "exit ${outcome.exit}", outcome.stderr.take(4096)))
+            outcome is Outcome.Failed -> journal.append(JournalRecord.Failed(run.plan.id, index, null, outcome.detail.take(4096), ""))
+            else -> {}
+        }
+        return if (held) Outcome.Ok else outcome
+    }
+
+    // Whether an op's target state already holds on the TV: a real read, the op's verify read
+    // (Enable: pm list packages -d; SetHome: the HOME resolver) or, for VerifyHome, its own line,
+    // checked by the renderer like any verify.
+    private suspend fun targetHolds(session: TvSession, op: Op, rendered: Rendered): Boolean {
+        val probe = rendered.verify?.let { renderer.render(it) } ?: rendered.takeIf { it.privilege == Privilege.READ && it.transfer == null } ?: return false
+        return renderer.check(op, read(session, probe), null) == VerifyResult.Ok
     }
 
     private fun undoes(rollbackOp: Op, stepOp: Op): Boolean = when (rollbackOp) {
@@ -403,7 +451,7 @@ class DefaultEngine(
             }
             val live = liveState(target, dump, run.snapshot)
             val reason = Denylist.reason(target, live, run.profile, run.snapshot) ?: tvInputHardwareReason(step, dump)
-                ?: homeScreenReason(run, step, target)
+                ?: fireOsHomeReason(step, target) ?: homeScreenReason(run, step, target)
             if (reason != null) {
                 journal.append(JournalRecord.Begin(run.plan.id, step.index, step.op, step.rendered.lines.map { it.text }, step.prior, clock.nowMs()))
                 journal.append(JournalRecord.Failed(run.plan.id, step.index, null, "$PROTECTED$reason", ""))
@@ -433,6 +481,12 @@ class DefaultEngine(
         val inSection = run.plan.sections.any { it.name in run.openSections && step.index in it.from..it.to }
         return if (inSection) null else DefaultPlanner.REASON_HOME_SCREEN
     }
+
+    // Issue #2: Fire OS's own home screens are protected by the firmware (pm disable-user and pm
+    // enable are both refused), so a switch-off of one is refused here, inside a section too, whatever
+    // an older plan file says; it never reaches the TV.
+    private fun fireOsHomeReason(step: Step, target: PackageName): String? =
+        if (step.op is Op.Disable && FireOs.isHome(target)) DefaultPlanner.REASON_FIRE_OS_HOME else null
 
     // Upstream #421 (launcher v2.5.0's tools/disable.sh): a package that asks for TV_INPUT_HARDWARE is
     // the layer under the HDMI, AV and tuner inputs, registered as an input or not. Switched off, a port
@@ -664,7 +718,12 @@ class DefaultEngine(
         }
     }
 
+    // Waits for its own work to settle before returning (the work itself runs in the engine's scope,
+    // so a cancelled caller never cancels it): the caller then reads Finished, or Paused when step R
+    // could not put the TV's own home screen back (A5, issue #2). A run whose journal is gone ("Forget
+    // this TV" deleted it) is dropped from memory at once, without the TV.
     override suspend fun abandon(tvId: TvId) {
+        if (dropIfForgotten(tvId)) return
         val run = runs[tvId] ?: return
         if (flow(tvId).value !is RunState.Paused) return
         val open = run.plan.sections.firstOrNull { it.name in run.openSections }
@@ -677,13 +736,30 @@ class DefaultEngine(
         // resume or abandon runs them then (R1).
         if (run.session.state.value !is ConnectionState.Connected) return
         run.hold = run.session.hold()
-        run.job = scope.launch {
+        val job = scope.launch {
             guarded(run) {
                 if (open != null && !rollbackSection(run, open, HomeOutcome.CONNECTION_LOST)) return@guarded
                 if (!finishAccessibilityRestore(run, restore)) return@guarded
                 end(run, RunStatus.ABANDONED, run.home)
             }
         }
+        run.job = job
+        job.join()
+    }
+
+    // "Forget this TV" deletes the TV's journals (SettingsMachines.forget): a run of this engine whose
+    // journal is no longer open is dropped from memory, its work cancelled and its hold closed, and
+    // the TV's state goes back to Idle, so a new Setup is never refused RUN_OPEN and no force stop is
+    // needed. Internal to the engine; the frozen Engine interface is unchanged. True when one was dropped.
+    private suspend fun dropIfForgotten(tvId: TvId): Boolean {
+        val run = runs[tvId] ?: return false
+        val open = try { journal.openRuns(tvId) } catch (e: CancellationException) { throw e } catch (e: Exception) { return false }
+        if (run.plan.id in open) return false
+        if (!runs.remove(tvId, run)) return false
+        run.job?.cancel()
+        run.hold?.close(); run.hold = null
+        flow(tvId).value = RunState.Idle
+        return true
     }
 
     // The steps left of an accessibility restore the run has begun but not finished: from the clear
@@ -719,6 +795,7 @@ class DefaultEngine(
     // in-doubt step, land in Paused. Continue or undo is the user's decision afterwards.
     override suspend fun resume(tvId: TvId, session: TvSession) {
         val job = startLock.withLock {
+            dropIfForgotten(tvId)
             if (runs.containsKey(tvId)) return
             val planId = journal.openRuns(tvId).firstOrNull() ?: return
             val records = journal.read(planId)
@@ -770,6 +847,9 @@ class DefaultEngine(
             if (run.session.state.value !is ConnectionState.Connected) { pause(run, PauseReason.CONNECTION_LOST, AdbError.Transport.Closed); return@guarded }
             run.hold = run.session.hold()
             var reason = if (inDoubt != null) PauseReason.IN_DOUBT else run.lastPause ?: PauseReason.IN_DOUBT
+            // A4 (issue #2): where the run stands, from the journal, before step R, so a pause in step
+            // R names the step the run stopped at, never step 0.
+            run.at = inDoubt ?: ((run.done.maxOrNull() ?: -1) + 1)
             val open = plan.sections.firstOrNull { it.name in run.openSections }
             if (open != null) {
                 flow(plan.tvId).value = RunState.RollingBack(plan, open.from)

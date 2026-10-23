@@ -458,4 +458,33 @@ class PlannerTest {
         assertEquals(DefaultPlanner.WATCHDOG_SECONDS, arm.seconds)
         assertTrue(arm.seconds * 1000L >= 120_000L + 30_000L, "the 120 s window of D23 plus 30 s for the section's steps")
     }
+    // Issue #2 (A1): Fire OS's own home screen is never the stock launcher of a section, and nothing
+    // of the new home screen is installed for it: an unlisted Fire TV Edition set on the Amazon sure
+    // set, with the TV's facts naming nothing (here the reference TV's), is caught by its packages.
+    @Test fun aTakeoverRefusesFireOsHomeAsTheStockLauncher() {
+        val amazon = Component(PackageName("com.amazon.tv.launcher"), ".ui.HomeActivity_vNext")
+        val starter = PackageName("com.amazon.firehomestarter")
+        val fire = mapOf(
+            amazon.pkg to PackageState(EnabledState.ENABLED, true, 1, null, false, false, "Home", false),
+            starter to PackageState(EnabledState.ENABLED, true, 1, null, false, false, null, false),
+        )
+        val snap = snapshot(home = amazon, claimants = listOf(amazon), extra = fire).let { it.copy(packages = it.packages - PlannerFixtures.wizard) }
+            .let { it.copy(contentHash = tv.cleanyour.core.store.SnapshotCodec.hash(it)) }
+        val groups = listOf(tv.cleanyour.core.model.PackageGroup("ads", "Adverts", tv.cleanyour.core.model.GroupDefault.DISABLE,
+            listOf(debloatList.first(), amazon.pkg, starter).map { tv.cleanyour.core.model.PackageEntry(it, null) }))
+        fun sure(c: Choices) = PlanRequest.Setup(tv.cleanyour.core.spec.ProfileResolution.BrandSureSet("Amazon", groups, listOf(amazon)), c, artifact(), tv.cleanyour.core.model.Level.SIMPLE)
+        assertEquals(listOf(DefaultPlanner.REASON_TV_REFUSES_HOME), refused(sure(choices()), snapshot = snap), "no install")
+        val installed = snap.copy(packages = snap.packages + installedLauncher()).let { it.copy(contentHash = tv.cleanyour.core.store.SnapshotCodec.hash(it)) }
+        assertEquals(listOf(DefaultPlanner.REASON_TV_REFUSES_HOME), refused(sure(choices(installLauncher = false)), snapshot = installed), "no switch")
+        // The clean-up alone: no section, no install, and Fire OS's home screens are shown as kept.
+        val p = plan(sure(choices(installLauncher = false, takeover = false)), snapshot = snap)
+        assertTrue(p.sections.isEmpty())
+        assertTrue(ops(p).none { it is Op.Install || it is Op.InstallStream || it is Op.SetHome })
+        assertEquals(listOf<Op>(Op.Disable(debloatList.first())), ops(p))
+        val rows = p.summary.groups.flatMap { it.rows }.filter { FireOs.isHome(it.pkg) }
+        assertEquals(setOf(amazon.pkg, starter), rows.map { it.pkg }.toSet())
+        assertTrue(rows.all { it.protected && !it.off && it.whyProtected == DefaultPlanner.REASON_FIRE_OS_HOME })
+        // Nor can Manage switch one off.
+        assertTrue(refused(PlanRequest.SwitchOff(setOf(amazon.pkg)), snapshot = snap).single().contains(DefaultPlanner.REASON_FIRE_OS_HOME))
+    }
 }

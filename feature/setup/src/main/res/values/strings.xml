@@ -80,6 +80,7 @@
     <!-- TV refuses other home screens (UX 4.6), shown in place of the home screen row -->
     <string name="stop_tv_refuses_home_title">The new home screen isn\'t possible on this TV</string>
     <string name="stop_tv_refuses_home_body">{brand} only allows its own. We\'ll switch off the adverts and tracking, which is most of the win.</string>
+    <string name="fire_tv_name" translatable="false">Fire TV</string>
     <string name="found_home_old_android">The new home screen needs Android 8 or newer, so this TV keeps its own. We\'ll still switch off the adverts and tracking, which is most of the win.</string>
     <string name="found_home_unknown_stock">We don\'t know this TV\'s own home screen well enough to swap it safely, so it stays. We\'ll still switch off the adverts and tracking.</string>
     <!-- RF-SAFETY-250: home screen switches skipped up front for safety, shown in place of the home screen row -->

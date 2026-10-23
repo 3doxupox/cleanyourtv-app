@@ -1170,4 +1170,57 @@ class SetupMachineTest {
             assertEquals(replace, h.planner.requests.filterIsInstance<PlanRequest.Setup>().last().choices.replaceLauncherSigner, "signer $signer")
         }
     }
+    // Issue #2 (A1): an unlisted Fire TV Edition set (an Insignia panel, Amazon the maker, an AFT
+    // model code) resolves to the Amazon sure set; its facts say Fire OS, so S3 offers no new home
+    // screen, names Fire TV, and the real planner makes the clean-up alone: no section, no install.
+    @Test fun anUnlistedFireTvOnTheAmazonSureSetGetsTheCleanUpAlone() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+        val amazon = tv.cleanyour.core.model.Component(PackageName("com.amazon.tv.launcher"), ".ui.HomeActivity_vNext")
+        val fire = Samples.miTvFacts().copy(brand = "Insignia", manufacturer = "Amazon", model = "AFTDCT99", device = "unknown")
+        h.prober.facts = fire
+        h.prober.snapshotFor = { r ->
+            Samples.snapshot(facts = fire, reason = r,
+                packages = Samples.miTvPackages(emptySet()) + (amazon.pkg to tv.cleanyour.core.model.PackageState(tv.cleanyour.core.model.EnabledState.ENABLED, true, 1, null, false, false, "Home", false)),
+                home = tv.cleanyour.core.model.HomeResolution(amazon, listOf(tv.cleanyour.core.model.HomeClaimant(amazon, 950))))
+        }
+        val groups = listOf(tv.cleanyour.core.model.PackageGroup("ads", "Adverts", tv.cleanyour.core.model.GroupDefault.DISABLE,
+            listOf(adPkg, amazon.pkg).map { tv.cleanyour.core.model.PackageEntry(it, null) }))
+        h.profiles.resolver = { _, _ -> tv.cleanyour.core.spec.ProfileResolution.BrandSureSet("Amazon", groups, listOf(amazon)) }
+        val planner = tv.cleanyour.core.planner.DefaultPlanner(h.clock, tv.cleanyour.testing.fixtures.FakeIdGen(), tv.cleanyour.core.ops.ShellRenderer(),
+            tv.cleanyour.testing.fixtures.FakeConfigTransport(), "0.3.2")
+        h.planner.respond = { request, snap -> planner.plan(request, snap, h.facts, emptyList()) }
+        val m = h.setup(backgroundScope)
+        toFound(h, m)
+        val found = assertIs<SetupState.Found>(m.state.value)
+        assertEquals(HomeBlock.TV_REFUSES, m.extras.value.homeBlock)
+        assertTrue(m.extras.value.fireTv, "S3 names Fire TV, not Insignia")
+        assertFalse(m.extras.value.homePossible)
+        val setup = h.planner.requests.filterIsInstance<PlanRequest.Setup>().last()
+        assertFalse(setup.choices.takeover)
+        assertFalse(setup.choices.installLauncher)
+        assertTrue(found.plan.sections.isEmpty())
+        assertTrue(found.plan.steps.none { it.op is Op.Install || it.op is Op.InstallStream || it.op is Op.SetHome || it.op is Op.ArmHomeWatchdog })
+        assertEquals(listOf<Op>(Op.Disable(adPkg)), found.plan.steps.map { it.op })
+    }
+
+    // A5: "Stop here" shows Done only once the engine's abandon really ended the run. While it is
+    // still paused (step R could not put the TV's own home screen back) the card comes back instead.
+    @Test fun stopHereDoesNotShowDoneWhileTheEngineIsPaused() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+        h.engine.onStart = { p -> emit(p.tvId, RunState.Paused(p, 1, PauseReason.STEP_FAILED, AdbError.NonZeroExit(1, "refused"))) }
+        h.engine.onAbandon = { id -> emit(id, RunState.Paused(h.setupPlan, 1, PauseReason.STEP_FAILED, AdbError.NonZeroExit(1, "refused again"))) }
+        val m = h.setup(backgroundScope)
+        toFound(h, m)
+        m.dispatch(SetupIntent.MakeItClean); settle()
+        assertEquals(StopCase.STEP_FAILED, assertIs<SetupState.Stopped>(m.state.value).card.case)
+        m.dispatch(SetupIntent.StopAction(StopAction.SECONDARY)); settle()
+        assertTrue(h.engine.calls.any { it is FakeEngine.Call.Abandon })
+        assertEquals(StopCase.STEP_FAILED, assertIs<SetupState.Stopped>(m.state.value, "not Done while paused").card.case)
+        // The TV lets step R through this time: the abandon ends the run, and Done follows.
+        h.engine.onAbandon = { _ -> finish(h.setupPlan, RunStatus.ABANDONED) }
+        m.dispatch(SetupIntent.StopAction(StopAction.SECONDARY)); settle()
+        assertIs<SetupState.Done>(m.state.value)
+    }
 }
