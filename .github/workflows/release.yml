@@ -4,8 +4,11 @@
 #
 # On a `v*` tag (or by hand, workflow_dispatch):
 #   build   two clean builds of the commit in the pinned container (docker/repro), each in a fresh
-#           container with an empty Gradle home, byte compared; the unsigned APK, its sha256, the R8
-#           mapping and a CycloneDX SBOM are uploaded as workflow artifacts.
+#           container with an empty Gradle home, of both store flavours (STORES-PLAN 1): the full
+#           APK (:app:assembleFullRelease, GitHub and F-Droid) and the play AAB
+#           (:app:bundlePlayRelease, Google Play), each pair byte compared; the unsigned APK and
+#           AAB, their sha256s, the R8 mappings and a CycloneDX SBOM are uploaded as workflow
+#           artifacts. The unsigned APK's sha256 is the job's output, as before.
 #   verify  run by hand with `release_tag` once the Release exists: downloads the maintainer's
 #           signed APK from that Release and checks it against this run's unsigned build with
 #           scripts/verify-release.sh (apksigner: v2 and v3, one signer, the certificate in
@@ -55,7 +58,7 @@ jobs:
           REF_TYPE: ${{ github.ref_type }}
           REF_NAME: ${{ github.ref_name }}
         run: |
-          version=$(sed -n 's/.*versionName = "\([0-9][0-9A-Za-z.-]*\)".*/\1/p' build-logic/convention/src/main/kotlin/AndroidConventionPlugins.kt | head -1)
+          version=$(sed -n 's/^ *versionName = "\([0-9][0-9A-Za-z.-]*\)".*/\1/p' app/build.gradle.kts | head -1)
           if [ "$REF_TYPE" = tag ]; then
             # The tag name reaches file names: only plain versions get further, and it must match the app.
             printf '%s' "$REF_NAME" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)\.?[0-9]+)?$' \
@@ -94,20 +97,25 @@ jobs:
           done
           sudo chown -R "$(id -u):$(id -g)" "$RUNNER_TEMP/a" "$RUNNER_TEMP/b"
 
-      - name: Compare the two builds, APK assertions on the unsigned build
+      - name: Compare the two builds of each, APK and AAB assertions on the unsigned builds
         id: compare
         env:
           NAME: ${{ steps.facts.outputs.name }}
         run: |
           cd "$RUNNER_TEMP"
-          sha256sum a/app-release-unsigned.apk b/app-release-unsigned.apk
-          cmp a/app-release-unsigned.apk b/app-release-unsigned.apk || { echo "::error::the two clean builds differ"; exit 1; }
+          sha256sum a/app-full-release-unsigned.apk b/app-full-release-unsigned.apk a/app-play-release-unsigned.aab b/app-play-release-unsigned.aab
+          cmp a/app-full-release-unsigned.apk b/app-full-release-unsigned.apk || { echo "::error::the two clean builds of the APK differ"; exit 1; }
+          cmp a/app-play-release-unsigned.aab b/app-play-release-unsigned.aab || { echo "::error::the two clean builds of the AAB differ"; exit 1; }
           mkdir -p out
-          cp a/app-release-unsigned.apk "out/$NAME-unsigned.apk"
-          (cd out && sha256sum "$NAME-unsigned.apk" > "$NAME-unsigned.apk.sha256")
+          cp a/app-full-release-unsigned.apk "out/$NAME-unsigned.apk"
+          cp a/app-play-release-unsigned.aab "out/$NAME-play-unsigned.aab"
+          (cd out && sha256sum "$NAME-unsigned.apk" > "$NAME-unsigned.apk.sha256" && sha256sum "$NAME-play-unsigned.aab" > "$NAME-play-unsigned.aab.sha256")
           echo "sha256=$(cut -d' ' -f1 "out/$NAME-unsigned.apk.sha256")" >> "$GITHUB_OUTPUT"
-          docker run --rm -v "$RUNNER_TEMP/in:/in:ro" -v "$RUNNER_TEMP/out:/out" cyt-build bash -euc \
-            'tar -xf /in/src.tar -C / && cd /src && python3 scripts/check-apk.py /out/'"$NAME"'-unsigned.apk --unsigned --json /out/check-apk-unsigned.json'
+          echo "aab_sha256=$(cut -d' ' -f1 "out/$NAME-play-unsigned.aab.sha256")" >> "$GITHUB_OUTPUT"
+          docker run --rm -v "$RUNNER_TEMP/in:/in:ro" -v "$RUNNER_TEMP/out:/out" -e NAME cyt-build bash -euc \
+            'tar -xf /in/src.tar -C / && cd /src \
+              && python3 scripts/check-apk.py "/out/$NAME-unsigned.apk" --flavour full --unsigned --json /out/check-apk-unsigned.json \
+              && python3 scripts/check-apk.py "/out/$NAME-play-unsigned.aab" --flavour play --unsigned --json /out/check-aab-unsigned.json'
           sudo chown -R "$(id -u):$(id -g)" out
 
       - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
@@ -121,7 +129,7 @@ jobs:
           NAME: ${{ steps.facts.outputs.name }}
           VERSION: ${{ steps.facts.outputs.version }}
         run: |
-          ./gradlew :app:dependencies --configuration releaseRuntimeClasspath --console=plain > "$RUNNER_TEMP/deps.txt"
+          ./gradlew :app:dependencies --configuration fullReleaseRuntimeClasspath --console=plain > "$RUNNER_TEMP/deps.txt"
           python3 scripts/sbom.py "$RUNNER_TEMP/deps.txt" --version "$VERSION" \
             --apk-sha256 "$(cut -d' ' -f1 "$RUNNER_TEMP/out/$NAME-unsigned.apk.sha256")" -o "$RUNNER_TEMP/out/$NAME.cdx.json"
 
@@ -131,12 +139,14 @@ jobs:
           COMMIT: ${{ steps.facts.outputs.commit }}
           SUBMODULE: ${{ steps.facts.outputs.submodule }}
           SHA: ${{ steps.compare.outputs.sha256 }}
+          AAB_SHA: ${{ steps.compare.outputs.aab_sha256 }}
         run: |
           {
             echo "### $NAME (unsigned, reproducible)"
             echo
             echo "- Commit: \`$COMMIT\`, upstream launcher submodule \`$SUBMODULE\`"
-            echo "- Two clean container builds byte identical, SHA-256 \`$SHA\`"
+            echo "- APK (full flavour, GitHub and F-Droid): two clean container builds byte identical, SHA-256 \`$SHA\`"
+            echo "- AAB (play flavour, Google Play): two clean container builds byte identical, SHA-256 \`$AAB_SHA\`"
             echo "- Release signer (docs/release-signer.sha256): \`$(cat docs/release-signer.sha256)\`"
             echo
             echo "Check a signed APK against this build: \`scripts/verify-release.sh signed.apk $NAME-unsigned.apk\`"

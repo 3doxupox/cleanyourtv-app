@@ -1,10 +1,11 @@
 # Build and test on every push and pull request. Linux runners only. Every action is pinned by
 # commit (bump them by a reviewed change; the comment names the tag the commit belongs to).
 #
-# Steps: the pins and the module graph, unit tests with Android Lint (`check`), the screenshot
-# goldens (Roborazzi verify), the debug build and the release build through R8 with the APK size
-# gate, and the Python tests of the release and redaction scripts with a redaction check over the
-# fixtures.
+# Steps: the pins and the module graph, unit tests with Android Lint (`check`, both store
+# flavours of the app: full and play, STORES-PLAN 1), the screenshot goldens (Roborazzi verify),
+# the debug builds of both flavours, the release APK (full) and AAB (play) through R8 with the size
+# gate on both, and the Python tests of the release and redaction scripts with a redaction check
+# over the fixtures. Nothing is signed.
 name: pr
 
 on:
@@ -50,8 +51,8 @@ jobs:
       - name: Unit tests, Android Lint and the screenshot goldens
         run: ./gradlew check verifyRoborazziDebug --continue --console=plain
 
-      - name: Debug build, release build through R8 and the APK size gate
-        run: ./gradlew :app:assembleDebug :app:assembleRelease :app:checkApkSizeRelease --console=plain
+      - name: Debug builds, the release APK and AAB through R8, and the size gate (both flavours)
+        run: ./gradlew :app:assembleDebug :app:assembleFullRelease :app:bundlePlayRelease :app:checkApkSizeRelease --console=plain
 
       - name: Script tests and the fixture redaction check
         run: |

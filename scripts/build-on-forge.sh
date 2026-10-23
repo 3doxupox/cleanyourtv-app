@@ -9,7 +9,8 @@
 # The checkout (with the upstream submodule's files) is rsynced to a fresh directory on forge, the
 # container shares the mitv-android-cache volume (Android SDK and Gradle caches) with the other
 # forge builds, runs with a 3 GB memory cap, and both the container and the remote directory are
-# removed afterwards, also on failure or Ctrl-C. A debug APK, when built, is copied to dist/.
+# removed afterwards, also on failure or Ctrl-C. A debug APK of the full flavour, when built, is
+# copied to dist/cleanyourtv-debug.apk (and the play flavour's to dist/cleanyourtv-play-debug.apk).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -88,12 +89,16 @@ if [ "$STATUS" -eq 0 ] && [ -n "${FETCH_BACK:-}" ]; then
   done
 fi
 if [ "$STATUS" -eq 0 ]; then
-  APK=$("${SSH[@]}" "ls '$REMOTE_DIR'/app/build/outputs/apk/debug/*.apk 2>/dev/null | head -1" </dev/null || true)
-  if [ -n "$APK" ]; then
-    mkdir -p dist
-    scp -q -i "$SSH_KEY" "$FORGE:$APK" dist/cleanyourtv-debug.apk
-    shasum -a 256 dist/cleanyourtv-debug.apk
-  fi
+  for flavour in full play; do
+    APK=$("${SSH[@]}" "ls '$REMOTE_DIR'/app/build/outputs/apk/$flavour/debug/*.apk 2>/dev/null | head -1" </dev/null || true)
+    if [ -n "$APK" ]; then
+      out=dist/cleanyourtv-debug.apk
+      [ "$flavour" = play ] && out=dist/cleanyourtv-play-debug.apk
+      mkdir -p dist
+      scp -q -i "$SSH_KEY" "$FORGE:$APK" "$out"
+      shasum -a 256 "$out"
+    fi
+  done
 fi
 echo "==> gradle exit $STATUS; tidying forge"
 exit "$STATUS"
