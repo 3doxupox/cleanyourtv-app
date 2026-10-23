@@ -147,6 +147,9 @@ class HomeScreenMachine(
         val unlisted = tv.profileId == null
         val setupAgain = when (reason) {
             null, HomeBlock.NONE, HomeBlock.WIZARD_WIFI_UNKNOWN -> true
+            // Issue #8: the person can make the TV's own home screen Home again, and on a TV an exact
+            // profile knows Setup then offers the switch. Without that list it may still not.
+            HomeBlock.HOME_CHANGED -> !unlisted
             // Forgetting and adding the network again makes the TV's own Wi-Fi settings the owner; on a
             // TV no exact profile knows the wizard still has to stay on (HomeSwitchRisk), so not there.
             HomeBlock.WIZARD_WIFI -> !unlisted

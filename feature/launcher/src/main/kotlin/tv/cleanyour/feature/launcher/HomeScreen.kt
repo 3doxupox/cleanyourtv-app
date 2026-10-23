@@ -159,6 +159,7 @@ private fun NotOnTvScreen(tvName: String, n: NotOnTv, onIntent: (HomeScreenInten
             !n.setupAgain -> null
             n.reason == HomeBlock.WIZARD_WIFI -> R.string.home_not_on_tv_next_wifi
             n.reason == HomeBlock.WIZARD_WIFI_UNKNOWN -> R.string.home_not_on_tv_next_check
+            n.reason == HomeBlock.HOME_CHANGED -> R.string.home_not_on_tv_next_home_changed
             else -> R.string.home_not_on_tv_next_setup
         }
         next?.let { Body(stringResource(it), Modifier.padding(top = 16.dp, start = 4.dp, end = 4.dp)) }

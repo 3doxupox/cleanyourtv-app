@@ -156,6 +156,39 @@ class ManageMachinesTest {
         }
     }
 
+    // Issue #10 in Manage: "Switch off" of a package the TV keeps on (the engine skips it, nothing
+    // changed) never says it was switched off. It says Done's "wouldn't switch off" line, with no Undo.
+    @Test fun aSwitchOffTheTvKeptOnSaysItWouldNotSwitchOff() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val tv = h.knownTv()
+        h.ranDisable(tv, listOf(adPkg))
+        h.respond(PlanKind.SWITCH_OFF, listOf(Op.Disable(adPkg)))
+        h.engine.onStart = { p ->
+            if (p.kind != PlanKind.SWITCH_OFF) finish(p, RunStatus.COMPLETED) else {
+                h.journal.append(JournalRecord.Begin(p.id, 0, p.steps[0].op, listOf("fake"), null, 20))
+                h.journal.append(JournalRecord.Failed(p.id, 0, null, "verify: expected package:${adPkg.value} listed by pm list packages -d, got ", ""))
+                emit(p.tvId, RunState.Finished(p, RunStatus.COMPLETED_WITH_SKIPS, listOf(p.steps[0]), null))
+            }
+        }
+        val m = SwitchedOffMachine(h.manageDeps(), backgroundScope, tv.id)
+        settle()
+        m.effects.test {
+            m.dispatch(SwitchedOffIntent.Undo(adPkg))
+            settle()
+            val snack = assertIs<ManageEffect.Snackbar>(drain().single())
+            assertEquals(SnackKind.KEPT_ON, snack.kind)
+            assertFalse(snack.undo)
+        }
+        // A put back is never read as a kept-on switch-off.
+        h.respond(PlanKind.PUT_BACK, listOf(Op.Enable(adPkg)))
+        h.engine.onStart = { p -> finish(p, RunStatus.COMPLETED) }
+        m.effects.test {
+            m.dispatch(SwitchedOffIntent.PutBack(adPkg))
+            settle()
+            assertEquals(SnackKind.PUT_BACK, assertIs<ManageEffect.Snackbar>(drain().single()).kind)
+        }
+    }
+
     @Test fun putBackCancelledAtTheGateChangesNothing() = runTest(timeout = 30.seconds) {
         val h = Harness()
         val tv = h.knownTv()
@@ -826,6 +859,10 @@ class ManageMachinesTest {
         assertEquals(NotOnTv(HomeBlock.UNKNOWN_HOME, "Xiaomi"), notOnTv(HomeDecision(false, "UNKNOWN_HOME")))
         assertEquals(NotOnTv(HomeBlock.TV_REFUSES, "Xiaomi"), notOnTv(HomeDecision(false, "TV_REFUSES")))
         assertEquals(NotOnTv(HomeBlock.OLD_ANDROID, "Xiaomi"), notOnTv(HomeDecision(false, "OLD_ANDROID")))
+        // Issue #8: the home screen was already changed; making the TV's own Home again is the person's
+        // choice, and on a TV with an exact list Setup then offers the switch.
+        assertEquals(NotOnTv(HomeBlock.HOME_CHANGED, "Xiaomi", setupAgain = true), notOnTv(HomeDecision(false, "HOME_CHANGED")))
+        assertEquals(NotOnTv(HomeBlock.HOME_CHANGED, "Xiaomi", unlisted = true), notOnTv(HomeDecision(false, "HOME_CHANGED"), profileId = null))
         // Planned, but the launcher is gone since (removed): Setup again adds it. No decision (a TV set
         // up before 0.3.2): the same.
         assertEquals(NotOnTv(null, "Xiaomi", setupAgain = true), notOnTv(HomeDecision(true)))

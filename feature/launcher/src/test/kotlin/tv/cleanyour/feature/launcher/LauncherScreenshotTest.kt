@@ -93,6 +93,7 @@ object LauncherShots {
         Shot("home_not_on_tv_wizard_wifi") { HomeScreen(notOnTv(NotOnTv(HomeBlock.WIZARD_WIFI, "Xiaomi", setupAgain = true)), {}, {}) },
         Shot("home_not_on_tv_unlisted") { HomeScreen(notOnTv(NotOnTv(HomeBlock.WIZARD_STAYS_ON, "Hisense", unlisted = true, helpAddTv = true), "Hisense 32A4200G"), {}, {}) },
         Shot("home_not_on_tv_fire_tv") { HomeScreen(notOnTv(NotOnTv(HomeBlock.TV_REFUSES, "Insignia", fireTv = true), "Insignia Fire TV"), {}, {}) },
+        Shot("home_not_on_tv_home_changed") { HomeScreen(notOnTv(NotOnTv(HomeBlock.HOME_CHANGED, "TCL", setupAgain = true), "TCL G07"), {}, {}) },
 
         // Look (theme picker), the dock sheet (S3b on Manage) and the stock home screen preview
         Shot("home_look_sheet") { SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(home(themeId = "aurora")) {} } },
