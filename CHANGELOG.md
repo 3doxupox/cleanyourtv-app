@@ -2,6 +2,39 @@
 
 All notable changes to the app. Versions follow [semantic versioning](https://semver.org/).
 
+## 0.3.2 (2026-10-23)
+
+Fixes from the first two issues people reported, and an easy way to report a problem or a new TV.
+
+### Fire TV and undo
+- Fire TV sets (and Fire TV Edition TVs from Insignia, Toshiba and others) are now recognised
+  from the TV's own details, even when the app has no list for the exact model. They get the
+  clean-up only: Fire OS does not let another home screen take over, so the app no longer tries.
+  China-market TCL and FFalcon sets without Google services are treated the same way.
+- Undo now checks the TV itself. If the TV's own home screen is back, undo finishes, even when
+  the TV refuses a step whose result is already in place. Before, a Fire TV could refuse to
+  "switch Amazon's home screen back on" although it was never off, and every button (Carry on,
+  Undo, Stop here) ran into the same refusal again.
+- If you were stuck on "The setup didn't finish" with 0.3.1, updating frees it by itself.
+- Stop here shows Done only once the run has really stopped, and "Forget this TV" ends an
+  unfinished setup for that TV straight away.
+- A TV whose home screen the app does not recognise gets the clean-up only, instead of an error.
+
+### Reporting
+- **Help add this TV**: when the app has no list for your TV, one tap makes a short report of
+  what the TV is and which apps it came with (apps you installed yourself are only counted, never
+  named). You see the whole text first, then copy it into a pre-filled GitHub form or share it
+  another way. The app sends nothing itself.
+- **Report a problem**, in Settings and on the screens where something went wrong, does the same
+  with the redacted log.
+- The log is readable: plain error names, how the TV was matched, the home screen decision, and
+  the step that failed with the TV's answer.
+- "Share diagnostics" said it made a zip; it shares plain text, and the screens now say so.
+- Privacy policy: the diagnostics section is now "Reports you choose to share". Nothing new is
+  collected and nothing is sent by the app.
+- Friendlier issue forms that the app can fill in, and a "Reporting a problem or a new TV"
+  section in CONTRIBUTING.
+
 ## 0.3.1 (2026-10-23)
 
 A small update for F-Droid's inclusion rules. Nothing changes in how the app cleans a TV.
