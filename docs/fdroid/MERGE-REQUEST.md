@@ -86,9 +86,13 @@ We run this recipe ourselves before every release: the `fdroid-check` job
 ([`.github/workflows/fdroid.yml`](https://github.com/udhaykumarbala/cleanyourtv-app/blob/HEAD/.github/workflows/fdroid.yml))
 runs fdroidserver's `fdroid build` on the recipe in the `fdroidserver:buildserver-trixie` image and
 `apksigcopier compare`s the result with the published APK. A local run of `fdroid build` with this
-recipe on version 0.2.0 matched the published 0.2.0 APK ("compared built binary to supplied
-reference binary successfully") on 2 CPUs, and the unsigned build was the same on 2, 4 and 8 CPUs, on
-Debian's and Temurin's JDK 21, and in two different checkout paths.
+recipe (`gradle: [full]`) on version 0.3.0 in that image rebuilt both bundled TV APKs to their pins
+and produced the `full` flavour's unsigned APK byte for byte the same as our own reproducible release
+build of the same commit (two clean builds in a pinned Temurin container), and that build signed
+passes `apksigcopier compare` against it. The earlier recipe matched the published 0.2.0
+APK in `fdroid build` itself ("compared built binary to supplied reference binary successfully"),
+and the unsigned build was the same on 2, 4 and 8 CPUs, on Debian's and Temurin's JDK 21, and in
+two different checkout paths. The evidence is in `docs/history/reviews/FDROID-S2-build-evidence.md`.
 
 ### Network and permissions
 
@@ -109,8 +113,9 @@ https://github.com/udhaykumarbala/cleanyourtv-app/blob/56802ac04c3917e5ece5a086e
 
 ### Assets
 
-Everything in the app is MIT, except the Outfit typeface (SIL Open Font License 1.1, in the app
-and the launcher). The one picture taken from upstream is the "aurora" theme wallpaper
+The app's own code is MIT. Its libraries are Apache License 2.0 (AndroidX, Kotlin and kotlinx) and
+MIT style (the Bouncy Castle licence), listed in `THIRD-PARTY-NOTICES`; the Outfit typeface is SIL
+Open Font License 1.1 (in the app and the launcher). The one picture taken from upstream is the "aurora" theme wallpaper
 (`themes/aurora/wallpaper.jpg`), added by the upstream author to his MIT repository; the upstream
 repository has no separate licence or credit for it.
 <!-- If Gathin's confirmation that the theme wallpapers are his own work under the repository's MIT
