@@ -217,6 +217,10 @@ class SetupMachine(
     private var wifiCard = false
     private val rejected = HashSet<String>()           // hosts answered "No" on the identity line, this run
     private var lastRunLog: String? = null
+    // The pause the log line was written for, by identity: the engine makes a new Paused for every
+    // pause, and a StateFlow drops one equal to the value it last delivered, so abandonToDone logs a
+    // pause the collector never saw, and neither path logs the same pause twice.
+    private var lastPauseLogged: RunState.Paused? = null
     private var lastDecision: HomeDecision? = null
 
     private var discoveryJob: Job? = null
@@ -850,7 +854,7 @@ class SetupMachine(
                 mutableExtras.update { it.copy(highlightStop = false) }
             }
             is RunState.RollingBack -> mutableExtras.update { it.copy(rollingBack = true) }
-            is RunState.Paused -> scope.launch { if (fresh) deps.log.line("setup: run ${pauseLine(r)}"); onPaused(ev.tvId, r) }
+            is RunState.Paused -> scope.launch { logPause(r); onPaused(ev.tvId, r) }
             is RunState.Finished -> scope.launch { onFinished(ev.tvId, r) }
             else -> {}
         }
@@ -1065,7 +1069,7 @@ class SetupMachine(
         val plan = deps.engine.runState(id).value.planOrNull()
         if (!abandonRun(id, plan?.id ?: (state.value as? SetupState.Stopped)?.card?.planId)) return
         val after = deps.engine.runState(id).value
-        if (after is RunState.Paused) { onPaused(id, after); return }
+        if (after is RunState.Paused) { logPause(after); onPaused(id, after); return }
         showDone(id, plan?.let { RunState.Finished(it, RunStatus.ABANDONED, emptyList(), null) }, homeOn = false)
     }
 
@@ -1309,9 +1313,15 @@ class SetupMachine(
     // 0.3.2 B3: "paused STEP_FAILED at step 72: undo step failed: Enable com.amazon.tv.launcher:
     // nonzero_exit(1) <stderr head>". The failed op comes from the run's journal; its stderr is one
     // cleaned line (the app's redactor runs over the whole line too).
+    private suspend fun logPause(p: RunState.Paused) {
+        if (p === lastPauseLogged) return
+        lastPauseLogged = p   // before the suspension, so a second caller sees it
+        deps.log.line("setup: run ${pauseLine(p)}")
+    }
+
     private suspend fun pauseLine(p: RunState.Paused): String {
         val head = "paused ${p.reason} at step ${p.at}"
-        val failed = (if (p.reason == PauseReason.STEP_FAILED) attempt { deps.ledger.lastFailure(p.plan.id) }.getOrNull() else null)
+        val failed = (if (p.reason == PauseReason.STEP_FAILED) attempt { deps.ledger.lastFailure(p.plan.id, p.at) }.getOrNull() else null)
             ?: return runLabel(p)
         val code = p.error?.let { errorName(it) } ?: failed.exit?.let { "nonzero_exit($it)" } ?: "failed"
         val stderr = LogCodes.clean(failed.stderrHead, 160).takeIf { it.isNotEmpty() }?.let { " $it" }.orEmpty()

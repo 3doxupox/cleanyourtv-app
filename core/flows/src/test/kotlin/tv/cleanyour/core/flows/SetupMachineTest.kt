@@ -1218,9 +1218,30 @@ class SetupMachineTest {
         m.dispatch(SetupIntent.StopAction(StopAction.SECONDARY)); settle()
         assertTrue(h.engine.calls.any { it is FakeEngine.Call.Abandon })
         assertEquals(StopCase.STEP_FAILED, assertIs<SetupState.Stopped>(m.state.value, "not Done while paused").card.case)
+        assertEquals(2, h.logLines.count { it.startsWith("setup: run paused") }, "each pause logged once")
         // The TV lets step R through this time: the abandon ends the run, and Done follows.
         h.engine.onAbandon = { _ -> finish(h.setupPlan, RunStatus.ABANDONED) }
         m.dispatch(SetupIntent.StopAction(StopAction.SECONDARY)); settle()
         assertIs<SetupState.Done>(m.state.value)
+    }
+
+    // The abandon's new pause equals the first one, so the run state's collector never sees it
+    // (a StateFlow drops a value equal to the last one it delivered). The direct path logs it, once.
+    @Test fun anAbandonThatPausesAgainLogsThatPauseOnce() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+        val error = AdbError.NonZeroExit(1, "refused")
+        h.engine.onStart = { p -> emit(p.tvId, RunState.Paused(p, 1, PauseReason.STEP_FAILED, error)) }
+        h.engine.onAbandon = { id ->
+            emit(id, RunState.RollingBack(h.setupPlan, 1))
+            emit(id, RunState.Paused(h.setupPlan, 1, PauseReason.STEP_FAILED, error))
+        }
+        val m = h.setup(backgroundScope)
+        toFound(h, m)
+        m.dispatch(SetupIntent.MakeItClean); settle()
+        assertEquals(1, h.logLines.count { it.startsWith("setup: run paused") })
+        m.dispatch(SetupIntent.StopAction(StopAction.SECONDARY)); settle()
+        assertEquals(StopCase.STEP_FAILED, assertIs<SetupState.Stopped>(m.state.value).card.case)
+        assertEquals(2, h.logLines.count { it.startsWith("setup: run paused") }, h.logLines.joinToString("\n"))
     }
 }

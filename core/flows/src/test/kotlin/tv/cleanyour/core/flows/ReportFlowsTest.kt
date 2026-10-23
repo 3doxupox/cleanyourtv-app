@@ -9,8 +9,10 @@ import tv.cleanyour.core.engine.JournalRecord
 import tv.cleanyour.core.engine.PauseReason
 import tv.cleanyour.core.engine.RunState
 import tv.cleanyour.core.engine.RunStatus
+import tv.cleanyour.core.engine.SectionState
 import tv.cleanyour.core.model.AdbError
 import tv.cleanyour.core.model.Op
+import tv.cleanyour.core.model.RunToken
 import tv.cleanyour.core.spec.ProfileResolution
 import tv.cleanyour.testing.fixtures.Samples
 import kotlin.test.Test
@@ -71,6 +73,8 @@ class ReportFlowsTest {
             h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
             h.setupPlan = h.plan(listOf(Op.Disable(adPkg), Op.Disable(promoPkg)), takeover = true)
             h.engine.onStart = { p ->
+                // Step R runs inside the open section (issue #2's shape); the plain failure has none.
+                if (undo) h.journal.append(JournalRecord.Section(p.id, "home", RunToken("0123456789abcdef"), SectionState.ARMED, 0))
                 h.journal.append(JournalRecord.Begin(p.id, 1, Op.Disable(promoPkg), listOf("pm disable-user ${promoPkg.value}"), null, 0))
                 h.journal.append(JournalRecord.Failed(p.id, 1, 1, "exit 1", "Error: refused"))
                 if (undo) {
@@ -89,6 +93,27 @@ class ReportFlowsTest {
             assertEquals(want, line)
             assertFalse("192.168.1.20" in h.logLines.joinToString("\n"))
         }
+    }
+
+    // S1: a pause names only the op that made it. An older refusal that was skipped (step 0's package
+    // was not on the TV) is not it: a pause at step 2 with no failure of step 2 names no op.
+    @Test fun aPauseNeverNamesAnOlderSkippedRefusal() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+        h.setupPlan = h.plan(listOf(Op.Disable(adPkg), Op.Disable(promoPkg)), takeover = false)
+        h.engine.onStart = { p ->
+            h.journal.append(JournalRecord.Begin(p.id, 0, Op.Disable(adPkg), listOf("pm disable-user ${adPkg.value}"), null, 0))
+            h.journal.append(JournalRecord.Failed(p.id, 0, 1, "package not on the TV", ""))
+            h.journal.append(JournalRecord.Begin(p.id, 1, Op.Disable(promoPkg), listOf("pm disable-user ${promoPkg.value}"), null, 0))
+            h.journal.append(JournalRecord.Done(p.id, 1, 0, true, 1))
+            h.journal.append(JournalRecord.Paused(p.id, 2, PauseReason.STEP_FAILED))
+            emit(p.tvId, RunState.Paused(p, 2, PauseReason.STEP_FAILED, AdbError.Transport.Protocol("boom")))
+        }
+        val m = h.setup(backgroundScope)
+        toFound(h, m)
+        m.dispatch(SetupIntent.MakeItClean); settle()
+        val line = h.logLines.single { it.startsWith("setup: run paused") }
+        assertTrue(line.startsWith("setup: run paused STEP_FAILED at step 2") && adPkg.value !in line, line)
     }
 
     // A pause with nothing in the journal keeps the short form, with a stable code.

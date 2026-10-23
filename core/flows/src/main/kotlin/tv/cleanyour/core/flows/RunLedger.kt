@@ -21,8 +21,8 @@ data class RunEntry(val planId: PlanId, val kind: PlanKind, val createdAtMs: Lon
 // What a run's journal says so far: the counts for "14 of 23" and whether a HOME section is open.
 data class RunProgress(val doneSteps: Int, val doneDisables: Int, val openSection: Boolean, val ended: Boolean)
 
-// The op that failed last in a run, its exit code and the head of the TV's stderr; `undo` when it was
-// a step of step R (putting the TV's own home screen back).
+// The op that made a run pause, its exit code and the head of the TV's stderr; `undo` when it was a
+// step of step R (putting the TV's own home screen back).
 data class LastFailure(val op: Op, val exit: Int?, val stderrHead: String, val undo: Boolean)
 
 class RunLedger(private val store: DocumentStore, private val journal: Journal) {
@@ -82,25 +82,54 @@ class RunLedger(private val store: DocumentStore, private val journal: Journal) 
     suspend fun keptTvInputs(planId: PlanId): Set<Int> =
         journal.read(planId).filterIsInstance<JournalRecord.Failed>().filter { it.error == DefaultEngine.KEPT_TV_INPUT }.map { it.i }.toSet()
 
-    // The newest failed op of a run, from its journal, for the pause line of the diagnostics log
-    // (0.3.2 B3). `undo` when it ran in step R: after a Rollback record and before the section closed
-    // or the run paused. A switch-off the live check kept (KEPT_TV_INPUT) is not a failure.
-    suspend fun lastFailure(planId: PlanId): LastFailure? {
+    // The op that made a run pause, from its journal, for the pause line of the diagnostics log
+    // (0.3.2 B3); null when the journal does not show one, and the line then names no op (never an
+    // older refusal that was only skipped).
+    // - A pause in step R (a Rollback record written inside an open section, then the pause with the
+    //   section still open): the engine pauses on the first failure of a must-succeed op (Enable,
+    //   SetHome, VerifyHome) since the last VerifyHome that passed, so that is the one named, with
+    //   `undo` set. A refused op before a passing VerifyHome was a skip.
+    // - Any other pause: the Failed record of step `at` written since the previous pause, outside an
+    //   undo of the whole run (whose failures are skips).
+    // The pause described is the newest Paused record; when the journal has records after it (the
+    // Paused append itself failed), the journal's tail is the pause. A switch-off the live check kept
+    // (KEPT_TV_INPUT) is never a failure.
+    suspend fun lastFailure(planId: PlanId, at: Int): LastFailure? {
+        val open = HashSet<String>()
         var begun: JournalRecord.Begin? = null
-        var rollback = false
-        var last: LastFailure? = null
+        var stepR = false        // inside step R's Rollback of an open section
+        var undoing = false      // inside an undo of the whole run
+        var stepRFailure: LastFailure? = null
+        var atFailure: LastFailure? = null
+        var paused: LastFailure? = null
+        var endsWithPause = false
         for (r in journal.read(planId)) {
+            endsWithPause = false
             when (r) {
                 is JournalRecord.Begin -> begun = r
-                is JournalRecord.Rollback -> rollback = true
-                is JournalRecord.Section, is JournalRecord.Paused -> rollback = false
+                is JournalRecord.Rollback -> { stepR = open.isNotEmpty(); undoing = !stepR; stepRFailure = null }
+                is JournalRecord.Section -> {
+                    if (r.state == SectionState.ARMED) open += r.name else open -= r.name
+                    stepR = false; stepRFailure = null
+                }
+                is JournalRecord.Done -> if (stepR && begun?.i == r.i && begun?.op is Op.VerifyHome) stepRFailure = null
                 is JournalRecord.Failed -> if (r.error != DefaultEngine.KEPT_TV_INPUT) {
-                    begun?.takeIf { it.i == r.i }?.let { last = LastFailure(it.op, r.exit, r.stderrHead, rollback) }
+                    val f = begun?.takeIf { it.i == r.i }?.let { LastFailure(it.op, r.exit, r.stderrHead, stepR) }
+                    when {
+                        f == null -> {}
+                        stepR -> if (stepRFailure == null && mustSucceed(f.op)) stepRFailure = f
+                        !undoing && r.i == at -> atFailure = f
+                    }
+                }
+                is JournalRecord.Paused -> {
+                    paused = if (stepR) stepRFailure else atFailure.takeIf { r.at == at }
+                    stepR = false; undoing = false; stepRFailure = null; atFailure = null
+                    endsWithPause = true
                 }
                 else -> {}
             }
         }
-        return last
+        return if (endsWithPause) paused else if (stepR) stepRFailure else atFailure
     }
 
     // The packages this app switched off and has not put back since, in the order they went off.
@@ -117,6 +146,9 @@ class RunLedger(private val store: DocumentStore, private val journal: Journal) 
     }
 
     companion object {
+        // Step R's ops whose failure means the TV's own home screen is not back (the engine's rule).
+        private fun mustSucceed(op: Op): Boolean = op is Op.Enable || op is Op.SetHome || op is Op.VerifyHome
+
         fun isChange(op: Op): Boolean = when (op) {
             is Op.Read, is Op.VerifyHome, is Op.Settle, Op.PressHome, is Op.CurtainCue -> false
             else -> true
