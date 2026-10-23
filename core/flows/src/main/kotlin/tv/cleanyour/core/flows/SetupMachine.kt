@@ -1345,7 +1345,9 @@ class SetupMachine(
         is RunState.AwaitingConfirm -> "awaiting confirm"
         is RunState.RollingBack -> "rolling back"
         is RunState.Paused -> "paused ${r.reason} at step ${r.at}${r.error?.let { " (${errorName(it)})" } ?: ""}"
-        is RunState.Finished -> "finished ${r.status}${r.home?.let { ", home $it" } ?: ""}, ${r.skipped.size} skipped"
+        // 0.3.3 (issue #10): the skipped switch-offs by name, so a report shows what stayed on.
+        is RunState.Finished -> "finished ${r.status}${r.home?.let { ", home $it" } ?: ""}, ${r.skipped.size} skipped" +
+            r.skipped.filter { it.op is Op.Disable }.take(SKIPS_LOGGED).joinToString(", ") { LogCodes.op(it.op) }.let { if (it.isEmpty()) "" else ": $it" }
         else -> r::class.simpleName ?: "state"
     }
 
@@ -1385,6 +1387,9 @@ class SetupMachine(
     }
 
     companion object {
+        // At most this many skipped switch-offs are named on the run's finish line.
+        const val SKIPS_LOGGED = 8
+
         fun initialState(start: SetupStart): SetupState = when (start) {
             SetupStart.Fresh -> SetupState.Welcome(emptyList(), onWifi = true, looking = true)
             is SetupStart.Continue -> SetupState.Probing(start.tvId, ProbeStage.FACTS, null)

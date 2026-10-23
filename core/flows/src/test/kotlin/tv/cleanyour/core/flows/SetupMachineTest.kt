@@ -1317,4 +1317,16 @@ class SetupMachineTest {
         assertFalse(m2.extras.value.doneNothing)
     }
 
+    // Issue #10: the finish line names the switch-offs the run skipped, so a report shows what stayed on.
+    @Test fun theFinishLineNamesTheSkippedSwitchOffs() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+        h.engine.onStart = { p -> emit(p.tvId, RunState.Finished(p, RunStatus.COMPLETED_WITH_SKIPS, listOf(p.steps[0]), null)) }
+        val m = h.setup(backgroundScope)
+        toFound(h, m)
+        m.dispatch(SetupIntent.MakeItClean); settle()
+        assertIs<SetupState.Done>(m.state.value)
+        assertTrue(h.logLines.any { it == "setup: run finished COMPLETED_WITH_SKIPS, 1 skipped: Disable ${adPkg.value}" }, h.logLines.joinToString("\n"))
+        assertFalse(m.extras.value.doneNothing)
+    }
 }
