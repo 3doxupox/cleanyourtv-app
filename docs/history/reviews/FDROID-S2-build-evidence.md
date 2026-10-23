@@ -119,3 +119,32 @@ On `docs/fdroid/tv.cleanyour.app.yml` with fdroiddata's current `config/categori
 is `fdroid rewritemeta`'s own output (it wraps the long `Binaries` URL and orders `prebuild` before
 `scanignore`). `.github/workflows/fdroid.yml`: actionlint clean; shellcheck clean on
 `scripts/fdroid-build-tv-apks.sh` and `scripts/fdroid-check.sh`.
+
+## 6. The merged tree for 0.3.0 (store flavours, `gradle: [full]`)
+
+After the store flavours (S1) and this stream were merged, the recipe builds the `full` flavour
+(`assembleFullRelease`, output `app/build/outputs/apk/full/release/app-full-release-unsigned.apk`),
+and `scripts/fdroid-check.sh` checks that the APK fdroid build collected is that file. Run on commit
+98b3d1270de29eb1c2301eb648c1aa7fbeabc98e (versionName 0.3.0, versionCode 3) in the same pinned image
+and fdroidserver commit as above:
+
+```
+==> tv.cleanyour.app 0.3.0 (3) at 98b3d1270de29eb1c2301eb648c1aa7fbeabc98e, gradle flavour full (assembleFullRelease)
+==> both bundled APKs rebuilt from source and match their pins
+INFO: Successfully built tv.cleanyour.app:3 from 98b3d1270de29eb1c2301eb648c1aa7fbeabc98e
+==> the F-Droid build is app/build/outputs/apk/full/release/app-full-release-unsigned.apk
+84a9f044a4d2b9a253f8ae6af3e03165121105e7536e64570cbac421174a2ac4  tv.cleanyour.app_3-unsigned.apk
+```
+
+`scripts/release-on-forge.sh --test-key` on the same commit (docker/repro, two clean builds):
+unsigned full APK `84a9f044a4d2b9a253f8ae6af3e03165121105e7536e64570cbac421174a2ac4` in both, the
+same bytes as the F-Droid build; signed with a throwaway key, `apksigcopier compare: match` and
+"22 of 22 checks passed (full)"; the play AAB
+`dc4f2c1284fa7a1623bebd3a4c69cd0c7fc8382d459cbea5d5df9a856f32235d` in both, "25 of 25 checks passed
+(play, bundle)". The full check build on that commit (eclipse-temurin JDK 21) gave the same full APK.
+
+Metadata on that commit: `fdroid readmeta` ok, `fdroid lint tv.cleanyour.app` exit 0, and
+checkupdates' own version detection (`common.manifest_paths` and `parse_androidmanifests` on
+`app/build.gradle.kts`, flavour full) reads versionName 0.3.0 and versionCode 3, as in the recipe.
+`fdroid rewritemeta` changes only the placeholder comment above `commit: v0.3.0`, which goes at
+submission with the full commit hash.
