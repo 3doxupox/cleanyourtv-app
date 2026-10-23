@@ -1,8 +1,7 @@
 # Privacy policy
 
 Clean Your TV (the Android app, package `tv.cleanyour.app`) is a community-built phone app for
-[Clean Your TV](https://github.com/Gathin23/cleanyourtv). It is published as open source by Udhay
-Kumar Bala at [github.com/udhaykumarbala/cleanyourtv-app](https://github.com/udhaykumarbala/cleanyourtv-app).
+[Clean Your TV](https://github.com/Gathin23/cleanyourtv). It is published as open source by udhaykumarbala at [github.com/udhaykumarbala/cleanyourtv-app](https://github.com/udhaykumarbala/cleanyourtv-app).
 
 Effective date: 2026-10-23.
 
