@@ -2,6 +2,20 @@
 
 All notable changes to the app. Versions follow [semantic versioning](https://semver.org/).
 
+## 0.3.1 (2026-10-23)
+
+A small update for F-Droid's inclusion rules. Nothing changes in how the app cleans a TV.
+
+- Where add-ons are offered (Cards and modules, and Done's "Add a card"), each add-on's page now
+  says, before you add it, that add-ons are downloaded from their authors' GitHub releases,
+  outside any app store, and are not built or checked by F-Droid. Back leaves without
+  downloading anything, as before.
+- The store description names the app's internet connections: the version from GitHub and
+  F-Droid contacts GitHub only when you tap "Check for updates" or choose to browse and add
+  add-ons; the Google Play version makes none of its own. The short summary follows F-Droid's
+  style.
+- The README says how the app is made: with AI coding agents, under the maintainer's review.
+
 ## 0.3.0 (2026-10-24)
 
 A Google Play version of the app, F-Droid readiness, and a website with a privacy policy. Every
