@@ -34,7 +34,6 @@ fun ReportScreen(state: ReportState, onIntent: (ReportIntent) -> Unit, onBack: (
         Glow.Tv, modifier,
         topBar = { CytTopBar(onBack = onBack) },
         bottomBar = if (!ready) null else ({
-            Body(stringResource(R.string.report_paste_hint), Modifier.padding(start = 4.dp, end = 4.dp, bottom = 14.dp))
             ActionColumn {
                 // Neither button writes to the TV: copying, the browser and the share sheet are the phone's.
                 PrimaryButton(stringResource(R.string.report_copy_open), { onIntent(ReportIntent.CopyAndOpen) }, guardObscured = false)
@@ -50,7 +49,10 @@ fun ReportScreen(state: ReportState, onIntent: (ReportIntent) -> Unit, onBack: (
                 Lead(stringResource(if (tvReport) R.string.report_tv_body else R.string.report_problem_body), Modifier.padding(top = 12.dp))
                 Banner(stringResource(R.string.report_public), BannerTone.INFO, Modifier.padding(top = 16.dp), icon = CytIcons.Info)
                 SectionLabel(stringResource(R.string.report_preview_label))
-                MonospaceBlock(state.text.trimEnd().lines())
+                // Wrapped and one text node: no sideways scrolling on a phone, and TalkBack reads it as one block.
+                MonospaceBlock(state.text.trimEnd().lines(), wrap = true)
+                // In the scrolling content, not the bottom bar, so at large font sizes the report keeps the room.
+                Body(stringResource(R.string.report_paste_hint), Modifier.padding(top = 16.dp, start = 4.dp, end = 4.dp))
                 Gap(16.dp)
             }
         }
