@@ -249,6 +249,25 @@ class ResumeTest {
         assertTrue(h.tv.watchdogs.isEmpty())
     }
 
+    // A4 (issue #2): a resume whose step R fails pauses at the step the run stood at, from the
+    // journal, never at step 0 (0.3.1 set the index only after step R).
+    @Test fun aPauseInStepRAfterResumeNamesTheStepNotZero() = runTest(timeout = TEST_TIMEOUT) {
+        val h = Harness(this)
+        val plan = h.setupPlan()
+        val section = plan.sections.single()
+        pauseInsideTheSection(h, plan)
+        h.tv.reconnect()
+        h.tv.refuse = { it == h.stock.pkg }   // step R cannot switch the TV's own home screen back on
+        val e2 = h.engine()
+        e2.resume(h.tv.tvId, h.tv)
+        val paused = assertIs<RunState.Paused>(e2.runState(h.tv.tvId).value)
+        assertEquals(PauseReason.STEP_FAILED, paused.reason)
+        assertEquals(section.to - 1, paused.at, "the in-doubt SetHome, as the journal says")
+        assertTrue(paused.at != 0)
+        assertEquals("paused:STEP_FAILED@${section.to - 1}", h.types(plan).last())
+        assertEquals(listOf("section:ARMED"), h.types(plan).filter { it.startsWith("section") }, "Home is not back: still open")
+    }
+
     // R1 R-6: an undo cut off by a crash carries on undoing after resume; "Continue" never turns it
     // back into a forward run that re-applies what the user chose to undo.
     @Test fun aCutOffUndoCarriesOnUndoingAfterResume() = runTest(timeout = TEST_TIMEOUT) {

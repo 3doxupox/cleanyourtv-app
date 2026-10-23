@@ -342,6 +342,59 @@ class SectionTest {
         assertEquals(listOf("section:ARMED", "section:ROLLED_BACK"), h.types(plan).filter { it.startsWith("section") })
     }
 
+    // Issue #2 (A3): undo is state-based. The TV refuses the switch-off of its own home screen and
+    // then the pm enable of step R too, though the package was never off and Home is still its own.
+    // The enable's target holds, so it is journaled done and verified, VerifyHome passes, and the
+    // section closes ROLLED_BACK: the run ends with the switch skipped, never a pause.
+    @Test fun aRefusedDisableAndARefusedEnableStillRollBackWhenHomeIsStock() = runTest(timeout = TEST_TIMEOUT) {
+        val h = Harness(this)
+        h.tv.refuse = { it == h.stock.pkg }   // a protected package: pm disable-user and pm enable both refused
+        val engine = h.engine()
+        val plan = h.setupPlan()
+        val section = plan.sections.single()
+        val off = plan.steps.single { it.op == Op.Disable(h.stock.pkg) }
+        assertEquals(StartResult.Started, engine.start(plan, h.tv, plan.hash, h.pass()))
+        val fin = assertIs<RunState.Finished>(h.settle(engine))
+        assertEquals(RunStatus.COMPLETED_WITH_SKIPS, fin.status)
+        assertEquals(HomeOutcome.VERIFY_FAILED, fin.home)
+        h.assertStockHomeIsBack(section.token.value)
+        assertEquals(1, h.tv.execs("pm enable --user 0 ${h.stock.pkg.value}"), "step R ran once")
+        val types = h.types(plan)
+        assertEquals(listOf("section:ARMED", "section:ROLLED_BACK"), types.filter { it.startsWith("section") })
+        assertTrue(types.none { it.startsWith("paused") }, "$types")
+        // The refused enable is journaled done and verified: its target holds.
+        val afterRollback = types.drop(types.indexOf("rollback${section.from}"))
+        assertTrue(afterRollback.containsAll(listOf("begin${off.index}", "done${off.index}")) && "failed${off.index}" !in afterRollback, "$afterRollback")
+        val done = h.records(plan).filterIsInstance<JournalRecord.Done>().last { it.i == off.index }
+        assertTrue(done.verified)
+        assertEquals(1, done.exit, "the refusal's exit code is kept")
+        assertTrue(ChangeRecords.fromJournal(h.records(plan)).none { it.op is Op.SetHome || (it.op as? Op.Disable)?.pkg == h.stock.pkg })
+    }
+
+    // A3: once VerifyHome shows the TV's own home screen, a step R enable that was refused and whose
+    // package really stays off (here the setup wizard) is a skip, its Failed record kept: the section
+    // still closes ROLLED_BACK.
+    @Test fun aRefusedEnableIsASkipOnceTheStockHomeIsVerified() = runTest(timeout = TEST_TIMEOUT) {
+        val h = Harness(this)
+        val quirky = h.profile(setOf(Quirk.HOME_TAKEOVER_SETUPWRAITH), h.wizard)
+        h.profiles = tv.cleanyour.testing.fixtures.FakeProfileSource(listOf(quirky))
+        val engine = h.engine()
+        val plan = h.setupPlan(profile = quirky)
+        val section = plan.sections.single()
+        val wizardOff = plan.steps.single { it.op == Op.Disable(h.wizard) }
+        openCheckScreen(h, engine, plan)
+        h.tv.refuse = { it == h.wizard }
+        engine.rejectHome(h.tv.tvId)
+        val fin = assertIs<RunState.Finished>(h.settle(engine))
+        assertEquals(HomeOutcome.USER_SAID_NO, fin.home)
+        h.assertStockHomeIsBack(section.token.value)
+        assertEquals(EnabledState.DISABLED_USER, h.tv.state(h.wizard), "the TV kept it off")
+        val types = h.types(plan)
+        assertEquals(listOf("section:ARMED", "section:ROLLED_BACK"), types.filter { it.startsWith("section") })
+        assertTrue("failed${wizardOff.index}" in types.drop(types.indexOf("rollback${section.from}")), "the refusal is journaled as a skip")
+        assertTrue(types.none { it.startsWith("paused") })
+    }
+
     // R1: giving up a paused run with an open section puts the TV's own home screen back first, and
     // needs the TV for that.
     @Test fun abandonWithAnOpenSectionRunsStepRFirst() = runTest(timeout = TEST_TIMEOUT) {
