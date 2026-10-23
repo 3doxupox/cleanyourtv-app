@@ -8,7 +8,8 @@ work. The full licence texts are linked or included below.
    (the third_party/cleanyourtv submodule). The APK in android/platform/src/main/assets/bundled is
    built from that commit without changes and re-signed with this project's launcher key. The
    upstream repository's per TV clean-up lists, written by its community contributors, are
-   converted into this app's TV profiles. Licence: MIT.
+   converted into this app's TV profiles, and three of its themes (default, aurora with its
+   wallpaper picture, six-columns) are bundled as they are. Licence: MIT.
 
      MIT License
 
