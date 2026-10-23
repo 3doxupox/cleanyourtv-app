@@ -2,16 +2,37 @@
 
 All notable changes to the app. Versions follow [semantic versioning](https://semver.org/).
 
-## 0.3.0 (unreleased)
+## 0.3.0 (2026-10-24)
 
-### Google Play, F-Droid and GitHub
-- The app now comes in two builds from the same code, with the same app ID, version and signing
-  key, so an install from one channel updates from another: the GitHub and F-Droid build, as
-  before, and a Google Play build.
+Clean Your TV comes to Google Play, is ready for F-Droid, and has its own website with a privacy
+policy. Every channel gets the same app, built from the same code and signed with the same key.
+On the GitHub build nothing changes in use.
+
+### Google Play
+- A Google Play build of the app, for people who would rather install from the Play Store than
+  download an APK. It has the same app ID, version and signing key as the GitHub download.
 - The Google Play build is updated by Google Play, so it has no "Check for updates". It downloads
   no add-ons (Cards and modules and Done's "Add a card" are not shown), makes no internet request
   of its own, and always keeps the TV's software updaters on: they are listed under "We keep
   these" instead of being a choice in Customise. Everything else is the same.
+
+### F-Droid
+- F-Droid can build the app from source and get exactly the APK published on GitHub, so it can
+  offer the same signed APK. The home screen launcher and the TV progress screen that the app
+  bundles are rebuilt from source too, and still match the versions the app checks before it
+  installs them on a TV.
+
+### Website and privacy policy
+- The app has a website at app.cleanyour.tv: the download, the three steps, the supported TVs and
+  how to install an APK.
+- The privacy policy is at app.cleanyour.tv/privacy (and in PRIVACY.md): the app collects no data
+  and has no accounts, analytics, advertising or crash reporting; everything it learns about a TV
+  stays on the phone.
+
+### One app, one key
+- The GitHub, F-Droid and Google Play builds share the app ID `tv.cleanyour.app`, the version and
+  the signing certificate, so an install from one channel can be updated from another and keeps
+  what the app saved.
 - One release now builds both reproducibly: the APK for GitHub and F-Droid and the bundle for
   Google Play, each built twice and compared byte for byte, and checked for the same permissions
   and, in the Play bundle, no GitHub host and no update check.
