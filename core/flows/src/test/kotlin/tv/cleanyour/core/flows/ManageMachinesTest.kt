@@ -560,7 +560,7 @@ class ManageMachinesTest {
     // choice back the way the TV shows it, so an app switched off since then is skipped.
     @Test fun dockRowsGoToTheTvAsOneListAndComeBackAsTheTvShowsThem() = runTest(timeout = 30.seconds) {
         val h = Harness()
-        val tv = h.knownTv()
+        val tv = h.knownTv().copy(launcher = LauncherState(1, Samples.zeroHash, Samples.zeroHash, Samples.zeroHash)).also { h.tvs.upsert(it) }
         val six = List(6) { PackageName("com.example.app$it") }
         fun state(on: Boolean) = PackageState(if (on) EnabledState.ENABLED else EnabledState.DISABLED_USER, false, 0, null, false, false, null, false)
         h.snapshots.save(Samples.snapshot(packages = Samples.miTvPackages() + six.associateWith { state(true) }, takenAtMs = Samples.NOW_MS + 1))
@@ -768,6 +768,85 @@ class ManageMachinesTest {
         // An older snapshot without the signer, but Setup recorded our key for this TV: offered.
         h.tvs.upsert(tv)
         assertEquals("2.4", HomeScreenMachine(deps, backgroundScope, tv.id).also { settle() }.state.value.updateTo)
+    }
+
+    // 0.3.3 D2 (issue #3, Hisense 32A4200G): Setup blocked the home switch, so the new home screen was
+    // never installed. 0.3.2 still offered Dock and Look; DefaultPlanner.applyTheme refuses ApplyTheme
+    // without the launcher ("the new home screen is not installed"), TvWriter turned that into
+    // WriteResult.Refused and HomeScreenMachine.apply into SnackKind.FAILED, which the app shows as
+    // "We stopped". Now the screen says why, from the stored decision, and sends nothing.
+    @Test fun withoutTheNewHomeScreenTheScreenSaysWhyAndSendsNothing() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val tv = h.knownTv().copy(profileId = null).also { h.tvs.upsert(it) }   // the miTv snapshot has no com.gathin.tvhome
+        HomeDecisions(h.documents).save(tv.id, HomeDecision(false, "WIZARD_STAYS_ON"))
+        val previous = h.planner.respond
+        h.planner.respond = { r, snap -> if (r is PlanRequest.ApplyTheme) PlanResult.Refused(listOf("the new home screen is not installed")) else previous(r, snap) }
+        val m = HomeScreenMachine(h.manageDeps(encoder = ConfigEncoder.Codec), backgroundScope, tv.id)
+        settle()
+        val n = assertNotNull(m.state.value.notOnTv)
+        assertEquals(HomeBlock.WIZARD_STAYS_ON, n.reason)
+        assertTrue(n.unlisted && n.helpAddTv)
+        assertFalse(n.setupAgain)
+        m.effects.test {
+            m.dispatch(HomeScreenIntent.SetTheme("aurora")); settle()
+            m.dispatch(HomeScreenIntent.SetDock(listOf(PackageName("com.netflix.ninja")))); settle()
+            m.dispatch(HomeScreenIntent.RestoreMine); settle()
+            assertTrue(drain().isEmpty(), "no We stopped, no write")
+        }
+        m.effects.test {
+            m.dispatch(HomeScreenIntent.RunSetupAgain); settle()
+            assertTrue(drain().isEmpty(), "Setup again is not the next step here")
+        }
+        m.effects.test {
+            m.dispatch(HomeScreenIntent.HelpAddTv); settle()
+            assertEquals(listOf<ManageEffect>(ManageEffect.Navigate("report/tv/${tv.id.value}")), drain())
+        }
+        assertTrue(h.planner.requests.none { it is PlanRequest.ApplyTheme })
+        // Manage's Home screen row says the TV keeps its own.
+        val manage = ManageMachine(h.manageDeps(), backgroundScope, tv.id)
+        settle()
+        assertTrue(assertNotNull(manage.state.value.current).ownHome)
+    }
+
+    // 0.3.3 D2: the reason and the next step for each stored decision. WIZARD_WIFI can change by
+    // forgetting and adding the network again only on a TV an exact profile knows; on an unlisted TV
+    // the wizard has to stay on anyway (HomeSwitchRisk), so the next step is a list.
+    @Test fun theReasonAndTheNextStepFollowTheStoredDecision() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val listed = h.knownTv()   // exact profile xiaomi-mitv-axso0
+        suspend fun notOnTv(decision: HomeDecision?, profileId: String? = listed.profileId): NotOnTv? {
+            h.tvs.upsert(listed.copy(profileId = profileId))
+            if (decision != null) HomeDecisions(h.documents).save(listed.id, decision) else h.documents.delete("tvs/${listed.id.value}/decision.txt")
+            return HomeScreenMachine(h.manageDeps(), backgroundScope, listed.id).also { settle() }.state.value.notOnTv
+        }
+        assertEquals(NotOnTv(HomeBlock.WIZARD_WIFI, "Xiaomi", setupAgain = true), notOnTv(HomeDecision(false, "WIZARD_WIFI")))
+        assertEquals(NotOnTv(HomeBlock.WIZARD_WIFI, "Xiaomi", unlisted = true, helpAddTv = true), notOnTv(HomeDecision(false, "WIZARD_WIFI"), profileId = null))
+        assertEquals(NotOnTv(HomeBlock.WIZARD_WIFI_UNKNOWN, "Xiaomi", setupAgain = true), notOnTv(HomeDecision(false, "WIZARD_WIFI_UNKNOWN")))
+        assertEquals(NotOnTv(HomeBlock.UNKNOWN_HOME, "Xiaomi", unlisted = true, helpAddTv = true), notOnTv(HomeDecision(false, "UNKNOWN_HOME"), profileId = null))
+        assertEquals(NotOnTv(HomeBlock.UNKNOWN_HOME, "Xiaomi"), notOnTv(HomeDecision(false, "UNKNOWN_HOME")))
+        assertEquals(NotOnTv(HomeBlock.TV_REFUSES, "Xiaomi"), notOnTv(HomeDecision(false, "TV_REFUSES")))
+        assertEquals(NotOnTv(HomeBlock.OLD_ANDROID, "Xiaomi"), notOnTv(HomeDecision(false, "OLD_ANDROID")))
+        // Planned, but the launcher is gone since (removed): Setup again adds it. No decision (a TV set
+        // up before 0.3.2): the same.
+        assertEquals(NotOnTv(null, "Xiaomi", setupAgain = true), notOnTv(HomeDecision(true)))
+        assertEquals(NotOnTv(null, "Xiaomi", setupAgain = true), notOnTv(null))
+        val m = HomeScreenMachine(h.manageDeps(), backgroundScope, listed.id).also { settle() }
+        m.effects.test {
+            m.dispatch(HomeScreenIntent.RunSetupAgain); settle()
+            assertEquals(listOf<ManageEffect>(ManageEffect.Navigate("setup/${listed.id.value}")), drain())
+        }
+        // Fire TV is named for Fire OS, not the panel's brand (issue #2).
+        h.snapshots.save(Samples.snapshot(facts = Samples.miTvFacts().copy(brand = "Insignia", manufacturer = "Amazon"), takenAtMs = Samples.NOW_MS + 1))
+        assertEquals(NotOnTv(HomeBlock.TV_REFUSES, "Insignia", fireTv = true), notOnTv(HomeDecision(false, "TV_REFUSES")))
+        // The new home screen on the TV: Setup recorded it, or the newest snapshot lists it (installed,
+        // perhaps not the home screen now): the dock and the look are there as before.
+        h.tvs.upsert(listed.copy(launcher = LauncherState(1, Samples.zeroHash, Samples.zeroHash, Samples.zeroHash)))
+        assertNull(HomeScreenMachine(h.manageDeps(), backgroundScope, listed.id).also { settle() }.state.value.notOnTv)
+        h.tvs.upsert(listed)
+        val ours = PackageState(EnabledState.ENABLED, false, 1, null, false, false, null, true)
+        h.snapshots.save(Samples.snapshot(packages = Samples.miTvPackages() + (Launcher.pkg to ours), takenAtMs = Samples.NOW_MS + 2))
+        assertNull(HomeScreenMachine(h.manageDeps(), backgroundScope, listed.id).also { settle() }.state.value.notOnTv)
+        assertFalse(assertNotNull(ManageMachine(h.manageDeps(), backgroundScope, listed.id).also { settle() }.state.value.current).ownHome)
     }
 }
 

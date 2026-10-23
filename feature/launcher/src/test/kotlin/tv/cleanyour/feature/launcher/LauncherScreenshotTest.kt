@@ -14,6 +14,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import tv.cleanyour.core.flows.AppChoice
 import tv.cleanyour.core.flows.Busy
+import tv.cleanyour.core.flows.HomeBlock
+import tv.cleanyour.core.flows.NotOnTv
 import tv.cleanyour.core.flows.HomeScreenState
 import tv.cleanyour.core.flows.ThemeOption
 import tv.cleanyour.core.model.Op
@@ -53,6 +55,10 @@ private fun home(
     tvSideSettings = updateTo == null,   // a TV still on launcher 2.0 (an update offered) has no Launcher settings
 )
 
+// 0.3.3 D2: a TV without the new home screen, as HomeScreenMachine loads it (no dock, no stock row).
+private fun notOnTv(n: NotOnTv, tvName: String = "Mi TV 4A") =
+    HomeScreenState(tvName = tvName, themes = themes, homeScreenOurs = false, notOnTv = n)
+
 // D4 "Update the home screen": the plan's narration lines are the preview's list.
 private val updatePlan = Samples.plan(
     listOf(Op.InstallStream(Samples.launcherArtifact().blob, Samples.zeroHash, Samples.launcherArtifact().pkg, 5, Samples.zeroHash),
@@ -83,6 +89,10 @@ object LauncherShots {
         Shot("home_empty_dock") { HomeScreen(home(dock = emptyList()), {}, {}) },
         Shot("home_dock_rows") { HomeScreen(home(dock = rowsDock), {}, {}) },
         Shot("home_update_available") { HomeScreen(home(updateTo = "2.4"), {}, {}) },
+        // 0.3.3 D2 (issue #3): the new home screen isn't on the TV. Why, and the next step when there is one.
+        Shot("home_not_on_tv_wizard_wifi") { HomeScreen(notOnTv(NotOnTv(HomeBlock.WIZARD_WIFI, "Xiaomi", setupAgain = true)), {}, {}) },
+        Shot("home_not_on_tv_unlisted") { HomeScreen(notOnTv(NotOnTv(HomeBlock.WIZARD_STAYS_ON, "Hisense", unlisted = true, helpAddTv = true), "Hisense 32A4200G"), {}, {}) },
+        Shot("home_not_on_tv_fire_tv") { HomeScreen(notOnTv(NotOnTv(HomeBlock.TV_REFUSES, "Insignia", fireTv = true), "Insignia Fire TV"), {}, {}) },
 
         // Look (theme picker), the dock sheet (S3b on Manage) and the stock home screen preview
         Shot("home_look_sheet") { SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(home(themeId = "aurora")) {} } },

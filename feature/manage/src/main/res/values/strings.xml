@@ -39,6 +39,7 @@
     <string name="manage_level_simple_note">Switches off the usual clutter and keeps everything else.</string>
     <string name="manage_level_custom_note">Lets you choose each item, the dock and the look.</string>
     <string name="manage_row_home">Home screen</string>
+    <string name="manage_row_home_own">The TV keeps its own. See why</string>
     <string name="manage_row_cards">Cards and modules</string>
     <string name="manage_row_cards_none">No cards yet</string>
     <string name="manage_row_switched_off">{count, plural, other {Switched off (#)}}</string>
