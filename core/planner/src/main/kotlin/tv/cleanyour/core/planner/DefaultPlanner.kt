@@ -151,13 +151,18 @@ class DefaultPlanner(
         }
 
         fun refuse(reason: String) { reasons += reason }
+
+        // Firmware that takes no other home screen, from the snapshot's facts and packages (FireOs, TclChina).
+        fun refusesOtherHomes(): Boolean = FireOs.isFireOs(snapshot.facts, snapshot) || TclChina.isTclChina(snapshot.facts)
         fun planned(op: Op): Boolean = steps.any { it.op == op }
         fun putBackPlanned(pkg: PackageName): Boolean = planned(Op.Enable(pkg)) || planned(Op.DefaultState(pkg))
 
-        // Denylist plus the two planner-only rules: the TV's own home screens and the setup wizard
+        // Denylist plus the planner-only rules: Fire OS's own home screens are never switched off
+        // (the firmware refuses it, issue #2), and the TV's own home screens and the setup wizard
         // are only ever switched off inside the home screen switch (section 3.4).
         fun protectedReason(pkg: PackageName, profile: Profile?, stockLaunchers: List<Component>, groups: List<PackageGroup> = profile?.groups.orEmpty()): String? {
             Denylist.reason(pkg, state(pkg), profile, snapshot)?.let { return it }
+            if (FireOs.isHome(pkg)) return REASON_FIRE_OS_HOME
             if (stockLaunchers.any { it.pkg == pkg } || isHomeScreen(pkg)) return REASON_HOME_SCREEN
             if (pkg.value in Denylist.setupWizards || profile?.setupWraith == pkg) return REASON_WIZARD_SECTION_ONLY
             if (keptUpdater(pkg, groups)) return REASON_UPDATES
@@ -400,6 +405,9 @@ class DefaultPlanner(
         // Returns true when install steps were added (false when the pin is already installed).
         fun launcherInstall(artifact: LauncherArtifact, replaceSigner: Boolean, stockLaunchers: List<Component>): Boolean {
             if (artifact.pkg != launcher.pkg) { refuse("the launcher artifact is ${artifact.pkg.value}, not ${launcher.pkg.value}"); return false }
+            // Issue #2: Setup never asks for it on a TV that only allows its own home screen; this is
+            // the defence in depth, from the TV's own facts so an unlisted Fire TV is caught too.
+            if (refusesOtherHomes()) { refuse(REASON_TV_REFUSES_HOME); return false }
             // RF-PROFILES-63 P1: Setup never asks for it below Android 8; this is the defence in depth.
             if (snapshot.facts.sdk < TV_MIN_SDK) { refuse(REASON_OLD_ANDROID); return false }
             val current = state(artifact.pkg)
@@ -440,6 +448,9 @@ class DefaultPlanner(
             if (snapshot.home.resolved == launcher) { homeScreenPossible = true; return }   // already ours
             if (snapshot.facts.installRefusal) { refuse("this TV refuses app installs, so the home screen switch is not possible"); return }
             if (snapshot.facts.sdk < TV_MIN_SDK) { refuse(REASON_OLD_ANDROID); return }
+            // Issue #2: Fire OS (and a China-market TCL) refuses another home screen, told from the
+            // TV's facts, whatever the profile resolution says.
+            if (refusesOtherHomes()) { refuse(REASON_TV_REFUSES_HOME); return }
             // RF-SAFETY-250: the TVs where the switch is skipped up front (SetupMachine never asks for it).
             HomeSwitchRisk.of(snapshot.facts, profile, snapshot, wizardWifi)?.let { refuse(it.reason); return }
             val current = state(launcher.pkg)
@@ -457,6 +468,8 @@ class DefaultPlanner(
                 ?: claimants.firstOrNull { it == resolved && stockPkg(it) }
                 ?: claimants.firstOrNull { stockPkg(it) }
             if (stock == null) { refuse("the TV's home screen is not one of the known ones for this model (issue #85)"); return }
+            // Never a section around a Fire OS home: its switch-off and its step R Enable are both refused.
+            if (FireOs.isHome(stock.pkg)) { refuse(REASON_TV_REFUSES_HOME); return }
             // D3: never the wizard while it may own the saved Wi-Fi network (switching it off deletes
             // that network and takes the TV, and this connection, off Wi-Fi). Without it the switch may
             // not hold on this TV; the HOME_SETUPWRAITH stop then says why.
@@ -792,6 +805,9 @@ class DefaultPlanner(
         const val REASON_OLD_ANDROID = "the new home screen needs Android 8 or newer, and this TV has an older Android"
         const val REASON_WIZARD_WHILE_OURS = "on this TV the first-run setup wizard takes the Home button back; use the TV's own home screen first"
         const val REASON_HOME_SCREEN = "it is the TV's own home screen; only the home screen switch changes it"
+        // Issue #2: Fire OS and the China-market TCL firmware take no other home screen.
+        const val REASON_TV_REFUSES_HOME = "this TV only allows its own home screen, so the new one is not installed and the switch is not possible"
+        const val REASON_FIRE_OS_HOME = "it is Fire OS's own home screen, which Fire OS never lets anyone switch off"
         const val REASON_WIZARD_SECTION_ONLY = "the first-run setup wizard is only switched off as part of the home screen switch"
         const val NARRATION_WIZARD = "Switch off the first-run setup wizard so the new home screen can take over"
         // Launcher v2.4.0 plan, finding 4: the uninstall erases everything the other launcher kept.
