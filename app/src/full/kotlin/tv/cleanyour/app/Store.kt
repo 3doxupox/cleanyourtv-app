@@ -12,7 +12,7 @@ object Store : StorePorts {
     override val flavour = "full"
     override val hosts: Set<String> = DownloadHosts.ALL
     override val rules = StoreRules.FULL
-    override val updatesMayGoOff = true
+    override val updatesMayGoOff = rules.updatesOff
     override val releasePage: String = RELEASE_PAGE
 
     // D12: one GET on user action (Settings, "Check for updates"); "couldn't check" when GitHub

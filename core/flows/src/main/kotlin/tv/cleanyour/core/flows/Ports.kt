@@ -116,12 +116,14 @@ fun interface UpdateChecker { suspend fun latestNewerThan(current: String): Stri
 // What the store build of the app offers (STORES-PLAN 1). The GitHub and F-Droid build (FULL)
 // offers everything. The Google Play build (PLAY) has no "Check for updates" (Play updates the app)
 // and no add-ons (Play allows no app downloads from outside Play): the machines then neither show
-// nor run them, so no button leads nowhere. The app passes its flavour's rules into SetupDeps and
-// ManageDeps; the default is the full build.
-data class StoreRules(val updateCheck: Boolean = true, val addOns: Boolean = true) {
+// nor run them, so no button leads nowhere. `updatesOff` false (PLAY) means the TV's software
+// updaters always stay on (the planner's keepUpdatesOn): Switched off then offers no Off pill and no
+// Undo for an updater. The app passes its flavour's rules into SetupDeps and ManageDeps; the default
+// is the full build.
+data class StoreRules(val updateCheck: Boolean = true, val addOns: Boolean = true, val updatesOff: Boolean = true) {
     companion object {
         val FULL = StoreRules()
-        val PLAY = StoreRules(updateCheck = false, addOns = false)
+        val PLAY = StoreRules(updateCheck = false, addOns = false, updatesOff = false)
     }
 }
 

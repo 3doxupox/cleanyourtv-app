@@ -115,6 +115,13 @@ private val tall = 1100.dp
 
 private val playSettings = appSettings().copy(updateCheck = false, addOns = false)
 
+// RF-STORES-030 M2: the Play build's Switched off at the Custom level. An updater an earlier full
+// build switched off is listed with Put back; the ask groups have no updater pills.
+private val playOffGroups = offGroups.dropLast(1) + OffGroup("updates", "Software updates", listOf(
+    off("com.mitv.otaextra", "Update helper", "Checks for new TV software"),
+)) + offGroups.last()
+private val playAskGroups = askGroups.filter { it.id != "updates" }
+
 object ManageShots {
     val all: List<Shot> = listOf(
         // M1 Manage
@@ -181,9 +188,11 @@ object ManageShots {
         Shot("appsettings_delete_all") { SheetOver({ AppSettingsScreen(appSettings(), {}, {}, {}) }) { ConfirmContent(AppConfirm.DELETE_EVERYTHING, working = false) {} } },
 
         // The Google Play build (STORES-PLAN 1): no Cards and modules row (the add-ons entry), no
-        // Check for updates, and the privacy line without GitHub. Every other screen is the same.
+        // Check for updates, the privacy line without GitHub, and no updater pills in Switched off
+        // (RF-STORES-030 M2). Every other screen is the same.
         Shot("play_manage_clean") { ManageScreen(manage().copy(addOns = false), {}) },
         Shot("play_appsettings_idle", tall) { AppSettingsScreen(playSettings, {}, {}, {}) },
+        Shot("play_switchedoff_custom", tall) { SwitchedOffScreen(switchedOff(Level.CUSTOM, groups = playOffGroups, ask = playAskGroups, count = 7), {}, {}) },
         Shot("play_appsettings_privacy") { SheetOver({ AppSettingsScreen(playSettings, {}, {}, {}) }) { PrivacyContent(online = false) } },
     )
 }

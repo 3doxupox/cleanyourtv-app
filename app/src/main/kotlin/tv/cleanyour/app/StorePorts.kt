@@ -20,7 +20,8 @@ interface StorePorts {
     val hosts: Set<String>
     // What the flows offer: "Check for updates" and the add-ons (Cards and modules, Done's card).
     val rules: StoreRules
-    // False: the planner keeps every software updater on (DefaultPlanner keepUpdatesOn).
+    // False: the planner keeps every software updater on (DefaultPlanner keepUpdatesOn); the same
+    // as rules.updatesOff, which the Switched off screen follows.
     val updatesMayGoOff: Boolean
     // Where "an update is available" opens; null when there is no update check.
     val releasePage: String?

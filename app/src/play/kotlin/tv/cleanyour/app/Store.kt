@@ -16,7 +16,7 @@ object Store : StorePorts {
     override val flavour = "play"
     override val hosts: Set<String> = emptySet()
     override val rules = StoreRules.PLAY
-    override val updatesMayGoOff = false
+    override val updatesMayGoOff = rules.updatesOff
     override val releasePage: String? = null
 
     // Never asked (Settings has no "Check for updates"); answers "couldn't check" without a request.

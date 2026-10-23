@@ -4,12 +4,16 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import tv.cleanyour.core.model.GroupDefault
 import tv.cleanyour.core.model.Level
+import tv.cleanyour.core.model.PackageGroup
 import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.model.TvId
 import tv.cleanyour.core.planner.PlanRequest
+import tv.cleanyour.core.spec.ProfileCategory
 
 // M4 "Switched off (23)": rows by group with "Put back" (one op, 5 s undo snackbar, UX 4.13); the
-// Custom level adds the profile's `ask` groups with Off / Kept pills (D2).
+// Custom level adds the profile's `ask` groups with Off / Kept pills (D2). In a build whose updaters
+// always stay on (StoreRules.updatesOff false, the Google Play build) an updater gets no pill and
+// putting one back offers no Undo, so "updates go off" is never offered (RF-STORES-030 M2).
 data class OffRow(val pkg: PackageName, val name: String, val description: String?, val off: Boolean)
 data class OffGroup(val id: String, val title: String, val rows: List<OffRow>)
 
@@ -39,6 +43,10 @@ class SwitchedOffMachine(
     private val writer = TvWriter(d)
     private data class Loaded(val s: SwitchedOffState)
     private data class BusyOn(val pkg: PackageName?)
+    private var profileGroups: List<PackageGroup> = emptyList()
+
+    // An updater this build keeps on: no Off pill, no Undo after Put back.
+    private fun keptOn(pkg: PackageName): Boolean = !d.store.updatesOff && ProfileCategory.isUpdater(pkg, profileGroups)
 
     init { scope.launch { load() } }
 
@@ -51,9 +59,9 @@ class SwitchedOffMachine(
     override fun handle(event: Any, before: SwitchedOffState, after: SwitchedOffState) {
         if (after.busy != null && event is SwitchedOffIntent && event !is SwitchedOffIntent.Refresh) return
         when (event) {
-            is SwitchedOffIntent.PutBack -> change(event.pkg, PlanRequest.PutBack(event.pkg), SnackKind.PUT_BACK, undo = true)
-            is SwitchedOffIntent.Undo -> change(event.pkg, PlanRequest.SwitchOff(setOf(event.pkg)), SnackKind.SWITCHED_OFF, undo = false)
-            is SwitchedOffIntent.SetOff -> if (event.off) change(event.pkg, PlanRequest.SwitchOff(setOf(event.pkg)), SnackKind.SWITCHED_OFF, undo = false)
+            is SwitchedOffIntent.PutBack -> change(event.pkg, PlanRequest.PutBack(event.pkg), SnackKind.PUT_BACK, undo = !keptOn(event.pkg))
+            is SwitchedOffIntent.Undo -> if (!keptOn(event.pkg)) change(event.pkg, PlanRequest.SwitchOff(setOf(event.pkg)), SnackKind.SWITCHED_OFF, undo = false)
+            is SwitchedOffIntent.SetOff -> if (event.off) { if (!keptOn(event.pkg)) change(event.pkg, PlanRequest.SwitchOff(setOf(event.pkg)), SnackKind.SWITCHED_OFF, undo = false) }
                 else change(event.pkg, PlanRequest.PutBack(event.pkg), SnackKind.PUT_BACK, undo = false)
             SwitchedOffIntent.Refresh -> scope.launch { load() }
             else -> {}
@@ -84,6 +92,7 @@ class SwitchedOffMachine(
         val labels = d.snapshots.latest(tvId)?.packages.orEmpty()
         fun row(p: PackageName, isOff: Boolean) = OffRow(p, d.nameOf(p, labels[p]?.label), d.facts.lookup(p)?.description, isOff)
         val groups = profile?.groups.orEmpty()
+        profileGroups = groups
         val placed = HashSet<PackageName>()
         val byGroup = groups.mapNotNull { g ->
             val rows = g.packages.map { it.name }.filter { it in off }.map { placed += it; row(it, true) }
@@ -92,7 +101,7 @@ class SwitchedOffMachine(
         val rest = off.filterNot { it in placed }.map { row(it, true) }
         val all = byGroup + listOfNotNull(if (rest.isEmpty()) null else OffGroup("other", "", rest))
         val ask = if (tv.level == Level.CUSTOM) groups.filter { it.default == GroupDefault.ASK }.map { g ->
-            OffGroup(g.id, g.title, g.packages.filter { labels.containsKey(it.name) }.map { row(it.name, it.name in off) })
+            OffGroup(g.id, g.title, g.packages.filter { labels.containsKey(it.name) && !keptOn(it.name) }.map { row(it.name, it.name in off) })
         }.filter { it.rows.isNotEmpty() } else emptyList()
         send(Loaded(SwitchedOffState(tv.nickname, tv.level, all, ask, null, loading = false, count = off.size)))
     }
