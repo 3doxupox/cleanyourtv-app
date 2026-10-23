@@ -1,5 +1,6 @@
 name: Report a problem
 description: Something in the app went wrong or did not do what you expected.
+title: "Problem: "
 labels: ["bug"]
 body:
   - type: markdown

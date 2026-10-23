@@ -15,9 +15,11 @@ Fixes from the first two issues people reported, and an easy way to report a pro
   the TV refuses a step whose result is already in place. Before, a Fire TV could refuse to
   "switch Amazon's home screen back on" although it was never off, and every button (Carry on,
   Undo, Stop here) ran into the same refusal again.
-- If you were stuck on "The setup didn't finish" with 0.3.1, updating frees it by itself.
+- If you were stuck on "The setup didn't finish" with 0.3.1, it clears the next time the app
+  connects to the TV after updating.
 - Stop here shows Done only once the run has really stopped, and "Forget this TV" ends an
-  unfinished setup for that TV straight away.
+  unfinished setup for that TV straight away. While setup is still working on a TV, Forget this
+  TV and Delete everything ask you to wait or stop it first.
 - A TV whose home screen the app does not recognise gets the clean-up only, instead of an error.
 
 ### Reporting
@@ -30,8 +32,12 @@ Fixes from the first two issues people reported, and an easy way to report a pro
 - The log is readable: plain error names, how the TV was matched, the home screen decision, and
   the step that failed with the TV's answer.
 - "Share diagnostics" said it made a zip; it shares plain text, and the screens now say so.
-- Privacy policy: the diagnostics section is now "Reports you choose to share". Nothing new is
-  collected and nothing is sent by the app.
+- The TV report and the problem report never name a home screen app you installed; only the
+  TV's own and the app's are named.
+- Delete everything now deletes the app's diagnostics log too.
+- Privacy policy: the diagnostics section is now "Reports you choose to share", and "What stays
+  on your phone" lists the diagnostics log. Nothing new is collected and nothing is sent by the
+  app.
 - Friendlier issue forms that the app can fill in, and a "Reporting a problem or a new TV"
   section in CONTRIBUTING.
 

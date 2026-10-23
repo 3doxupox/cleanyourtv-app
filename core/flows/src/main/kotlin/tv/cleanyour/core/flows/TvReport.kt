@@ -240,6 +240,7 @@ object IssueLinks {
     ))
 
     fun bugReport(about: AppAbout, input: TvReportInput?): String = link("bug_report.yml", listOfNotNull(
+        "title" to (input?.let { "Problem: ${TvReport.tvName(it.snapshot)}" } ?: "Problem report"),
         "version" to about.appLine,
         "phone" to about.phoneLine,
         input?.let { "tv" to "${TvReport.tvName(it.snapshot)}, ${TvReport.androidLine(it.snapshot)} (${TvReport.platformOf(it.snapshot)})" },

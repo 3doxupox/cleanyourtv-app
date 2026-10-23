@@ -184,7 +184,9 @@ class TvReportTest {
         assertEquals("0.3.2 (full)", q["version"])
         assertEquals("Samsung SM-S921B, Android 16", q["phone"])
         assertEquals("Hisense 55A6H, Android 11, RTM6.230109.155 (Google TV)", q["tv"])
+        assertEquals("Problem: Hisense 55A6H", q["title"])
         assertNull(query(IssueLinks.bugReport(about, null))["tv"])
+        assertEquals("Problem report", query(IssueLinks.bugReport(about, null))["title"])
     }
 
     // A long model name cannot grow the link past its cap.
