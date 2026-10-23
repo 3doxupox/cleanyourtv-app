@@ -21,9 +21,19 @@ class NavigationTest {
         val stack = mutableListOf<NavKey>(Dest.Setup(), Dest.Setup("0123456789abcdef"))
         applyRoute(stack, "manage/0123456789abcdef", noTvs = false)
         assertEquals(listOf<NavKey>(Dest.Manage("0123456789abcdef")), stack)
-        applyRoute(stack, "modules/0123456789abcdef", noTvs = false)
+        applyRoute(stack, "modules/0123456789abcdef", noTvs = false, addOns = true)
         assertEquals(Dest.Modules("0123456789abcdef"), stack.last())
         applyRoute(stack, "welcome", noTvs = true)
         assertEquals(listOf<NavKey>(Dest.Setup()), stack)
+    }
+
+    // STORES-PLAN 1: without add-ons (the Play build) the modules route opens nothing.
+    @Test fun theModulesRouteNeedsAddOns() {
+        val stack = mutableListOf<NavKey>(Dest.Manage("0123456789abcdef"))
+        assertTrue(applyRoute(stack, "modules/0123456789abcdef", noTvs = false, addOns = false))
+        assertEquals(listOf<NavKey>(Dest.Manage("0123456789abcdef")), stack)
+        // The default is this build's own rule.
+        applyRoute(stack, "modules/0123456789abcdef", noTvs = false)
+        assertEquals(if (Store.rules.addOns) 2 else 1, stack.size)
     }
 }

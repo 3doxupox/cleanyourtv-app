@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- SECURITY 4.4 and D41: no cleartext, system CAs only (no user CAs), the GitHub hosts named.
+<!-- The full build (GitHub and F-Droid, STORES-PLAN 1); the Google Play build has its own in src/play.
+     SECURITY 4.4 and D41: no cleartext, system CAs only (no user CAs), the GitHub hosts named.
      Certificate Transparency is enforced on Android 16 and later. ADB sockets are raw TCP made by
      our code and are not governed by this file. The fetcher (W5) enforces the host allowlist
      itself; this file only removes cleartext and user-installed CAs. -->

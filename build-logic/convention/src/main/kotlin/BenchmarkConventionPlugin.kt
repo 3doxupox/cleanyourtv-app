@@ -19,6 +19,9 @@ class AndroidBenchmarkConventionPlugin : Plugin<Project> {
             defaultConfig {
                 minSdk = Toolchain.MIN_SDK
                 testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+                // The app has two store flavours (STORES-PLAN 1); the startup numbers and the
+                // Baseline Profile come from the full build (the profile is shared by both).
+                missingDimensionStrategy("store", "full")
             }
             buildTypes {
                 create(BENCHMARK) {
