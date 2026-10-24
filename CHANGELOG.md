@@ -2,7 +2,10 @@
 
 All notable changes to the app. Versions follow [semantic versioning](https://semver.org/).
 
-## 0.3.4 (unreleased)
+## 0.3.4 (2026-10-24)
+
+Fixes for the TVs whose home screen was already changed, and an honest message when Setup can't
+make a safe plan. Thank you to everyone who sent a report.
 
 ### Setup
 - A TV whose home screen is already the new home screen installed another way (for example by
