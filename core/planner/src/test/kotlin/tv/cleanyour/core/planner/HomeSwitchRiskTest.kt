@@ -88,7 +88,11 @@ class HomeSwitchRiskTest {
     // build of the same device), get no switch; the Philips R8G, also made by MOKA, does.
     @Test fun theMokaFamilyGetsNoSwitch() {
         val pairs = HomeSwitchRisk.MOKA_PROFILES.flatMap { id -> shipped.getValue(id).match.let { m -> m.devices.map { it to m.brand!! } } }.toSet()
-        assertEquals(HomeSwitchRisk.MOKA_FAMILY, pairs, "the family is exactly what its profiles match on")
+        // The family is what its profiles match on plus the reported sets no profile matches.
+        val reported = setOf("R4_GTV" to "MOKA")
+        assertEquals(reported, HomeSwitchRisk.MOKA_REPORTED)
+        assertEquals(HomeSwitchRisk.MOKA_FAMILY, pairs + reported, "the family is its profiles' pairs plus the reported sets")
+        assertTrue(reported.none { it in pairs }, "a reported set with a profile belongs with the profiles")
         for ((f, id) in listOf(facts("R3_GTV", "Kalley", "MOKA") to "kalley-43g200", facts("R10G", "Kalley", "MOKA") to "kalley-r10g",
             facts("R10G", "PRISMPLUS", "MOKA") to "prismplus-q65-ultra-r10g")) {
             assertEquals(id, exact(f)?.id)
@@ -110,6 +114,22 @@ class HomeSwitchRiskTest {
         val f = facts("R10G", "Kalley", "MOKA")
         val clean = plan(setup(profile = exact(f), choices = choices(installLauncher = false, takeover = false)), snapshot = withFacts(f))
         assertTrue(clean.sections.isEmpty() && clean.steps.none { it.op == Op.Disable(wizard) })
+    }
+
+    // Issues #74 and #102: the ACER R4G is made by MOKA (device R4_GTV), the family of R3_GTV and
+    // R10G, and no list matches it. It gets no switch, on the brand set of its maker or without one.
+    @Test fun theAcerR4gGetsNoSwitch() {
+        val r4g = tv.facts.copy(brand = "ACER", manufacturer = "MOKA", model = "R4G", device = "R4_GTV", sdk = 34)
+        assertNull(exact(r4g))
+        assertTrue(HomeSwitchRisk.isMokaFamily(r4g))
+        val r4gNoWizard = noWizard.copy(facts = r4g).let { it.copy(contentHash = SnapshotCodec.hash(it)) }
+        for (w in WizardWifi.entries) {
+            assertEquals(Risk.BOOT_LOOP, HomeSwitchRisk.of(r4g, null, withFacts(r4g), w), "$w")
+            assertEquals(Risk.BOOT_LOOP, HomeSwitchRisk.of(r4g, null, r4gNoWizard, w), "$w, no wizard")
+        }
+        assertEquals(listOf(Risk.BOOT_LOOP.reason), refused(setup(profile = null), snapshot = withFacts(r4g)))
+        // Not the device name under another maker.
+        assertNull(HomeSwitchRisk.of(facts("R4_GTV", "Acme"), null, noWizard, WizardWifi.NOT_OWNER))
     }
 
     // The reference TV keeps its switch.

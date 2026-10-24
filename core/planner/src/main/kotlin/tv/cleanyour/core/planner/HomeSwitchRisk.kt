@@ -35,11 +35,16 @@ object HomeSwitchRisk {
     val GOOGLE_DEVICES: Set<String> = setOf("sabrina", "boreal", "kirkwood")
     val CASTING_PROFILES: Set<String> = setOf("google-chromecast-gtv-4k", "google-tv-streamer-4k-kirkwood")
 
+    // Sets of the MOKA family from TV reports, with no list of their own. The ACER R4G (issues #74
+    // and #102): device R4_GTV, manufacturer MOKA, the same family as R3_GTV and R10G.
+    val MOKA_REPORTED: Set<Pair<String, String>> = setOf("R4_GTV" to "MOKA")
+
     // The MOKA family by the exact device and maker pairs its three profiles match on (kalley-43g200:
     // R3_GTV by MOKA; prismplus-q65-ultra-r10g: R10G by MOKA; kalley-r10g: R10G under the Kalley
-    // brand), whatever the Android version. A device name alone could be another maker's, and the
-    // maker alone is too wide: MOKA also builds the Philips R8G (whitefield), which is not this family.
-    val MOKA_FAMILY: Set<Pair<String, String>> = setOf("R3_GTV" to "MOKA", "R10G" to "MOKA", "R10G" to "Kalley")
+    // brand), whatever the Android version, plus the reported sets of the family no profile matches
+    // (MOKA_REPORTED). A device name alone could be another maker's, and the maker alone is too wide:
+    // MOKA also builds the Philips R8G (whitefield), which is not this family.
+    val MOKA_FAMILY: Set<Pair<String, String>> = setOf("R3_GTV" to "MOKA", "R10G" to "MOKA", "R10G" to "Kalley") + MOKA_REPORTED
     val MOKA_PROFILES: Set<String> = setOf("kalley-43g200", "kalley-r10g", "prismplus-q65-ultra-r10g")
 
     // The first risk that applies, or null when the switch may be planned. `profile` is the exact
