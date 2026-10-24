@@ -8,11 +8,11 @@ All notable changes to the app. Versions follow [semantic versioning](https://se
 - A TV whose home screen is already a "TV Home" launcher installed another way (for example by
   the Clean Your TV desktop tool, which uses the same app name with another signing key) now gets
   the clean-up, and Setup leaves that home screen as it is. Before, Setup stopped with "plan
-  refused" on every try (issues #171, #187, #220, and likely #82, #99 and #45). If the app's own
+  refused" on every try (issues #171, #187, #220). If the app's own
   home screen is already in charge, Setup knows the switch is already done.
 - When Setup can't make a safe plan for a TV, it now says so: the TV answered and nothing was
   changed, and Report a problem sends us the reason. Before, it showed "We couldn't read what's on
-  the TV", which said the TV had stopped answering when it hadn't.
+  the TV", which said the TV had stopped answering when it hadn't (issues #82, #99, #45).
 
 ### Reports
 - The diagnostics log now names the reasons a plan was refused. Apps you installed yourself are
