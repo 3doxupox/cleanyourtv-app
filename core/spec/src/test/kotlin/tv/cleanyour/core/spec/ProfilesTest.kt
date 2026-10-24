@@ -246,7 +246,16 @@ class ProfilesTest {
         for ((f, id) in pinned) assertEquals(id, winner(f), "${f.brand} ${f.model} ${f.device} ${f.sdk} ${f.fingerprint}")
         // Each profile, asked with its own keys, resolves to itself, except the one superseded list;
         // and the ties settled by id are exactly these.
-        val profiles = BundledProfileSource.bundled.profiles
+        // Test build: a candidate list is never the winner without the person's answer; with it, each
+        // one, asked with its own keys, resolves to itself (no tested list matches those keys).
+        for (c in BundledProfileSource.bundled.profiles.filter { it.isCandidate }) {
+            val m = c.match
+            val own = facts(m.models.first(), m.devices.first(), m.brand!!, m.sdkMin!!)
+            assertEquals(null, winner(own), c.id)
+            assertEquals(c.id, source.candidateFor(own)?.id, c.id)
+            assertEquals(c.id, (source.resolveNow(own, tryCandidate = true) as? ProfileResolution.Exact)?.profile?.id, c.id)
+        }
+        val profiles = BundledProfileSource.bundled.profiles.filter { !it.isCandidate }
         val ties = mutableSetOf<Set<String>>()
         for (pr in profiles) {
             val m = pr.match
