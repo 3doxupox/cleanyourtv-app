@@ -45,6 +45,7 @@ import tv.cleanyour.testing.fixtures.FakeApkInspector
 import tv.cleanyour.testing.fixtures.FakeArtifactFetcher
 import tv.cleanyour.testing.fixtures.FakeCredentialGate
 import tv.cleanyour.testing.fixtures.FakeEngine
+import tv.cleanyour.testing.fixtures.Issue034
 import tv.cleanyour.testing.fixtures.Samples
 import tv.cleanyour.testing.fixtures.sha256Of
 import kotlin.test.Test
@@ -847,8 +848,8 @@ class ManageMachinesTest {
     @Test fun issue171And187And220ALauncherUnderOurNameThatSetupLeftIsNotOffered() = runTest(timeout = 30.seconds) {
         val h = Harness()
         val tv = h.knownTv().copy(launcher = null).also { h.tvs.upsert(it) }
-        val theirs = tv.cleanyour.testing.fixtures.Issue034.launcherState(tv.cleanyour.testing.fixtures.Issue034.otherSigner)
-        h.snapshots.save(Samples.snapshot(packages = Samples.miTvPackages() + (tv.cleanyour.testing.fixtures.Issue034.gathinHome.pkg to theirs), takenAtMs = Samples.NOW_MS + 30))
+        val theirs = Issue034.launcherState(Issue034.otherSigner)
+        h.snapshots.save(Samples.snapshot(packages = Samples.miTvPackages() + (Issue034.gathinHome.pkg to theirs), takenAtMs = Samples.NOW_MS + 30))
         HomeDecisions(h.documents).save(tv.id, HomeDecision(false, "HOME_CHANGED"))
         val n = assertNotNull(HomeScreenMachine(h.manageDeps(), backgroundScope, tv.id).also { settle() }.state.value.notOnTv)
         assertEquals(HomeBlock.HOME_CHANGED, n.reason)
