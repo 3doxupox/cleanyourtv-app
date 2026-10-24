@@ -141,9 +141,13 @@ class HomeScreenMachine(
     // newest snapshot lists it (installed, perhaps not the home screen now: "Use the TV's own home
     // screen" keeps it, and a look still applies). Without a snapshot this phone cannot tell, so the
     // rows stay and the planner's refusal is the backstop.
+    // 0.3.4 (issues #171, #187, #220): a launcher under our package name that Setup left as it is
+    // (HOME_CHANGED: installed another way, with another key) is not ours either, so the screen says
+    // why, as for issue #8, instead of offering a dock and a look for it.
     private suspend fun notOnTv(tv: tv.cleanyour.core.model.Tv, snap: tv.cleanyour.core.model.Snapshot?): NotOnTv? {
-        if (tv.launcher != null || snap == null || Launcher.pkg in snap.packages) return null
+        if (tv.launcher != null || snap == null) return null
         val reason = attempt { d.homeDecisions.load(tvId) }.getOrNull()?.block?.let { b -> HomeBlock.entries.firstOrNull { it.name == b } }
+        if (Launcher.pkg in snap.packages && reason != HomeBlock.HOME_CHANGED) return null
         val unlisted = tv.profileId == null
         val setupAgain = when (reason) {
             null, HomeBlock.NONE, HomeBlock.WIZARD_WIFI_UNKNOWN -> true

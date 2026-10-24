@@ -14,6 +14,11 @@ All notable changes to the app. Versions follow [semantic versioning](https://se
   changed, and Report a problem sends us the reason. Before, it showed "We couldn't read what's on
   the TV", which said the TV had stopped answering when it hadn't (issues #82, #99, #45).
 
+### Manage
+- On a TV whose home screen was installed another way (see Setup above), Home screen says Setup
+  left it as it was, as for other home screens that were already changed, instead of offering a
+  dock and a look for it (issues #171, #187, #220).
+
 ### Reports
 - The diagnostics log now names the reasons a plan was refused. Apps you installed yourself are
   not named in them.
