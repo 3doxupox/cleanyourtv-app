@@ -5,7 +5,8 @@ import java.io.File
 // Build-time converter (D28), run by :core:spec's convertProfiles task:
 //   ProfileConverter <examples dir> <profile-meta.json> <upstream commit> <output resources dir> [unconverted.txt] [<candidates dir> <candidate-meta.json>]
 // Parses every examples/<folder>/debloat.txt, refuses a folder without curated metadata or a
-// group title the metadata does not name, computes the brand sure sets and writes profiles.json.
+// group title the metadata does not name, computes the brand sure sets (with the categories of
+// facts.tsv, read from beside profile-meta.json) and writes profiles.json.
 // Owner decision D2: the folders listed in upstream-feedback/unconverted.txt are skipped (no
 // curated entry yet); any other folder without an entry still fails the build, and so does a
 // listed folder that has an entry or is not upstream.
@@ -20,6 +21,8 @@ object ProfileConverter {
     fun convert(
         examples: File, metaFile: File, commit: String, unconverted: Set<String> = emptySet(),
         candidates: File? = null, candidateMeta: File? = null,
+        // The careful sets (D26 amendment) read the categories in facts.tsv, which sits beside profile-meta.json.
+        factsFile: File = File(metaFile.parentFile, FACTS_FILE),
     ): Pair<ProfileBundle, List<String>> {
         val meta = ProfileMeta.decode(metaFile.readText())
         val problems = mutableListOf<String>()
@@ -40,8 +43,10 @@ object ProfileConverter {
         }
         (meta.profiles.keys - all.map { it.name }.toSet()).forEach { problems += "$it: in profile-meta.json but not upstream" }
         val tried = if (candidates == null || candidateMeta == null) emptyList() else candidateProfiles(candidates, candidateMeta, all.map { it.name }.toSet(), problems)
-        return ProfileBundle(commit, profiles + tried, SureSetGenerator.generate(profiles)) to problems
+        return ProfileBundle(commit, profiles + tried, SureSetGenerator.generate(profiles, BundledFactsTable.parse(factsFile.readText()))) to problems
     }
+
+    const val FACTS_FILE = "facts.tsv"
 
     private fun candidateProfiles(dir: File, metaFile: File, upstream: Set<String>, problems: MutableList<String>): List<tv.cleanyour.core.model.Profile> {
         val meta = ProfileMeta.decode(metaFile.readText())

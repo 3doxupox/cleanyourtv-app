@@ -40,7 +40,10 @@ class Issue034PlannerTest {
     @Test fun issue171And187And220TheReportsResolveAsTheySay() {
         assertEquals("Xiaomi", assertIs<ProfileResolution.BrandSureSet>(source.resolveNow(Issue034.magnoliaFacts())).brand)
         assertEquals("xiaomi-mi-box-s", assertIs<ProfileResolution.Exact>(source.resolveNow(Issue034.onedayFacts())).profile.id)
-        assertIs<ProfileResolution.None>(source.resolveNow(Issue034.songshanFacts()))
+        // 0.3.5: the Polytron careful set (one list), with the generic stock launchers of no set.
+        val polytron = assertIs<ProfileResolution.BrandSureSet>(source.resolveNow(Issue034.songshanFacts()))
+        assertEquals("Polytron", polytron.brand)
+        assertEquals(tv.cleanyour.core.spec.KnownLaunchers.generic, polytron.stockLaunchers)
     }
 
     // The refusal the reports logged, reproduced: the D36 rule, for each of the three shapes.

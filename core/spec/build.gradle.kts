@@ -31,6 +31,8 @@ val convertProfiles by tasks.registering(JavaExec::class) {
     val examples = upstream.dir("examples")
     inputs.dir(examples).withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.file(meta).withPathSensitivity(PathSensitivity.RELATIVE)
+    // The careful brand sets (D26 amendment) read the categories in facts.tsv, beside profile-meta.json.
+    inputs.file(layout.projectDirectory.file("src/main/resources/tv/cleanyour/core/spec/facts.tsv")).withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.file(unconverted).withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.property("candidates", candidatesOn)
     if (candidatesOn) inputs.dir(candidateDir).withPathSensitivity(PathSensitivity.RELATIVE)
