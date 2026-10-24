@@ -120,7 +120,9 @@ class AppGraph(context: Context, val appVersion: String = versionOf(context), va
         tv.cleanyour.core.model.Sha256(PinnedLauncher.SHA256) to tv.cleanyour.core.model.Sha256(PinnedLauncher.SIGNER_SHA256),
         tv.cleanyour.core.model.Sha256(PinnedCurtain.SHA256) to tv.cleanyour.core.model.Sha256(PinnedCurtain.SIGNER_SHA256),
     ))
-    val profiles = BundledProfileSource()
+    // Test build: the person's answers on Setup's candidate list card, which every resolve reads.
+    val candidateChoices = tv.cleanyour.core.flows.CandidateChoices(documents)
+    val profiles = BundledProfileSource(consent = candidateChoices)
     val facts = BundledFactsTable()
 
     // W3: renderer variant A (the nohup setsid watchdog) until S12 says otherwise.
@@ -197,6 +199,7 @@ class AppGraph(context: Context, val appVersion: String = versionOf(context), va
         curtainPin = curtainPin,   // RFC-CURTAIN-1
         store = store.rules,       // STORES-PLAN 1
         homeDecisions = homeDecisions,   // 0.3.2 B1
+        candidates = tv.cleanyour.core.flows.BundledCandidateLists(profiles, candidateChoices),   // test build
     )
 
     val manageDeps = ManageDeps(

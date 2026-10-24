@@ -245,6 +245,8 @@ object SetupShots {
         // S2d to S3 probing
         Shot("probing_start") { Setup(SetupState.Probing(tvId, ProbeStage.FACTS, null)) },
         Shot("probing_packages") { Setup(SetupState.Probing(tvId, ProbeStage.PACKAGES, null)) },
+        // Test build: the card before the plan for a list not tested yet
+        Shot("probing_candidate") { Setup(SetupState.Probing(tvId, ProbeStage.PACKAGES, null), connected.copy(candidate = tv.cleanyour.core.flows.CandidateOffer("xiaomi-mitv-mssp1", "#57"))) },
 
         // S3 What we found, with the unknown model, zero, no screen lock and TV-refuses-home variants
         Shot("found_simple") { Setup(found()) },

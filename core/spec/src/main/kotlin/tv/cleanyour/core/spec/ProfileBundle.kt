@@ -1,5 +1,7 @@
 package tv.cleanyour.core.spec
 
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import tv.cleanyour.core.model.Component
@@ -30,7 +32,11 @@ internal object ProfileBundleJson {
         val suggestedDock: List<String>, val tested: TestedDto?, val sourceSha256: String,
     )
     @Serializable data class MatchDto(val models: List<String>, val devices: List<String>, val brand: String?, val sdkMin: Int?, val sdkMax: Int?, val fingerprintPrefix: String?)
-    @Serializable data class TestedDto(val by: String?, val firmware: String?, val daysLivedWith: Int?, val rebootTested: Boolean)
+    // `candidate` is left out of the file when false, so profiles.json without candidate lists is
+    // byte for byte what it was before the test build.
+    @OptIn(ExperimentalSerializationApi::class)
+    @Serializable data class TestedDto(val by: String?, val firmware: String?, val daysLivedWith: Int?, val rebootTested: Boolean,
+        @EncodeDefault(EncodeDefault.Mode.NEVER) val candidate: Boolean = false)
     @Serializable data class GroupDto(val id: String, val title: String, val default: String, val packages: List<EntryDto>)
     @Serializable data class EntryDto(val name: String, val note: String? = null)
     @Serializable data class SureSetDto(val brand: String, val profiles: List<String>, val groups: List<GroupDto>, val stockLaunchers: List<String>)
@@ -51,7 +57,7 @@ internal object ProfileBundleJson {
                 p.id, p.match.let { MatchDto(it.models, it.devices, it.brand, it.sdkMin, it.sdkMax, it.fingerprintPrefix) }, p.platform.name,
                 p.stockLaunchers.map { it.flat }, p.liveTv?.value, p.setupWraith?.value, p.quirks.map { it.name }.sorted(), p.groups.map { it.dto() },
                 p.neverDisable.map { it.value }, p.suggestedDock.map { it.value },
-                p.tested?.let { TestedDto(it.by, it.firmware, it.daysLivedWith, it.rebootTested) }, p.sourceSha256.hex,
+                p.tested?.let { TestedDto(it.by, it.firmware, it.daysLivedWith, it.rebootTested, it.candidate) }, p.sourceSha256.hex,
             )
         },
         sureSets = b.sureSets.map { s -> SureSetDto(s.brand, s.profileIds, s.groups.map { it.dto() }, s.stockLaunchers.map { it.flat }) },
@@ -69,7 +75,7 @@ internal object ProfileBundleJson {
                     liveTv = p.liveTv?.let(::PackageName), setupWraith = p.setupWraith?.let(::PackageName),
                     quirks = p.quirks.map { Quirk.valueOf(it) }.toSet(), groups = p.groups.map { it.model() },
                     neverDisable = p.neverDisable.map(::PackageName).toSet(), suggestedDock = p.suggestedDock.map(::PackageName),
-                    tested = p.tested?.let { TestedInfo(it.by, it.firmware, it.daysLivedWith, it.rebootTested) }, sourceSha256 = Sha256(p.sourceSha256),
+                    tested = p.tested?.let { TestedInfo(it.by, it.firmware, it.daysLivedWith, it.rebootTested, it.candidate) }, sourceSha256 = Sha256(p.sourceSha256),
                 )
             },
             d.sureSets.map { s -> SureSet(s.brand, s.profiles, s.groups.map { it.model() }, s.stockLaunchers.map(::component)) },

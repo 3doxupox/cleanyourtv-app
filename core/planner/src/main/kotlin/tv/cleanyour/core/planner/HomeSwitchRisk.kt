@@ -47,7 +47,9 @@ object HomeSwitchRisk {
     fun of(facts: DeviceFacts, profile: Profile?, snapshot: Snapshot, wizardWifi: WizardWifi): Risk? = when {
         isMokaFamily(facts) || profile?.id in MOKA_PROFILES -> Risk.BOOT_LOOP
         isGoogleHardware(facts) || profile?.id in CASTING_PROFILES -> Risk.CASTING
-        else -> wizardWifiRisk(profile, snapshot, wizardWifi)
+        // Test build: a candidate list was never tried with the switch, so for the setup wizard it
+        // counts as no profile at all (a wizard that is on stays on, so no switch).
+        else -> wizardWifiRisk(profile?.takeUnless { it.isCandidate }, snapshot, wizardWifi)
     }
 
     fun isMokaFamily(f: DeviceFacts): Boolean =

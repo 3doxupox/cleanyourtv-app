@@ -322,4 +322,18 @@
     <string name="confirm_undo_title">Undo the changes on the TV?</string>
     <string name="confirm_undo_body">We put back everything this change did, so the TV is as it was before. Nothing is deleted.</string>
     <string name="confirm_undo_button">Undo the changes</string>
+    <!-- Test build: the card before the plan when this TV's list is a candidate (made from reports, not tested yet). -->
+    <string name="candidate_overline">Test build</string>
+    <string name="candidate_title">This TV\'s list is new</string>
+    <string name="candidate_body">We made a list for this TV from reports of the same model, but nobody has tested it yet. What it switches off is listed in the plan as usual, and you can put everything back from Restore point.</string>
+    <string name="candidate_ask_issue">If you try it, please tell us in issue {issue} how it went after a few days:</string>
+    <string name="candidate_ask">If you try it, please tell us in your issue how it went after a few days:</string>
+    <string name="candidate_check_wifi">Wi-Fi after a restart</string>
+    <string name="candidate_check_remote">Every button on the remote, Input and voice too</string>
+    <string name="candidate_check_hdmi">Each HDMI input</string>
+    <string name="candidate_check_live_tv">Live TV</string>
+    <string name="candidate_check_casting">Casting from a phone</string>
+    <string name="candidate_try">Try the test list</string>
+    <string name="candidate_careful">Stay careful, as in 0.3.4</string>
+    <string name="candidate_careful_note">Careful means only what we\'re sure about for TVs of this brand, the same as version 0.3.4.</string>
 </resources>

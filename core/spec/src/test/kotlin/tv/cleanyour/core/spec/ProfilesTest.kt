@@ -270,7 +270,8 @@ class ProfilesTest {
     }
 
     @Test fun bundledProfilesEqualAFreshParse() {
-        val bundle = BundledProfileSource.bundled
+        // Test build: the candidate lists (CandidatesTest) come after the upstream profiles.
+        val bundle = BundledProfileSource.bundled.let { b -> b.copy(profiles = b.profiles.filter { !it.isCandidate }) }
         assertEquals("9071ec8", bundle.upstreamCommit)
         assertEquals(examples.map { it.folder }, bundle.profiles.map { it.id })
         for (e in examples) assertEquals(DebloatTxtParser.parse(e.debloatTxt, e.folder), bundle.profiles.first { it.id == e.folder }, e.folder)
@@ -281,7 +282,7 @@ class ProfilesTest {
     }
 
     @Test fun sureSetsFollowD26() {
-        val profiles = BundledProfileSource.bundled.profiles
+        val profiles = BundledProfileSource.bundled.profiles.filter { !it.isCandidate }
         val sets = SureSetGenerator.generate(profiles)
         val brands = profiles.groupBy { it.match.brand!!.lowercase() }
         assertEquals(brands.filterValues { it.size >= 3 }.keys.sorted(), sets.map { it.brand.lowercase() })
@@ -392,7 +393,7 @@ class ProfilesTest {
     @Test fun factsCoverTheReferenceProfileTheSureSetsAndTheDockTable() {
         val facts = BundledFactsTable()
         val needed = profile("xiaomi-mitv-axso0").groups.flatMap { g -> g.packages.map { it.name } } +
-            SureSetGenerator.generate(BundledProfileSource.bundled.profiles).flatMap { s -> s.groups.flatMap { g -> g.packages.map { it.name } } } +
+            BundledProfileSource.bundled.sureSets.flatMap { s -> s.groups.flatMap { g -> g.packages.map { it.name } } } +
             DockRankingImpl.ranking("en-IN") + DockRankingImpl.ranking("en-US") + DockRankingImpl.ranking("en-GB") + p("com.android.tv")
         val missing = needed.distinct().filter { facts.lookup(it) == null }
         assertEquals(emptyList(), missing)

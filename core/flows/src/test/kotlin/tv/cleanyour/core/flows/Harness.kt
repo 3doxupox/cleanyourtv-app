@@ -121,7 +121,8 @@ class Harness(val clock: FakeClock = FakeClock(Samples.NOW_MS)) {
     var launchable: Set<PackageName>? = null
 
     fun setupDeps(dock: DockPicker = DockPicker { _, _, _, _, _ -> listOf(PackageName("com.netflix.ninja")) }, curtainPin: tv.cleanyour.core.trust.CurtainPin? = null,
-                  savedWifi: tv.cleanyour.core.probe.SavedWifiOwners? = null, store: StoreRules = StoreRules.FULL) = SetupDeps(
+                  savedWifi: tv.cleanyour.core.probe.SavedWifiOwners? = null, store: StoreRules = StoreRules.FULL,
+                  candidates: CandidateLists? = null) = SetupDeps(
         discovery, sessions, prober, profiles, facts, runner, engine, gate, tvs, snapshots, ledger,
         FakeLauncherPin(Samples.launcherArtifact()), themes, restorePoint, FakeRestoreNote(), sessionEnd, access, clock, KeyCopy,
         blobs = blobs, dock = dock, screenLock = { true }, diagnostics = { "diagnostics" },
@@ -132,6 +133,7 @@ class Harness(val clock: FakeClock = FakeClock(Samples.NOW_MS)) {
         savedWifi = savedWifi,
         store = store,
         homeDecisions = HomeDecisions(documents),
+        candidates = candidates,
     )
 
     fun setup(scope: CoroutineScope, start: SetupStart = SetupStart.Fresh, store: StoreRules = StoreRules.FULL) = SetupMachine(setupDeps(store = store), scope, start)

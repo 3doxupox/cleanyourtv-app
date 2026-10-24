@@ -75,9 +75,10 @@ object LogCodes {
         is Op.CurtainCue -> "CurtainCue ${op.stage.name.lowercase()}"
     }
 
-    // How the profile resolved: "exact <id>", "brand set <Brand>" or "none".
+    // How the profile resolved: "exact <id>", "candidate <id>" (test build: a list not tested yet,
+    // tried with the person's agreement), "brand set <Brand>" or "none".
     fun profile(res: ProfileResolution?): String = when (res) {
-        is ProfileResolution.Exact -> "exact ${res.profile.id}"
+        is ProfileResolution.Exact -> "${if (res.profile.isCandidate) "candidate" else "exact"} ${res.profile.id}"
         is ProfileResolution.BrandSureSet -> "brand set ${clean(res.brand, 40)}"
         is ProfileResolution.None, null -> "none"
     }

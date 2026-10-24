@@ -141,6 +141,10 @@ data class SetupExtras(
     val apps: List<AppChoice> = emptyList(),     // installed apps for the dock sheet
     val dockColumns: Int = DockLayers.DEFAULT_COLUMNS,   // apps per row for the chosen look (DockLayers)
     val addOns: Boolean = true,                  // STORES-PLAN 1: Done's "Add a card" (off in the Play build)
+    // Test build: the card before the plan when this TV's list is a candidate (not tested yet), and
+    // whether the plan on screen is that list (the person chose to try it).
+    val candidate: CandidateOffer? = null,
+    val candidateTried: Boolean = false,
 )
 
 class SetupDeps(
@@ -186,6 +190,8 @@ class SetupDeps(
     val store: StoreRules = StoreRules.FULL,
     // 0.3.2 B1: where the home screen switch decision is kept for the TV report; null keeps none.
     val homeDecisions: HomeDecisions? = null,
+    // Test build: candidate lists (CandidateLists); null, or a build without them, never offers one.
+    val candidates: CandidateLists? = null,
 )
 
 // The first-run wizard, screens S1 to S5 (PRODUCT-SPEC 4, UX 2 and 4). One machine per wizard run,
@@ -263,6 +269,7 @@ class SetupMachine(
         data class Door(val tv: FoundTv) : Ev
         data object ToWelcome : Ev
         data object Back : Ev
+        data class CandidateChosen(val tryIt: Boolean) : Ev
     }
 
     init {
@@ -292,6 +299,8 @@ class SetupMachine(
     }
 
     override fun dismissCard() = mutableExtras.update { it.copy(card = null) }
+
+    override fun chooseCandidate(tryIt: Boolean) = send(Ev.CandidateChosen(tryIt))
 
     // reducer
 
@@ -406,6 +415,7 @@ class SetupMachine(
                 scope.launch { session?.let { s -> attempt { s.close() } }; session = null; tv = null }
             }
             Ev.GoProbe -> scope.launch { probe() }
+            is Ev.CandidateChosen -> if (after is SetupState.Probing && mutableExtras.value.candidate != null) scope.launch { candidateChosen(event.tryIt) }
             is Ev.OpenFailed -> onOpenFailed(event.error)
             is SetupIntent.Keep -> editDraft { d ->
                 if (event.keep) d.copy(kept = d.kept + event.pkg, extraOff = d.extraOff - event.pkg)
@@ -611,12 +621,44 @@ class SetupMachine(
                 "${launchable?.size?.let { "$it launchable" } ?: "launchable unknown"}, profile ${LogCodes.profile(res)}, ${LogCodes.tv(facts)}")
             val record = upsertTv(s, facts, res)
             tv = record
-            replan(record)
+            // Test build: a list not tested yet waits for the person's answer on the card.
+            val candidate = deps.candidates?.offer(facts)
+            if (candidate != null) {
+                deps.log.line("setup: candidate list ${candidate.id} offered")
+                mutableExtras.update { it.copy(candidate = CandidateOffer.of(candidate), candidateTried = false) }
+            } else replan(record)
         }
         ok.exceptionOrNull()?.let { e ->
             deps.log.line("setup: probe failed ${LogCodes.of(e)}")
             val case = if (e is AdbException) StopCase.CONNECTION_LOST else StopCase.PROBE_FAILED
             send(Ev.Stop(tvId, card(case, null, args = mapOf("done" to 0, "total" to 0))))
+        }
+    }
+
+    // Test build: the answer on the candidate card. It is kept (CandidateChoices) before the TV is
+    // resolved again, so the plan, the engine's live check, Manage and the TV report all use the
+    // same list; then the plan is made as usual, through every safety rule.
+    private suspend fun candidateChosen(tryIt: Boolean) {
+        val offer = mutableExtras.value.candidate ?: return
+        val s = session ?: return
+        val facts = deviceFacts ?: return
+        mutableExtras.update { it.copy(candidate = null) }
+        attempt { deps.candidates?.choose(offer.profileId, tryIt) }
+            .onFailure { deps.log.line("setup: candidate choice not saved ${LogCodes.of(it)}") }
+        deps.log.line("setup: candidate list ${offer.profileId}: " + if (tryIt) "trying the test list" else "careful brand set instead")
+        val ok = attempt {
+            val res = deps.profiles.resolve(facts)
+            resolution = res
+            deps.log.line("setup: profile ${LogCodes.profile(res)}")
+            mutableExtras.update { it.copy(candidateTried = (res as? ProfileResolution.Exact)?.profile?.isCandidate == true) }
+            val record = upsertTv(s, facts, res)
+            tv = record
+            replan(record)
+        }
+        ok.exceptionOrNull()?.let { e ->
+            deps.log.line("setup: probe failed ${LogCodes.of(e)}")
+            val case = if (e is AdbException) StopCase.CONNECTION_LOST else StopCase.PROBE_FAILED
+            send(Ev.Stop(s.tvId, card(case, null, args = mapOf("done" to 0, "total" to 0))))
         }
     }
 
