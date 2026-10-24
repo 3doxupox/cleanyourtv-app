@@ -15,8 +15,8 @@ import tv.cleanyour.core.model.SnapshotReason
 // here came from a TV). All three: Home already answers to com.gathin.tvhome/.MainActivity, the new
 // home screen's package, and the only other claimant is FallbackHome; the TV's own home screen is
 // switched off. The app's own record of a home switch is empty ("Home switch: not recorded"), so the
-// launcher was put there another way (the desktop Clean Your TV tool installs a launcher under the
-// same package name, signed with another key). #171: Xiaomi MiTV4I (magnolia, Android 9), Xiaomi
+// launcher was put there another way (CleanYourTV's tool for computers installs its launcher under
+// the same package name, signed with another key). #171: Xiaomi MiTV4I (magnolia, Android 9), Xiaomi
 // brand sure set. #187: Xiaomi MIBOX4 (oneday, Android 9), exact profile xiaomi-mi-box-s. #220:
 // Polytron POLYTRON4K (songshan, Google TV 11), no profile.
 object Issue034 {

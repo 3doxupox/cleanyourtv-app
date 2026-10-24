@@ -662,7 +662,7 @@ class SetupMachine(
         mutableExtras.update { it.copy(fireTv = fireOs) }
         // Already ours (a re-run): there is no switch to skip, as in the planner's takeover.
         // 0.3.4 (issues #171, #187, #220): Home may answer to our package name with another key on
-        // it (the desktop Clean Your TV tool installs a launcher under the same name). That is not
+        // it (CleanYourTV's tool for computers installs its launcher under the same name). That is not
         // ours: the planner may replace it only while the TV's own home screen is in charge (D36),
         // and refused the whole plan. The home screen was already changed, so Setup leaves it as it
         // is and does the clean-up alone, as for issue #8. A key the TV did not report stays ours,
