@@ -2,6 +2,32 @@
 
 All notable changes to the app. Versions follow [semantic versioning](https://semver.org/).
 
+## 0.3.5 (2026-10-24)
+
+More TVs get a careful clean-up, and a safety guard for the ACER R4G. Thank you to everyone who
+sent a TV report: these changes come straight from them.
+
+### Setup
+- More TVs get a careful clean-up. TVs from brands with one or two tested lists (Skyworth, SHARP,
+  onn, OnePlus, Haier and others) now switch off up to six hidden feedback and advertising
+  services: Google Feedback and its consent prompt, the print service, and Android's on-device
+  advertising, ad personalization and ad model services. Each of them is switched off by every
+  tested list of that brand and by at least ten lists in all. Before, these TVs got no clean-up
+  unless a list matched the exact model (for example issues #89, #108, #169, #194, #196, #251).
+  The home screen decision on these TVs is the same as before, and the app still checks each
+  switch-off on the TV before it runs it. TVs that already had a brand set get nothing new.
+- A safety guard for the ACER R4G. It is made by MOKA, in the same family as the TVs whose setup
+  wizard comes back at every restart, so Setup never offers the home screen switch on it, even
+  when its setup wizard is off, and does the clean-up alone (issues #74, #102).
+
+### Reports
+- A TV report from one of these TVs now says `Profile: brand set <Brand>` instead of `none`.
+
+### Under the hood
+- Test builds can carry candidate lists for TVs nobody has tested yet, offered on Setup only to
+  people who agree to try one. Releases carry none: this one resolves every TV as it would
+  without them.
+
 ## 0.3.4 (2026-10-24)
 
 Fixes for the TVs whose home screen was already changed, and an honest message when Setup can't
