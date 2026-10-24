@@ -411,6 +411,10 @@ object SetupShots {
             Stopped(card(StopCase.PROBE_FAILED, R.string.stop_probe_failed_title, R.string.stop_probe_failed_body,
                 R.string.stop_probe_failed_primary, R.string.stop_probe_failed_secondary))
         },
+        Shot("stopped_plan_refused") {
+            Stopped(card(StopCase.PLAN_REFUSED, R.string.stop_plan_refused_title, R.string.stop_plan_refused_body,
+                R.string.stop_probe_failed_primary, R.string.stop_probe_failed_secondary))
+        },
 
         // S5 Done and the restart flow (D24, UX 4.8)
         Shot("done_home_on") { Setup(done()) },

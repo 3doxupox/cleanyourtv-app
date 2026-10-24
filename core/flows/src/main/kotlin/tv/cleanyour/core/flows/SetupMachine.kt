@@ -661,7 +661,17 @@ class SetupMachine(
         val fireOs = p?.platform == Platform.FIRE_OS || FireOs.isFireOs(f, snap)
         mutableExtras.update { it.copy(fireTv = fireOs) }
         // Already ours (a re-run): there is no switch to skip, as in the planner's takeover.
-        val ours = snap.home.resolved?.pkg == deps.launcherPin.bundled().pkg
+        // 0.3.4 (issues #171, #187, #220): Home may answer to our package name with another key on
+        // it (the desktop Clean Your TV tool installs a launcher under the same name). That is not
+        // ours: the planner may replace it only while the TV's own home screen is in charge (D36),
+        // and refused the whole plan. The home screen was already changed, so Setup leaves it as it
+        // is and does the clean-up alone, as for issue #8. A key the TV did not report stays ours,
+        // as before.
+        val pin = deps.launcherPin.bundled()
+        val atHome = snap.home.resolved?.pkg == pin.pkg
+        val homeSigner = snap.packages[pin.pkg]?.signer
+        val anotherKey = atHome && homeSigner != null && homeSigner != pin.signer
+        val ours = atHome && !anotherKey
         val risk = if (ours) null else HomeSwitchRisk.of(f, p, snap, wifi)
         // Issue #8: the exact profile's stock launchers too, through the planner's own StockHome, so
         // a TV whose own home screen is not among the claimants is never asked for a switch the
@@ -678,7 +688,7 @@ class SetupMachine(
             f.sdk < DefaultPlanner.TV_MIN_SDK -> HomeBlock.OLD_ANDROID
             risk == HomeSwitchRisk.Risk.BOOT_LOOP -> HomeBlock.BOOT_LOOP
             risk == HomeSwitchRisk.Risk.CASTING -> HomeBlock.CASTING
-            stockUnknown && StockHome.changedByPerson(snap, stocks) -> HomeBlock.HOME_CHANGED
+            anotherKey || (stockUnknown && StockHome.changedByPerson(snap, stocks)) -> HomeBlock.HOME_CHANGED
             (p != null && p.stockLaunchers.isEmpty()) || stockUnknown -> HomeBlock.UNKNOWN_HOME
             risk == HomeSwitchRisk.Risk.WIZARD_WIFI -> HomeBlock.WIZARD_WIFI
             risk == HomeSwitchRisk.Risk.WIZARD_WIFI_UNKNOWN -> HomeBlock.WIZARD_WIFI_UNKNOWN
@@ -751,9 +761,14 @@ class SetupMachine(
                 }
                 send(Ev.PlanReady(record.id, r.plan, draft.level))
             }
+            // 0.3.4 (issues #171, #187, #220): the reasons go in the log (an app the person installed
+            // is not named), and the card says what happened: the TV answered and nothing was
+            // changed, but there is no plan we can run safely. Before, it was the PROBE_FAILED card,
+            // which said the TV had stopped answering.
             is PlanResult.Refused -> {
                 deps.log.line("setup: plan refused")
-                send(Ev.Stop(record.id, card(StopCase.PROBE_FAILED, null)))
+                for (reason in r.reasons.distinct().take(REASONS_LOGGED)) deps.log.line("setup: refused because ${LogCodes.reason(reason, snap, deps.facts)}")
+                send(Ev.Stop(record.id, card(StopCase.PLAN_REFUSED, null)))
             }
         }
     }
@@ -1087,7 +1102,7 @@ class SetupMachine(
             }
             StopCase.INSTALL_FAILED -> scope.launch { abandonToDone() }
             StopCase.UNDONE -> tvIdOf(s)?.let { effect(SetupEffect.Navigate("manage/${it.value}")) }
-            StopCase.PROBE_FAILED -> if (action == StopAction.PRIMARY) scope.launch { probe() } else send(Ev.ToWelcome)
+            StopCase.PROBE_FAILED, StopCase.PLAN_REFUSED -> if (action == StopAction.PRIMARY) scope.launch { probe() } else send(Ev.ToWelcome)
             StopCase.NOT_BACK_AFTER_RESTART -> if (action == StopAction.PRIMARY) (state.value as? SetupState.Done)?.let { d -> restartJob = scope.launch { awaitBack(d.tvId, deps.clock.nowMs()) } } else shareDiagnostics()
             StopCase.TV_NOT_FOUND -> if (action == StopAction.PRIMARY) { mutableExtras.update { it.copy(card = null) }; discoveryJob?.cancel(); discoveryJob = null; afterTransition(state.value) }
                 else mutableExtras.update { it.copy(card = null, sheet = Sheet.ADDRESS) }
@@ -1412,6 +1427,8 @@ class SetupMachine(
     companion object {
         // At most this many skipped switch-offs are named on the run's finish line.
         const val SKIPS_LOGGED = 8
+        // At most this many reasons of a refused plan are logged.
+        const val REASONS_LOGGED = 8
 
         fun initialState(start: SetupStart): SetupState = when (start) {
             SetupStart.Fresh -> SetupState.Welcome(emptyList(), onWifi = true, looking = true)
@@ -1457,6 +1474,7 @@ internal fun stopKeys(case: StopCase): StopKeys = when (case) {
     StopCase.INSTALL_FAILED -> StopKeys(CopyKey.STOP_INSTALL_FAILED_TITLE, CopyKey.STOP_INSTALL_FAILED_BODY, CopyKey.STOP_INSTALL_FAILED_PRIMARY, null)
     StopCase.UNDONE -> StopKeys(CopyKey.STOP_UNDONE_TITLE, CopyKey.STOP_UNDONE_BODY, CopyKey.STOP_UNDONE_PRIMARY, null)
     StopCase.PROBE_FAILED -> StopKeys(CopyKey.STOP_PROBE_FAILED_TITLE, CopyKey.STOP_PROBE_FAILED_BODY, CopyKey.STOP_PROBE_FAILED_PRIMARY, CopyKey.STOP_PROBE_FAILED_SECONDARY)
+    StopCase.PLAN_REFUSED -> StopKeys(CopyKey.STOP_PLAN_REFUSED_TITLE, CopyKey.STOP_PLAN_REFUSED_BODY, CopyKey.STOP_PROBE_FAILED_PRIMARY, CopyKey.STOP_PROBE_FAILED_SECONDARY)
     StopCase.HOME_PUT_BACK -> StopKeys(CopyKey.STOP_HOME_PUT_BACK_TITLE, CopyKey.STOP_RESUME_HOME_BODY, CopyKey.STOP_HOME_PUT_BACK_PRIMARY, CopyKey.STOP_HOME_PUT_BACK_SECONDARY)
     StopCase.NOT_BACK_AFTER_RESTART -> StopKeys(CopyKey.STOP_NOT_BACK_TITLE, CopyKey.STOP_NOT_BACK_BODY, CopyKey.STOP_NOT_BACK_PRIMARY, CopyKey.STOP_NOT_BACK_SECONDARY)
     StopCase.TV_NOT_FOUND -> StopKeys(CopyKey.STOP_TV_NOT_FOUND_TITLE, CopyKey.STOP_TV_NOT_FOUND_BODY, CopyKey.STOP_TV_NOT_FOUND_PRIMARY, CopyKey.STOP_TV_NOT_FOUND_SECONDARY)

@@ -42,6 +42,8 @@
     <string name="stop_probe_failed_primary">Try again</string>
     <string name="stop_probe_failed_secondary">Back</string>
     <string name="stop_probe_failed_tertiary">Show details</string>
+    <string name="stop_plan_refused_title">We couldn\'t make a safe plan for this TV</string>
+    <string name="stop_plan_refused_body">The TV answered, but what we found on it doesn\'t fit a plan we\'re sure is safe, so we stopped before doing anything. Nothing was changed. Report a problem sends us the reason, so we can fix it.</string>
 
     <!-- S3 What we found -->
     <string name="found_title">{count, plural, =0 {Nothing to switch off. Want the new home screen?} one {We found one thing to switch off} other {We found # things to switch off}}</string>

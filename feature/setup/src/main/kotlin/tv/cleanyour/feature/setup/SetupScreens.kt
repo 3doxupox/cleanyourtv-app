@@ -519,11 +519,13 @@ fun CheckScreen(state: SetupState.Check, extras: SetupExtras, actions: SetupActi
     }
 }
 
-// The stops worth a report: a step the TV refused, an install that failed, a probe that failed, a run
-// cut off by the app closing, and the old home screen put back after a lost connection. The cards
+// The stops worth a report: a step the TV refused, an install that failed, a probe that failed, a plan
+// the app refused to make (0.3.4: the report carries the reason), a run cut off by the app closing,
+// and the old home screen put back after a lost connection. The cards
 // whose own button already opens the report (home screen unknown, "Something looked wrong", "Help
 // me") are not in it.
-private val REPORT_CASES = setOf(StopCase.STEP_FAILED, StopCase.INSTALL_FAILED, StopCase.PROBE_FAILED, StopCase.RESUME_AFTER_DEATH, StopCase.HOME_PUT_BACK)
+private val REPORT_CASES = setOf(StopCase.STEP_FAILED, StopCase.INSTALL_FAILED, StopCase.PROBE_FAILED, StopCase.PLAN_REFUSED, StopCase.RESUME_AFTER_DEATH,
+    StopCase.HOME_PUT_BACK)
 
 // The home cases: their card offers "Show details" with the run's lines (D21).
 private val HOME_CASES = setOf(
