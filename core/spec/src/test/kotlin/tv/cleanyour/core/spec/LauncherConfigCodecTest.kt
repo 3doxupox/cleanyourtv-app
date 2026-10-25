@@ -227,10 +227,10 @@ class LauncherConfigCodecTest {
 
     @Test fun bundledThemes() {
         val themes = BundledThemeSource().bundled()
-        // dussehra (v2.4.0) is not bundled: its festival ends on 2026-10-21.
-        assertEquals(listOf("default", "aurora", "six-columns"), themes.map { it.id })
+        // dussehra (v2.4.0) is not bundled: its festival ends on 2026-10-21. The app's own looks follow.
+        assertEquals(listOf("default", "aurora", "six-columns", "cinema", "console", "horizon", "quiet", "diwali"), themes.map { it.id })
         assertEquals(false, themes[0].doc.reducedMotion, "the bundled default is v2.4.0's")
-        assertEquals(listOf("Default", "Aurora", "Six columns"), themes.map { it.name })
+        assertEquals(listOf("Default", "Aurora", "Six columns", "Cinema", "Console", "Horizon", "Quiet black", "Diwali"), themes.map { it.name })
         val aurora = themes[1]
         val wp = aurora.wallpaper!!
         val bytes = BundledThemeSource.bytes(wp)!!
@@ -242,5 +242,43 @@ class LauncherConfigCodecTest {
             // A bundled theme survives our own encoder unchanged.
             assertEquals(t.doc, assertIs<DecodeResult.Ok>(LauncherConfigCodec.decode(LauncherConfigCodec.encode(t.doc))).doc)
         }
+    }
+
+    // 0.4.0: every look of the app's own sets each layout and motion key outright, so switching from
+    // any look to it leaves nothing of the last one behind; it decodes without a warning, and its
+    // picture is a JPEG under the transport's 300 KB cap that the launcher shows (wallpaper true).
+    @Test fun ownLooksSetEveryLayoutAndMotionKey() {
+        val own = BundledThemeSource().bundled().drop(3)
+        assertEquals(listOf("cinema", "console", "horizon", "quiet", "diwali"), own.map { it.id })
+        for (t in own) {
+            val d = t.doc
+            val keys = listOf(d.backgroundColor, d.wallpaper, d.wallpaperDim, d.wallpaperRotationMinutes, d.skyIntensity, d.cinematicHome,
+                d.dockTitle, d.dockRow, d.columns, d.rowsBelowDock, d.animations, d.advancedEffects, d.reducedMotion)
+            assertTrue(keys.all { it != null }, "${t.id} leaves a key to the launcher")
+            assertEquals(null, d.dockApps, "${t.id} names no apps")
+            val bytes = LauncherConfigCodec.encode(d)
+            assertEquals(emptyList(), assertIs<DecodeResult.Ok>(LauncherConfigCodec.decode(bytes)).warnings, t.id)
+            val w = t.wallpaper
+            assertEquals(d.wallpaper == true, w != null, "${t.id}: a picture exactly when the look shows one")
+            if (w != null) {
+                val b = BundledThemeSource.bytes(w)!!
+                assertTrue(b.size in 1..300_000, "${t.id}: ${b.size} bytes")
+                assertTrue(b[0] == 0xFF.toByte() && b[1] == 0xD8.toByte(), "${t.id}: a JPEG")
+            }
+        }
+        assertEquals(55, own.first { it.id == "horizon" }.doc.skyIntensity)
+        val diwali = own.first { it.id == "diwali" }.doc
+        assertEquals("diwali", diwali.festival); assertEquals("2026-11-10", diwali.festivalUntil)
+    }
+
+    @Test fun datedLooksAreOfferedUpToTheirLastDay() {
+        val last = java.time.LocalDate.of(2026, 11, 10)
+        assertEquals(last, Looks.info("diwali")?.until)
+        assertEquals(BundledThemeSource().bundled().first { it.id == "diwali" }.doc.festivalUntil, last.toString(), "the side table and the festival end together")
+        assertTrue(Looks.offered("diwali", last))
+        assertTrue(!Looks.offered("diwali", last.plusDays(1)))
+        assertTrue(Looks.offered("cinema", last.plusYears(5)))
+        assertTrue(Looks.offered(null, last.plusYears(5)))
+        assertTrue(Looks.info("horizon")!!.sky)
     }
 }

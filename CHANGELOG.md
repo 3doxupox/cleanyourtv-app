@@ -2,6 +2,18 @@
 
 All notable changes to the app. Versions follow [semantic versioning](https://semver.org/).
 
+## Unreleased
+
+### Home screen
+- New looks for the home screen: Cinema (the focused app's art across the top, velvet curtains),
+  Console (seven small tiles and a big name), Horizon (mountain ridges under a sky that follows the
+  time of day), Quiet black (pure black, calm motion, for OLED and slower TVs) and Diwali (lamps,
+  festive icons and a petal shower, until 10 November). Each look sets every layout and motion
+  setting itself, so switching looks never keeps one from the last. The pictures are our own work,
+  free to use (CC0).
+- Diwali is offered until 10 November. After that the phone counts your earlier look as the TV's
+  again, and Manage offers to put it back on the TV with one tap.
+
 ## 0.3.7 (2026-10-25)
 
 Seventeen more TVs with a tested list, the home screen app updated to 2.7, and more apps this app

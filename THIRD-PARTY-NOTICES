@@ -61,7 +61,14 @@ work. The full licence texts are linked or included below.
    The exact versions are pinned in gradle/libs.versions.toml and verified by
    gradle/verification-metadata.xml; release builds also publish a CycloneDX SBOM.
 
-5. Build and test tools (not in the APK)
+5. Look pictures (the wallpapers of the app's own looks)
+   core/spec/src/main/resources/tv/cleanyour/core/spec/looks/*/wallpaper.jpg (Cinema, Console,
+   Horizon, Diwali). Own work of this project, drawn from code (a seeded canvas page, no photos, no
+   third-party material, no AI tools, no fonts) and released under CC0 1.0 Universal (public domain
+   dedication, https://creativecommons.org/publicdomain/zero/1.0/). No credit is needed; this line
+   says where they come from.
+
+6. Build and test tools (not in the APK)
    Gradle, the Android Gradle Plugin and build tools, Robolectric, Roborazzi, JUnit, Turbine,
    Kotest, apksig and apksigcopier, each under its own licence (Apache License 2.0, MIT, EPL 1.0
    for JUnit 4, GPL 3.0 or later for apksigcopier, which only compares release APKs).

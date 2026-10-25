@@ -75,6 +75,14 @@ fun HomeScreen(state: HomeScreenState, onIntent: (HomeScreenIntent) -> Unit, onB
             Banner(stringResource(R.string.home_drift_banner), BannerTone.WARNING, Modifier.padding(top = 16.dp),
                 actionLabel = stringResource(R.string.home_drift_restore), onAction = { onIntent(HomeScreenIntent.RestoreMine) }, guardAction = true)
         }
+        // 0.4.0: a dated look (Diwali) ended; the phone already counts the look before it as this
+        // TV's, and one tap puts it back on the TV (the launcher only drops the festival skin).
+        state.endedLook?.let { ended ->
+            if (!state.drift) {
+                Banner(msg(R.string.home_look_ended_banner, "look" to ended), BannerTone.INFO, Modifier.padding(top = 16.dp),
+                    actionLabel = stringResource(R.string.home_look_ended_restore), onAction = { onIntent(HomeScreenIntent.RestoreMine) }, guardAction = true)
+            }
+        }
         if (busy != null) {
             LiveLine(stringResource(R.string.home_applying))
             if (busy is Busy.Working) ProgressBar(busy.percent / 100f, Modifier.padding(top = 16.dp))
@@ -174,6 +182,11 @@ private val themeDescriptions = mapOf(
     "default" to R.string.theme_default_desc,
     "aurora" to R.string.theme_aurora_desc,
     "six-columns" to R.string.theme_six_columns_desc,
+    "cinema" to R.string.theme_cinema_desc,
+    "console" to R.string.theme_console_desc,
+    "horizon" to R.string.theme_horizon_desc,
+    "quiet" to R.string.theme_quiet_desc,
+    "diwali" to R.string.theme_diwali_desc,
 )
 
 // A tap here applies the look to the TV, so the rows are guarded like a primary (R4-W8).

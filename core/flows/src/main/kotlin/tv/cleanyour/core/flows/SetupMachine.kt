@@ -70,6 +70,7 @@ import tv.cleanyour.core.session.TvSession
 import tv.cleanyour.core.spec.AppNames
 import tv.cleanyour.core.spec.DockLayers
 import tv.cleanyour.core.spec.FactsTable
+import tv.cleanyour.core.spec.Looks
 import tv.cleanyour.core.spec.ProfileResolution
 import tv.cleanyour.core.spec.ProfileSource
 import tv.cleanyour.core.spec.ThemeSource
@@ -283,7 +284,9 @@ class SetupMachine(
     init {
         // The hold ends with the wizard too (its scope is the screen's).
         scope.launch { try { awaitCancellation() } finally { heldTv?.let { deps.access.release(it) } } }
-        mutableExtras.update { it.copy(themes = deps.themes.bundled().map { t -> ThemeOption(t.id, t.name, t.description) }) }
+        // 0.4.0: a dated look (a festival) is offered up to its last day.
+        val today = deps.clock.today()
+        mutableExtras.update { it.copy(themes = deps.themes.bundled().filter { t -> Looks.offered(t.id, today) }.map { t -> ThemeOption(t.id, t.name, t.description) }) }
         when (start) {
             SetupStart.Fresh -> afterTransition(state.value)
             is SetupStart.Continue -> scope.launch { continueDraft(start.tvId) }
@@ -767,7 +770,7 @@ class SetupMachine(
         val launcher = deps.launcherPin.bundled()
         val installed = snap.packages[launcher.pkg]
         // The dock and the rows under it, cut to what the chosen look holds (DockLayers).
-        val theme = draft.themeId?.let { id -> deps.themes.bundled().firstOrNull { it.id == id } }
+        val theme = draft.themeId?.takeIf { Looks.offered(it, deps.clock.today()) }?.let { id -> deps.themes.bundled().firstOrNull { it.id == id } }
         val columns = DockLayers.columnsOf(theme?.doc)
         val dock = DockLayers.trim(draft.dock ?: deps.dock.pick(profile(), snap.packages.keys, snap.hdmi.isNotEmpty(), profile()?.liveTv, deps.locale()), columns)
         val wifi = wizardWifi(s, snap)
@@ -788,10 +791,12 @@ class SetupMachine(
         // RFC-CARDS-1: module_cards off, so the new home screen never asks about cards the person did
         // not ask for; on only when they turned cards on for this TV in an earlier session (kept, or
         // said outright by the TV's overlay).
-        val cards = Cards.of(deps.homePrefs?.let { attempt { it.load(record.id) }.getOrNull() }?.cards, snap.launcherOverlay, Cards.SETUP_DEFAULT)
+        val saved = deps.homePrefs?.let { attempt { it.load(record.id) }.getOrNull() }
+        val cards = Cards.of(saved?.cards, snap.launcherOverlay, Cards.SETUP_DEFAULT)
         val look = if (!possible) null else attempt { Look.encode(deps.encoder, deps.blobs, theme, dock, cards) }
             .onFailure { deps.log.line("setup: the look could not be encoded, planned without it") }.getOrNull()
-        setupHome = look?.let { it.digest to HomeChoice(it.doc.dockApps.orEmpty(), draft.themeId, cards) }
+        setupHome = look?.let { it.digest to HomeChoice(it.doc.dockApps.orEmpty(), theme?.id, cards,
+            HomeChoice.previousFor(saved?.themeId, saved?.previousThemeId, theme?.id)) }
         // RFC-CURTAIN-1: the TV shows the progress unless Custom switched it off (Simple never shows
         // the switch). An asset that does not match its pin is never offered; the plan goes without it.
         val showOnTv = draft.level == Level.SIMPLE || draft.curtain
@@ -873,7 +878,7 @@ class SetupMachine(
     private fun setLevel(level: Level) = editDraft { it.copy(level = level) }
 
     private fun dockColumns(themeId: String?): Int =
-        DockLayers.columnsOf(themeId?.let { id -> deps.themes.bundled().firstOrNull { it.id == id } }?.doc)
+        DockLayers.columnsOf(themeId?.takeIf { Looks.offered(it, deps.clock.today()) }?.let { id -> deps.themes.bundled().firstOrNull { it.id == id } }?.doc)
 
     // the run (S3 to S4)
 

@@ -108,30 +108,42 @@ class BundledFactsTable(private val facts: Map<PackageName, PackageFacts> = bund
 }
 
 // The three upstream themes, copied from the pinned submodule into the :core:spec resources at
-// build time. A wallpaper is a bundled asset: BlobRef.path is "bundled:" plus the resource path,
-// and bytes(blob) reads it back.
+// build time, then the app's own looks (0.4.0), kept in this module's resources under looks/. Each
+// look's config.json sets every layout and motion key outright, so a new look never keeps one from
+// the last. A wallpaper is a bundled asset: BlobRef.path is "bundled:" plus the resource path, and
+// bytes(blob) reads it back. Dated looks are in the list after their last day too (a saved choice
+// still names them); the flows offer only what Looks.offered allows.
 class BundledThemeSource : ThemeSource {
     override fun bundled(): List<Theme> = themes
 
+    private class Entry(val id: String, val name: String, val description: String, val dir: String)
+
     companion object {
         const val PREFIX = "bundled:"
-        private const val DIR = "/tv/cleanyour/core/spec/themes"
+        private const val THEMES = "/tv/cleanyour/core/spec/themes"
+        private const val LOOKS = "/tv/cleanyour/core/spec/looks"
         private val catalogue = listOf(
-            Triple("default", "Default", "Black, four tiles a row, the dock at the very bottom."),
-            Triple("aurora", "Aurora", "A dark aurora picture on navy behind the apps."),
-            Triple("six-columns", "Six columns", "Six smaller tiles a row, one row showing under the dock."),
+            Entry("default", "Default", "Black, four tiles a row, the dock at the very bottom.", THEMES),
+            Entry("aurora", "Aurora", "A dark aurora picture on navy behind the apps.", THEMES),
+            Entry("six-columns", "Six columns", "Six smaller tiles a row, one row showing under the dock.", THEMES),
+            Entry("cinema", "Cinema", "The focused app's art across the top, velvet curtains at the sides.", LOOKS),
+            Entry("console", "Console", "Seven small tiles, a big name and deep cobalt light.", LOOKS),
+            Entry("horizon", "Horizon", "Mountain ridges under a sky that follows the time of day.", LOOKS),
+            Entry("quiet", "Quiet black", "Pure black and nothing else, calm motion. Good for OLED and slow TVs.", LOOKS),
+            Entry("diwali", "Diwali", "Lamps, a gold rangoli and festive icons, until 10 November.", LOOKS),
         )
 
         val themes: List<Theme> by lazy {
-            catalogue.map { (id, name, description) ->
-                val config = resourceBytes("$DIR/$id/config.json") ?: error("theme $id missing from the :core:spec resources")
+            catalogue.map { e ->
+                val id = e.id
+                val config = resourceBytes("${e.dir}/$id/config.json") ?: error("theme $id missing from the :core:spec resources")
                 val doc = when (val r = LauncherConfigCodec.decode(config)) {
                     is DecodeResult.Ok -> r.doc
                     is DecodeResult.Rejected -> error("bundled theme $id does not decode: ${r.reason}")
                 }
-                val wallpaperPath = "$DIR/$id/wallpaper.jpg"
+                val wallpaperPath = "${e.dir}/$id/wallpaper.jpg"
                 val wallpaper = resourceBytes(wallpaperPath)?.let { BlobRef(sha256(it), it.size.toLong(), PREFIX + wallpaperPath.removePrefix("/")) }
-                Theme(id, name, description, doc, wallpaper)
+                Theme(id, e.name, e.description, doc, wallpaper)
             }
         }
 

@@ -446,7 +446,7 @@ internal fun DockContent(state: DockEditorState, apps: List<AppChoice>, onDone: 
 
 internal fun AppChoice.toDockApp() = DockApp(pkg.value, name)
 
-// The look picker (S3a "Look: Default >"): Default, Aurora, Six columns.
+// The look picker (S3a "Look: Default >"): Default, then the other looks on offer today.
 @Composable
 internal fun ThemeContent(extras: SetupExtras, actions: SetupActions) {
     SheetHeader(stringResource(R.string.theme_title))
@@ -461,6 +461,11 @@ internal fun ThemeContent(extras: SetupExtras, actions: SetupActions) {
 private fun themeDescription(id: String): String? = when (id) {
     "aurora" -> stringResource(R.string.theme_aurora_desc)
     "six-columns" -> stringResource(R.string.theme_six_columns_desc)
+    "cinema" -> stringResource(R.string.theme_cinema_desc)
+    "console" -> stringResource(R.string.theme_console_desc)
+    "horizon" -> stringResource(R.string.theme_horizon_desc)
+    "quiet" -> stringResource(R.string.theme_quiet_desc)
+    "diwali" -> stringResource(R.string.theme_diwali_desc)
     else -> null
 }
 

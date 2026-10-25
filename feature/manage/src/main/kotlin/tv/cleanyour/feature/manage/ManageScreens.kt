@@ -430,7 +430,8 @@ fun AppSettingsScreen(state: AppSettingsState, onIntent: (AppSettingsIntent) -> 
 internal fun ColumnScope.LicencesContent() {
     SheetHeader(stringResource(R.string.appsettings_licences))
     ListGroup(Modifier.padding(top = 16.dp)) {
-        listOf(R.string.appsettings_licence_app, R.string.appsettings_licence_font, R.string.appsettings_licence_apache, R.string.appsettings_licence_bouncycastle)
+        listOf(R.string.appsettings_licence_app, R.string.appsettings_licence_font, R.string.appsettings_licence_pictures, R.string.appsettings_licence_apache,
+            R.string.appsettings_licence_bouncycastle)
             .forEachIndexed { i, id ->
                 if (i > 0) ListDivider()
                 ListRow(stringResource(id))

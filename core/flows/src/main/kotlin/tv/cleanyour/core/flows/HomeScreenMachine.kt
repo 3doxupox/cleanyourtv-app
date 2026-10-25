@@ -12,6 +12,7 @@ import tv.cleanyour.core.planner.Plan
 import tv.cleanyour.core.planner.PlanRequest
 import tv.cleanyour.core.planner.TclGoogleTv
 import tv.cleanyour.core.spec.DockLayers
+import tv.cleanyour.core.spec.Looks
 
 // M2 Home screen: the dock (S3b sheet), the look (theme picker), "Use the TV's own home screen"
 // with its preview, the drift banner (D15: the overlay digest re-read on every connect; "Restore
@@ -55,6 +56,7 @@ data class HomeScreenState(
     val tvSideSettings: Boolean = false,                // the TV's launcher has Launcher settings of its own (2.4, versionCode 5, and later)
     val notOnTv: NotOnTv? = null,                       // 0.3.3 D2: the new home screen is not on this TV; no dock or look rows
     val tclRemoteKeys: Boolean = false,                 // issue #275: a TCL Google TV, whose remote's gear, Netflix and YouTube buttons need its own home screen
+    val endedLook: String? = null,                      // 0.4.0: the name of a dated look that has ended and is still on the TV
 )
 
 sealed interface HomeScreenIntent {
@@ -74,7 +76,7 @@ class HomeScreenMachine(
     private val d: ManageDeps,
     scope: CoroutineScope,
     private val tvId: TvId,
-) : Machine<HomeScreenState, HomeScreenIntent, ManageEffect>(HomeScreenState(themes = d.themes.bundled().map { ThemeOption(it.id, it.name, it.description) }), scope) {
+) : Machine<HomeScreenState, HomeScreenIntent, ManageEffect>(HomeScreenState(themes = offeredThemes(d)), scope) {
 
     private val writer = TvWriter(d)
     private data class Loaded(val s: HomeScreenState)
@@ -106,7 +108,7 @@ class HomeScreenMachine(
             // ModulesMachine does, not the list as the TV shows it now (an app since gone or switched
             // off would drop out and change dock_apps, and the TV's own dock edit would stop applying,
             // upstream #340). Only SetDock changes the list.
-            is HomeScreenIntent.SetTheme -> scope.launch { apply(savedDock() ?: after.dock.map { it.pkg }, event.id) }
+            is HomeScreenIntent.SetTheme -> if (Looks.offered(event.id, d.clock.today())) scope.launch { apply(savedDock() ?: after.dock.map { it.pkg }, event.id) }
             HomeScreenIntent.RestoreMine -> scope.launch { apply(savedDock() ?: after.dock.map { it.pkg }, after.themeId) }
             HomeScreenIntent.PreviewStock -> after.stock?.let { stock -> scope.launch { send(Preview(writer.preview(tvId, PlanRequest.UseStockHome(stock)))) } }
             HomeScreenIntent.UseStock -> after.stock?.let { stock -> scope.launch { useStock(stock) } }
@@ -124,19 +126,22 @@ class HomeScreenMachine(
         val snap = d.snapshots.latest(tvId)
         val packages = snap?.packages.orEmpty()
         val choice = d.homePrefs.load(tvId)
+        val today = d.clock.today()
+        val lookId = choice?.lookOn(today)
         // The stored snapshot cannot say which apps are launchable, so the rule without that
         // answer applies: never a home screen, a provider or a system-only package.
         val apps = (snap?.let { DockCandidates.of(it, null, profile, d.facts) } ?: emptySet())
             .map { AppChoice(it, d.nameOf(it, packages[it]?.label)) }.sortedBy { it.name.lowercase() }
         // The dock as the TV shows it: an app no longer there (gone, switched off) is skipped and the
         // later ones move up a slot, as the launcher does.
-        val columns = DockLayers.columnsOf(theme(choice?.themeId)?.doc)
+        val columns = DockLayers.columnsOf(theme(lookId)?.doc)
         val shown = { p: PackageName -> snap == null || packages[p]?.enabled.let { it != null && it != EnabledState.DISABLED && it != EnabledState.DISABLED_USER } }
         val dock = DockLayers.decode(choice?.dock.orEmpty(), shown, columns).map { AppChoice(it, d.nameOf(it, packages[it]?.label)) }
-        send(Loaded(HomeScreenState(tv.nickname, dock, apps, choice?.themeId, state.value.themes, stock = profile?.stockLaunchers?.firstOrNull(),
+        send(Loaded(HomeScreenState(tv.nickname, dock, apps, lookId, offeredThemes(d), stock = profile?.stockLaunchers?.firstOrNull(),
             homeScreenOurs = tv.launcher != null, columns = columns, updateTo = updateTo(tv, packages),
             tvSideSettings = (packages[Launcher.pkg]?.versionCode ?: 0) >= FIRST_WITH_TV_SETTINGS,
-            notOnTv = notOnTv(tv, snap), tclRemoteKeys = snap != null && TclGoogleTv.applies(snap.facts, snap))))
+            notOnTv = notOnTv(tv, snap), tclRemoteKeys = snap != null && TclGoogleTv.applies(snap.facts, snap),
+            endedLook = choice?.endedLook(today)?.let { id -> theme(id)?.name ?: id })))
     }
 
     // 0.3.3 D2: null while the new home screen is on the TV: Setup recorded it (tv.launcher), or the
@@ -225,6 +230,12 @@ class HomeScreenMachine(
     companion object {
         // Launcher 2.4 (versionCode 5) added Launcher settings on the TV (RF-LAUNCHER-240 F16).
         const val FIRST_WITH_TV_SETTINGS = 5L
+
+        // 0.4.0: the looks on offer today; a dated look (a festival) up to its last day.
+        private fun offeredThemes(d: ManageDeps): List<ThemeOption> {
+            val today = d.clock.today()
+            return d.themes.bundled().filter { Looks.offered(it.id, today) }.map { ThemeOption(it.id, it.name, it.description) }
+        }
     }
 
     private fun theme(id: String?) = id?.let { d.themes.bundled().firstOrNull { t -> t.id == it } }
@@ -244,7 +255,7 @@ class HomeScreenMachine(
         val r = writer.write(tvId, PlanRequest.ApplyTheme(look.doc, look.config, look.wallpaper)) { send(BusyNow(it)) }
         send(BusyNow(null))
         if (r is WriteResult.Done) {
-            d.homePrefs.save(tvId, HomeChoice(kept, themeId, cards))
+            d.homePrefs.save(tvId, (d.homePrefs.load(tvId) ?: HomeChoice(emptyList(), null)).withTheme(themeId, kept, cards))
             rememberPushedLook(d, tvId, look.digest)
             send(Drift(false))
             effect(ManageEffect.Snackbar(SnackKind.HOME_SAVED, "", false))

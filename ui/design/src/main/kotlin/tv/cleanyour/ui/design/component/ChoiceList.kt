@@ -160,12 +160,20 @@ private fun ChoiceRow(option: ChoiceOption, selected: Boolean, onClick: () -> Un
 @Immutable
 data class ThemeOption(val id: String, val name: String, val description: String, val swatch: List<Color>)
 
-// The preview colours of the three launcher themes by id (background, glow, then dock tiles): a
+// The preview colours of the launcher looks by id (background, glow, then dock tiles): a
 // picture of the TV's theme (D-W7-5), not phone UI colours. Shared by S3a and M2 so the two
 // pickers look the same (R4-W8). Unknown ids get the Default picture.
 fun themeSwatch(id: String): List<Color> = when (id) {
     "aurora" -> listOf(Color(0xFF041018), Color(0xFF1FA597), Color(0xFF0B5E57), Color(0xFF1D4FBF))
     "six-columns" -> listOf(Color.Black, Color(0xFFB9C2CC), Color(0xFF3B3B40), Color(0xFF76767D))
+    "cinema" -> listOf(Color(0xFF07060A), Color(0xFFE8C27A), Color(0xFF8E1B2C), Color(0xFF2A0A12))
+    "console" -> listOf(Color(0xFF020611), Color(0xFF1F4FD1), Color(0xFF0B1E4A), Color(0xFF6FA8FF))
+    "horizon" -> listOf(Color.Black, Color(0xFFE2704A), Color(0xFF2E3442), Color(0xFF6C2E52))
+    "quiet" -> listOf(Color.Black, Color(0xFF141416), Color(0xFF1C1C1E), Color(0xFF2C2C2E))
+    "diwali" -> listOf(Color(0xFF120809), Color(0xFFFFB23C), Color(0xFFFF7A1A), Color(0xFFFF4F7B))
+    "library" -> listOf(Color(0xFF141210), Color(0xFFC8B89A), Color(0xFF2B2622), Color(0xFF786046))
+    "arcade" -> listOf(Color(0xFF0B0614), Color(0xFFFF2E88), Color(0xFF2D0B4E), Color(0xFF19E3FF))
+    "mist" -> listOf(Color(0xFF0E1022), Color(0xFF7860B4), Color(0xFF2B2F6B), Color(0xFF3E7C8C))
     else -> listOf(Color.Black, Color(0xFF5B6CFF), Color(0xFF2A2A2E), Color(0xFF3A86E8))
 }
 
