@@ -466,6 +466,9 @@ private fun themeDescription(id: String): String? = when (id) {
     "horizon" -> stringResource(R.string.theme_horizon_desc)
     "quiet" -> stringResource(R.string.theme_quiet_desc)
     "diwali" -> stringResource(R.string.theme_diwali_desc)
+    "library" -> stringResource(R.string.theme_library_desc)
+    "arcade" -> stringResource(R.string.theme_arcade_desc)
+    "mist" -> stringResource(R.string.theme_mist_desc)
     else -> null
 }
 

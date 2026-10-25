@@ -228,9 +228,9 @@ class LauncherConfigCodecTest {
     @Test fun bundledThemes() {
         val themes = BundledThemeSource().bundled()
         // dussehra (v2.4.0) is not bundled: its festival ends on 2026-10-21. The app's own looks follow.
-        assertEquals(listOf("default", "aurora", "six-columns", "cinema", "console", "horizon", "quiet", "diwali"), themes.map { it.id })
+        assertEquals(listOf("default", "aurora", "six-columns", "cinema", "console", "horizon", "quiet", "diwali", "library", "arcade", "mist"), themes.map { it.id })
         assertEquals(false, themes[0].doc.reducedMotion, "the bundled default is v2.4.0's")
-        assertEquals(listOf("Default", "Aurora", "Six columns", "Cinema", "Console", "Horizon", "Quiet black", "Diwali"), themes.map { it.name })
+        assertEquals(listOf("Default", "Aurora", "Six columns", "Cinema", "Console", "Horizon", "Quiet black", "Diwali", "Library", "Arcade", "Mist"), themes.map { it.name })
         val aurora = themes[1]
         val wp = aurora.wallpaper!!
         val bytes = BundledThemeSource.bytes(wp)!!
@@ -249,7 +249,7 @@ class LauncherConfigCodecTest {
     // picture is a JPEG under the transport's 300 KB cap that the launcher shows (wallpaper true).
     @Test fun ownLooksSetEveryLayoutAndMotionKey() {
         val own = BundledThemeSource().bundled().drop(3)
-        assertEquals(listOf("cinema", "console", "horizon", "quiet", "diwali"), own.map { it.id })
+        assertEquals(listOf("cinema", "console", "horizon", "quiet", "diwali", "library", "arcade", "mist"), own.map { it.id })
         for (t in own) {
             val d = t.doc
             val keys = listOf(d.backgroundColor, d.wallpaper, d.wallpaperDim, d.wallpaperRotationMinutes, d.skyIntensity, d.cinematicHome,
@@ -267,6 +267,7 @@ class LauncherConfigCodecTest {
             }
         }
         assertEquals(55, own.first { it.id == "horizon" }.doc.skyIntensity)
+        assertEquals(false, own.first { it.id == "library" }.doc.dockRow, "Library: one plain grid from the top")
         val diwali = own.first { it.id == "diwali" }.doc
         assertEquals("diwali", diwali.festival); assertEquals("2026-11-10", diwali.festivalUntil)
     }

@@ -48,6 +48,9 @@ private val themeDescriptions = mapOf(
     "horizon" to R.string.theme_horizon_desc,
     "quiet" to R.string.theme_quiet_desc,
     "diwali" to R.string.theme_diwali_desc,
+    "library" to R.string.theme_library_desc,
+    "arcade" to R.string.theme_arcade_desc,
+    "mist" to R.string.theme_mist_desc,
 )
 
 // The Picture row's key for the look's own picture (HomeChoice.picture null).

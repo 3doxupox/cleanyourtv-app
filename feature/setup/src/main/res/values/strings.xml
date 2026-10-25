@@ -145,6 +145,9 @@
     <string name="theme_horizon_desc">Mountain ridges under a sky that changes with the time of day.</string>
     <string name="theme_quiet_desc">Pure black, no picture and calm motion. Good for OLED and slower TVs.</string>
     <string name="theme_diwali_desc">Lamps, a gold rangoli and festive icons, until 10 November.</string>
+    <string name="theme_library_desc">Every app on one calm page like a bookshelf: no dock band, warm lamp light.</string>
+    <string name="theme_arcade_desc">A neon sun over a glowing grid, six tiles a row that bounce when you move.</string>
+    <string name="theme_mist_desc">Soft out of focus light in indigo, teal and peach, calm like a streaming box at night.</string>
     <string name="theme_card_cd">{name}. {description}</string>
     <string name="theme_card_selected_cd">{name}, selected. {description}</string>
 

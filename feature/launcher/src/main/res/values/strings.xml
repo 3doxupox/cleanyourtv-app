@@ -109,6 +109,9 @@
     <string name="look_picture_own_only">This look keeps its own picture.</string>
     <string name="look_clears_tv_choices">A new look also clears what was changed on the TV itself, like columns, motion and its own picture choice.</string>
     <string name="look_use">Use this look</string>
+    <string name="theme_library_desc">Every app on one calm page like a bookshelf: no dock band, warm lamp light.</string>
+    <string name="theme_arcade_desc">A neon sun over a glowing grid, six tiles a row that bounce when you move.</string>
+    <string name="theme_mist_desc">Soft out of focus light in indigo, teal and peach, calm like a streaming box at night.</string>
     <string name="theme_card_cd">{name}. {description}</string>
     <string name="theme_card_selected_cd">{name}, selected. {description}</string>
 

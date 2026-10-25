@@ -136,6 +136,9 @@ class BundledThemeSource : ThemeSource, PictureSource {
             Entry("horizon", "Horizon", "Mountain ridges under a sky that follows the time of day.", LOOKS),
             Entry("quiet", "Quiet black", "Pure black and nothing else, calm motion. Good for OLED and slow TVs.", LOOKS),
             Entry("diwali", "Diwali", "Lamps, a gold rangoli and festive icons, until 10 November.", LOOKS),
+            Entry("library", "Library", "Every app on one calm page, no dock band, warm lamp light.", LOOKS),
+            Entry("arcade", "Arcade", "A neon sun over a glowing grid, and tiles that bounce.", LOOKS),
+            Entry("mist", "Mist", "Soft out of focus light in indigo, teal and peach.", LOOKS),
         )
 
         val themes: List<Theme> by lazy {
