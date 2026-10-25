@@ -13,9 +13,11 @@
 
 <p align="center">
   <a href="https://github.com/udhaykumarbala/cleanyourtv-app/releases/latest"><b>Download</b></a> ·
+  <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/udhaykumarbala/cleanyourtv-app"><b>Get it with Obtainium</b></a> ·
   <a href="#how-it-works"><b>How it works</b></a> ·
   <a href="#safe-by-design"><b>Is it safe?</b></a> ·
   <a href="#supported-tvs"><b>Supported TVs</b></a>
+  <br><sub>Obtainium follows this app's GitHub releases and updates it by itself.</sub>
 </p>
 
 <p align="center">
