@@ -26,6 +26,7 @@ import tv.cleanyour.core.engine.StartResult
 import tv.cleanyour.core.model.AdbError
 import tv.cleanyour.core.model.AdbException
 import tv.cleanyour.core.model.BlobRef
+import tv.cleanyour.core.model.Component
 import tv.cleanyour.core.model.ConnectionState
 import tv.cleanyour.core.model.DebugState
 import tv.cleanyour.core.model.DeviceFacts
@@ -223,6 +224,9 @@ class SetupDeps(
     val documents: DocumentStore? = null,
     // 0.4.0: the pictures any look can show instead of its own (the app's ThemeSource is one).
     val pictures: PictureSource = themes as? PictureSource ?: PictureSource.NONE,
+    // Issue #629: what the home check saw in front when it last rolled back on this TV (the engine's
+    // onWrongFocus), taken once; null when the app does not know.
+    val wrongFocus: (TvId) -> Component? = { null },
 )
 
 // The first-run wizard, screens S1 to S5 (PRODUCT-SPEC 4, UX 2 and 4). One machine per wizard run,
@@ -1312,6 +1316,7 @@ class SetupMachine(
             StopCase.HOME_UNKNOWN -> if (action == StopAction.PRIMARY) shareDiagnostics() else send(SetupIntent.LeaveOldHome)
             StopCase.HOME_USER_SAID_NO -> if (action == StopAction.PRIMARY) scope.launch { tv?.let { retakeover(it) } } else shareDiagnostics()
             StopCase.HOME_TIMED_OUT -> if (action == StopAction.PRIMARY) scope.launch { tv?.let { retakeover(it) } } else send(SetupIntent.LeaveOldHome)
+            StopCase.HOME_SETTINGS_OPEN -> if (action == StopAction.PRIMARY) scope.launch { tv?.let { retakeover(it) } } else send(SetupIntent.LeaveOldHome)
             StopCase.CONNECTION_LOST, StopCase.STEP_FAILED -> when (action) {
                 StopAction.PRIMARY -> send(SetupIntent.CarryOn)
                 StopAction.SECONDARY -> scope.launch { abandonToDone() }
@@ -1551,11 +1556,17 @@ class SetupMachine(
         // later plan for the TV was refused. The wizard card stays for the Wi-Fi (D3) only; any other
         // switch the wizard took is the plain "it did not take over" card.
         val wraith = wraithClaims() && wizardWifi != WizardWifi.NOT_OWNER
+        // Issue #629: a Settings page in front (the new home screen's network or Settings button, or
+        // the remote's Settings key) is not a home screen that failed; the card says so. FallbackHome,
+        // also in the settings package, is the TV having no home at all, so it keeps the other cards.
+        val inFront = if (f.home == HomeOutcome.WRONG_FOCUS) deps.wrongFocus(f.plan.tvId) else null
+        val settingsOpen = inFront != null && inFront.pkg.value in SETTINGS_PACKAGES && !inFront.cls.endsWith("FallbackHome")
         val case = when (f.home) {
             HomeOutcome.USER_SAID_NO -> StopCase.HOME_USER_SAID_NO
             HomeOutcome.TIMED_OUT -> StopCase.HOME_TIMED_OUT
             HomeOutcome.CONNECTION_LOST -> StopCase.HOME_PUT_BACK
             else -> when {
+                settingsOpen -> StopCase.HOME_SETTINGS_OPEN
                 wraith -> StopCase.HOME_SETUPWRAITH
                 other != null -> StopCase.HOME_OTHER_LAUNCHER
                 else -> StopCase.HOME_UNKNOWN
@@ -1714,6 +1725,9 @@ class SetupMachine(
     }
 }
 
+// The TV's settings apps (issue #629), as the engine's home check names them.
+private val SETTINGS_PACKAGES = setOf("com.android.tv.settings", "com.android.settings")
+
 internal data class StopKeys(val title: CopyKey, val body: CopyKey, val primary: CopyKey, val secondary: CopyKey?, val tertiary: CopyKey? = null)
 
 internal fun stopKeys(case: StopCase): StopKeys = when (case) {
@@ -1722,6 +1736,8 @@ internal fun stopKeys(case: StopCase): StopKeys = when (case) {
     StopCase.HOME_UNKNOWN -> StopKeys(CopyKey.STOP_HOME_UNKNOWN_TITLE, CopyKey.STOP_HOME_UNKNOWN_BODY, CopyKey.STOP_HOME_UNKNOWN_PRIMARY, CopyKey.STOP_HOME_UNKNOWN_SECONDARY)
     StopCase.HOME_USER_SAID_NO -> StopKeys(CopyKey.STOP_HOME_USER_SAID_NO_TITLE, CopyKey.STOP_HOME_USER_SAID_NO_BODY, CopyKey.STOP_HOME_USER_SAID_NO_PRIMARY, CopyKey.STOP_HOME_USER_SAID_NO_SECONDARY)
     StopCase.HOME_TIMED_OUT -> StopKeys(CopyKey.STOP_HOME_TIMED_OUT_TITLE, CopyKey.STOP_HOME_TIMED_OUT_BODY, CopyKey.STOP_HOME_TIMED_OUT_PRIMARY, CopyKey.STOP_HOME_TIMED_OUT_SECONDARY)
+    // Issue #629: "Try again" and "Leave the old home screen", with the Settings sentence.
+    StopCase.HOME_SETTINGS_OPEN -> StopKeys(CopyKey.STOP_HOME_UNKNOWN_TITLE, CopyKey.STOP_HOME_SETTINGS_OPEN_BODY, CopyKey.STOP_HOME_USER_SAID_NO_PRIMARY, CopyKey.STOP_HOME_SETUPWRAITH_SECONDARY)
     StopCase.CONNECTION_LOST -> StopKeys(CopyKey.STOP_CONNECTION_LOST_TITLE, CopyKey.STOP_CONNECTION_LOST_BODY, CopyKey.STOP_CONNECTION_LOST_PRIMARY, CopyKey.STOP_CONNECTION_LOST_SECONDARY, CopyKey.STOP_CONNECTION_LOST_TERTIARY)
     StopCase.STEP_FAILED -> StopKeys(CopyKey.STOP_STEP_FAILED_TITLE, CopyKey.STOP_STEP_FAILED_BODY, CopyKey.STOP_CONNECTION_LOST_PRIMARY, CopyKey.STOP_CONNECTION_LOST_SECONDARY, CopyKey.STOP_CONNECTION_LOST_TERTIARY)
     StopCase.RESUME_AFTER_DEATH -> StopKeys(CopyKey.STOP_RESUME_TITLE, CopyKey.STOP_RESUME_BODY, CopyKey.STOP_RESUME_PRIMARY, CopyKey.STOP_RESUME_SECONDARY, CopyKey.STOP_RESUME_TERTIARY)

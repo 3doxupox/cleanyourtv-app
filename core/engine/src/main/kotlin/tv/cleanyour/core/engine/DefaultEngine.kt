@@ -85,6 +85,9 @@ class DefaultEngine(
     // Redacted lines for the diagnostics log (issue #375): only fixed words and the TV's own
     // package names, never an app the person installed. Defaulted and last, so every caller compiles.
     private val log: (String) -> Unit = {},
+    // Issue #629: what the home check saw in front when it rolled back (WRONG_FOCUS), so Setup can
+    // tell a Settings page the person opened from a home screen that did not hold. Defaulted, last.
+    private val onWrongFocus: (TvId, Component) -> Unit = { _, _ -> },
 ) : Engine {
 
     // `fromJournalOnly`: the plan file could not be trusted on resume, so this run holds only the
@@ -387,6 +390,7 @@ class DefaultEngine(
                     val ownApp = run.snapshot?.packages?.get(focus.pkg)?.system == true || focus.pkg in tv.cleanyour.core.spec.KnownLaunchers.byPackage ||
                         focus.pkg.value in Denylist.setupWizards || focus.pkg.value in Denylist.vendorSetupWizards || focus.pkg.value == Denylist.FRAMEWORK || focus.pkg.value in SETTINGS_APPS
                     log("engine: the home check saw ${if (ownApp) focus.flat else "an app you installed"} in front, so the old home screen goes back")
+                    onWrongFocus(run.plan.tvId, focus)
                     return HomeOutcome.WRONG_FOCUS
                 }
                 homeCheck = focus.pkg == section.expectedHome.pkg

@@ -22,7 +22,8 @@ import kotlin.test.assertIs
 // Settings key) open; nothing in the plan or the check opens Settings. The check stays as it is on
 // purpose (refuse more): com.android.tv.settings owns the TV's FallbackHome, the screen a TV shows
 // when no home screen answers, so while the switch is unconfirmed any of its pages in front counts
-// as "the new home screen is not in charge" and the old one goes back. This pins that behaviour.
+// as "the new home screen is not in charge" and the old one goes back. This pins that behaviour; the
+// engine also hands Setup what was in front, so its card can say a Settings page was open.
 class Issue629SettingsInFrontTest {
     private val tvSettings = PackageName("com.android.tv.settings")
     private val fallbackHome = Component(tvSettings, ".system.FallbackHome")
@@ -32,7 +33,8 @@ class Issue629SettingsInFrontTest {
             val home = HomeResolution(Samples.stockLauncher, listOf(HomeClaimant(Samples.stockLauncher, 2), HomeClaimant(fallbackHome, -1000)))
             val h = Harness(this, ScriptedTv(Samples.snapshot(packages = Samples.miTvPackages(emptySet()), home = home)))
             val lines = mutableListOf<String>()
-            val engine = h.engine(log = { lines += it })
+            val seen = mutableListOf<Component>()
+            val engine = h.engine(log = { lines += it }, onWrongFocus = { tvId, c -> assertEquals(h.tv.tvId, tvId); seen += c })
             val plan = h.setupPlan()
             engine.start(plan, h.tv, plan.hash, h.pass())
             advanceTimeBy(20_000); runCurrent()
@@ -43,6 +45,8 @@ class Issue629SettingsInFrontTest {
             assertEquals(HomeOutcome.WRONG_FOCUS, assertIs<RunState.Finished>(engine.runState(h.tv.tvId).value).home, cls)
             assertEquals(listOf("engine: the home check saw ${focus.flat} in front, so the old home screen goes back"), lines, cls)
             assertEquals(h.stock, h.tv.home, "the TV's own home screen is back")
+            // Setup is told what was in front, for its card (Issue629SetupTest).
+            assertEquals(listOf(focus), seen)
         }
     }
 }

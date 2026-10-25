@@ -21,6 +21,10 @@ All notable changes to the app. Versions follow [semantic versioning](https://se
 - A run that stopped before its first step (the TV went away while the restore point was saved,
   or the app was closed) saves its restore point when you carry on, and checks every step against
   the TV again, as a new run does (#616).
+- When the home screen check puts the old home screen back because a Settings page was open on the
+  TV (the new home screen's network or Settings button, or the remote's Settings button), the card
+  now says so: nothing is wrong with the TV, try again and press only Home. The check screen also
+  asks you to press only Home and not open anything else (#629).
 
 ### TV lists
 - A TV that shows Google TV's home screen no longer gets a list written for the Android TV version
