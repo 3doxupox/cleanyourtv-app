@@ -768,9 +768,17 @@ class DefaultEngine(
                 guarded(run) { if (rollbackSection(run, open, HomeOutcome.CONNECTION_LOST)) finishWithSkips(run, HomeOutcome.CONNECTION_LOST, run.at) }
                 return@launch
             }
-            execute(run, prePlan = false)
+            execute(run, prePlan = !begun(run))
         }
     }
+
+    // Issue #616: the TCL C735 lost the Wi-Fi while its run was saving the restore point ("run paused
+    // CONNECTION_LOST at step 0 (timeout)"), and later the app was closed before step 0 ("run paused
+    // IN_DOUBT at step 0" after the restart). Carry on then went on as after a step: no restore point
+    // was saved for the run, and the staleness check skipped step 0. A run with no step begun (no
+    // Begin in its journal) carries on from its very start instead: the restore point is taken and
+    // saved, and every step is checked against the TV, as a fresh start does.
+    private suspend fun begun(run: Run): Boolean = run.done.isNotEmpty() || journal.read(run.plan.id).any { it is JournalRecord.Begin }
 
     // A background job's failure lands the run in Paused, never in a crashed coroutine.
     private suspend fun guarded(run: Run, body: suspend () -> Unit) {
@@ -929,7 +937,8 @@ class DefaultEngine(
             run.lastPause = records.filterIsInstance<JournalRecord.Paused>().lastOrNull()?.reason
             run.home = if (run.closedSections.isNotEmpty() && records.filterIsInstance<JournalRecord.Section>().any { it.state == SectionState.ROLLED_BACK }) HomeOutcome.CONNECTION_LOST else null
             for (i in run.done) run.states[i] = NarrationState.DONE
-            run.restorePoint = NarrationState.DONE
+            // Issue #616: no step begun, so the restore point may not have been saved; Carry on takes it.
+            run.restorePoint = if (records.any { it is JournalRecord.Begin }) NarrationState.DONE else NarrationState.UPCOMING
             run.snapshot = snapshots.load(tvId, plan.baseSnapshot) ?: snapshots.latest(tvId)
             run.snapshot?.let { s -> resolve(run, s) }
             runs[tvId] = run

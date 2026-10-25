@@ -9,6 +9,15 @@ All notable changes to the app. Versions follow [semantic versioning](https://se
   used a part of Java those phones do not have, so the TV never showed Allow and the app said
   "unreachable" (#98, #325, #468, #783, #837, #965, #991, #1006, #1024, #1089, #1134). Saving a
   restore file had the same kind of problem on phones below Android 15, fixed too.
+- A TV that drops off the Wi-Fi in the middle of a step no longer leaves the setup hanging on the
+  Working screen: the step now times out and the run pauses, so you can carry on or undo. After a
+  step times out the app also checks once whether the TV still answers; if not, it shows the TV as
+  away and opens a fresh connection when it is back, instead of carrying on over the dead one (#616).
+
+### Setting up
+- A run that stopped before its first step (the TV went away while the restore point was saved,
+  or the app was closed) saves its restore point when you carry on, and checks every step against
+  the TV again, as a new run does (#616).
 
 ## 0.4.0 (2026-10-26)
 
