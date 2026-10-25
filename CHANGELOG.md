@@ -29,7 +29,9 @@ too), and a preview on the phone before anything reaches the TV.
   nothing.
 - Diwali is offered until 10 November. After that the phone counts your earlier look as the TV's
   again, with its picture, and Manage offers to put it back on the TV with one tap.
-- The looks set only settings the home screen app has had since 2.5, so they look the same on 2.7.
+- The looks use the settings of the home screen app 2.7 that 0.3.7 brought. Quiet black turns off
+  its glow in the focused app's colour, so it really is pure black (a TV still on an older home
+  screen app keeps the glow).
 
 ### Credits
 - The look pictures are this project's own work, drawn from code and released under CC0. Aurora,

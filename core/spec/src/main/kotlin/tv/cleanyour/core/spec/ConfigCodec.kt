@@ -49,6 +49,13 @@ internal object ConfigCodecImpl {
     val BUNDLED_BANNERS: Set<String> = setOf("banner_tv")
     // Keys with a LauncherConfigDoc field: all of Config.java's keys.
     val MODELLED: Set<String> = KEY_ORDER.toSet()
+    // Keys the bundled launcher 2.7 reads (config.xml and Config.load) that have no LauncherConfigDoc
+    // field, which is frozen: an app look sets them, so they are carried in `unknown` as is, with no
+    // warning, since the TV does read them. A TV still on 2.5 or older ignores them. ambient_glow
+    // false keeps the background plain (no glow in the focused app's colour); cinematic_scrim and
+    // cinematic_art (0 to 100) are how much the cinematic shelf's scrim and the app's art cover a
+    // look's picture.
+    val CARRIED_27: Set<String> = setOf("ambient_glow", "cinematic_scrim", "cinematic_art")
 
     // res/values/config.xml of the launcher at v2.5.0 (the keys of older launchers keep their values).
     // config.xml has no festival, wallpaper rotation, dim or race calendar: those only ever come
@@ -266,7 +273,7 @@ internal object ConfigCodecImpl {
         for ((k, v) in o) {
             if (k in MODELLED) continue
             unknown[k] = v.toJsonElement()
-            w += "unknown key $k; the launcher ignores it (carried as is)"
+            if (k !in CARRIED_27) w += "unknown key $k; the launcher ignores it (carried as is)"
         }
         val doc = LauncherConfigDoc(
             dockApps = dock, hiddenApps = hidden, liveTvPackage = liveTv, liveTvAction = liveTvAction,

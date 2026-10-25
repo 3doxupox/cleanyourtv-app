@@ -167,6 +167,21 @@ class LauncherConfigCodecTest {
         assertEquals("x", ok("{'live_tv_action' => ' x ' /* c */ # hash\n}").doc.liveTvAction)
     }
 
+    // 0.4.0 looks: three keys launcher 2.7 reads that LauncherConfigDoc has no field for are carried
+    // as is with no warning (the bundled launcher does read them), and written back after the
+    // modelled keys. They are in the submodule's config.xml, the launcher the app bundles.
+    @Test fun launcher27KeysTheLooksUseAreCarriedWithoutAWarning() {
+        val r = ok("{\"ambient_glow\": false, \"cinematic_scrim\": 45, \"cinematic_art\": 20, \"columns\": 5, \"zz\": 1}")
+        assertEquals(setOf("ambient_glow", "cinematic_scrim", "cinematic_art", "zz"), r.doc.unknown.keys)
+        assertEquals(listOf("unknown key zz; the launcher ignores it (carried as is)"), r.warnings)
+        assertEquals("{\n  \"columns\": 5,\n  \"ambient_glow\": false,\n  \"cinematic_art\": 20,\n  \"cinematic_scrim\": 45,\n  \"zz\": 1\n}\n",
+            LauncherConfigCodec.encode(r.doc).decodeToString())
+        val xml = java.io.File(Fixtures.upstreamDir, "launcher/app/src/main/res/values/config.xml").readText()
+        for (k in ConfigCodecImpl.CARRIED_27) assertTrue(Regex("<(bool|integer) name=\"$k\">").containsMatchIn(xml), k)
+        val reader = java.io.File(Fixtures.upstreamDir, "launcher/app/src/main/java/com/gathin/tvhome/Config.java").readText()
+        for (k in ConfigCodecImpl.CARRIED_27) assertTrue("(json, \"$k\"" in reader, "Config.load reads $k from config.json")
+    }
+
     // RFC-W4-1: the two keys upstream 1bbf0c9 added are fields, decoded in Config.java's order and
     // never carried in `unknown`.
     @Test fun inputActionAndModuleCardsAreModelled() {
