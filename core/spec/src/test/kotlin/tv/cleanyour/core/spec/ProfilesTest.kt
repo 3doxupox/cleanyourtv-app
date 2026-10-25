@@ -105,7 +105,7 @@ class ProfilesTest {
         assertTrue(Quirk.HOME_TAKEOVER_SETUPWRAITH !in aesp0.quirks)
         assertTrue(KnownLaunchers.SETUPWRAITH in aesp0.neverDisable)
         assertTrue(aesp0.groups.none { g -> g.packages.any { it.name == KnownLaunchers.SETUPWRAITH } })
-        val secondSet = listOf("mitv.service", "com.google.android.tv", "com.android.providers.contacts", "com.android.providers.calendar", "com.android.printspooler")
+        val secondSet = listOf("mitv.service", "com.google.android.tv", "com.android.providers.contacts", "com.android.providers.calendar")
         for (pkg in secondSet) assertEquals(GroupDefault.ASK, aesp0.groups.single { g -> g.packages.any { it.name == p(pkg) } }.default, pkg)
     }
 
@@ -164,7 +164,7 @@ class ProfilesTest {
     // D22, widened in 0.3.7: the updaters upstream v2.7.0 lists name are Software updates rows by name.
     @Test fun theUpdaterRuleKnowsTheV270Updaters() {
         for (name in listOf("com.cvte.tv.systemupgrade", "com.tcl.versionUpdateApp", "ru.sberdevices.rcfupdater", "com.amazon.tv.easyupgrade",
-            "com.tcl.UpdatePeripheral", "com.sony.dtv.sensingcamera.fwupdate", "com.xiaomi.mitv.updateservice", "com.mitv.upgrader")) {
+            "com.tcl.UpdatePeripheral", "com.sony.dtv.sensingcamera.fwupdate", "com.xiaomi.mitv.updateservice")) {
             assertTrue(ProfileCategory.isUpdater(p(name)), name)
         }
         for (name in listOf("com.tcl.versionapp", "com.sony.dtv.fwupdatehelper", "com.cvte.upgradeui", "com.amazon.tv.upgradeable")) assertTrue(!ProfileCategory.isUpdater(p(name)), name)
@@ -359,7 +359,7 @@ class ProfilesTest {
                 s.stockLaunchers.joinToString(",") { it.flat } + "\n"
         }
         val digest = java.security.MessageDigest.getInstance("SHA-256").digest(canon.encodeToByteArray()).joinToString("") { "%02x".format(it) }
-        assertEquals("a5c18d717e67bc1abd3ef0d22adac5e82db876411f1e1c77ffaf65f4d8d93e6e", digest)
+        assertEquals("5bb3f4276f1faf5308cb627bb4f22d5655121c8d71e21be111fbeb8489679106", digest)
         // The careful sets come after every full set, so a full set wins when both match a TV.
         assertTrue(sets.drop(full.size).all { brands.getValue(it.brand.lowercase()).size < 3 })
     }

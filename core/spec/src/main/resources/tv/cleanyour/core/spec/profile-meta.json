@@ -3704,7 +3704,8 @@
         "com.mitv.download.service": { "category": "updates", "ask": true },
         "com.google.android.videos": { "category": "streaming", "ask": true },
         "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": true },
-        "com.google.android.partnersetup": { "category": "tracking", "ask": true }
+        "com.google.android.partnersetup": { "category": "tracking", "ask": true },
+        "com.android.printspooler": { "category": "preloads", "ask": false }
       }
     },
     "xiaomi-mitv-afmu0": {

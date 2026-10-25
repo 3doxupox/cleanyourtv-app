@@ -18,6 +18,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import tv.cleanyour.core.spec.SureSetGenerator
 
 // D26 amendment (0.3.5): the careful sets of brands with one or two lists. Their rows pass every
 // rule the planner and the engine apply, and a TV on one gets the home screen decision of a TV with
@@ -26,7 +27,7 @@ class CarefulSetSafetyTest {
     private val tv = snapshot()   // the reference TV, its setup wizard installed and on
     private val noWizard = tv.copy(packages = tv.packages - wizard).let { it.copy(contentHash = SnapshotCodec.hash(it)) }
     private val careful: List<SureSet> = BundledProfileSource.bundled.let { b ->
-        val lists = tv.cleanyour.core.spec.SureSetGenerator.feeding(b.profiles.filter { !it.isCandidate }).groupBy { it.match.brand!!.lowercase() }
+        val lists = SureSetGenerator.feeding(b.profiles.filter { !it.isCandidate }).groupBy { it.match.brand!!.lowercase() }
         b.sureSets.filter { lists.getValue(it.brand.lowercase()).size < 3 }
     }
 
