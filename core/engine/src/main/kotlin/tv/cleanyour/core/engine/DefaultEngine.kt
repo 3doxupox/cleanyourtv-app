@@ -56,6 +56,7 @@ import tv.cleanyour.core.session.SessionHold
 import tv.cleanyour.core.session.TvSession
 import tv.cleanyour.core.spec.ProfileResolution
 import tv.cleanyour.core.spec.ProfileSource
+import tv.cleanyour.core.spec.resolveFor
 import tv.cleanyour.core.store.Clock
 import tv.cleanyour.core.store.GatePass
 import tv.cleanyour.core.store.SnapshotStore
@@ -237,9 +238,10 @@ class DefaultEngine(
     }
 
     // The profile and the stock launchers of this TV's resolution, so the live check asks the same
-    // rule the planner asked (SwitchOffRule) with the same lists.
+    // rule the planner asked (SwitchOffRule) with the same lists, and with the snapshot's Home as
+    // Setup and the planner weigh it (issue #114).
     private suspend fun resolve(run: Run, snap: Snapshot) {
-        val r = profiles?.resolve(snap.facts)
+        val r = profiles?.resolveFor(snap)
         run.profile = (r as? ProfileResolution.Exact)?.profile
         run.stockLaunchers = when (r) {
             is ProfileResolution.Exact -> r.profile.stockLaunchers

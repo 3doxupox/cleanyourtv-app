@@ -36,6 +36,7 @@ import tv.cleanyour.core.spec.FactsTable
 import tv.cleanyour.core.spec.ProfileCategory
 import tv.cleanyour.core.spec.ProfileResolution
 import tv.cleanyour.core.spec.ProfileSource
+import tv.cleanyour.core.spec.resolveFor
 import tv.cleanyour.core.store.Clock
 import tv.cleanyour.core.store.IdGen
 
@@ -122,9 +123,10 @@ class DefaultPlanner(
 
         fun summary() = PlanSummary(groups.toList(), keepNames, dockNames, homeScreenPossible, replacesLauncher)
 
-        // This TV's resolution for the Manage requests (R1 R-3). The bundled source answers without
-        // suspending, so the blocking call returns at once; the planner stays a plain function.
-        val resolution: ProfileResolution? by lazy { profiles?.let { src -> runBlocking { src.resolve(snapshot.facts) } } }
+        // This TV's resolution for the Manage requests (R1 R-3), with the snapshot's Home (issue #114).
+        // The bundled source answers without suspending, so the blocking call returns at once; the
+        // planner stays a plain function.
+        val resolution: ProfileResolution? by lazy { profiles?.let { src -> runBlocking { src.resolveFor(snapshot) } } }
         val managedProfile: Profile? get() = (resolution as? ProfileResolution.Exact)?.profile
         val managedStockLaunchers: List<Component> get() = when (val r = resolution) {
             is ProfileResolution.Exact -> r.profile.stockLaunchers

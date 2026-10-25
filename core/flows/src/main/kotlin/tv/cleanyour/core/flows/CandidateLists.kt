@@ -1,6 +1,7 @@
 package tv.cleanyour.core.flows
 
 import tv.cleanyour.core.model.DeviceFacts
+import tv.cleanyour.core.model.HomeResolution
 import tv.cleanyour.core.model.Profile
 import tv.cleanyour.core.spec.BundledProfileSource
 import tv.cleanyour.core.spec.CandidateConsent
@@ -10,8 +11,9 @@ import tv.cleanyour.core.store.DocumentStore
 // reports of the same model) gets it only when the person says so on Setup's card. Without
 // candidate lists in the build (the release), offer() is always null and nothing changes.
 interface CandidateLists {
-    // The candidate list for this TV, or null when a tested list matches or none does.
-    fun offer(facts: DeviceFacts): Profile?
+    // The candidate list for this TV, or null when a tested list matches or none does. `home` is the
+    // Home the snapshot read (issue #114: a candidate that does not fit it is not offered).
+    fun offer(facts: DeviceFacts, home: HomeResolution? = null): Profile?
     suspend fun choose(profileId: String, tryIt: Boolean)
 }
 
@@ -48,6 +50,6 @@ class CandidateChoices(private val store: DocumentStore) : CandidateConsent {
 }
 
 class BundledCandidateLists(private val source: BundledProfileSource, private val choices: CandidateChoices) : CandidateLists {
-    override fun offer(facts: DeviceFacts): Profile? = source.candidateFor(facts)
+    override fun offer(facts: DeviceFacts, home: HomeResolution?): Profile? = source.candidateFor(facts, home)
     override suspend fun choose(profileId: String, tryIt: Boolean) = choices.save(profileId, tryIt)
 }

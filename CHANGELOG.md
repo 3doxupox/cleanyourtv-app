@@ -22,6 +22,12 @@ All notable changes to the app. Versions follow [semantic versioning](https://se
   or the app was closed) saves its restore point when you carry on, and checks every step against
   the TV again, as a new run does (#616).
 
+### TV lists
+- A TV that shows Google TV's home screen no longer gets a list written for the Android TV version
+  of the same model; it is set up like any TV no list knows, with its brand set. This fixes
+  the TCL Smart TV Pro (BeyondTV4) on its Google TV build AR11, which got the TCL 65C725 Android TV
+  list and lost the remote's virtual keys helper (#114, #390).
+
 ## 0.4.0 (2026-10-26)
 
 A new Look sheet for the TV's home screen: pick a picture, pick one of five styles, pick how many
