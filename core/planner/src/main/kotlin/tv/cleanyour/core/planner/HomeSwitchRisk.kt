@@ -19,6 +19,7 @@ object HomeSwitchRisk {
         WIZARD_WIFI_UNKNOWN("the TV could not say who saved its Wi-Fi, so its setup wizard has to stay on, and with it on the home screen switch can crash the TV"),
         // A TV no profile knows: the switch never switches the setup wizard off, so it would stay on
         // while the TV's own home screen goes off, the same RecoveryActivity risk (RF-SAFETY-250).
+        // Since 0.3.6 also any TV whose wizard claims Home and is not switched off by the switch.
         WIZARD_STAYS_ON("this TV's setup wizard would stay on while its own home screen goes off, and the wizard can then take the Home button and crash the TV"),
         // Google's own hardware: the Cast receiver reads its credentials from the setup wizard, so the
         // switch (which needs the wizard off) costs casting after every restart (upstream #361, #422).
@@ -67,15 +68,34 @@ object HomeSwitchRisk {
     // quirk) while D3 keeps it on: the TV said the wizard saved the Wi-Fi, or could not tell. Without
     // one the switch never touches the wizard, so a setup wizard that is on stays on while the stock
     // home goes off, whatever the Wi-Fi answer: no switch (the Wi-Fi line when the wizard saved it).
+    // 0.3.6: on every path, a setup wizard the snapshot shows as a Home claimant that the switch will
+    // not switch off (an exact profile without the takeover quirk, sony-bravia-bf1 and
+    // tcl-g10-google-tv among them) would take Home once the TV's own home screen is off: no switch.
     private fun wizardWifiRisk(profile: Profile?, snapshot: Snapshot, wizardWifi: WizardWifi): Risk? {
         fun on(p: PackageName) = snapshot.packages[p]?.enabled.let { it != null && it != EnabledState.DISABLED_USER && it != EnabledState.DISABLED }
+        val homeWizards = homeWizards(profile, snapshot)
         if (profile == null) {
-            val wizard = snapshot.packages.keys.firstOrNull { it.value in Denylist.setupWizards && on(it) } ?: return null
+            val wizard = snapshot.packages.keys.firstOrNull { it.value in Denylist.setupWizards && on(it) }
+                ?: return if (homeWizards.isEmpty()) null else Risk.WIZARD_STAYS_ON
             return if (wizardWifi == WizardWifi.OWNER && on(wizard)) Risk.WIZARD_WIFI else Risk.WIZARD_STAYS_ON
         }
-        if (wizardWifi == WizardWifi.NOT_OWNER) return null
-        val wizard = profile.setupWraith?.takeIf { Denylist.isWizardAllowed(it, profile) } ?: return null
-        if (!on(wizard)) return null
-        return if (wizardWifi == WizardWifi.OWNER) Risk.WIZARD_WIFI else Risk.WIZARD_WIFI_UNKNOWN
+        val allowed = profile.setupWraith?.takeIf { Denylist.isWizardAllowed(it, profile) }
+        if (wizardWifi != WizardWifi.NOT_OWNER && allowed != null && on(allowed)) {
+            return if (wizardWifi == WizardWifi.OWNER) Risk.WIZARD_WIFI else Risk.WIZARD_WIFI_UNKNOWN
+        }
+        // The wizard the planner's takeover switches off, by the same test (DefaultPlanner.takeover).
+        val switchedOff = allowed?.takeIf {
+            wizardWifi == WizardWifi.NOT_OWNER && it in snapshot.packages &&
+                SwitchOffRule.reason(it, snapshot.packages[it], profile, snapshot, profile.stockLaunchers, inHomeSwitch = true) == null
+        }
+        return if (homeWizards.any { it != switchedOff }) Risk.WIZARD_STAYS_ON else null
     }
+
+    // The Home claimants that are a setup wizard: the known wizards, the profile's own, or a package
+    // named like Google TV's (as SetupMachine tells a wizard among the claimants). One the snapshot
+    // shows switched off cannot take Home; one it does not list counts, the safe side.
+    fun homeWizards(profile: Profile?, snapshot: Snapshot): Set<PackageName> =
+        snapshot.home.claimants.map { it.component.pkg }.filter {
+            it.value in Denylist.setupWizards || it == profile?.setupWraith || "setupwraith" in it.value.lowercase()
+        }.filter { snapshot.packages[it]?.enabled.let { e -> e != EnabledState.DISABLED_USER && e != EnabledState.DISABLED } }.toSet()
 }
