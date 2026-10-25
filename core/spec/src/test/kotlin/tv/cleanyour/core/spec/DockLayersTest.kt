@@ -101,6 +101,23 @@ class DockLayersTest {
         assertEquals(true, "\"rows_below_dock\": 2," in text && "\"dock_title\": false" in text, text)
     }
 
+    // 0.4.0: the cinematic shelf (Cinema) keeps the dock low whatever the dock's length: rows_below_dock
+    // 0, so its big name never rides up into the clock. Every app stays in dock_apps, in order: the rows
+    // under the dock are the first grid rows on the TV, one press of Down away, and read back the same.
+    @Test fun theCinematicShelfKeepsTheRowsUnderTheDockOutOfView() {
+        val cinema = LauncherConfigDoc(columns = 5, cinematicHome = true, dockTitle = true)
+        for (n in 1..15) {
+            val doc = DockLayers.applyTo(cinema, apps(n))
+            assertEquals(0, doc.rowsBelowDock, "n=$n")
+            assertEquals(apps(n), doc.dockApps, "n=$n: no app is dropped")
+            assertEquals(true, doc.dockTitle, "n=$n: the name stays")
+            val back = assertIs<DecodeResult.Ok>(LauncherConfigCodec.decode(LauncherConfigCodec.encode(doc))).doc
+            assertEquals(apps(n), DockLayers.decode(back.dockApps.orEmpty(), { true }, DockLayers.columnsOf(back)))
+        }
+        assertEquals(1, DockLayers.applyTo(cinema.copy(cinematicHome = false), apps(8)).rowsBelowDock, "the other looks count the rows")
+        assertEquals(1, DockLayers.applyTo(cinema.copy(cinematicHome = null), apps(8)).rowsBelowDock)
+    }
+
     // An empty dock writes no dock_apps (the launcher keeps its own) and leaves the theme's rows.
     @Test fun anEmptyDockLeavesTheLauncherItsOwn() {
         val doc = DockLayers.applyTo(LauncherConfigDoc(dockApps = apps(2), rowsBelowDock = 1), emptyList())

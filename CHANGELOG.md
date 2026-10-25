@@ -15,6 +15,8 @@ too), and a preview on the phone before anything reaches the TV.
   and slower TVs) and Diwali (lamps, festive icons and a petal shower, until 10 November). Each
   look sets every layout and motion setting itself, so switching looks never keeps one from the
   last. The pictures are our own work, free to use (CC0).
+- Cinema keeps the dock low however many apps it holds. With more apps than one row, the rows
+  under the dock wait one press of Down away, so the big app name never runs into the clock.
 - The Look sheet now has two choices: the look, and the picture it shows. Any look can show its
   own picture, Aurora, Glass or Ruska, or no picture at all (Diwali keeps its own). A tap only
   chooses; nothing is sent to the TV until you tap "Use this look".

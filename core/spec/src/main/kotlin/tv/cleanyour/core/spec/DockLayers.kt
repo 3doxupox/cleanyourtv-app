@@ -43,11 +43,18 @@ object DockLayers {
     // is written false. Launcher 2.4 fits the rows to the screen, and the focused app's name above
     // the dock would push most of Row 3 below the edge of a 1080p screen; without it all three
     // rows fit. One or two rows leave the theme's dock_title as it is. Launcher 2.0 ignores the key.
+    //
+    // 0.4.0: a look with the cinematic shelf (cinematic_home true, Cinema) always writes
+    // rows_below_dock 0. Its 68 sp name, Last opened line and dots stand taller than the room the
+    // launcher keeps for a dock title (TITLE_ROOM_DP, made for the 48 sp name), so a row in view
+    // under the dock pushed the name up into the clock. The rows still hold their apps: dock_apps
+    // keeps the whole list in order, so on the TV they are the first rows of the grid, peeking under
+    // the dock, one press of Down away.
     fun applyTo(doc: LauncherConfigDoc, apps: List<PackageName>): LauncherConfigDoc {
         val columns = columnsOf(doc)
         val dock = trim(apps, columns)
         if (dock.isEmpty()) return doc.copy(dockApps = null)
-        val below = rowsBelowDock(dock.size, columns)
+        val below = if (doc.cinematicHome == true) 0 else rowsBelowDock(dock.size, columns)
         val title = if (below == MAX_ROWS - 1) false else doc.dockTitle
         return doc.copy(dockApps = dock, rowsBelowDock = below, dockTitle = title)
     }
