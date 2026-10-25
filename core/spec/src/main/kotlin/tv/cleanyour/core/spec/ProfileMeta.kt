@@ -17,6 +17,10 @@ internal data class FolderMeta(
     val stockLaunchers: List<String> = emptyList(),
     val liveTv: String? = null,
     val setupWraith: String? = null,
+    // The list names the setup wizard, but the home screen switch on this TV keeps it on (it is
+    // never-disable here): a list's later notes may switch it off at a cost the curated takeover
+    // does not take, as casting on xiaomi-mitv-aesp0.
+    val setupWraithStaysOn: Boolean = false,
     val quirks: List<String> = emptyList(),
     val neverDisable: List<String> = emptyList(),
     val suggestedDock: List<String> = emptyList(),

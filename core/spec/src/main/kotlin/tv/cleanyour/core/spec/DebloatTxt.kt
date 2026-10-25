@@ -151,10 +151,12 @@ internal object DebloatTxt {
         data class Placed(val category: ProfileCategory, val ask: Boolean, val entry: PackageEntry)
         val placed = mutableListOf<Placed>()
         val seen = mutableSetOf<PackageName>()
+        var keptWizard = false
         for (g in scan.groups) {
             val (gc, gask) = meta?.groups?.get(g.title)?.let { ProfileCategory.of(it.category) to it.ask } ?: ProfileCategory.guess(g.title)
             for (e in g.entries) {
                 if (!seen.add(e.pkg)) continue
+                if (e.pkg == KnownLaunchers.SETUPWRAITH && meta?.setupWraithStaysOn == true) { keptWizard = true; continue }
                 if (e.pkg == KnownLaunchers.SETUPWRAITH) { setupWraith = e.pkg; quirks += Quirk.HOME_TAKEOVER_SETUPWRAITH; continue }
                 if (e.pkg in KnownLaunchers.byPackage) { stockPkgs += e.pkg; continue }
                 val override = meta?.packages?.get(e.pkg.value)
@@ -181,6 +183,7 @@ internal object DebloatTxt {
         val neverDisable = linkedSetOf<PackageName>().apply {
             meta?.neverDisable?.forEach { add(PackageName(it)) }
             addAll(guess.keep)
+            if (keptWizard) add(KnownLaunchers.SETUPWRAITH)
         }
         val tested = meta?.tested?.let { TestedInfo(it.by, it.firmware, it.daysLivedWith, it.rebootTested, it.candidate) }
         return Profile(

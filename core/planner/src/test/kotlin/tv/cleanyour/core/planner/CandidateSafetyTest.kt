@@ -50,11 +50,11 @@ class CandidateSafetyTest {
         val unconverted = ProfileConverter.readUnconverted(File(Fixtures.repoRoot, "core/spec/upstream-feedback/unconverted.txt"))
         val (bundle, problems) = ProfileConverter.convert(
             File(Fixtures.upstreamDir, "examples"), File(Fixtures.repoRoot, "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json"),
-            "9071ec8", unconverted, File(Fixtures.repoRoot, "core/spec/candidates"), File(Fixtures.repoRoot, "core/spec/candidates/candidate-meta.json"),
+            "3e34f40", unconverted, File(Fixtures.repoRoot, "core/spec/candidates"), File(Fixtures.repoRoot, "core/spec/candidates/candidate-meta.json"),
         )
         assertEquals(emptyList(), problems)
         val candidates = bundle.profiles.filter { it.isCandidate }
-        assertEquals(9, candidates.size)
+        assertEquals(5, candidates.size)
         val refusedLines = mutableListOf<String>()
         for (p in candidates) for (g in p.groups.filter { it.default == GroupDefault.DISABLE }) for (e in g.packages)
             SwitchOffRule.reason(e.name, null, p, null, p.stockLaunchers)?.let { refusedLines += "${p.id} ${e.name.value}: $it" }

@@ -23,12 +23,11 @@ class CandidatesTest {
     private val candidateDir = File(Fixtures.repoRoot, "core/spec/candidates")
     private val candidateMeta = File(candidateDir, "candidate-meta.json")
     private val ids = listOf(
-        "aurzen-boomair", "haier-android-tv-nippori", "philips-2020-uhd-ph0m", "sharp-aquos-tve19a", "smarttech-apollo-premium4k",
-        "sony-bravia-4k-ur3", "sony-bravia-vh1", "xiaomi-mitv-mssp1", "xiaomi-mitv4i-magnolia",
+        "aurzen-boomair", "haier-android-tv-nippori", "sharp-aquos-tve19a", "smarttech-apollo-premium4k", "xiaomi-mitv4i-magnolia",
     )
 
-    private fun without() = ProfileConverter.convert(examples, meta, "9071ec8", unconverted)
-    private fun with() = ProfileConverter.convert(examples, meta, "9071ec8", unconverted, candidateDir, candidateMeta)
+    private fun without() = ProfileConverter.convert(examples, meta, "3e34f40", unconverted)
+    private fun with() = ProfileConverter.convert(examples, meta, "3e34f40", unconverted, candidateDir, candidateMeta)
 
     private fun facts(brand: String, model: String, device: String, sdk: Int) = DeviceFacts(
         brand = brand, manufacturer = brand, model = model, device = device, serialLast4 = "0000", sdk = sdk, release = "x",
@@ -82,7 +81,7 @@ class CandidatesTest {
             fun entry(candidate: Boolean) = """{"match":{"models":["X"],"brand":"B","sdkMin":30,"sdkMax":30},"platform":"ANDROID_TV",
                 "tested":{"by":"candidate, issue #1","candidate":$candidate},"groups":{"T":{"category":"tracking"}}}"""
             File(dir, "m.json").writeText("""{"schema":1,"profiles":{"sony-bravia-4k-ur2":${entry(true)},"untested":${entry(false)},"gone":${entry(true)}}}""")
-            val (_, problems) = ProfileConverter.convert(examples, meta, "9071ec8", unconverted, dir, File(dir, "m.json"))
+            val (_, problems) = ProfileConverter.convert(examples, meta, "3e34f40", unconverted, dir, File(dir, "m.json"))
             assertEquals(
                 setOf(
                     "candidate gone: in candidate-meta.json but no debloat.txt",
@@ -100,18 +99,18 @@ class CandidatesTest {
         val (bundle, _) = with()
         var yes = false
         val source = BundledProfileSource(bundle, CandidateConsent { yes })
-        val mssp1 = facts("Xiaomi", "MiTV-MSSP1", "nino", 28)
-        assertEquals("xiaomi-mitv-mssp1", source.candidateFor(mssp1)?.id)
-        val careful = source.resolve(mssp1)
+        val magnolia = facts("Xiaomi", "MiTV4I", "magnolia", 28)
+        assertEquals("xiaomi-mitv4i-magnolia", source.candidateFor(magnolia)?.id)
+        val careful = source.resolve(magnolia)
         assertIs<ProfileResolution.BrandSureSet>(careful)
         assertEquals("Xiaomi", careful.brand)
         yes = true
-        val tried = source.resolve(mssp1)
+        val tried = source.resolve(magnolia)
         assertIs<ProfileResolution.Exact>(tried)
-        assertEquals("xiaomi-mitv-mssp1", tried.profile.id)
+        assertEquals("xiaomi-mitv4i-magnolia", tried.profile.id)
         // Another Android version of the same TV: no candidate (D-W4-14).
-        assertNull(source.candidateFor(mssp1.copy(sdk = 30)))
-        assertIs<ProfileResolution.BrandSureSet>(source.resolve(mssp1.copy(sdk = 30)))
+        assertNull(source.candidateFor(magnolia.copy(sdk = 30)))
+        assertIs<ProfileResolution.BrandSureSet>(source.resolve(magnolia.copy(sdk = 30)))
         // A TV with a tested list is never offered a candidate, whatever the answer.
         val tested = Fixtures.miTv().facts()
         assertNull(source.candidateFor(tested))
@@ -122,7 +121,7 @@ class CandidatesTest {
         assertEquals("aurzen-boomair", source.candidateFor(boomair)?.id)
         assertIs<ProfileResolution.None>(source.resolve(boomair))
         // Without consent wiring (the release graph before the test build), never a candidate.
-        assertIs<ProfileResolution.BrandSureSet>(BundledProfileSource(bundle).resolve(mssp1))
+        assertIs<ProfileResolution.BrandSureSet>(BundledProfileSource(bundle).resolve(magnolia))
     }
 
     // Safety: what a candidate switches off by default passes the same rules a shipped list does

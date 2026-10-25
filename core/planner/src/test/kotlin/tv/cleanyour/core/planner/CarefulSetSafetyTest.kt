@@ -26,7 +26,7 @@ class CarefulSetSafetyTest {
     private val tv = snapshot()   // the reference TV, its setup wizard installed and on
     private val noWizard = tv.copy(packages = tv.packages - wizard).let { it.copy(contentHash = SnapshotCodec.hash(it)) }
     private val careful: List<SureSet> = BundledProfileSource.bundled.let { b ->
-        val lists = b.profiles.filter { !it.isCandidate }.groupBy { it.match.brand!!.lowercase() }
+        val lists = tv.cleanyour.core.spec.SureSetGenerator.feeding(b.profiles.filter { !it.isCandidate }).groupBy { it.match.brand!!.lowercase() }
         b.sureSets.filter { lists.getValue(it.brand.lowercase()).size < 3 }
     }
 

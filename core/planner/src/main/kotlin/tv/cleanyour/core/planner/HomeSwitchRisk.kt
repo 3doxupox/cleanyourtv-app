@@ -34,7 +34,7 @@ object HomeSwitchRisk {
     // the same keys; boreal is where upstream first saw the casting break.
     val GOOGLE_MAKER = "google"
     val GOOGLE_DEVICES: Set<String> = setOf("sabrina", "boreal", "kirkwood")
-    val CASTING_PROFILES: Set<String> = setOf("google-chromecast-gtv-4k", "google-tv-streamer-4k-kirkwood")
+    val CASTING_PROFILES: Set<String> = setOf("google-chromecast-gtv-4k", "google-chromecast-gtv-hd", "google-tv-streamer-4k-kirkwood")
 
     // Sets of the MOKA family from TV reports, with no list of their own. The ACER R4G (issues #74
     // and #102): device R4_GTV, manufacturer MOKA, the same family as R3_GTV and R10G.

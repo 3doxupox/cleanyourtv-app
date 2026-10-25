@@ -11,7 +11,7 @@ dependencies {
 
 // The upstream launcher repository, pinned by W1 (DECISIONS-W1.md, D-W1-8).
 val upstream = rootProject.layout.projectDirectory.dir("third_party/cleanyourtv")
-val upstreamCommit = "9071ec8"
+val upstreamCommit = "3e34f40"
 
 // D28: profiles are converted at build time from the pinned upstream examples and shipped as
 // data (profiles.json, with the D26 sure sets). The converter is this module's own code, run
@@ -58,18 +58,7 @@ sourceSets.main {
     resources.srcDir(bundleThemes)
 }
 
-// Differential test (F8): upstream Config.java and Festival.java at the pinned commit (v2.4.0),
-// moved into their own package so they sit beside the vendored 1bbf0c9 copy (launcher 2.0) in the
-// test sources.
-val pinnedConfigSource by tasks.registering(Sync::class) {
-    from(upstream.dir("launcher/app/src/main/java/com/gathin/tvhome")) {
-        include("Config.java", "Festival.java")
-        into("com/gathin/tvhome/pinned")
-        filter { line: String -> if (line == "package com.gathin.tvhome;") "package com.gathin.tvhome.pinned;" else line }
-    }
-    into(layout.buildDirectory.dir("generated/upstream-config/java"))
-}
-
-sourceSets.test {
-    java.srcDir(pinnedConfigSource)
-}
+// Differential test (F8): upstream Config.java and Festival.java of launcher 2.5 (v2.5.0, 9071ec8)
+// are vendored in src/test/java/com/gathin/tvhome/pinned (RFC-UP037-1). Launcher 2.7's Config.java
+// needs Android stubs and resources this test harness does not have yet; its reader of the keys the
+// codec models is unchanged from 2.5.

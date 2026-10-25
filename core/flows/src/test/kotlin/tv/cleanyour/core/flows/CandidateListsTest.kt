@@ -23,8 +23,8 @@ import kotlin.time.Duration.Companion.seconds
 @OptIn(ExperimentalCoroutinesApi::class)
 class CandidateListsTest {
     private val candidate: Profile = miProfile.copy(
-        id = "xiaomi-mitv-mssp1",
-        tested = TestedInfo("candidate, issue #57 #58 #78 #176", "PI.5925", null, rebootTested = false, candidate = true),
+        id = "xiaomi-mitv4i-magnolia",
+        tested = TestedInfo("candidate, issue #111 #126 #161 #190", "PI.3698", null, rebootTested = false, candidate = true),
     )
 
     private class Lists(val profile: Profile?) : CandidateLists {
@@ -56,9 +56,9 @@ class CandidateListsTest {
         val m = SetupMachine(h.setupDeps(candidates = lists), backgroundScope)
         toPlanOrCard(h, m)
         assertIs<SetupState.Probing>(m.state.value)
-        assertEquals(CandidateOffer("xiaomi-mitv-mssp1", "#57"), m.extras.value.candidate)
+        assertEquals(CandidateOffer("xiaomi-mitv4i-magnolia", "#111"), m.extras.value.candidate)
         assertTrue(h.planner.requests.none { it is PlanRequest.Setup }, "nothing is planned before the answer")
-        assertTrue("setup: candidate list xiaomi-mitv-mssp1 offered" in h.logLines, h.logLines.toString())
+        assertTrue("setup: candidate list xiaomi-mitv4i-magnolia offered" in h.logLines, h.logLines.toString())
 
         m.chooseCandidate(true)
         settle()
@@ -66,12 +66,12 @@ class CandidateListsTest {
         assertNull(m.extras.value.candidate)
         assertTrue(m.extras.value.candidateTried)
         assertFalse(m.extras.value.unknownModel)
-        assertEquals(listOf("xiaomi-mitv-mssp1" to true), lists.asked)
-        assertTrue("setup: candidate list xiaomi-mitv-mssp1: trying the test list" in h.logLines, h.logLines.toString())
-        assertTrue("setup: profile candidate xiaomi-mitv-mssp1" in h.logLines, h.logLines.toString())
+        assertEquals(listOf("xiaomi-mitv4i-magnolia" to true), lists.asked)
+        assertTrue("setup: candidate list xiaomi-mitv4i-magnolia: trying the test list" in h.logLines, h.logLines.toString())
+        assertTrue("setup: profile candidate xiaomi-mitv4i-magnolia" in h.logLines, h.logLines.toString())
         val setup = h.planner.requests.filterIsInstance<PlanRequest.Setup>().last()
         assertEquals(ProfileResolution.Exact(candidate), setup.resolution)
-        assertEquals("xiaomi-mitv-mssp1", h.tvs.tvs.value.single().profileId)
+        assertEquals("xiaomi-mitv4i-magnolia", h.tvs.tvs.value.single().profileId)
     }
 
     @Test fun stayingCarefulPlansWithoutTheCandidate() = runTest(timeout = 30.seconds) {
@@ -84,8 +84,8 @@ class CandidateListsTest {
         assertIs<SetupState.Found>(m.state.value)
         assertFalse(m.extras.value.candidateTried)
         assertTrue(m.extras.value.unknownModel)
-        assertEquals(listOf("xiaomi-mitv-mssp1" to false), lists.asked)
-        assertTrue("setup: candidate list xiaomi-mitv-mssp1: careful brand set instead" in h.logLines, h.logLines.toString())
+        assertEquals(listOf("xiaomi-mitv4i-magnolia" to false), lists.asked)
+        assertTrue("setup: candidate list xiaomi-mitv4i-magnolia: careful brand set instead" in h.logLines, h.logLines.toString())
         assertTrue("setup: profile none" in h.logLines, h.logLines.toString())
         assertIs<ProfileResolution.None>(h.planner.requests.filterIsInstance<PlanRequest.Setup>().last().resolution)
         assertNull(h.tvs.tvs.value.single().profileId)
@@ -108,22 +108,22 @@ class CandidateListsTest {
     @Test fun choicesAreKeptAndReadBack() = runTest {
         val store = MemoryDocumentStore()
         val choices = CandidateChoices(store)
-        assertFalse(choices.tries("sony-bravia-vh1"))
-        choices.save("sony-bravia-vh1", true)
-        choices.save("xiaomi-mitv-mssp1", false)
-        assertTrue(choices.tries("sony-bravia-vh1"))
+        assertFalse(choices.tries("aurzen-boomair"))
+        choices.save("aurzen-boomair", true)
+        choices.save("xiaomi-mitv4i-magnolia", false)
+        assertTrue(choices.tries("aurzen-boomair"))
         val again = CandidateChoices(store)
-        assertTrue(again.tries("sony-bravia-vh1"))
-        assertFalse(again.tries("xiaomi-mitv-mssp1"))
-        assertEquals("sony-bravia-vh1=try\nxiaomi-mitv-mssp1=brand\n", store.read(CandidateChoices.PATH) { it.decodeToString() })
+        assertTrue(again.tries("aurzen-boomair"))
+        assertFalse(again.tries("xiaomi-mitv4i-magnolia"))
+        assertEquals("aurzen-boomair=try\nxiaomi-mitv4i-magnolia=brand\n", store.read(CandidateChoices.PATH) { it.decodeToString() })
     }
 
     @Test fun theLogAndTheTvReportNameACandidate() {
-        assertEquals("candidate xiaomi-mitv-mssp1", LogCodes.profile(ProfileResolution.Exact(candidate)))
+        assertEquals("candidate xiaomi-mitv4i-magnolia", LogCodes.profile(ProfileResolution.Exact(candidate)))
         assertEquals("exact xiaomi-mitv-axso0", LogCodes.profile(ProfileResolution.Exact(miProfile)))
         val input = TvReportInput(AppAbout("0.3.5-test1", "full", "Phone", "Android 16"), Samples.snapshot(), ProfileResolution.Exact(candidate), null)
         val report = TvReport.text(input)
-        assertTrue("Matching\nProfile: candidate xiaomi-mitv-mssp1\n" in report, report)
-        assertEquals("#57", CandidateOffer.of(candidate).issue)
+        assertTrue("Matching\nProfile: candidate xiaomi-mitv4i-magnolia\n" in report, report)
+        assertEquals("#111", CandidateOffer.of(candidate).issue)
     }
 }

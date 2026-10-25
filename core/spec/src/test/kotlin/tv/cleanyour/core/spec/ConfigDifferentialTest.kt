@@ -162,11 +162,19 @@ class ConfigDifferentialTest {
 
     // WallpaperRotation and RaceWeekend, which v2.5.0's Config.java calls, are vendored in the test
     // sources; they must be the submodule's own files, with only the package line changed.
-    @Test fun vendoredLauncherClassesAreTheSubmodulesOwn() {
-        for (name in listOf("WallpaperRotation.java", "RaceWeekend.java")) {
-            val upstream = java.io.File(Fixtures.upstreamDir, "launcher/app/src/main/java/com/gathin/tvhome/$name").readText()
-            val vendored = java.io.File(Fixtures.repoRoot, "core/spec/src/test/java/com/gathin/tvhome/pinned/$name").readText()
-            assertEquals(upstream.replace("package com.gathin.tvhome;", "package com.gathin.tvhome.pinned;"), vendored, name)
+    // RFC-UP037-1: the vendored reader is launcher 2.5's (v2.5.0, 9071ec8), byte for byte, with only the
+    // package renamed; the bundled launcher is 2.7, whose reader of the codec's keys is the same.
+    @Test fun vendoredLauncherClassesAreThoseOfV250() {
+        val v250 = mapOf(
+            "Config.java" to "e6c61c5597de84c57504a3d74b0e2ff3f836d8703db7530af24eb8cc9f872948",
+            "Festival.java" to "3426587a74086fd3a9fc2f0d04358d251817675eea3569b02f05d0c1b86a49f3",
+            "WallpaperRotation.java" to "cd3fe26c63b001e914e31a3d4c78370640a3b4e5d9dac73b16a0f8ef91e7691d",
+            "RaceWeekend.java" to "36d1cabc92b1e8f38962ccb6bbb5fafa8814cdbfc3fef238b977c435460c5845",
+        )
+        for ((name, sha) in v250) {
+            val bytes = java.io.File(Fixtures.repoRoot, "core/spec/src/test/java/com/gathin/tvhome/pinned/$name").readBytes()
+            val got = java.security.MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
+            assertEquals(sha, got, name)
         }
     }
 

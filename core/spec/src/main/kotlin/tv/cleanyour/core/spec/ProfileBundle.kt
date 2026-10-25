@@ -115,7 +115,20 @@ object SureSetGenerator {
     private val ROLE_WORDS = Regex("setup|launcher|input|tuner|voice|update|key")
     private val TV_STACK = listOf("com.mediatek", "com.droidlogic", "com.realtek", "org.droidtv", "com.hisense.smartsense", "com.vt", "com.mstar", "com.cvte", "com.amlogic", "mitv.service")
 
-    fun generate(profiles: List<Profile>, facts: Map<PackageName, PackageFacts>, minProfiles: Int = MIN_PROFILES): List<SureSet> {
+    // The upstream v2.7.0 lists promoted in 0.3.7. They ship as exact profiles but do not feed the
+    // brand sets yet: with them the Amazon, Sony, Xiaomi and Hisense sets would grow and Skyworth and
+    // google would get full sets, which is a separate owner review (the 0.3.7 job report has the diff).
+    val REVIEW_PENDING: Set<String> = setOf(
+        "amazon-fire-tv-aftdec012e", "google-chromecast-gtv-hd", "hisense-smarttv-4k-ffm-android11", "hisense-smarttv-4k-ffm-lushan", "karbonn-swtv-20ae",
+        "ok-ai-pont-ikebukuro", "philips-50pud7406", "skyworth-sw-22sa", "skyworth-swtv-22ae-fhd", "sony-bravia-4k-ur3", "sony-bravia-4k-vh1", "sony-kd-43x80l",
+        "xiaomi-mi-box-3", "xiaomi-mitv-mftr0", "xiaomi-mitv-moeu0", "xiaomi-mitv-mooq2", "xiaomi-mitv-mssp1",
+    )
+
+    // The profiles the brand sets are made of: every shipped one but those still under review.
+    fun feeding(profiles: List<Profile>): List<Profile> = profiles.filter { it.id !in REVIEW_PENDING }
+
+    fun generate(all: List<Profile>, facts: Map<PackageName, PackageFacts>, minProfiles: Int = MIN_PROFILES): List<SureSet> {
+        val profiles = feeding(all)
         val byBrand = profiles.filter { it.match.brand != null }.groupBy { it.match.brand!!.lowercase() }.toSortedMap()
         val full = byBrand.filterValues { it.size >= minProfiles }.map { (_, ps) -> fullSet(ps, profiles, minProfiles) }
         val careful = byBrand.filterValues { it.size < minProfiles }.mapNotNull { (_, ps) -> carefulSet(ps, profiles, facts) }
