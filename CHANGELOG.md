@@ -2,7 +2,10 @@
 
 All notable changes to the app. Versions follow [semantic versioning](https://semver.org/).
 
-## Unreleased
+## 0.4.0 (2026-10-25)
+
+Eight new looks for the TV's home screen, a picture you choose apart from the look (your own photo
+too), and a preview on the phone before anything reaches the TV.
 
 ### Home screen
 - New looks for the home screen: Cinema (the focused app's art across the top, velvet curtains),
@@ -18,13 +21,22 @@ All notable changes to the app. Versions follow [semantic versioning](https://se
 - A preview of the TV's home screen sits at the top of the Look sheet: the picture, its dim, the
   sky, the dock band, the tiles a row with your own app names and the focus, drawn from the same
   settings the TV will get, with how it moves and how many apps fit a row underneath.
-- Your own photo as the TV's picture: "Choose a photo" opens Android's photo picker (no
-  permission needed), then you pinch and drag it in a 16:9 frame with the clock and the dock drawn
-  over it and set how dim it is. The TV gets a 1920 x 1080 copy under 280 KB without the photo's
-  place, camera or time. The phone keeps that copy for the TV, so "Restore mine" puts it back
-  later.
+- Your own photo as the TV's picture (Manage, then Home screen, then Look): "Choose a photo" opens
+  Android's photo picker (no permission needed), then you pinch and drag it in a 16:9 frame with
+  the clock and the dock drawn over it and set how dim it is. The TV gets a 1920 x 1080 copy under
+  280 KB without the photo's place, camera or time. Once the TV has it, the phone keeps that copy
+  for the TV, so "Restore mine" puts it back later; a photo you pick and then cancel changes
+  nothing.
 - Diwali is offered until 10 November. After that the phone counts your earlier look as the TV's
-  again, and Manage offers to put it back on the TV with one tap.
+  again, with its picture, and Manage offers to put it back on the TV with one tap.
+- The looks set only settings the home screen app has had since 2.5, so they look the same on 2.7.
+
+### Credits
+- The look pictures are this project's own work, drawn from code and released under CC0. Aurora,
+  Glass and Ruska come from Clean Your TV (MIT). The app's Licences screen lists them.
+
+### Other
+- The README links to Obtainium, which follows the GitHub releases and updates the app by itself.
 
 ## 0.3.7 (2026-10-25)
 
