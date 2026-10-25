@@ -2,6 +2,40 @@
 
 All notable changes to the app. Versions follow [semantic versioning](https://semver.org/).
 
+## 0.3.6 (2026-10-25)
+
+Fixes for TVs that got stuck after a home screen switch rolled back, and for the install that
+kept saying the TV stopped answering. Thank you to everyone who sent a report and a log: each of
+these fixes starts from one.
+
+### Setup
+- A TV whose home screen switch rolled back no longer gets stuck. Setup used to offer "Try with
+  the wizard off" after the rollback, which saved a choice every later plan refused, and Back
+  led to Welcome instead of the TV's restore options. That card is gone, saved choices the TV
+  would refuse are dropped before planning, and Back on a refused plan opens Manage for a TV this
+  app already changed (issues #375, #385).
+- No more endless "TV stopped answering" during an install. When the TV ends a streamed install
+  with a protocol error while still connected, the app checks whether the app landed: done if it
+  did, else that step fails and Setup carries on with the clean-up, without the home screen
+  switch (issues #80, #364, #367).
+- On TCL Google TV sets, the plan screen and Manage > Home screen say before the switch that the
+  remote's Settings (gear), Netflix and YouTube buttons don't work with the new home screen, and
+  that Use the TV's own home screen brings them back (issue #275).
+- A safety rule: the home screen switch is never planned while the TV shows a setup wizard that
+  can answer the Home button and the switch would leave it on, also on TVs with an exact list
+  (the Sony BRAVIA BF1 list among them). The clean-up alone still runs. Lists whose switch
+  switches the wizard off, such as the TCL G10 Google TV list, are unchanged.
+- When the TV's port answers but the connection fails, the door now says so, lists what on the
+  phone can block the app (a per-app network limit on MIUI or Samsung, a VPN, Private DNS,
+  mobile data), and offers Copy error: a short summary with the app and Android version, the
+  error and the last log lines, with no addresses in it, ready to paste into an issue.
+
+### Reports and logs
+- The problem report lists what this app switched off and has not put back.
+- The diagnostics log names why a socket connect failed (the exception class and the system's
+  reason), what the TV showed when the home check rolled back, the step the home screen switch
+  stopped at, and the in doubt state by name.
+
 ## 0.3.5 (2026-10-24)
 
 More TVs get a careful clean-up, and a safety guard for the ACER R4G. Thank you to everyone who
