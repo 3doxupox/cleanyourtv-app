@@ -10,6 +10,7 @@ import tv.cleanyour.core.model.TvId
 import tv.cleanyour.core.planner.FireOs
 import tv.cleanyour.core.planner.Plan
 import tv.cleanyour.core.planner.PlanRequest
+import tv.cleanyour.core.planner.TclGoogleTv
 import tv.cleanyour.core.spec.DockLayers
 
 // M2 Home screen: the dock (S3b sheet), the look (theme picker), "Use the TV's own home screen"
@@ -53,6 +54,7 @@ data class HomeScreenState(
     val updatePreview: Plan? = null,
     val tvSideSettings: Boolean = false,                // the TV's launcher has Launcher settings of its own (2.4, versionCode 5, and later)
     val notOnTv: NotOnTv? = null,                       // 0.3.3 D2: the new home screen is not on this TV; no dock or look rows
+    val tclRemoteKeys: Boolean = false,                 // issue #275: a TCL Google TV, whose remote's gear, Netflix and YouTube buttons need its own home screen
 )
 
 sealed interface HomeScreenIntent {
@@ -134,7 +136,7 @@ class HomeScreenMachine(
         send(Loaded(HomeScreenState(tv.nickname, dock, apps, choice?.themeId, state.value.themes, stock = profile?.stockLaunchers?.firstOrNull(),
             homeScreenOurs = tv.launcher != null, columns = columns, updateTo = updateTo(tv, packages),
             tvSideSettings = (packages[Launcher.pkg]?.versionCode ?: 0) >= FIRST_WITH_TV_SETTINGS,
-            notOnTv = notOnTv(tv, snap))))
+            notOnTv = notOnTv(tv, snap), tclRemoteKeys = snap != null && TclGoogleTv.applies(snap.facts, snap))))
     }
 
     // 0.3.3 D2: null while the new home screen is on the TV: Setup recorded it (tv.launcher), or the

@@ -250,6 +250,9 @@ fun FoundScreen(
                 else -> msg(R.string.found_home_row, "dock" to dock)
             }
             TextActionRow(row, stringResource(R.string.found_home_change), { actions.intent(SetupIntent.Open(Sheet.DOCK)) }, Modifier.padding(top = 8.dp))
+            // Issue #275: TCL's firmware sends these remote buttons only to Google TV's own home
+            // screen, so the person hears it before the switch, with the way back.
+            if (extras.tclRemoteKeys) Banner(stringResource(R.string.found_tcl_remote_keys), BannerTone.INFO, Modifier.padding(top = 12.dp))
         } else {
             // RF-PROFILES-63 P1, P2: an older Android, or a home screen we do not know, says so plainly;
             // RF-SAFETY-250: so does a switch skipped up front for safety.
