@@ -47,12 +47,12 @@ services.
   everything can be put back. It stays on your phone. It leaves your phone only if you choose
   "Save a copy" and send the file somewhere yourself.
 - **Your choices**, such as the dock and the look you picked, and the TVs you have set up.
-- **Your photo**, if you choose one for a TV's home screen. You pick it with Android's own photo
-  picker, which gives the app that one photo and nothing else. The app makes a smaller copy for the
-  TV (without the place, camera or time the original may carry) and keeps it on your phone for that
-  TV, so you can put it back later. It leaves your phone only to that TV, over your own Wi-Fi, and
-  is never in a report or a restore point. "Forget this TV" deletes it. On Android 9 and 10 TVs,
-  other TV apps that have the storage permission could read the picture on the TV.
+- **Your own photo**, if you choose one for a TV's home screen. The app keeps one resized copy per
+  TV, with the photo's location and other details (camera, time) removed, and "Forget this TV"
+  deletes it. The photo goes only to your TV, over your own network, and is never in a report or a
+  restore point. The app uses Android's photo picker, so it sees only the one photo you pick, and it
+  asks for no photos or storage permission. On Android 9 and 10 TVs, other TV apps that have the
+  storage permission could read the picture on the TV.
 - **The app's diagnostics log.** A plain text record of what the app did (connecting, reading the
   TV, each step and how it went), with network addresses, serial numbers, keys and pairing codes
   removed. It stays on your phone. "Delete everything" in the app's Settings deletes it, and so
