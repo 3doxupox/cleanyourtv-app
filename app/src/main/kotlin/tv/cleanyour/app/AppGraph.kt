@@ -111,7 +111,7 @@ class AppGraph(context: Context, val appVersion: String = versionOf(context), va
     // W2: the phone's ADB key and the sessions (RFC-W2-3; plain TCP, no TLS in 0.1).
     val signer = DeferredAdbSigner(workScope) { KeystoreAdbSigner.create(app) }
     val keyInfo = SignerKeyInfo(signer)
-    val sessions = AdbSessionManager(PlainSocketFactory(), signer, tls = null, clock = clock, scope = workScope)
+    val sessions = AdbSessionManager(PlainSocketFactory(), signer, tls = null, clock = clock, scope = workScope, log = { CytLog.i(it) })
 
     // W4: the probe and the bundled tables.
     // An installed APK that hashes to a pinned one has that pin's signer, so it is not copied to read it
@@ -200,6 +200,7 @@ class AppGraph(context: Context, val appVersion: String = versionOf(context), va
         store = store.rules,       // STORES-PLAN 1
         homeDecisions = homeDecisions,   // 0.3.2 B1
         candidates = tv.cleanyour.core.flows.BundledCandidateLists(profiles, candidateChoices),   // test build
+        about = about, connectDetail = { sessions.lastConnectFailure },   // 0.3.6: "Copy error"
     )
 
     val manageDeps = ManageDeps(

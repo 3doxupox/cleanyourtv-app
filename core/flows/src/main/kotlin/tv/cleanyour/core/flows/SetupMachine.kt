@@ -131,6 +131,7 @@ data class SetupExtras(
     val homeBlock: HomeBlock = HomeBlock.NONE,   // why the switch is not offered, for S3's line (RF-PROFILES-63 P1, P2)
     val fireTv: Boolean = false,                 // issue #2: a Fire OS set, so S3's TV_REFUSES line names Fire TV, not the panel's brand
     val tclRemoteKeys: Boolean = false,          // issue #275: a TCL Google TV, so S3 says which remote buttons the new home screen loses
+    val connectError: ConnectError? = null,      // 0.3.6: the TV's port answered, the connection failed; the door's card and "Copy error"
     val staleNotice: Boolean = false,            // the TV changed under the plan; a new plan is shown
     val finishing: Finishing? = null,            // D7 "Switching debugging off... done."
     val restartSlow: Boolean = false,            // UX 4.8 at 3 minutes
@@ -195,6 +196,10 @@ class SetupDeps(
     val homeDecisions: HomeDecisions? = null,
     // Test build: candidate lists (CandidateLists); null, or a build without them, never offers one.
     val candidates: CandidateLists? = null,
+    // 0.3.6: "Copy error" on a failed connect names the app and the phone's Android version, and why
+    // the last socket connect failed (the session's class and errno reason, never an address).
+    val about: AppAbout? = null,
+    val connectDetail: () -> String? = { null },
 )
 
 // The first-run wizard, screens S1 to S5 (PRODUCT-SPEC 4, UX 2 and 4). One machine per wizard run,
@@ -395,6 +400,7 @@ class SetupMachine(
         // A new door (another TV, a typed address, a fresh start) clears the retry brakes.
         if (event is Ev.Door || event == SetupIntent.Start || event is SetupIntent.PickTv || event is SetupIntent.EnterAddress || event == Ev.Back || event == Ev.ToWelcome) {
             blocked = false; connectFailed = false
+            mutableExtras.update { it.copy(connectError = null) }
         }
         when (event) {
             is SetupIntent.EnterAddress -> {
@@ -407,7 +413,7 @@ class SetupMachine(
             is SetupIntent.Open -> if (after !is SetupState.Found) mutableExtras.update { it.copy(sheet = event.sheet, addressError = false) }
                 else if (event.sheet == Sheet.CUSTOMISE && after.level == Level.SIMPLE) setLevel(Level.CUSTOM)
             SetupIntent.AskTvAgain -> askAgain()
-            is Ev.Opened -> { connectFailed = false; if (!event.identityNeeded) connected() }
+            is Ev.Opened -> { connectFailed = false; mutableExtras.update { it.copy(connectError = null) }; if (!event.identityNeeded) connected() }
             SetupIntent.ConfirmIdentity -> if (before is SetupState.OpenDoor && before.phase == DoorPhase.IDENTITY) connected()
             SetupIntent.RejectIdentity -> {
                 // Finding 1: "No" must not lead back to the same device. It stays out of the list for
@@ -567,9 +573,18 @@ class SetupMachine(
             }
             is OpenResult.Failed -> {
                 deps.log.line("setup: connect failed ${errorName(result.error)}")
+                if (result.error is AdbError.Transport && result.error != AdbError.Transport.NoShellV2) noteConnectError(result.error)
                 send(Ev.OpenFailed(result.error))
             }
         }
+    }
+
+    // 0.3.6: the card's "Copy error" text, built when the connect fails, from the log as it is then.
+    private suspend fun noteConnectError(error: AdbError) {
+        val kind = errorName(error)
+        val log = attempt { deps.diagnostics.redactedText() }.getOrDefault("")
+        val detail = attempt { deps.connectDetail() }.getOrNull()
+        mutableExtras.update { it.copy(connectError = ConnectError(kind, ConnectErrorSummary.build(deps.about, kind, detail, log))) }
     }
 
     private fun onOpenFailed(error: AdbError) {

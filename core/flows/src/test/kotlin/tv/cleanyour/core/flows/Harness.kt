@@ -121,10 +121,11 @@ class Harness(val clock: FakeClock = FakeClock(Samples.NOW_MS), val facts: tv.cl
 
     fun setupDeps(dock: DockPicker = DockPicker { _, _, _, _, _ -> listOf(PackageName("com.netflix.ninja")) }, curtainPin: tv.cleanyour.core.trust.CurtainPin? = null,
                   savedWifi: tv.cleanyour.core.probe.SavedWifiOwners? = null, store: StoreRules = StoreRules.FULL,
-                  candidates: CandidateLists? = null) = SetupDeps(
+                  candidates: CandidateLists? = null, diagnostics: Diagnostics = Diagnostics { "diagnostics" },
+                  about: AppAbout? = null, connectDetail: () -> String? = { null }) = SetupDeps(
         discovery, sessions, prober, profiles, facts, runner, engine, gate, tvs, snapshots, ledger,
         FakeLauncherPin(Samples.launcherArtifact()), themes, restorePoint, FakeRestoreNote(), sessionEnd, access, clock, KeyCopy,
-        blobs = blobs, dock = dock, screenLock = { true }, diagnostics = { "diagnostics" },
+        blobs = blobs, dock = dock, screenLock = { true }, diagnostics = diagnostics,
         launchable = tv.cleanyour.core.probe.LaunchableApps { launchable ?: throw tv.cleanyour.core.probe.ProbeException(tv.cleanyour.core.probe.ProbeStage.LAUNCHER, "no answer") },
         log = FlowLog { logLines += it },
         homePrefs = HomePrefs(documents),
@@ -133,6 +134,8 @@ class Harness(val clock: FakeClock = FakeClock(Samples.NOW_MS), val facts: tv.cl
         store = store,
         homeDecisions = HomeDecisions(documents),
         candidates = candidates,
+        about = about,
+        connectDetail = connectDetail,
     )
 
     fun setup(scope: CoroutineScope, start: SetupStart = SetupStart.Fresh, store: StoreRules = StoreRules.FULL) = SetupMachine(setupDeps(store = store), scope, start)
