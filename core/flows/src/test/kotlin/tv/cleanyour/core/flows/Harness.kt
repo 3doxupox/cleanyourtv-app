@@ -67,13 +67,12 @@ val miProfile = Profile(
 )
 
 // Every fake wired the way the app wires the real things.
-class Harness(val clock: FakeClock = FakeClock(Samples.NOW_MS)) {
+class Harness(val clock: FakeClock = FakeClock(Samples.NOW_MS), val facts: tv.cleanyour.core.spec.FactsTable = MapFactsTable()) {
     val discovery = FakeDiscovery()
     val session = FakeTvSession()
     val sessions = FakeSessionManager().apply { register(HOST, session) }
     val prober = FakeProber()
     val profiles = FakeProfileSource(listOf(miProfile))
-    val facts = MapFactsTable()
     val planner = FakePlanner()
     val engine = FakeEngine(clock)
     val credential = FakeCredentialGate(clock)

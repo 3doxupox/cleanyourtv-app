@@ -55,6 +55,7 @@ import tv.cleanyour.core.planner.PlanKind
 import tv.cleanyour.core.planner.PlanRequest
 import tv.cleanyour.core.planner.PlanResult
 import tv.cleanyour.core.planner.StockHome
+import tv.cleanyour.core.planner.SwitchOffRule
 import tv.cleanyour.core.probe.LaunchableApps
 import tv.cleanyour.core.probe.SavedWifiOwners
 import tv.cleanyour.core.probe.SavedWifi
@@ -745,7 +746,7 @@ class SetupMachine(
         val res = resolution ?: return
         if (fresh) snapshot = deps.runner.freshSnapshot(s)
         val snap = snapshot ?: return
-        val draft = record.wizard ?: return
+        val draft = withoutRefusedChoices(record, record.wizard ?: return, snap)
         val launcher = deps.launcherPin.bundled()
         val installed = snap.packages[launcher.pkg]
         // The dock and the rows under it, cut to what the chosen look holds (DockLayers).
@@ -1085,16 +1086,38 @@ class SetupMachine(
         deps.engine.undoRun(record.id, pass)
     }
 
-    // "Try with the wizard off": the setupwraith package goes into the plan and step 5 runs again
-    // with the same check (UX 4.7). Profiles that carry the quirk never get here.
+    // "Try with the wizard off" (UX 4.7). Issue #375: putting the wizard into the choices never
+    // worked, the planner refuses it there, and the refusal stayed with the TV's saved draft. The card
+    // no longer offers it (homeCard); an intent that still arrives keeps the old home screen, as the
+    // card's other button does, and never touches the draft.
     private suspend fun tryWizardOff() {
-        val record = tv ?: return
-        val wraith = profile()?.setupWraith ?: snapshot?.home?.claimants?.map { it.component.pkg }
-            ?.firstOrNull { "setupwraith" in it.value.lowercase() }
-        val t = if (wraith != null) record.copy(wizard = record.wizard?.let { w -> w.copy(extraOff = w.extraOff + wraith) }) else record
-        tv = t
-        deps.tvs.upsert(t)
-        retakeover(t)
+        deps.log.line("setup: the setup wizard is only switched off as part of the home screen switch; the old home screen stays")
+        leaveOldHome()
+    }
+
+    // Issue #375: a saved choice the planner would refuse (the wizard put there by "Try with the
+    // wizard off" in 0.3.4 and 0.3.5, or an app that became a home screen or a protected package
+    // since it was chosen) refused every plan for the TV, for good. It is dropped from the draft, so
+    // the plan is made without it: one switch-off fewer, never one more. The draft is saved again.
+    private suspend fun withoutRefusedChoices(record: Tv, draft: WizardDraft, snap: Snapshot): WizardDraft {
+        val stocks = when (val r = resolution) {
+            is ProfileResolution.Exact -> r.profile.stockLaunchers
+            is ProfileResolution.BrandSureSet -> r.stockLaunchers
+            is ProfileResolution.None -> r.stockLaunchers
+            null -> emptyList()
+        }
+        val refused = draft.extraOff.filter { pkg ->
+            pkg in snap.packages && SwitchOffRule.reason(pkg, snap.packages[pkg], profile(), snap, stocks) != null
+        }.toSet()
+        if (refused.isEmpty()) return draft
+        val cleaned = draft.copy(extraOff = draft.extraOff - refused, updatedAtMs = deps.clock.nowMs())
+        val updated = record.copy(wizard = cleaned)
+        if (tv?.id == record.id) tv = updated
+        attempt { deps.tvs.upsert(updated) }
+        deps.log.line("setup: ${refused.size} earlier choice${if (refused.size == 1) "" else "s"} left out, now protected on this TV: " +
+            refused.sortedBy { it.value }.joinToString(", ") { LogCodes.reason(it.value, snap, deps.facts) })
+        mutableExtras.update { it.copy(draft = cleaned) }
+        return cleaned
     }
 
     // Plans again from a fresh snapshot (the debloat part is already done) and starts at once.
@@ -1350,12 +1373,19 @@ class SetupMachine(
 
     private fun homeCard(f: RunState.Finished): StopCard {
         val other = otherLauncherName()
+        // Issue #375: "Try with the wizard off" is never offered. The planner switches the wizard off
+        // only inside the home screen switch, on a profile with the wizard quirk, and then this run
+        // already did; anywhere else it refuses the wizard as a choice (REASON_HOME_SCREEN, or
+        // REASON_WIZARD_SECTION_ONLY). Offering it put the wizard into the saved choices and every
+        // later plan for the TV was refused. The wizard card stays for the Wi-Fi (D3) only; any other
+        // switch the wizard took is the plain "it did not take over" card.
+        val wraith = wraithClaims() && wizardWifi != WizardWifi.NOT_OWNER
         val case = when (f.home) {
             HomeOutcome.USER_SAID_NO -> StopCase.HOME_USER_SAID_NO
             HomeOutcome.TIMED_OUT -> StopCase.HOME_TIMED_OUT
             HomeOutcome.CONNECTION_LOST -> StopCase.HOME_PUT_BACK
             else -> when {
-                wraithClaims() -> StopCase.HOME_SETUPWRAITH
+                wraith -> StopCase.HOME_SETUPWRAITH
                 other != null -> StopCase.HOME_OTHER_LAUNCHER
                 else -> StopCase.HOME_UNKNOWN
             }
@@ -1363,7 +1393,7 @@ class SetupMachine(
         if (case == StopCase.HOME_PUT_BACK) return homePutBackCard(f.plan.id)
         // D3: the wizard holds Home, but it may have saved the TV's Wi-Fi, so switching it off is not
         // offered; the card says why and what to do instead.
-        wifiCard = case == StopCase.HOME_SETUPWRAITH && wizardWifi != WizardWifi.NOT_OWNER
+        wifiCard = case == StopCase.HOME_SETUPWRAITH
         if (wifiCard) {
             // The owner's sentence only when the TV said the wizard saved the Wi-Fi; never a claim the
             // app could not check (RF-LAUNCHER-240 F6).

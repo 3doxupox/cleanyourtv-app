@@ -1037,10 +1037,11 @@ class SetupMachineTest {
                 assertTrue(m.state.value !is SetupState.Stopped, m.state.value.toString())
                 assertTrue(h.planner.requests.filterIsInstance<PlanRequest.Setup>().none { it.choices.takeover || wizard in it.choices.extraOff })
             } else {
+                // Issue #375: with the Wi-Fi saved by others the switch already had the wizard off (the
+                // quirk), so "Try with the wizard off" is never offered; the plain card instead.
                 val s = assertIs<SetupState.Stopped>(m.state.value)
-                assertEquals(StopCase.HOME_SETUPWRAITH, s.card.case)
-                assertTrue(s.card.body.startsWith("STOP_HOME_SETUPWRAITH_BODY"), s.card.body)
-                assertTrue(s.card.primary.startsWith("STOP_HOME_SETUPWRAITH_PRIMARY"))
+                assertEquals(StopCase.HOME_UNKNOWN, s.card.case)
+                assertTrue(s.card.primary.startsWith("STOP_HOME_UNKNOWN_PRIMARY"), s.card.primary)
             }
             // Only the verdict is logged.
             assertTrue(h.logLines.any { it == "setup: setup wizard and saved Wi-Fi: ${c.verdict}" }, h.logLines.toString())
