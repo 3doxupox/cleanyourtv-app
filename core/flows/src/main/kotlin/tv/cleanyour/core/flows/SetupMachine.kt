@@ -1167,13 +1167,22 @@ class SetupMachine(
             }
             StopCase.INSTALL_FAILED -> scope.launch { abandonToDone() }
             StopCase.UNDONE -> tvIdOf(s)?.let { effect(SetupEffect.Navigate("manage/${it.value}")) }
-            StopCase.PROBE_FAILED, StopCase.PLAN_REFUSED -> if (action == StopAction.PRIMARY) scope.launch { probe() } else send(Ev.ToWelcome)
+            StopCase.PROBE_FAILED, StopCase.PLAN_REFUSED -> if (action == StopAction.PRIMARY) scope.launch { probe() } else scope.launch { backFromRefusal(s) }
             StopCase.NOT_BACK_AFTER_RESTART -> if (action == StopAction.PRIMARY) (state.value as? SetupState.Done)?.let { d -> restartJob = scope.launch { awaitBack(d.tvId, deps.clock.nowMs()) } } else shareDiagnostics()
             StopCase.TV_NOT_FOUND -> if (action == StopAction.PRIMARY) { mutableExtras.update { it.copy(card = null) }; discoveryJob?.cancel(); discoveryJob = null; afterTransition(state.value) }
                 else mutableExtras.update { it.copy(card = null, sheet = Sheet.ADDRESS) }
             StopCase.WRONG_NETWORK, StopCase.IDENTITY_CHANGED, StopCase.TV_NOT_SUPPORTED -> { mutableExtras.update { it.copy(card = null) }; send(Ev.ToWelcome) }
             StopCase.TV_REFUSES_HOME, StopCase.PAIRING_NEEDED -> send(Ev.ToWelcome)
         }
+    }
+
+    // Issue #375: "Back" on a card that stopped before any change. On a TV this app already changed,
+    // it goes to Manage, where Restore point and Undo everything are, never only to Welcome, which
+    // leads to the same stop again. A TV with no change of ours goes to Welcome as before.
+    private suspend fun backFromRefusal(s: SetupState) {
+        val id = tvIdOf(s) ?: tv?.id
+        val changed = id != null && attempt { deps.ledger.changes(id).isNotEmpty() }.getOrDefault(false)
+        if (id != null && changed) effect(SetupEffect.Navigate("manage/${id.value}")) else send(Ev.ToWelcome)
     }
 
     // "Stop here" and the install failure: keep what was done, abandon the rest, show Done truthfully.

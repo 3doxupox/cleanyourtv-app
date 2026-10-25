@@ -4,9 +4,11 @@ import app.cash.turbine.test
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import tv.cleanyour.core.engine.HomeOutcome
+import tv.cleanyour.core.engine.JournalRecord
 import tv.cleanyour.core.engine.RunStatus
 import tv.cleanyour.core.model.Level
 import tv.cleanyour.core.model.Op
+import tv.cleanyour.core.model.Prior
 import tv.cleanyour.core.model.SnapshotReason
 import tv.cleanyour.core.model.WizardDraft
 import tv.cleanyour.core.planner.PlanRequest
@@ -107,6 +109,35 @@ class Issue036SetupTest {
         assertTrue(setups(h).isNotEmpty() && setups(h).none { Issue036.wizard in it.choices.extraOff }, log)
         assertEquals(emptySet(), h.tvs.tvs.value.single().wizard?.extraOff)
         assertEquals(emptySet(), m.extras.value.draft?.extraOff)
+    }
+
+    // Any refusal on a TV this app already changed: Back opens Manage (Restore point, Undo everything).
+    @Test fun issue375BackFromARefusedPlanOpensManageOnATvWeChanged() = runTest(timeout = 60.seconds) {
+        val h = harness()
+        h.planner.respond = { _, _ -> tv.cleanyour.core.planner.PlanResult.Refused(listOf("refused for the test")) }
+        // The earlier run of the report: one switch-off, done.
+        val earlier = h.plan(listOf(Op.Disable(tv.cleanyour.core.model.PackageName("com.vt.hishow"))), id = "01FAKEPLAN0000000000000042")
+        h.ledger.record(earlier)
+        h.journal.append(JournalRecord.Begin(earlier.id, 0, earlier.steps[0].op, emptyList(), Prior(), Samples.NOW_MS))
+        h.journal.append(JournalRecord.Done(earlier.id, 0, 0, verified = true, ms = 10))
+        val m = machine(h, backgroundScope)
+        toFound(h, m)
+        assertEquals(StopCase.PLAN_REFUSED, assertIs<SetupState.Stopped>(m.state.value).card.case)
+        m.effects.test {
+            m.dispatch(SetupIntent.StopAction(StopAction.SECONDARY)); settle()
+            assertEquals(SetupEffect.Navigate("manage/${Samples.miTvId().value}"), drain().filterIsInstance<SetupEffect.Navigate>().last())
+        }
+    }
+
+    // A TV with no change of ours: Back goes to Welcome, as before.
+    @Test fun backFromARefusedPlanGoesToWelcomeOnATvWeNeverChanged() = runTest(timeout = 60.seconds) {
+        val h = harness()
+        h.planner.respond = { _, _ -> tv.cleanyour.core.planner.PlanResult.Refused(listOf("refused for the test")) }
+        val m = machine(h, backgroundScope)
+        toFound(h, m)
+        assertEquals(StopCase.PLAN_REFUSED, assertIs<SetupState.Stopped>(m.state.value).card.case)
+        m.dispatch(SetupIntent.StopAction(StopAction.SECONDARY)); settle()
+        assertIs<SetupState.Welcome>(m.state.value)
     }
 
     // The snapshot the report describes, for the fixture's own sake: the wizard claims Home.
