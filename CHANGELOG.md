@@ -7,11 +7,11 @@ All notable changes to the app. Versions follow [semantic versioning](https://se
 ### Home screen
 - New looks for the home screen: Cinema (the focused app's art across the top, velvet curtains),
   Console (seven small tiles and a big name), Horizon (mountain ridges under a sky that follows the
-  time of day), Quiet black (pure black, calm motion, for OLED and slower TVs) and Diwali (lamps,
-  festive icons and a petal shower, until 10 November), Library (every app on one calm page, no
-  dock band), Arcade (a neon sun and bouncy tiles) and Mist (soft indigo, teal and peach light). Each look sets every layout and motion
-  setting itself, so switching looks never keeps one from the last. The pictures are our own work,
-  free to use (CC0).
+  time of day), Library (every app on one calm page, no dock band), Arcade (a neon sun and bouncy
+  tiles), Mist (soft indigo, teal and peach light), Quiet black (pure black, calm motion, for OLED
+  and slower TVs) and Diwali (lamps, festive icons and a petal shower, until 10 November). Each
+  look sets every layout and motion setting itself, so switching looks never keeps one from the
+  last. The pictures are our own work, free to use (CC0).
 - The Look sheet now has two choices: the look, and the picture it shows. Any look can show its
   own picture, Aurora, Glass or Ruska, or no picture at all (Diwali keeps its own). A tap only
   chooses; nothing is sent to the TV until you tap "Use this look".

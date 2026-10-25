@@ -66,7 +66,7 @@ class LooksTest {
         h.tvs.upsert(tv)
         h.snapshots.save(Samples.snapshot(takenAtMs = Samples.NOW_MS + 1))
         val deps = h.manageDeps(encoder = ConfigEncoder.Codec, themes = themes)
-        HomePrefs(h.documents).save(tv.id, HomeChoice(dock, "cinema", cards = false))
+        HomePrefs(h.documents).save(tv.id, HomeChoice(dock, "cinema", cards = false, picture = LookPicture.NONE_ID))
 
         h.clock.setWall(ms(lastDay))
         val m = HomeScreenMachine(deps, backgroundScope, tv.id)
@@ -74,7 +74,8 @@ class LooksTest {
         assertEquals(listOf("cinema", "diwali"), m.state.value.themes.map { it.id })
         m.dispatch(HomeScreenIntent.SetTheme("diwali")); settle()
         assertEquals("diwali", h.planner.requests.filterIsInstance<PlanRequest.ApplyTheme>().last().doc.festival)
-        assertEquals(HomeChoice(dock, "diwali", cards = false, previousThemeId = "cinema"), HomePrefs(h.documents).load(tv.id))
+        assertEquals(HomeChoice(dock, "diwali", cards = false, previousThemeId = "cinema", picture = LookPicture.NONE_ID), HomePrefs(h.documents).load(tv.id),
+            "the picture chosen for Cinema is kept for when it comes back")
         assertNull(m.state.value.endedLook)
 
         h.clock.setWall(ms(lastDay.plusDays(1)))
@@ -90,7 +91,8 @@ class LooksTest {
         val back = h.planner.requests.filterIsInstance<PlanRequest.ApplyTheme>().last().doc
         assertEquals(true, back.cinematicHome)
         assertNull(back.festival)
-        assertEquals(HomeChoice(dock, "cinema", cards = false), HomePrefs(h.documents).load(tv.id))
+        assertEquals(false, back.wallpaper, "Cinema comes back with its picture choice (none)")
+        assertEquals(HomeChoice(dock, "cinema", cards = false, picture = LookPicture.NONE_ID), HomePrefs(h.documents).load(tv.id))
         assertNull(later.state.value.endedLook)
     }
 

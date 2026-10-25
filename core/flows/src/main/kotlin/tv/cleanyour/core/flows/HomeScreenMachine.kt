@@ -319,8 +319,12 @@ class HomeScreenMachine(
         val r = writer.write(tvId, PlanRequest.ApplyTheme(look.doc, look.config, look.wallpaper)) { send(BusyNow(it)) }
         send(BusyNow(null))
         if (r is WriteResult.Done) {
-            d.homePrefs.save(tvId, (d.homePrefs.load(tvId) ?: HomeChoice(emptyList(), null)).withTheme(themeId, kept, cards, pictureId,
-                dim = if (pictureId == LookPicture.MINE_ID) dim else null))
+            // A dated look keeps its own picture, so the picture and dim saved for the look before it
+            // stay, and come back with that look once the dated one ends.
+            val saved = d.homePrefs.load(tvId) ?: HomeChoice(emptyList(), null)
+            val dated = Looks.dated(themeId)
+            d.homePrefs.save(tvId, saved.withTheme(themeId, kept, cards, picture = if (dated) saved.picture else pictureId,
+                dim = if (dated) saved.dim else if (pictureId == LookPicture.MINE_ID) dim else null))
             rememberPushedLook(d, tvId, look.digest)
             send(Drift(false))
             effect(ManageEffect.Snackbar(SnackKind.HOME_SAVED, "", false))
