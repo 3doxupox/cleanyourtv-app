@@ -2,6 +2,53 @@
 
 All notable changes to the app. Versions follow [semantic versioning](https://semver.org/).
 
+## 0.3.7 (2026-10-25)
+
+Seventeen more TVs with a tested list, the home screen app updated to 2.7, and more apps this app
+never switches off. Thank you to Gathin for the lists, and to everyone who tested one on their TV
+and sent a report: each of these lists starts from one.
+
+### TV lists
+- 17 more TVs match a tested list, 148 in all, from the lists of Clean Your TV v2.7.0: the
+  Amazon Fire TV AFTDEC012E (issues #65, #76), the Chromecast with Google TV HD (#239), the
+  Hisense SmartTV 4K FFM on songshan, also the Hisense 50A6H4 (#63, #68, #69, #107, #110, #146,
+  #289), and on lushan (#52), the Karbonn SWTV-20AE (#81), the OK. AI PONT (#165, #179, #256),
+  the Philips 50PUD7406 and 55PUS7906 (#13, #39, #75, #266), the Skyworth SW-22SA (#89) and
+  SWTV-22AE-FHD (#185, #215, #216), the Sony BRAVIA 4K UR3 (#42, #73, #90, #113, #228, #246,
+  #255, #269), BRAVIA 4K VH1 (#142, #143, #155, #178, #233, #268, #274) and KD-43X80L (#46,
+  #124, #293), and the Xiaomi Mi Box 3 (#199, #224, #273), MiTV-MFTR0 (#193, #249), TV S Mini
+  LED 75 2025 (#128), Mi TV P1 43 (#184) and MiTV-MSSP1 (#57, #58, #78, #176).
+- The Fire TV AFTDEC012E, the MiTV-MFTR0 and the Chromecast with Google TV HD get the clean-up
+  and keep their own home screen: Fire OS keeps its Home, the app does not know the MFTR0's China
+  home screen, and on the Chromecast the switch would cost casting after every reboot.
+- Ten lists changed upstream and follow it, among them the Hisense SmartTV 4K FFM, the Sony
+  BRAVIA 4K UR2 and VH2, the TCL G05 and G09 Google TV and the Xiaomi TV A Pro 2026. The Xiaomi
+  MiTV-AESP0 list keeps its setup wizard on, as in 0.3.6; the wizard off option upstream added
+  for it costs casting, so its rows are a choice instead.
+- Hisense TVs without an exact list also switch off Google partner setup and Calendar sync.
+- The other brand sets are unchanged.
+
+### Home screen launcher
+- Bundles the Clean Your TV launcher 2.7 (upstream v2.7.0), built from source and signed with
+  this project's launcher key. With its default settings the TV looks as before, with fixes: the
+  network pill shows the VPN badge right away, the dock's corners follow its tiles, Launcher
+  settings changes apply when you leave with Home, and the quick settings no longer crash on
+  Android 8.0. It also speaks Ukrainian. Its new options are all off by default; the app lets
+  you choose them in a later version.
+- A TV set up with an earlier version is offered "Update the home screen" in Manage.
+
+### Safety
+- Never switched off, by any list, also during the home screen switch: vendor setup wizards
+  (OnePlus, Xiaomi and Android's device provisioning), vendor home screens (Haier, OnePlus),
+  TalkBack and Google's text-to-speech, the Sony accessibility tutorial and the TCL hearing aid,
+  the remote's services (the Google TV remote service and its logger, Sony remote start and the
+  OnePlus remote diagnosis), the Xiaomi TV service and TCL Live. Some upstream lists switch these
+  off; this app keeps them on.
+- When a vendor setup wizard comes up after the Home key during the switch, the switch rolls
+  back.
+- More TV software updaters (CVTE, TCL, Sber, Fire TV, the TCL remote and peripherals updater,
+  Sony's camera firmware) are "Software updates" rows, which stay on in Simple.
+
 ## 0.3.6 (2026-10-25)
 
 Fixes for TVs that got stuck after a home screen switch rolled back, and for the install that
