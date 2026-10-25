@@ -1598,7 +1598,8 @@ class SetupMachine(
         val stock = profile()?.stockLaunchers?.map { it.pkg }.orEmpty().toSet()
         val wraith = profile()?.setupWraith
         val other = snapshot?.home?.claimants?.map { it.component }
-            ?.filter { !it.cls.endsWith("FallbackHome") }?.map { it.pkg }
+            // #481's TCL Percee TV: com.android.boot.fallbackhome/.FallbackHomeCustomizer is one too.
+            ?.filter { "FallbackHome" !in it.cls }?.map { it.pkg }
             ?.firstOrNull {
                 it != Launcher.pkg && it !in stock && it != wraith && it.value != "com.android.provision" &&
                     "setupwraith" !in it.value.lowercase() && "settings" !in it.value.lowercase()
