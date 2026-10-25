@@ -15,6 +15,7 @@ import tv.cleanyour.core.spec.Picture
 import tv.cleanyour.core.spec.Theme
 import tv.cleanyour.testing.fixtures.FakeThemeSource
 import tv.cleanyour.testing.fixtures.Samples
+import tv.cleanyour.testing.fixtures.sha256Of
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -94,7 +95,7 @@ class LooksTest {
     }
 
     private val glass = Picture("glass", "Glass", BlobRef(Samples.zeroHash, 1000, "/blobs/glass.jpg"))
-    private val ownPicture = BlobRef(tv.cleanyour.testing.fixtures.sha256Of("cinema".encodeToByteArray()), 2000, "/blobs/cinema.jpg")
+    private val ownPicture = BlobRef(sha256Of("cinema".encodeToByteArray()), 2000, "/blobs/cinema.jpg")
     private val gallery = FakeThemeSource(listOf(
         Theme("quiet", "Quiet black", "Black", LauncherConfigDoc(wallpaper = false, wallpaperDim = 0, wallpaperRotationMinutes = 0, reducedMotion = true), null),
         Theme("cinema", "Cinema", "Curtains", LauncherConfigDoc(wallpaper = true, wallpaperDim = 0, wallpaperRotationMinutes = 0, cinematicHome = true), ownPicture),
@@ -207,5 +208,50 @@ class LooksTest {
         assertEquals(LookMotion.CRISP, on.motion)
         val after = LookPreview.of(bytes, null, names, lastDay.plusDays(1), 600)
         assertEquals(false, after.festive); assertEquals("", after.greeting)
+    }
+
+    // "Your photo": the photo the phone made is kept for this TV in its private files and chosen in the
+    // sheet; "Use this look" sends it as wallpaper.jpg with its dim (wallpaper forced on, no
+    // rotation). After the cache lost it, "Restore mine" still sends it, from the private copy.
+    @Test fun yourOwnPhotoIsKeptForTheTvAndSentWithItsDim() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val tv = h.knownTv().copy(launcher = LauncherState(1, Samples.zeroHash, Samples.zeroHash, Samples.zeroHash))
+        h.tvs.upsert(tv)
+        h.snapshots.save(Samples.snapshot(takenAtMs = Samples.NOW_MS + 1))
+        val deps = h.manageDeps(encoder = ConfigEncoder.Codec, themes = gallery)
+        HomePrefs(h.documents).save(tv.id, HomeChoice(dock, "cinema", cards = false))
+        val m = HomeScreenMachine(deps, backgroundScope, tv.id)
+        settle()
+        assertNull(m.state.value.ownPicture)
+        val jpeg = byteArrayOf(0xFF.toByte(), 0xD8.toByte()) + ByteArray(5_000) { (it % 251).toByte() }
+        m.dispatch(HomeScreenIntent.OpenLook); settle()
+        m.dispatch(HomeScreenIntent.SelectLook("quiet")); settle()
+        m.dispatch(HomeScreenIntent.SetOwnPicture(jpeg, 40)); settle()
+        assertEquals(LookPicture.MINE_ID, m.state.value.look?.picture)
+        assertEquals(40, m.state.value.look?.preview?.dim)
+        assertEquals(true, jpeg.contentEquals(h.documents.read(OwnPicture.path(tv.id)) { it }), "kept in the private files")
+        assertEquals(0, h.planner.requests.filterIsInstance<PlanRequest.ApplyTheme>().size, "nothing sent yet")
+        m.dispatch(HomeScreenIntent.UseLook); settle()
+        val sent = h.planner.requests.filterIsInstance<PlanRequest.ApplyTheme>().single()
+        assertEquals(true, sent.doc.wallpaper); assertEquals(40, sent.doc.wallpaperDim); assertEquals(0, sent.doc.wallpaperRotationMinutes)
+        assertEquals(sha256Of(jpeg), sent.wallpaper?.sha256)
+        val kept = assertNotNull(HomePrefs(h.documents).load(tv.id))
+        assertEquals(LookPicture.MINE_ID to 40, kept.picture to kept.dim)
+        // Another picture for a while, the cache cleared, then "Restore mine".
+        m.dispatch(HomeScreenIntent.OpenLook); settle()
+        m.dispatch(HomeScreenIntent.SelectPicture("glass")); settle()
+        m.dispatch(HomeScreenIntent.UseLook); settle()
+        assertNull(HomePrefs(h.documents).load(tv.id)?.dim, "a gallery picture keeps no dim")
+        h.blobs.delete(sha256Of(jpeg))
+        val later = HomeScreenMachine(deps, backgroundScope, tv.id)
+        settle()
+        assertEquals(sha256Of(jpeg), later.state.value.ownPicture?.sha256)
+        later.dispatch(HomeScreenIntent.OpenLook); settle()
+        later.dispatch(HomeScreenIntent.SelectPicture(LookPicture.MINE_ID)); settle()
+        later.dispatch(HomeScreenIntent.UseLook); settle()
+        assertEquals(sha256Of(jpeg), h.planner.requests.filterIsInstance<PlanRequest.ApplyTheme>().last().wallpaper?.sha256)
+        // A file that is not a JPEG within 280 KB is refused and the kept one stays.
+        later.dispatch(HomeScreenIntent.SetOwnPicture(ByteArray(300_000), 30)); settle()
+        assertEquals(true, jpeg.contentEquals(h.documents.read(OwnPicture.path(tv.id)) { it }))
     }
 }

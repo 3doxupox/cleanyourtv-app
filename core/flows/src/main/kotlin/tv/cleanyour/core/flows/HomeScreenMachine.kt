@@ -3,6 +3,7 @@ package tv.cleanyour.core.flows
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import tv.cleanyour.core.engine.RunStatus
+import tv.cleanyour.core.model.BlobRef
 import tv.cleanyour.core.model.Component
 import tv.cleanyour.core.model.EnabledState
 import tv.cleanyour.core.model.PackageName
@@ -44,7 +45,7 @@ data class NotOnTv(
 data class PictureOption(val id: String, val name: String, val path: String?)
 
 // 0.4.0: the Look sheet's choice while it is open. Nothing reaches the TV until UseLook.
-// `picture`: null for the look's own, LookPicture.NONE_ID or a gallery id. `ownPictureOnly`: a dated
+// `picture`: null for the look's own, LookPicture.NONE_ID, MINE_ID (the person's photo) or a gallery id. `ownPictureOnly`: a dated
 // look (a festival) keeps its own picture, so the sheet shows no Picture row for it. `preview`: the
 // TV's home screen with this choice (LookPreview), null when it cannot be made.
 data class LookDraft(val themeId: String, val picture: String?, val ownPictureOnly: Boolean = false, val preview: LookPreview? = null)
@@ -69,6 +70,8 @@ data class HomeScreenState(
     val endedLook: String? = null,                      // 0.4.0: the name of a dated look that has ended and is still on the TV
     val pictureId: String? = null,                      // 0.4.0: the saved picture choice (HomeChoice.picture)
     val pictures: List<PictureOption> = emptyList(),    // 0.4.0: the gallery of the Picture row
+    val ownPicture: BlobRef? = null,                    // 0.4.0: the person's photo kept for this TV (OwnPicture), as a file
+    val ownDim: Int = OwnPicture.DEFAULT_DIM,           // and its dim
     val look: LookDraft? = null,                        // 0.4.0: the Look sheet's choice, while it is open
 )
 
@@ -79,6 +82,9 @@ sealed interface HomeScreenIntent {
     data class SelectLook(val id: String) : HomeScreenIntent
     data class SelectPicture(val id: String?) : HomeScreenIntent
     data object UseLook : HomeScreenIntent               // the sheet's choice to the TV
+    // The photo the phone just made (OwnPicture: 16:9, 1920 x 1080, at most 280 KB) and its dim: kept
+    // for this TV and chosen in the sheet. Nothing reaches the TV until UseLook.
+    class SetOwnPicture(val jpeg: ByteArray, val dim: Int) : HomeScreenIntent
     data object CloseLook : HomeScreenIntent
     data object RestoreMine : HomeScreenIntent
     data object PreviewStock : HomeScreenIntent
@@ -102,6 +108,7 @@ class HomeScreenMachine(
     private data class Preview(val plan: Plan?)
     private data class Drift(val drift: Boolean)
     private data class UpdatePreview(val plan: Plan?)
+    private data class OwnPictureKept(val ref: BlobRef, val dim: Int)
     private var updated = false   // D4: this screen updated the launcher; the stored snapshot does not know yet
 
     init { scope.launch { load(); checkDrift() } }
@@ -112,6 +119,9 @@ class HomeScreenMachine(
         is HomeScreenIntent.SelectLook -> state.look?.let { l -> state.copy(look = draft(event.id, l.picture, state)) } ?: state
         is HomeScreenIntent.SelectPicture -> state.look?.let { l -> state.copy(look = if (l.ownPictureOnly) l else draft(l.themeId, event.id, state)) } ?: state
         HomeScreenIntent.CloseLook, HomeScreenIntent.UseLook -> state.copy(look = null)
+        is OwnPictureKept -> state.copy(ownPicture = event.ref, ownDim = event.dim).let { s ->
+            s.look?.takeUnless { it.ownPictureOnly }?.let { l -> s.copy(look = draft(l.themeId, LookPicture.MINE_ID, s)) } ?: s
+        }
         is UpdatePreview -> state.copy(updatePreview = event.plan)
         is BusyNow -> state.copy(busy = event.busy)
         is Preview -> state.copy(stockPreview = event.plan)
@@ -134,6 +144,11 @@ class HomeScreenMachine(
             is HomeScreenIntent.SetTheme -> if (Looks.offered(event.id, d.clock.today())) scope.launch { apply(savedDock() ?: after.dock.map { it.pkg }, event.id, event.picture) }
             HomeScreenIntent.UseLook -> before.look?.let { l -> if (Looks.offered(l.themeId, d.clock.today())) scope.launch { apply(savedDock() ?: after.dock.map { it.pkg }, l.themeId, l.picture) } }
             HomeScreenIntent.RestoreMine -> scope.launch { apply(savedDock() ?: after.dock.map { it.pkg }, after.themeId, after.pictureId) }
+            is HomeScreenIntent.SetOwnPicture -> scope.launch {
+                val dim = event.dim.coerceIn(0, 90)
+                attempt { OwnPicture.save(d, tvId, event.jpeg) }.onSuccess { send(OwnPictureKept(it, dim)) }
+                    .onFailure { effect(ManageEffect.Snackbar(SnackKind.FAILED, "", false)) }
+            }
             HomeScreenIntent.PreviewStock -> after.stock?.let { stock -> scope.launch { send(Preview(writer.preview(tvId, PlanRequest.UseStockHome(stock)))) } }
             HomeScreenIntent.UseStock -> after.stock?.let { stock -> scope.launch { useStock(stock) } }
             HomeScreenIntent.PreviewUpdate -> scope.launch { previewUpdate() }
@@ -166,7 +181,8 @@ class HomeScreenMachine(
             tvSideSettings = (packages[Launcher.pkg]?.versionCode ?: 0) >= FIRST_WITH_TV_SETTINGS,
             notOnTv = notOnTv(tv, snap), tclRemoteKeys = snap != null && TclGoogleTv.applies(snap.facts, snap),
             endedLook = choice?.endedLook(today)?.let { id -> theme(id)?.name ?: id },
-            pictureId = choice?.picture?.takeUnless { Looks.dated(lookId) }, pictures = pictureOptions())))
+            pictureId = choice?.picture?.takeUnless { Looks.dated(lookId) }, pictures = pictureOptions(),
+            ownPicture = attempt { OwnPicture.ref(d, tvId) }.getOrNull(), ownDim = choice?.dim ?: OwnPicture.DEFAULT_DIM)))
     }
 
     // 0.3.3 D2: null while the new home screen is on the TV: Setup recorded it (tv.launcher), or the
@@ -276,7 +292,8 @@ class HomeScreenMachine(
     // The preview from the bytes the push would send for this choice and the saved dock (cards as
     // they are do not change the picture, so they are left at the default).
     private fun preview(themeId: String, picture: String?, state: HomeScreenState): LookPreview? = runCatching {
-        val (doc, wallpaper) = Look.docOf(theme(themeId), state.dock.map { it.pkg }, cards = Cards.MANAGE_DEFAULT, LookPicture.of(picture, d.pictures))
+        val p = if (picture == LookPicture.MINE_ID) state.ownPicture?.let { LookPicture.Of(it, state.ownDim) } else LookPicture.of(picture, d.pictures)
+        val (doc, wallpaper) = Look.docOf(theme(themeId), state.dock.map { it.pkg }, cards = Cards.MANAGE_DEFAULT, p)
         val now = java.time.Instant.ofEpochMilli(d.clock.nowMs()).atZone(java.time.ZoneId.systemDefault())
         LookPreview.of(d.encoder.encode(doc), wallpaper, state.dock.map { it.name }, now.toLocalDate(), now.hour * 60 + now.minute)
     }.getOrNull()
@@ -295,13 +312,15 @@ class HomeScreenMachine(
     private suspend fun apply(dock: List<PackageName>, themeId: String?, picture: String?) {
         val cards = Cards.current(d, tvId, d.homePrefs.load(tvId))
         val pictureId = picture.takeUnless { Looks.dated(themeId) }
-        val look = attempt { Look.encode(d.encoder, d.blobs, theme(themeId), dock, cards, LookPicture.of(pictureId, d.pictures)) }.getOrNull()
+        val dim = state.value.ownDim
+        val look = attempt { Look.encode(d.encoder, d.blobs, theme(themeId), dock, cards, OwnPicture.lookPicture(d, tvId, pictureId, dim)) }.getOrNull()
             ?: return effect(ManageEffect.Snackbar(SnackKind.FAILED, "", false))
         val kept = look.doc.dockApps.orEmpty()
         val r = writer.write(tvId, PlanRequest.ApplyTheme(look.doc, look.config, look.wallpaper)) { send(BusyNow(it)) }
         send(BusyNow(null))
         if (r is WriteResult.Done) {
-            d.homePrefs.save(tvId, (d.homePrefs.load(tvId) ?: HomeChoice(emptyList(), null)).withTheme(themeId, kept, cards, pictureId))
+            d.homePrefs.save(tvId, (d.homePrefs.load(tvId) ?: HomeChoice(emptyList(), null)).withTheme(themeId, kept, cards, pictureId,
+                dim = if (pictureId == LookPicture.MINE_ID) dim else null))
             rememberPushedLook(d, tvId, look.digest)
             send(Drift(false))
             effect(ManageEffect.Snackbar(SnackKind.HOME_SAVED, "", false))

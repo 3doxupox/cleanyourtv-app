@@ -9,7 +9,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
+import android.net.Uri
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -36,6 +40,7 @@ import tv.cleanyour.ui.design.component.ThemePicker
 import tv.cleanyour.ui.design.component.TvLook
 import tv.cleanyour.ui.design.component.TvPreview
 import tv.cleanyour.ui.design.component.themeSwatch
+import tv.cleanyour.ui.design.theme.CytTheme
 
 // The launcher looks with their one-line descriptions; the preview tile colours come from
 // :ui:design (themeSwatch), shared with the wizard's picker.
@@ -53,8 +58,10 @@ private val themeDescriptions = mapOf(
     "mist" to R.string.theme_mist_desc,
 )
 
-// The Picture row's key for the look's own picture (HomeChoice.picture null).
+// The Picture row's keys for the look's own picture (HomeChoice.picture null) and for "Choose a
+// photo" (opens the picker, never a choice itself).
 private const val OWN = "own"
+private const val PICK = "pick"
 
 // 0.4.0 Look sheet: a preview of the TV's home screen with the choice (TvPreview, from the bytes
 // the push would send), then the look (layout, motion, colour and its own picture) and the picture
@@ -62,7 +69,8 @@ private const val OWN = "own"
 // choice); nothing reaches the TV until "Use this look", a guarded primary (R4-W8). `pictures`:
 // the pictures by file, given by the screenshot tests (the app reads the files).
 @Composable
-internal fun ColumnScope.LookContent(state: HomeScreenState, onIntent: (HomeScreenIntent) -> Unit, pictures: Map<String, ImageBitmap>? = null) {
+internal fun ColumnScope.LookContent(state: HomeScreenState, onIntent: (HomeScreenIntent) -> Unit, pictures: Map<String, ImageBitmap>? = null,
+    photos: PhotoPicker? = null) {
     val draft = state.look ?: return
     SheetHeader(stringResource(R.string.theme_title))
     val name = state.themes.firstOrNull { it.id == draft.themeId }?.name ?: stringResource(R.string.theme_default)
@@ -76,19 +84,31 @@ internal fun ColumnScope.LookContent(state: HomeScreenState, onIntent: (HomeScre
     if (draft.ownPictureOnly) {
         Body(stringResource(R.string.look_picture_own_only), Modifier.padding(start = 4.dp, end = 4.dp))
     } else {
-        PicturePicker(pictureChoices(state, draft, pictures), draft.picture ?: OWN, { onIntent(HomeScreenIntent.SelectPicture(it.key.takeUnless { k -> k == OWN })) })
+        // "Choose a photo" opens the system picker, then the crop and dim (PhotoCropDialog); the
+        // photo kept for this TV is "Restore mine" (LookPicture.MINE_ID) from then on.
+        var picked by remember { mutableStateOf<Uri?>(null) }
+        PicturePicker(pictureChoices(state, draft, pictures, choose = photos != null), draft.picture ?: OWN, { c ->
+            if (c.key == PICK) photos?.pick { picked = it } else onIntent(HomeScreenIntent.SelectPicture(c.key.takeUnless { k -> k == OWN }))
+        })
+        picked?.let { uri ->
+            PhotoCropDialog(uri, draft.preview?.toTvLook(null), state.ownDim, onDone = { jpeg, dim ->
+                onIntent(HomeScreenIntent.SetOwnPicture(jpeg, dim)); picked = null
+            }, onCancel = { picked = null })
+        }
     }
     Body(stringResource(R.string.look_clears_tv_choices), Modifier.padding(top = 16.dp, start = 4.dp, end = 4.dp))
     PrimaryButton(stringResource(R.string.look_use), { onIntent(HomeScreenIntent.UseLook) }, Modifier.padding(top = 20.dp))
 }
 
 @Composable
-private fun pictureChoices(state: HomeScreenState, draft: LookDraft, given: Map<String, ImageBitmap>?): List<PictureChoice> {
+private fun pictureChoices(state: HomeScreenState, draft: LookDraft, given: Map<String, ImageBitmap>?, choose: Boolean): List<PictureChoice> {
     val look = state.themes.firstOrNull { it.id == draft.themeId }
     val color = themeSwatch(draft.themeId).first()
     val own = PictureChoice(OWN, stringResource(R.string.look_picture_own), picture(look?.wallpaperPath, given), color)
     val gallery = state.pictures.map { PictureChoice(it.id, it.name, picture(it.path, given), color) }
-    return listOf(own) + gallery + PictureChoice(LookPicture.NONE_ID, stringResource(R.string.look_picture_none), null, color)
+    val mine = state.ownPicture?.let { PictureChoice(LookPicture.MINE_ID, stringResource(R.string.look_picture_restore_mine), picture(it.path, given), color) }
+    val pick = PictureChoice(PICK, stringResource(R.string.look_picture_choose), null, CytTheme.colors.surface3).takeIf { choose }
+    return listOf(own) + gallery + listOfNotNull(mine, pick) + PictureChoice(LookPicture.NONE_ID, stringResource(R.string.look_picture_none), null, color)
 }
 
 // A picture file as a small bitmap for a thumbnail, read off the main thread; null while it loads
@@ -115,10 +135,10 @@ internal fun LookPreviewCard(p: LookPreview, name: String, pictures: Map<String,
     }
 }
 
-// The launcher's numbers for the preview: focus scale 1.12 with advanced effects, 1.10 otherwise,
+// The launcher's numbers for the preview (and for the outlines over the photo frame): focus scale 1.12 with advanced effects, 1.10 otherwise,
 // none with animations off; the accent focus only in a festival.
 @Composable
-private fun LookPreview.toTvLook(picture: ImageBitmap?): TvLook {
+internal fun LookPreview.toTvLook(picture: ImageBitmap?): TvLook {
     val (top, bottom) = skyColors(minuteOfDay)
     return TvLook(
         background = Color(backgroundArgb), picture = picture, dim = dim, sky = sky, skyTop = top, skyBottom = bottom,

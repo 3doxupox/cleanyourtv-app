@@ -60,7 +60,7 @@ import tv.cleanyour.ui.design.theme.Glow
 // and the drift banner with "Restore mine" (D15). Each sheet keeps its body in an internal *Content
 // composable, so the screenshot tests can draw it on SheetSurface.
 @Composable
-fun HomeScreen(state: HomeScreenState, onIntent: (HomeScreenIntent) -> Unit, onBack: () -> Unit, modifier: Modifier = Modifier) {
+fun HomeScreen(state: HomeScreenState, onIntent: (HomeScreenIntent) -> Unit, onBack: () -> Unit, modifier: Modifier = Modifier, photos: PhotoPicker? = null) {
     val notOnTv = state.notOnTv
     if (notOnTv != null) { NotOnTvScreen(state.tvName, notOnTv, onIntent, onBack, modifier); return }
     var dockOpen by rememberSaveable { mutableStateOf(false) }
@@ -117,7 +117,7 @@ fun HomeScreen(state: HomeScreenState, onIntent: (HomeScreenIntent) -> Unit, onB
     }
     if (dockOpen) DockSheet(state.dock, state.apps, state.columns, onDone = { onIntent(HomeScreenIntent.SetDock(it)); dockOpen = false }, onDismiss = { dockOpen = false })
     if (state.look != null) CytBottomSheet({ onIntent(HomeScreenIntent.CloseLook) }) {
-        Column(Modifier.verticalScroll(rememberScrollState())) { LookContent(state, onIntent) }
+        Column(Modifier.verticalScroll(rememberScrollState())) { LookContent(state, onIntent, photos = photos) }
     }
     state.stockPreview?.let { plan ->
         CytBottomSheet({ onIntent(HomeScreenIntent.CancelPreview) }) { StockPreviewContent(plan, onIntent) }

@@ -49,7 +49,8 @@ import tv.cleanyour.ui.design.theme.Outfit
 // (white glass, or the festival's accent), and the rows under the dock. Launcher 2.5 numbers: a
 // 960 x 540 dp screen, tiles min(180 dp, fit) wide in 16:9, 16 dp corners, the band #141416 with a
 // 12% white edge and 26 dp corners, the cinematic band #121014 at 55%. It is a picture, not the
-// TV: always left to right like the TV, text at a fixed size, one description for TalkBack.
+// TV: always left to right like the TV, text at a fixed size, one description for TalkBack (none
+// when it is drawn over something that has its own, like the photo frame).
 @Immutable
 data class TvLook(
     val background: Color,
@@ -87,7 +88,7 @@ fun TvPreview(look: TvLook, contentDescription: String, modifier: Modifier = Mod
     BoxWithConstraints(
         modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(shape).background(look.background)
             .border(1.dp, Color.White.copy(alpha = 0.18f), shape)
-            .clearAndSetSemantics { this.contentDescription = contentDescription; role = Role.Image },
+            .clearAndSetSemantics { if (contentDescription.isNotEmpty()) { this.contentDescription = contentDescription; role = Role.Image } },
     ) {
         val s = maxWidth.value / TV_W
         fun u(v: Float): Dp = (v * s).dp

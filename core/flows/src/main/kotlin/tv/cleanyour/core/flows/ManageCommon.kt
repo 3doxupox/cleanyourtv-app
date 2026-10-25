@@ -121,9 +121,10 @@ class ManageDeps(
 // phone has not kept one for the TV yet (Cards.of decides then).
 // `previousThemeId` (0.4.0, "previous=id"): the look before a dated one (a festival), so the person
 // has it again once the dated look ends (lookOn). `picture` (0.4.0, "picture=id"): the picture the
-// look shows instead of its own (LookPicture), null for the look's own.
+// look shows instead of its own (LookPicture), null for the look's own. `dim` (0.4.0, "dim=n"): the
+// dim the person chose for their own photo (LookPicture.MINE_ID), 0 to 90.
 data class HomeChoice(val dock: List<PackageName>, val themeId: String?, val cards: Boolean? = null, val previousThemeId: String? = null,
-    val picture: String? = null) {
+    val picture: String? = null, val dim: Int? = null) {
     // The look that is this TV's on `today`: the saved one, or once a dated look has ended, the one
     // before it (null, the Default look, when that one has ended too or there was none).
     fun lookOn(today: LocalDate): String? = when {
@@ -138,8 +139,9 @@ data class HomeChoice(val dock: List<PackageName>, val themeId: String?, val car
 
     // The choice after the person picks `next`: a dated look keeps the look before it, any other
     // look forgets it.
-    fun withTheme(next: String?, dock: List<PackageName> = this.dock, cards: Boolean? = this.cards, picture: String? = this.picture): HomeChoice =
-        HomeChoice(dock, next, cards, previousThemeId = previousFor(themeId, previousThemeId, next), picture = picture)
+    fun withTheme(next: String?, dock: List<PackageName> = this.dock, cards: Boolean? = this.cards, picture: String? = this.picture,
+        dim: Int? = this.dim): HomeChoice =
+        HomeChoice(dock, next, cards, previousThemeId = previousFor(themeId, previousThemeId, next), picture = picture, dim = dim)
 
     companion object {
         fun previousFor(current: String?, earlier: String?, next: String?): String? = when {
@@ -161,13 +163,13 @@ class HomePrefs(private val store: DocumentStore) {
         val map = bytes.decodeToString().lines().filter { '=' in it }.associate { it.substringBefore('=') to it.substringAfter('=') }
         HomeChoice(map["dock"].orEmpty().split(',').filter { it.isNotBlank() }.mapNotNull { runCatching { PackageName(it) }.getOrNull() },
             map["theme"]?.takeIf { it.isNotBlank() }, map["cards"]?.toBooleanStrictOrNull(), map["previous"]?.takeIf { it.isNotBlank() },
-            map["picture"]?.takeIf { it.isNotBlank() })
+            map["picture"]?.takeIf { it.isNotBlank() }, map["dim"]?.toIntOrNull()?.takeIf { it in 0..90 })
     }
 
     suspend fun save(id: TvId, choice: HomeChoice) {
         val text = "dock=${choice.dock.joinToString(",") { it.value }}\ntheme=${choice.themeId.orEmpty()}\n" +
             (choice.cards?.let { "cards=$it\n" } ?: "") + (choice.previousThemeId?.let { "previous=$it\n" } ?: "") +
-            (choice.picture?.let { "picture=$it\n" } ?: "")
+            (choice.picture?.let { "picture=$it\n" } ?: "") + (choice.dim?.let { "dim=$it\n" } ?: "")
         store.write(path(id), text.encodeToByteArray())
     }
 }

@@ -185,7 +185,7 @@ class ModulesMachine(
         if (Cards.current(d, tvId, choice, overlay)) return null
         // 0.4.0: once a dated look has ended, the look before it (HomeChoice.lookOn).
         val theme = choice?.lookOn(d.clock.today())?.let { id -> d.themes.bundled().firstOrNull { it.id == id } }
-        val look = Look.encode(d.encoder, d.blobs, theme, choice?.dock.orEmpty(), cards = true, LookPicture.of(choice?.picture, d.pictures))
+        val look = Look.encode(d.encoder, d.blobs, theme, choice?.dock.orEmpty(), cards = true, OwnPicture.lookPicture(d, tvId, choice?.picture, choice?.dim))
         return look to (choice ?: HomeChoice(emptyList(), null)).withTheme(theme?.id, look.doc.dockApps.orEmpty(), cards = true)
     }
 

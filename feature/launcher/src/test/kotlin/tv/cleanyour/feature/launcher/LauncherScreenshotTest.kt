@@ -3,6 +3,7 @@ package tv.cleanyour.feature.launcher
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -149,7 +150,7 @@ object LauncherShots {
         Shot("home_not_on_tv_home_changed") { HomeScreen(notOnTv(NotOnTv(HomeBlock.HOME_CHANGED, "TCL", setupAgain = true), "TCL G07"), {}, {}) },
 
         // Look (theme picker), the dock sheet (S3b on Manage) and the stock home screen preview
-        Shot("home_look_sheet", 1700.dp) { SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(lookSheet(LookDraft("aurora", null, preview = preview("aurora"))), {}, pictureFiles) } },
+        Shot("home_look_sheet", 1700.dp) { SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(lookSheet(LookDraft("aurora", null, preview = preview("aurora"))), {}, pictureFiles, PhotoPicker {}) } },
         Shot("home_look_sheet_picture", 1700.dp) {
             SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(lookSheet(LookDraft("quiet", "glass", preview = preview("quiet", "glass"))), {}, pictureFiles) }
         },
@@ -164,6 +165,12 @@ object LauncherShots {
         Shot("look_preview_horizon_sunrise", 300.dp) { PreviewShot(preview("horizon", minute = 6 * 60 + 30), "Horizon") },
         Shot("look_preview_quiet", 300.dp) { PreviewShot(preview("quiet"), "Quiet black") },
         Shot("look_preview_diwali", 300.dp) { PreviewShot(preview("diwali"), "Diwali") },
+        // "Your photo": the crop frame with the look's clock, buttons and dock over it, and the dim.
+        Shot("home_photo_crop", 900.dp) {
+            Column(Modifier.fillMaxSize().background(CytTheme.colors.bg).padding(20.dp)) {
+                PhotoCropContent(pictureFiles.getValue(resourcePath(bundledLooks.getValue("mist").wallpaper)!!), preview("console").toTvLook(null), 30, null, { _, _, _, _ -> }, {})
+            }
+        },
         Shot("look_preview_library", 300.dp) { PreviewShot(preview("library"), "Library") },
         Shot("look_preview_arcade", 300.dp) { PreviewShot(preview("arcade"), "Arcade") },
         Shot("look_preview_mist", 300.dp) { PreviewShot(preview("mist"), "Mist") },

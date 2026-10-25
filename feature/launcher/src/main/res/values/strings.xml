@@ -103,6 +103,15 @@
     <string name="look_fact_motion_bouncy">Bouncy motion</string>
     <string name="look_fact_sky">Sky follows the clock</string>
     <string name="look_fact_grid">All apps on one page</string>
+    <string name="look_picture_choose">Choose a photo</string>
+    <string name="look_picture_restore_mine">Restore mine</string>
+    <string name="photo_title">Your photo</string>
+    <string name="photo_body">Pinch and drag to choose what the TV shows. Keep faces clear of the clock and the dock drawn over it.</string>
+    <string name="photo_frame_cd">Your photo as the TV will show it, with the clock, the buttons and the dock drawn over it.</string>
+    <string name="photo_dim">Dim: {dim}%</string>
+    <string name="photo_use">Use this photo</string>
+    <string name="photo_unreadable">This photo can\'t be read. Try another one.</string>
+    <string name="photo_too_big">This photo couldn\'t be made small enough for the TV. Try another one.</string>
     <string name="look_picture_title">Picture</string>
     <string name="look_picture_own">The look\'s own</string>
     <string name="look_picture_none">No picture</string>
