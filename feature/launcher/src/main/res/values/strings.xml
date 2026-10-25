@@ -88,7 +88,7 @@
     <string name="theme_six_columns_desc">Six apps across, so more fit on the screen.</string>
     <string name="theme_cinema_desc">Velvet curtains around a dark stage, and the focused app\'s name in large type.</string>
     <string name="theme_console_desc">Seven small tiles, a big app name and deep cobalt light.</string>
-    <string name="theme_horizon_desc">Mountain ridges under a sky that changes with the time of day.</string>
+    <string name="theme_horizon_desc">Mountain ridges under a sky that changes with the hour: blue by day, warm at sunrise and sunset, dark at night.</string>
     <string name="theme_quiet_desc">Pure black, no picture and calm motion. Good for OLED and slower TVs.</string>
     <string name="theme_diwali_desc">Lamps, a gold rangoli and festive icons, until 10 November.</string>
     <string name="home_look_ended_banner">{look} has ended. Put your earlier look back on the TV?</string>

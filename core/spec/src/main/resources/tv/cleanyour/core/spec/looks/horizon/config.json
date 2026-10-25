@@ -1,5 +1,6 @@
 {
   "background_color": "#000000",
+  "ambient_glow": false,
   "wallpaper": true,
   "wallpaper_dim": 0,
   "wallpaper_rotation_minutes": 0,

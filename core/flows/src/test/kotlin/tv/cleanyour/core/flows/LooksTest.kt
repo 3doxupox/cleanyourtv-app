@@ -22,6 +22,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
 // 0.4.0 looks: a dated look (Diwali, until 2026-11-10) keeps the look the person had before it, is
@@ -211,6 +212,31 @@ class LooksTest {
         assertEquals(LookMotion.CRISP, on.motion)
         val after = LookPreview.of(bytes, null, names, lastDay.plusDays(1), 600)
         assertEquals(false, after.festive); assertEquals("", after.greeting)
+    }
+
+    // 0.4.0 pre-release fixes, as the bytes reach the TV. Quiet black and Horizon turn the launcher's
+    // glow in the focused app's colour off (ambient_glow, a launcher 2.7 key carried as is), so Quiet
+    // is truly black and Horizon's sky is the clock's, not Netflix red. Cinema also turns its shelf's
+    // scrim and art down so its curtains show, and keeps rows_below_dock 0 with a long dock so the
+    // big name stays clear of the clock, with every app still in dock_apps. The other looks leave
+    // the glow as the launcher has it.
+    @Test fun theFixedLooksSendWhatTheTvNeeds() {
+        val looks = BundledThemeSource().bundled().associateBy { it.id }
+        val eight = (1..8).map { PackageName("com.example.app$it") }
+        fun sent(id: String, apps: List<PackageName> = dock) =
+            LauncherConfigCodec.encode(Look.docOf(looks.getValue(id), apps, cards = false, null).first).decodeToString()
+        for (id in listOf("quiet", "horizon", "cinema")) assertTrue("\"ambient_glow\": false" in sent(id), id)
+        for (id in listOf("default", "aurora", "six-columns", "console", "diwali", "library", "arcade", "mist")) {
+            assertTrue("ambient_glow" !in sent(id), id)
+        }
+        val cinema = sent("cinema", eight)
+        assertTrue("\"cinematic_scrim\": 45" in cinema && "\"cinematic_art\": 20" in cinema, cinema)
+        val back = assertIs<DecodeResult.Ok>(LauncherConfigCodec.decode(cinema.encodeToByteArray()))
+        assertEquals(emptyList(), back.warnings)
+        assertEquals(0, back.doc.rowsBelowDock)
+        assertEquals(eight, back.doc.dockApps, "no app is lost")
+        assertEquals(1, assertIs<DecodeResult.Ok>(LauncherConfigCodec.decode(sent("mist", eight).encodeToByteArray())).doc.rowsBelowDock,
+            "a look without the cinematic shelf still shows the row")
     }
 
     // "Your photo": the photo the phone made is staged and chosen in the sheet; "Use this look" sends

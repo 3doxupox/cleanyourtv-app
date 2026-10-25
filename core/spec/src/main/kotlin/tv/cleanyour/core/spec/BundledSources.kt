@@ -133,7 +133,7 @@ class BundledThemeSource : ThemeSource, PictureSource {
             Entry("six-columns", "Six columns", "Six smaller tiles a row, and a row under the dock once it holds more than six apps.", THEMES),
             Entry("cinema", "Cinema", "Velvet curtains around a dark stage, and the focused app's name in large type.", LOOKS),
             Entry("console", "Console", "Seven small tiles, a big name and deep cobalt light.", LOOKS),
-            Entry("horizon", "Horizon", "Mountain ridges under a sky that follows the time of day.", LOOKS),
+            Entry("horizon", "Horizon", "Mountain ridges under a sky that changes with the hour: blue by day, warm at sunrise and sunset, dark at night.", LOOKS),
             Entry("quiet", "Quiet black", "Pure black and nothing else, calm motion. Good for OLED and slow TVs.", LOOKS),
             Entry("diwali", "Diwali", "Lamps, a gold rangoli and festive icons, until 10 November.", LOOKS),
             Entry("library", "Library", "Every app on one calm page, no dock band, warm lamp light.", LOOKS),
