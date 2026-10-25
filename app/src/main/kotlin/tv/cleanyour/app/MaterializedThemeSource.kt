@@ -4,6 +4,8 @@ import java.io.ByteArrayInputStream
 import kotlinx.coroutines.runBlocking
 import tv.cleanyour.core.model.BlobRef
 import tv.cleanyour.core.spec.BundledThemeSource
+import tv.cleanyour.core.spec.Picture
+import tv.cleanyour.core.spec.PictureSource
 import tv.cleanyour.core.spec.Theme
 import tv.cleanyour.core.spec.ThemeSource
 import tv.cleanyour.core.store.BlobStore
@@ -16,23 +18,30 @@ import tv.cleanyour.core.store.BlobStore
 //
 // prepare() runs at start in the background; bundled() is synchronous (ThemeSource is), so a call
 // that comes before prepare finished makes the copy itself. A wallpaper that cannot be stored drops
-// its theme from the list: a theme is never offered with a ref the session cannot open.
+// its theme from the list: a theme is never offered with a ref the session cannot open. The
+// pictures (0.4.0, PictureSource) are handled the same way.
 class MaterializedThemeSource(
     private val source: ThemeSource,
     private val blobs: BlobStore,
     private val bytesOf: (BlobRef) -> ByteArray? = BundledThemeSource::bytes,
     private val onError: (String, Throwable?) -> Unit = { _, _ -> },
-) : ThemeSource {
+    private val gallery: PictureSource = source as? PictureSource ?: PictureSource.NONE,
+) : ThemeSource, PictureSource {
 
     override fun bundled(): List<Theme> = source.bundled().mapNotNull { theme ->
         val w = theme.wallpaper ?: return@mapNotNull theme
         materialize(theme.id, w)?.let { theme.copy(wallpaper = it) }
     }
 
+    override fun pictures(): List<Picture> = gallery.pictures().mapNotNull { p ->
+        materialize("picture ${p.id}", p.wallpaper)?.let { p.copy(wallpaper = it) }
+    }
+
     suspend fun prepare() {
-        for (theme in source.bundled()) {
-            val w = theme.wallpaper ?: continue
-            if (isBundled(w) && blobs.get(w.sha256) == null) put(theme.id, w)
+        val refs = source.bundled().mapNotNull { t -> t.wallpaper?.let { t.id to it } } +
+            gallery.pictures().map { "picture ${it.id}" to it.wallpaper }
+        for ((id, w) in refs) {
+            if (isBundled(w) && blobs.get(w.sha256) == null) put(id, w)
         }
     }
 

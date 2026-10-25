@@ -53,9 +53,6 @@ import tv.cleanyour.ui.design.component.ScreenScaffold
 import tv.cleanyour.ui.design.component.ScreenTitle
 import tv.cleanyour.ui.design.component.SheetHeader
 import tv.cleanyour.ui.design.component.TertiaryButton
-import tv.cleanyour.ui.design.component.ThemeOption
-import tv.cleanyour.ui.design.component.ThemePicker
-import tv.cleanyour.ui.design.component.themeSwatch
 import tv.cleanyour.ui.design.icon.CytIcons
 import tv.cleanyour.ui.design.theme.Glow
 
@@ -67,7 +64,6 @@ fun HomeScreen(state: HomeScreenState, onIntent: (HomeScreenIntent) -> Unit, onB
     val notOnTv = state.notOnTv
     if (notOnTv != null) { NotOnTvScreen(state.tvName, notOnTv, onIntent, onBack, modifier); return }
     var dockOpen by rememberSaveable { mutableStateOf(false) }
-    var lookOpen by rememberSaveable { mutableStateOf(false) }
     val busy = state.busy
     ScreenScaffold(Glow.Tv, modifier, topBar = { CytTopBar(onBack = onBack) }) {
         ScreenTitle(stringResource(R.string.home_title), Modifier.padding(top = 20.dp))
@@ -96,7 +92,7 @@ fun HomeScreen(state: HomeScreenState, onIntent: (HomeScreenIntent) -> Unit, onB
                 onClick = if (busy == null) ({ dockOpen = true }) else null)
             ListDivider()
             val theme = state.themes.firstOrNull { it.id == state.themeId }?.name ?: stringResource(R.string.theme_default)
-            ListRow(stringResource(R.string.home_row_look), subtitle = theme, onClick = if (busy == null) ({ lookOpen = true }) else null)
+            ListRow(stringResource(R.string.home_row_look), subtitle = theme, onClick = if (busy == null) ({ onIntent(HomeScreenIntent.OpenLook) }) else null)
         }
         // Launcher 2.4: Launcher settings on the TV can override what the phone sent; the phone
         // cannot read them, so the rows above show what config.json says. Launcher 2.5 also edits the
@@ -120,8 +116,8 @@ fun HomeScreen(state: HomeScreenState, onIntent: (HomeScreenIntent) -> Unit, onB
         }
     }
     if (dockOpen) DockSheet(state.dock, state.apps, state.columns, onDone = { onIntent(HomeScreenIntent.SetDock(it)); dockOpen = false }, onDismiss = { dockOpen = false })
-    if (lookOpen) CytBottomSheet({ lookOpen = false }) {
-        LookContent(state) { onIntent(HomeScreenIntent.SetTheme(it)); lookOpen = false }
+    if (state.look != null) CytBottomSheet({ onIntent(HomeScreenIntent.CloseLook) }) {
+        Column(Modifier.verticalScroll(rememberScrollState())) { LookContent(state, onIntent) }
     }
     state.stockPreview?.let { plan ->
         CytBottomSheet({ onIntent(HomeScreenIntent.CancelPreview) }) { StockPreviewContent(plan, onIntent) }
@@ -174,29 +170,6 @@ private fun NotOnTvScreen(tvName: String, n: NotOnTv, onIntent: (HomeScreenInten
         }
         next?.let { Body(stringResource(it), Modifier.padding(top = 16.dp, start = 4.dp, end = 4.dp)) }
     }
-}
-
-// The three launcher themes with their one-line descriptions; the preview tile colours come from
-// :ui:design (themeSwatch), shared with the wizard's picker.
-private val themeDescriptions = mapOf(
-    "default" to R.string.theme_default_desc,
-    "aurora" to R.string.theme_aurora_desc,
-    "six-columns" to R.string.theme_six_columns_desc,
-    "cinema" to R.string.theme_cinema_desc,
-    "console" to R.string.theme_console_desc,
-    "horizon" to R.string.theme_horizon_desc,
-    "quiet" to R.string.theme_quiet_desc,
-    "diwali" to R.string.theme_diwali_desc,
-)
-
-// A tap here applies the look to the TV, so the rows are guarded like a primary (R4-W8).
-@Composable
-internal fun ColumnScope.LookContent(state: HomeScreenState, onSelect: (String) -> Unit) {
-    SheetHeader(stringResource(R.string.theme_title))
-    val options = state.themes.map { t ->
-        ThemeOption(t.id, t.name, themeDescriptions[t.id]?.let { stringResource(it) } ?: t.description, themeSwatch(t.id))
-    }
-    ThemePicker(options, state.themeId ?: "default", { onSelect(it.id) }, Modifier.padding(top = 16.dp), guardObscured = true)
 }
 
 @Composable

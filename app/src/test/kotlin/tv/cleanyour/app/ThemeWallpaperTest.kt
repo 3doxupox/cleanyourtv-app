@@ -52,14 +52,19 @@ class ThemeWallpaperTest {
         val blobs = store()
         val source = MaterializedThemeSource(BundledThemeSource(), blobs)
         val wallpapers = BundledThemeSource().bundled().mapNotNull { it.wallpaper }
+        // 0.4.0: the Picture row's pictures too; Aurora's is the Aurora look's file, stored once.
+        val files = (wallpapers + BundledThemeSource().pictures().map { it.wallpaper }).map { it.sha256 }.distinct()
         source.prepare()
-        assertEquals(wallpapers.size, blobs.puts.get())
-        source.bundled(); source.bundled()
-        assertEquals(wallpapers.size, blobs.puts.get(), "no second copy")
+        assertEquals(files.size, blobs.puts.get())
+        source.bundled(); source.bundled(); source.pictures()
+        assertEquals(files.size, blobs.puts.get(), "no second copy")
         blobs.delete(wallpapers.first().sha256)   // the system cleared the cache
         val again = source.bundled().firstNotNullOf { it.wallpaper?.takeIf { w -> w.sha256 == wallpapers.first().sha256 } }
         assertTrue(File(again.path).isFile)
-        assertEquals(wallpapers.size + 1, blobs.puts.get())
+        assertEquals(files.size + 1, blobs.puts.get())
+        val pictures = source.pictures()
+        assertEquals(listOf("aurora", "glass", "ruska"), pictures.map { it.id })
+        assertTrue(pictures.all { File(it.wallpaper.path).isFile && it.wallpaper.size in 1..300_000 })
     }
 
     @Test fun aWallpaperThatCannotBeStoredDropsItsTheme() {

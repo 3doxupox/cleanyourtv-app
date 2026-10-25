@@ -39,6 +39,15 @@ data class NotOnTv(
     val helpAddTv: Boolean = false,
 )
 
+// 0.4.0: a picture of the Picture row: a gallery picture by id, with its file for the thumbnail
+// (null when it has none on this phone).
+data class PictureOption(val id: String, val name: String, val path: String?)
+
+// 0.4.0: the Look sheet's choice while it is open. Nothing reaches the TV until UseLook.
+// `picture`: null for the look's own, LookPicture.NONE_ID or a gallery id. `ownPictureOnly`: a dated
+// look (a festival) keeps its own picture, so the sheet shows no Picture row for it.
+data class LookDraft(val themeId: String, val picture: String?, val ownPictureOnly: Boolean = false)
+
 data class HomeScreenState(
     val tvName: String = "",
     val dock: List<AppChoice> = emptyList(),           // the dock, then Row 2 and Row 3 (DockLayers)
@@ -57,11 +66,19 @@ data class HomeScreenState(
     val notOnTv: NotOnTv? = null,                       // 0.3.3 D2: the new home screen is not on this TV; no dock or look rows
     val tclRemoteKeys: Boolean = false,                 // issue #275: a TCL Google TV, whose remote's gear, Netflix and YouTube buttons need its own home screen
     val endedLook: String? = null,                      // 0.4.0: the name of a dated look that has ended and is still on the TV
+    val pictureId: String? = null,                      // 0.4.0: the saved picture choice (HomeChoice.picture)
+    val pictures: List<PictureOption> = emptyList(),    // 0.4.0: the gallery of the Picture row
+    val look: LookDraft? = null,                        // 0.4.0: the Look sheet's choice, while it is open
 )
 
 sealed interface HomeScreenIntent {
     data class SetDock(val dock: List<PackageName>) : HomeScreenIntent
-    data class SetTheme(val id: String) : HomeScreenIntent
+    data class SetTheme(val id: String, val picture: String? = null) : HomeScreenIntent
+    data object OpenLook : HomeScreenIntent              // 0.4.0: the Look sheet, starting from the TV's look
+    data class SelectLook(val id: String) : HomeScreenIntent
+    data class SelectPicture(val id: String?) : HomeScreenIntent
+    data object UseLook : HomeScreenIntent               // the sheet's choice to the TV
+    data object CloseLook : HomeScreenIntent
     data object RestoreMine : HomeScreenIntent
     data object PreviewStock : HomeScreenIntent
     data object UseStock : HomeScreenIntent
@@ -89,7 +106,11 @@ class HomeScreenMachine(
     init { scope.launch { load(); checkDrift() } }
 
     override fun reduce(state: HomeScreenState, event: Any): HomeScreenState = when (event) {
-        is Loaded -> event.s.copy(busy = state.busy, stockPreview = state.stockPreview, drift = state.drift, updatePreview = state.updatePreview)
+        is Loaded -> event.s.copy(busy = state.busy, stockPreview = state.stockPreview, drift = state.drift, updatePreview = state.updatePreview, look = state.look)
+        HomeScreenIntent.OpenLook -> if (state.busy != null || state.notOnTv != null) state else state.copy(look = draft(state.themeId ?: DEFAULT_LOOK, state.pictureId))
+        is HomeScreenIntent.SelectLook -> state.look?.let { l -> state.copy(look = draft(event.id, l.picture)) } ?: state
+        is HomeScreenIntent.SelectPicture -> state.look?.let { l -> state.copy(look = if (l.ownPictureOnly) l else l.copy(picture = event.id)) } ?: state
+        HomeScreenIntent.CloseLook, HomeScreenIntent.UseLook -> state.copy(look = null)
         is UpdatePreview -> state.copy(updatePreview = event.plan)
         is BusyNow -> state.copy(busy = event.busy)
         is Preview -> state.copy(stockPreview = event.plan)
@@ -101,15 +122,17 @@ class HomeScreenMachine(
     override fun handle(event: Any, before: HomeScreenState, after: HomeScreenState) {
         if (before.busy != null && event is HomeScreenIntent) return
         // 0.3.3 D2: nothing to send the dock or the look to.
-        if (after.notOnTv != null && (event is HomeScreenIntent.SetDock || event is HomeScreenIntent.SetTheme || event == HomeScreenIntent.RestoreMine)) return
+        if (after.notOnTv != null && (event is HomeScreenIntent.SetDock || event is HomeScreenIntent.SetTheme || event == HomeScreenIntent.RestoreMine ||
+            event == HomeScreenIntent.UseLook)) return
         when (event) {
-            is HomeScreenIntent.SetDock -> scope.launch { apply(event.dock, after.themeId) }
+            is HomeScreenIntent.SetDock -> scope.launch { apply(event.dock, after.themeId, after.pictureId) }
             // RF-LAUNCHER-250 F4: a new look and "Restore mine" push the dock as it was saved, as
             // ModulesMachine does, not the list as the TV shows it now (an app since gone or switched
             // off would drop out and change dock_apps, and the TV's own dock edit would stop applying,
             // upstream #340). Only SetDock changes the list.
-            is HomeScreenIntent.SetTheme -> if (Looks.offered(event.id, d.clock.today())) scope.launch { apply(savedDock() ?: after.dock.map { it.pkg }, event.id) }
-            HomeScreenIntent.RestoreMine -> scope.launch { apply(savedDock() ?: after.dock.map { it.pkg }, after.themeId) }
+            is HomeScreenIntent.SetTheme -> if (Looks.offered(event.id, d.clock.today())) scope.launch { apply(savedDock() ?: after.dock.map { it.pkg }, event.id, event.picture) }
+            HomeScreenIntent.UseLook -> before.look?.let { l -> if (Looks.offered(l.themeId, d.clock.today())) scope.launch { apply(savedDock() ?: after.dock.map { it.pkg }, l.themeId, l.picture) } }
+            HomeScreenIntent.RestoreMine -> scope.launch { apply(savedDock() ?: after.dock.map { it.pkg }, after.themeId, after.pictureId) }
             HomeScreenIntent.PreviewStock -> after.stock?.let { stock -> scope.launch { send(Preview(writer.preview(tvId, PlanRequest.UseStockHome(stock)))) } }
             HomeScreenIntent.UseStock -> after.stock?.let { stock -> scope.launch { useStock(stock) } }
             HomeScreenIntent.PreviewUpdate -> scope.launch { previewUpdate() }
@@ -141,7 +164,8 @@ class HomeScreenMachine(
             homeScreenOurs = tv.launcher != null, columns = columns, updateTo = updateTo(tv, packages),
             tvSideSettings = (packages[Launcher.pkg]?.versionCode ?: 0) >= FIRST_WITH_TV_SETTINGS,
             notOnTv = notOnTv(tv, snap), tclRemoteKeys = snap != null && TclGoogleTv.applies(snap.facts, snap),
-            endedLook = choice?.endedLook(today)?.let { id -> theme(id)?.name ?: id })))
+            endedLook = choice?.endedLook(today)?.let { id -> theme(id)?.name ?: id },
+            pictureId = choice?.picture?.takeUnless { Looks.dated(lookId) }, pictures = pictureOptions())))
     }
 
     // 0.3.3 D2: null while the new home screen is on the TV: Setup recorded it (tv.launcher), or the
@@ -230,15 +254,23 @@ class HomeScreenMachine(
     companion object {
         // Launcher 2.4 (versionCode 5) added Launcher settings on the TV (RF-LAUNCHER-240 F16).
         const val FIRST_WITH_TV_SETTINGS = 5L
+        const val DEFAULT_LOOK = "default"
 
         // 0.4.0: the looks on offer today; a dated look (a festival) up to its last day.
         private fun offeredThemes(d: ManageDeps): List<ThemeOption> {
             val today = d.clock.today()
-            return d.themes.bundled().filter { Looks.offered(it.id, today) }.map { ThemeOption(it.id, it.name, it.description) }
+            return d.themes.bundled().filter { Looks.offered(it.id, today) }
+                .map { ThemeOption(it.id, it.name, it.description, it.wallpaper?.path?.takeIf { p -> p.startsWith("/") }) }
         }
     }
 
     private fun theme(id: String?) = id?.let { d.themes.bundled().firstOrNull { t -> t.id == it } }
+
+    private fun draft(themeId: String, picture: String?) =
+        if (Looks.dated(themeId)) LookDraft(themeId, null, ownPictureOnly = true) else LookDraft(themeId, picture)
+
+    private fun pictureOptions(): List<PictureOption> =
+        runCatching { d.pictures.pictures() }.getOrNull().orEmpty().map { PictureOption(it.id, it.name, it.wallpaper.path.takeIf { p -> p.startsWith("/") }) }
 
     private suspend fun savedDock(): List<PackageName>? = d.homePrefs.load(tvId)?.dock
 
@@ -247,15 +279,17 @@ class HomeScreenMachine(
     // the dock and the rows under it in order, rows_below_dock the rows under the dock that hold an
     // app (DockLayers), so the TV shows the rows the sheet showed. module_cards keeps this TV's cards
     // choice (RFC-CARDS-1): a new dock or theme never turns cards on or off.
-    private suspend fun apply(dock: List<PackageName>, themeId: String?) {
+    // 0.4.0 `picture`: the Picture row's choice (HomeChoice.picture); a dated look keeps its own.
+    private suspend fun apply(dock: List<PackageName>, themeId: String?, picture: String?) {
         val cards = Cards.current(d, tvId, d.homePrefs.load(tvId))
-        val look = attempt { Look.encode(d.encoder, d.blobs, theme(themeId), dock, cards) }.getOrNull()
+        val pictureId = picture.takeUnless { Looks.dated(themeId) }
+        val look = attempt { Look.encode(d.encoder, d.blobs, theme(themeId), dock, cards, LookPicture.of(pictureId, d.pictures)) }.getOrNull()
             ?: return effect(ManageEffect.Snackbar(SnackKind.FAILED, "", false))
         val kept = look.doc.dockApps.orEmpty()
         val r = writer.write(tvId, PlanRequest.ApplyTheme(look.doc, look.config, look.wallpaper)) { send(BusyNow(it)) }
         send(BusyNow(null))
         if (r is WriteResult.Done) {
-            d.homePrefs.save(tvId, (d.homePrefs.load(tvId) ?: HomeChoice(emptyList(), null)).withTheme(themeId, kept, cards))
+            d.homePrefs.save(tvId, (d.homePrefs.load(tvId) ?: HomeChoice(emptyList(), null)).withTheme(themeId, kept, cards, pictureId))
             rememberPushedLook(d, tvId, look.digest)
             send(Drift(false))
             effect(ManageEffect.Snackbar(SnackKind.HOME_SAVED, "", false))

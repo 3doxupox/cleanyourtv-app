@@ -93,6 +93,12 @@
     <string name="theme_diwali_desc">Lamps, a gold rangoli and festive icons, until 10 November.</string>
     <string name="home_look_ended_banner">{look} has ended. Put your earlier look back on the TV?</string>
     <string name="home_look_ended_restore">Put it back</string>
+    <string name="look_picture_title">Picture</string>
+    <string name="look_picture_own">The look\'s own</string>
+    <string name="look_picture_none">No picture</string>
+    <string name="look_picture_own_only">This look keeps its own picture.</string>
+    <string name="look_clears_tv_choices">A new look also clears what was changed on the TV itself, like columns, motion and its own picture choice.</string>
+    <string name="look_use">Use this look</string>
     <string name="theme_card_cd">{name}. {description}</string>
     <string name="theme_card_selected_cd">{name}, selected. {description}</string>
 

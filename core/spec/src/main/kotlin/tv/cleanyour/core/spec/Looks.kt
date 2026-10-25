@@ -1,6 +1,7 @@
 package tv.cleanyour.core.spec
 
 import java.time.LocalDate
+import tv.cleanyour.core.model.BlobRef
 
 // 0.4.0 looks: what the frozen Theme type cannot carry, by theme id. `until`: the last day a dated
 // look (a festival) is offered, inclusive like festival_until; after it the look the person had
@@ -21,4 +22,16 @@ object Looks {
 
     // Whether the look is offered on `today`: undated looks always are, a dated one up to its last day.
     fun offered(id: String?, today: LocalDate): Boolean = info(id)?.until?.let { !today.isAfter(it) } ?: true
+}
+
+// 0.4.0: a picture any undated look can show instead of its own (the Picture row): wallpaper.jpg
+// for the launcher, a bundled asset like a theme's wallpaper.
+data class Picture(val id: String, val name: String, val wallpaper: BlobRef)
+
+interface PictureSource {
+    fun pictures(): List<Picture>
+
+    companion object {
+        val NONE: PictureSource = object : PictureSource { override fun pictures(): List<Picture> = emptyList() }
+    }
 }

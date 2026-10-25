@@ -24,6 +24,8 @@ import tv.cleanyour.core.probe.Prober
 import tv.cleanyour.core.session.TvSession
 import tv.cleanyour.core.spec.FactsTable
 import tv.cleanyour.core.spec.PackageFacts
+import tv.cleanyour.core.spec.Picture
+import tv.cleanyour.core.spec.PictureSource
 import tv.cleanyour.core.spec.ProfileResolution
 import tv.cleanyour.core.spec.ProfileSource
 import tv.cleanyour.core.spec.Theme
@@ -80,8 +82,9 @@ class MapFactsTable(private val facts: Map<PackageName, PackageFacts> = emptyMap
     override fun lookup(pkg: PackageName): PackageFacts? = facts[pkg]
 }
 
-class FakeThemeSource(private val themes: List<Theme> = emptyList()) : ThemeSource {
+class FakeThemeSource(private val themes: List<Theme> = emptyList(), private val gallery: List<Picture> = emptyList()) : ThemeSource, PictureSource {
     override fun bundled(): List<Theme> = themes
+    override fun pictures(): List<Picture> = gallery
 }
 
 // Planner that answers from a lambda and logs requests.

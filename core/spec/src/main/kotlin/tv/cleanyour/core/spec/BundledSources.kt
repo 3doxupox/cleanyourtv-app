@@ -113,8 +113,12 @@ class BundledFactsTable(private val facts: Map<PackageName, PackageFacts> = bund
 // the last. A wallpaper is a bundled asset: BlobRef.path is "bundled:" plus the resource path, and
 // bytes(blob) reads it back. Dated looks are in the list after their last day too (a saved choice
 // still names them); the flows offer only what Looks.offered allows.
-class BundledThemeSource : ThemeSource {
+// The pictures (PictureSource) are Aurora's, from the submodule, and Glass and Ruska, from later
+// upstream releases (MIT), kept in this module's resources under pictures/.
+class BundledThemeSource : ThemeSource, PictureSource {
     override fun bundled(): List<Theme> = themes
+
+    override fun pictures(): List<Picture> = gallery
 
     private class Entry(val id: String, val name: String, val description: String, val dir: String)
 
@@ -122,6 +126,7 @@ class BundledThemeSource : ThemeSource {
         const val PREFIX = "bundled:"
         private const val THEMES = "/tv/cleanyour/core/spec/themes"
         private const val LOOKS = "/tv/cleanyour/core/spec/looks"
+        private const val PICTURES = "/tv/cleanyour/core/spec/pictures"
         private val catalogue = listOf(
             Entry("default", "Default", "Black, four tiles a row, the dock at the very bottom.", THEMES),
             Entry("aurora", "Aurora", "A dark aurora picture on navy behind the apps.", THEMES),
@@ -144,6 +149,17 @@ class BundledThemeSource : ThemeSource {
                 val wallpaperPath = "${e.dir}/$id/wallpaper.jpg"
                 val wallpaper = resourceBytes(wallpaperPath)?.let { BlobRef(sha256(it), it.size.toLong(), PREFIX + wallpaperPath.removePrefix("/")) }
                 Theme(id, e.name, e.description, doc, wallpaper)
+            }
+        }
+
+        val gallery: List<Picture> by lazy {
+            listOf(
+                Triple("aurora", "Aurora", "$THEMES/aurora/wallpaper.jpg"),
+                Triple("glass", "Glass", "$PICTURES/glass.jpg"),
+                Triple("ruska", "Ruska", "$PICTURES/ruska.jpg"),
+            ).map { (id, name, path) ->
+                val b = resourceBytes(path) ?: error("picture $id missing from the :core:spec resources")
+                Picture(id, name, BlobRef(sha256(b), b.size.toLong(), PREFIX + path.removePrefix("/")))
             }
         }
 

@@ -9,6 +9,8 @@ import tv.cleanyour.core.spec.DecodeResult
 import tv.cleanyour.core.spec.DockLayers
 import tv.cleanyour.core.spec.LauncherConfigCodec
 import tv.cleanyour.core.spec.LauncherConfigDoc
+import tv.cleanyour.core.spec.Looks
+import tv.cleanyour.core.spec.PictureSource
 import tv.cleanyour.core.spec.Theme
 import tv.cleanyour.core.store.BlobStore
 
@@ -18,12 +20,44 @@ import tv.cleanyour.core.store.BlobStore
 // (RFC-DOCK-1), Manage's ApplyTheme and the Modules add (RFC-CARDS-1) all push what this makes, so
 // one choice is the same bytes wherever it is sent from. The wallpaper is the theme's own, when it
 // has one. module_cards is always written: `cards` is this TV's cards choice (Cards).
+// 0.4.0 `picture`: null keeps the look's own picture; LookPicture.None shows none (wallpaper false,
+// and the push removes wallpaper.jpg); LookPicture.Of shows that one, so wallpaper is forced true
+// (a look like Quiet black says false, and the picture would be pushed and not shown), the single
+// picture rather than a rotation, and its dim when it has one. A dated look (a festival) keeps its own.
 internal class Look(val doc: LauncherConfigDoc, val digest: Sha256, val config: BlobRef, val wallpaper: BlobRef?) {
     companion object {
-        suspend fun encode(encoder: ConfigEncoder, blobs: BlobStore, theme: Theme?, dock: List<PackageName>, cards: Boolean): Look {
-            val doc = DockLayers.applyTo(theme?.doc ?: LauncherConfigDoc(), dock).copy(moduleCards = cards)
+        suspend fun encode(encoder: ConfigEncoder, blobs: BlobStore, theme: Theme?, dock: List<PackageName>, cards: Boolean, picture: LookPicture? = null): Look {
+            val (doc, wallpaper) = docOf(theme, dock, cards, picture)
             val bytes = encoder.encode(doc)
-            return Look(doc, sha256Of(bytes), blobs.putBytes(bytes), theme?.wallpaper)
+            return Look(doc, sha256Of(bytes), blobs.putBytes(bytes), wallpaper)
+        }
+
+        // The doc and the wallpaper a choice pushes, without storing anything (the preview reads it).
+        fun docOf(theme: Theme?, dock: List<PackageName>, cards: Boolean, picture: LookPicture?): Pair<LauncherConfigDoc, BlobRef?> {
+            val base = DockLayers.applyTo(theme?.doc ?: LauncherConfigDoc(), dock).copy(moduleCards = cards)
+            return when (val p = picture.takeUnless { Looks.dated(theme?.id) }) {
+                null -> base to theme?.wallpaper
+                LookPicture.None -> base.copy(wallpaper = false, wallpaperRotationMinutes = 0) to null
+                is LookPicture.Of -> base.copy(wallpaper = true, wallpaperRotationMinutes = 0, wallpaperDim = p.dim ?: base.wallpaperDim) to p.ref
+            }
+        }
+    }
+}
+
+// The picture a look shows instead of its own (HomeChoice.picture).
+sealed interface LookPicture {
+    data object None : LookPicture
+    data class Of(val ref: BlobRef, val dim: Int? = null) : LookPicture
+
+    companion object {
+        const val NONE_ID = "none"
+
+        // HomeChoice.picture to the picture: null (the look's own) and an id the gallery no longer
+        // has keep the look's own.
+        fun of(id: String?, pictures: PictureSource): LookPicture? = when (id) {
+            null -> null
+            NONE_ID -> None
+            else -> pictures.pictures().firstOrNull { it.id == id }?.let { Of(it.wallpaper) }
         }
     }
 }

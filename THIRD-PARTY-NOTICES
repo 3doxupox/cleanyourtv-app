@@ -11,6 +11,10 @@ work. The full licence texts are linked or included below.
    converted into this app's TV profiles, and three of its themes (default, aurora with its
    wallpaper picture, six-columns) are bundled as they are. Licence: MIT. The aurora wallpaper
    is the upstream author's own work; he confirmed on 2026-10-23 that it is MIT like the rest.
+   Two more of its pictures are bundled unchanged for the Picture row of the Look sheet, from
+   later releases of the same repository (same MIT licence): themes/glass/wallpaper.jpg (v2.6.0)
+   as core/spec/src/main/resources/tv/cleanyour/core/spec/pictures/glass.jpg, and
+   themes/ruska/wallpaper.jpg (v2.7.0) as .../pictures/ruska.jpg.
 
      MIT License
 

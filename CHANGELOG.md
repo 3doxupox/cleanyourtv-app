@@ -11,6 +11,9 @@ All notable changes to the app. Versions follow [semantic versioning](https://se
   festive icons and a petal shower, until 10 November). Each look sets every layout and motion
   setting itself, so switching looks never keeps one from the last. The pictures are our own work,
   free to use (CC0).
+- The Look sheet now has two choices: the look, and the picture it shows. Any look can show its
+  own picture, Aurora, Glass or Ruska, or no picture at all (Diwali keeps its own). A tap only
+  chooses; nothing is sent to the TV until you tap "Use this look".
 - Diwali is offered until 10 November. After that the phone counts your earlier look as the TV's
   again, and Manage offers to put it back on the TV with one tap.
 

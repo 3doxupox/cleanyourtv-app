@@ -17,6 +17,8 @@ import tv.cleanyour.core.flows.Busy
 import tv.cleanyour.core.flows.HomeBlock
 import tv.cleanyour.core.flows.NotOnTv
 import tv.cleanyour.core.flows.HomeScreenState
+import tv.cleanyour.core.flows.LookDraft
+import tv.cleanyour.core.flows.PictureOption
 import tv.cleanyour.core.flows.ThemeOption
 import tv.cleanyour.core.model.Op
 import tv.cleanyour.core.model.PackageName
@@ -54,6 +56,15 @@ private fun home(
     stock = if (stock) Samples.stockLauncher else null, busy = busy, homeScreenOurs = ours, updateTo = updateTo,
     tvSideSettings = updateTo == null,   // a TV still on launcher 2.0 (an update offered) has no Launcher settings
     endedLook = endedLook,
+)
+
+// 0.4.0 Look sheet: the looks, the Picture row (thumbnails left plain: the tests draw no files) and
+// "Use this look".
+private val noPictures = emptyMap<String, androidx.compose.ui.graphics.ImageBitmap>()
+private fun lookSheet(draft: LookDraft) = home(themeId = "aurora").copy(
+    themes = themes + ThemeOption("diwali", "Diwali", "Lamps, a gold rangoli and festive icons, until 10 November."),
+    pictures = listOf(PictureOption("aurora", "Aurora", null), PictureOption("glass", "Glass", null), PictureOption("ruska", "Ruska", null)),
+    look = draft,
 )
 
 // 0.3.3 D2: a TV without the new home screen, as HomeScreenMachine loads it (no dock, no stock row).
@@ -101,7 +112,9 @@ object LauncherShots {
         Shot("home_not_on_tv_home_changed") { HomeScreen(notOnTv(NotOnTv(HomeBlock.HOME_CHANGED, "TCL", setupAgain = true), "TCL G07"), {}, {}) },
 
         // Look (theme picker), the dock sheet (S3b on Manage) and the stock home screen preview
-        Shot("home_look_sheet") { SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(home(themeId = "aurora")) {} } },
+        Shot("home_look_sheet", 1300.dp) { SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(lookSheet(LookDraft("aurora", null)), {}, noPictures) } },
+        Shot("home_look_sheet_picture", 1300.dp) { SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(lookSheet(LookDraft("six-columns", "glass")), {}, noPictures) } },
+        Shot("home_look_sheet_festival", 1300.dp) { SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(lookSheet(LookDraft("diwali", null, ownPictureOnly = true)), {}, noPictures) } },
         Shot("home_dock_sheet", 1000.dp) { SheetOver({ HomeScreen(home(), {}, {}) }) { DockContent(dockState(defaultDock.take(3)), apps, {}) } },
         Shot("home_dock_sheet_full", 1000.dp) { SheetOver({ HomeScreen(home(), {}, {}) }) { DockContent(dockState(defaultDock), apps, {}) } },
         Shot("home_dock_sheet_empty") { SheetOver({ HomeScreen(home(), {}, {}) }) { DockContent(dockState(emptyList()), apps, {}) } },

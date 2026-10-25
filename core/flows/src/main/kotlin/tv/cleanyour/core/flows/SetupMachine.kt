@@ -92,7 +92,8 @@ sealed interface SetupStart {
 }
 
 data class IdentityCheck(val model: String, val serialLast4: String, val screenshot: ByteArray?)
-data class ThemeOption(val id: String, val name: String, val description: String)
+// wallpaperPath (0.4.0): the look's own picture as a file on this phone, for the Look sheet; null without one.
+data class ThemeOption(val id: String, val name: String, val description: String, val wallpaperPath: String? = null)
 enum class Reconnect { TRYING, BACK, GAVE_UP }
 enum class Finishing { SWITCHING, DONE }
 

@@ -28,6 +28,7 @@ import tv.cleanyour.core.session.TvSession
 import tv.cleanyour.core.spec.AppNames
 import tv.cleanyour.core.spec.FactsTable
 import tv.cleanyour.core.spec.Looks
+import tv.cleanyour.core.spec.PictureSource
 import tv.cleanyour.core.spec.ProfileSource
 import tv.cleanyour.core.spec.ThemeSource
 import tv.cleanyour.core.store.BlobStore
@@ -104,6 +105,8 @@ class ManageDeps(
     // switch decision for each TV (SetupMachine keeps it).
     val about: AppAbout = AppAbout(appVersion, "full", "", ""),
     val homeDecisions: HomeDecisions = HomeDecisions(documents),
+    // 0.4.0: the pictures any look can show instead of its own (the app's ThemeSource is one).
+    val pictures: PictureSource = themes as? PictureSource ?: PictureSource.NONE,
 ) {
     fun tv(id: TvId): Tv? = tvs.tvs.value.firstOrNull { it.id == id }
 
@@ -117,8 +120,10 @@ class ManageDeps(
 // `cards` is the module_cards value the look carries (RFC-CARDS-1, "cards=true"): null when this
 // phone has not kept one for the TV yet (Cards.of decides then).
 // `previousThemeId` (0.4.0, "previous=id"): the look before a dated one (a festival), so the person
-// has it again once the dated look ends (lookOn).
-data class HomeChoice(val dock: List<PackageName>, val themeId: String?, val cards: Boolean? = null, val previousThemeId: String? = null) {
+// has it again once the dated look ends (lookOn). `picture` (0.4.0, "picture=id"): the picture the
+// look shows instead of its own (LookPicture), null for the look's own.
+data class HomeChoice(val dock: List<PackageName>, val themeId: String?, val cards: Boolean? = null, val previousThemeId: String? = null,
+    val picture: String? = null) {
     // The look that is this TV's on `today`: the saved one, or once a dated look has ended, the one
     // before it (null, the Default look, when that one has ended too or there was none).
     fun lookOn(today: LocalDate): String? = when {
@@ -133,8 +138,8 @@ data class HomeChoice(val dock: List<PackageName>, val themeId: String?, val car
 
     // The choice after the person picks `next`: a dated look keeps the look before it, any other
     // look forgets it.
-    fun withTheme(next: String?, dock: List<PackageName> = this.dock, cards: Boolean? = this.cards): HomeChoice =
-        HomeChoice(dock, next, cards, previousThemeId = previousFor(themeId, previousThemeId, next))
+    fun withTheme(next: String?, dock: List<PackageName> = this.dock, cards: Boolean? = this.cards, picture: String? = this.picture): HomeChoice =
+        HomeChoice(dock, next, cards, previousThemeId = previousFor(themeId, previousThemeId, next), picture = picture)
 
     companion object {
         fun previousFor(current: String?, earlier: String?, next: String?): String? = when {
@@ -155,12 +160,14 @@ class HomePrefs(private val store: DocumentStore) {
     suspend fun load(id: TvId): HomeChoice? = store.read(path(id)) { bytes ->
         val map = bytes.decodeToString().lines().filter { '=' in it }.associate { it.substringBefore('=') to it.substringAfter('=') }
         HomeChoice(map["dock"].orEmpty().split(',').filter { it.isNotBlank() }.mapNotNull { runCatching { PackageName(it) }.getOrNull() },
-            map["theme"]?.takeIf { it.isNotBlank() }, map["cards"]?.toBooleanStrictOrNull(), map["previous"]?.takeIf { it.isNotBlank() })
+            map["theme"]?.takeIf { it.isNotBlank() }, map["cards"]?.toBooleanStrictOrNull(), map["previous"]?.takeIf { it.isNotBlank() },
+            map["picture"]?.takeIf { it.isNotBlank() })
     }
 
     suspend fun save(id: TvId, choice: HomeChoice) {
         val text = "dock=${choice.dock.joinToString(",") { it.value }}\ntheme=${choice.themeId.orEmpty()}\n" +
-            (choice.cards?.let { "cards=$it\n" } ?: "") + (choice.previousThemeId?.let { "previous=$it\n" } ?: "")
+            (choice.cards?.let { "cards=$it\n" } ?: "") + (choice.previousThemeId?.let { "previous=$it\n" } ?: "") +
+            (choice.picture?.let { "picture=$it\n" } ?: "")
         store.write(path(id), text.encodeToByteArray())
     }
 }
