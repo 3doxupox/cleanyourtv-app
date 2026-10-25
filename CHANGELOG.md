@@ -14,6 +14,9 @@ All notable changes to the app. Versions follow [semantic versioning](https://se
 - The Look sheet now has two choices: the look, and the picture it shows. Any look can show its
   own picture, Aurora, Glass or Ruska, or no picture at all (Diwali keeps its own). A tap only
   chooses; nothing is sent to the TV until you tap "Use this look".
+- A preview of the TV's home screen sits at the top of the Look sheet: the picture, its dim, the
+  sky, the dock band, the tiles a row with your own app names and the focus, drawn from the same
+  settings the TV will get, with how it moves and how many apps fit a row underneath.
 - Diwali is offered until 10 November. After that the phone counts your earlier look as the TV's
   again, and Manage offers to put it back on the TV with one tap.
 

@@ -45,8 +45,9 @@ data class PictureOption(val id: String, val name: String, val path: String?)
 
 // 0.4.0: the Look sheet's choice while it is open. Nothing reaches the TV until UseLook.
 // `picture`: null for the look's own, LookPicture.NONE_ID or a gallery id. `ownPictureOnly`: a dated
-// look (a festival) keeps its own picture, so the sheet shows no Picture row for it.
-data class LookDraft(val themeId: String, val picture: String?, val ownPictureOnly: Boolean = false)
+// look (a festival) keeps its own picture, so the sheet shows no Picture row for it. `preview`: the
+// TV's home screen with this choice (LookPreview), null when it cannot be made.
+data class LookDraft(val themeId: String, val picture: String?, val ownPictureOnly: Boolean = false, val preview: LookPreview? = null)
 
 data class HomeScreenState(
     val tvName: String = "",
@@ -107,9 +108,9 @@ class HomeScreenMachine(
 
     override fun reduce(state: HomeScreenState, event: Any): HomeScreenState = when (event) {
         is Loaded -> event.s.copy(busy = state.busy, stockPreview = state.stockPreview, drift = state.drift, updatePreview = state.updatePreview, look = state.look)
-        HomeScreenIntent.OpenLook -> if (state.busy != null || state.notOnTv != null) state else state.copy(look = draft(state.themeId ?: DEFAULT_LOOK, state.pictureId))
-        is HomeScreenIntent.SelectLook -> state.look?.let { l -> state.copy(look = draft(event.id, l.picture)) } ?: state
-        is HomeScreenIntent.SelectPicture -> state.look?.let { l -> state.copy(look = if (l.ownPictureOnly) l else l.copy(picture = event.id)) } ?: state
+        HomeScreenIntent.OpenLook -> if (state.busy != null || state.notOnTv != null) state else state.copy(look = draft(state.themeId ?: DEFAULT_LOOK, state.pictureId, state))
+        is HomeScreenIntent.SelectLook -> state.look?.let { l -> state.copy(look = draft(event.id, l.picture, state)) } ?: state
+        is HomeScreenIntent.SelectPicture -> state.look?.let { l -> state.copy(look = if (l.ownPictureOnly) l else draft(l.themeId, event.id, state)) } ?: state
         HomeScreenIntent.CloseLook, HomeScreenIntent.UseLook -> state.copy(look = null)
         is UpdatePreview -> state.copy(updatePreview = event.plan)
         is BusyNow -> state.copy(busy = event.busy)
@@ -266,8 +267,19 @@ class HomeScreenMachine(
 
     private fun theme(id: String?) = id?.let { d.themes.bundled().firstOrNull { t -> t.id == it } }
 
-    private fun draft(themeId: String, picture: String?) =
-        if (Looks.dated(themeId)) LookDraft(themeId, null, ownPictureOnly = true) else LookDraft(themeId, picture)
+    private fun draft(themeId: String, picture: String?, state: HomeScreenState): LookDraft {
+        val dated = Looks.dated(themeId)
+        val p = picture.takeUnless { dated }
+        return LookDraft(themeId, p, ownPictureOnly = dated, preview = preview(themeId, p, state))
+    }
+
+    // The preview from the bytes the push would send for this choice and the saved dock (cards as
+    // they are do not change the picture, so they are left at the default).
+    private fun preview(themeId: String, picture: String?, state: HomeScreenState): LookPreview? = runCatching {
+        val (doc, wallpaper) = Look.docOf(theme(themeId), state.dock.map { it.pkg }, cards = Cards.MANAGE_DEFAULT, LookPicture.of(picture, d.pictures))
+        val now = java.time.Instant.ofEpochMilli(d.clock.nowMs()).atZone(java.time.ZoneId.systemDefault())
+        LookPreview.of(d.encoder.encode(doc), wallpaper, state.dock.map { it.name }, now.toLocalDate(), now.hour * 60 + now.minute)
+    }.getOrNull()
 
     private fun pictureOptions(): List<PictureOption> =
         runCatching { d.pictures.pictures() }.getOrNull().orEmpty().map { PictureOption(it.id, it.name, it.wallpaper.path.takeIf { p -> p.startsWith("/") }) }

@@ -93,6 +93,16 @@
     <string name="theme_diwali_desc">Lamps, a gold rangoli and festive icons, until 10 November.</string>
     <string name="home_look_ended_banner">{look} has ended. Put your earlier look back on the TV?</string>
     <string name="home_look_ended_restore">Put it back</string>
+    <string name="look_list_title">Looks</string>
+    <string name="look_preview_cd">Preview of the TV\'s home screen with {look}: {count} apps a row, no picture.</string>
+    <string name="look_preview_cd_picture">Preview of the TV\'s home screen with {look}: {count} apps a row over a picture.</string>
+    <string name="look_fact_columns">{count, plural, one {# app a row} other {# apps a row}}</string>
+    <string name="look_fact_motion_off">No motion</string>
+    <string name="look_fact_motion_calm">Calm motion</string>
+    <string name="look_fact_motion_crisp">Lift and zoom</string>
+    <string name="look_fact_motion_bouncy">Bouncy motion</string>
+    <string name="look_fact_sky">Sky follows the clock</string>
+    <string name="look_fact_grid">All apps on one page</string>
     <string name="look_picture_title">Picture</string>
     <string name="look_picture_own">The look\'s own</string>
     <string name="look_picture_none">No picture</string>

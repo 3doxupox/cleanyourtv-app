@@ -7,6 +7,9 @@ import tv.cleanyour.core.model.LauncherState
 import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.planner.PlanRequest
 import tv.cleanyour.core.model.BlobRef
+import tv.cleanyour.core.spec.BundledThemeSource
+import tv.cleanyour.core.spec.DecodeResult
+import tv.cleanyour.core.spec.LauncherConfigCodec
 import tv.cleanyour.core.spec.LauncherConfigDoc
 import tv.cleanyour.core.spec.Picture
 import tv.cleanyour.core.spec.Theme
@@ -14,6 +17,7 @@ import tv.cleanyour.testing.fixtures.FakeThemeSource
 import tv.cleanyour.testing.fixtures.Samples
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.time.Duration.Companion.seconds
@@ -134,12 +138,19 @@ class LooksTest {
         settle()
         assertEquals(listOf("glass"), m.state.value.pictures.map { it.id })
         m.dispatch(HomeScreenIntent.OpenLook); settle()
-        assertEquals(LookDraft("cinema", null), m.state.value.look)
+        assertEquals("cinema" to null, m.state.value.look?.let { it.themeId to it.picture })
         m.dispatch(HomeScreenIntent.SelectLook("quiet")); settle()
         m.dispatch(HomeScreenIntent.SelectPicture("glass")); settle()
-        assertEquals(LookDraft("quiet", "glass"), m.state.value.look)
+        assertEquals("quiet" to "glass", m.state.value.look?.let { it.themeId to it.picture })
+        // The preview is made from the bytes the push would send: the picture forced on, calm motion.
+        val preview = assertNotNull(m.state.value.look?.preview)
+        assertEquals("/blobs/glass.jpg", preview.picturePath)
+        assertEquals(LookMotion.CALM, preview.motion)
+        assertEquals(dock.size, preview.dock.size)
         m.dispatch(HomeScreenIntent.SelectLook("diwali")); settle()
-        assertEquals(LookDraft("diwali", null, ownPictureOnly = true), m.state.value.look, "a festival keeps its own picture")
+        assertEquals(true, m.state.value.look?.ownPictureOnly, "a festival keeps its own picture")
+        assertEquals(true, m.state.value.look?.preview?.festive)
+        assertEquals("/blobs/cinema.jpg", m.state.value.look?.preview?.picturePath)
         m.dispatch(HomeScreenIntent.SelectPicture("glass")); settle()
         assertNull(m.state.value.look?.picture)
         m.dispatch(HomeScreenIntent.SelectLook("quiet")); settle()
@@ -159,7 +170,7 @@ class LooksTest {
         assertEquals(glass.wallpaper, h.planner.requests.filterIsInstance<PlanRequest.ApplyTheme>().last().wallpaper)
         // Closing the sheet sends nothing.
         m.dispatch(HomeScreenIntent.OpenLook); settle()
-        assertEquals(LookDraft("quiet", "glass"), m.state.value.look)
+        assertEquals("quiet" to "glass", m.state.value.look?.let { it.themeId to it.picture })
         m.dispatch(HomeScreenIntent.SelectLook("cinema")); settle()
         m.dispatch(HomeScreenIntent.CloseLook); settle()
         assertEquals(2, h.planner.requests.filterIsInstance<PlanRequest.ApplyTheme>().size)
@@ -172,5 +183,29 @@ class LooksTest {
         val choice = HomeChoice(dock, "quiet", cards = true, picture = "glass")
         HomePrefs(h.documents).save(id, choice)
         assertEquals(choice, HomePrefs(h.documents).load(id))
+    }
+
+    // The preview's keys are the ones the TV reads from the pushed bytes, for every bundled look.
+    @Test fun thePreviewIsReadBackFromTheBytesThePushSends() {
+        val today = LocalDate.of(2026, 10, 25)
+        val names = listOf("Netflix", "YouTube")
+        for (t in BundledThemeSource().bundled()) {
+            val (doc, wallpaper) = Look.docOf(t, dock, cards = true, null)
+            val bytes = LauncherConfigCodec.encode(doc)
+            val p = LookPreview.of(bytes, wallpaper?.copy(path = "/files/${t.id}.jpg"), names, today, 600)
+            val e = LauncherConfigCodec.effective(assertIs<DecodeResult.Ok>(LauncherConfigCodec.decode(bytes)).doc, LauncherConfigCodec.builtInDefaults)
+            assertEquals(listOf(e.backgroundColorArgb, e.wallpaperDim, e.skyIntensity, e.columns, e.rowsBelowDock),
+                listOf(p.backgroundArgb, p.dim, p.sky, p.columns, p.rowsBelowDock), t.id)
+            assertEquals(listOf(e.dockRow, e.dockTitle, e.cinematicHome), listOf(p.dockRow, p.dockTitle, p.cinematic), t.id)
+            assertEquals(if (e.wallpaper && wallpaper != null) "/files/${t.id}.jpg" else null, p.picturePath, t.id)
+            assertEquals(names, p.dock)
+        }
+        val diwali = BundledThemeSource().bundled().first { it.id == "diwali" }
+        val bytes = LauncherConfigCodec.encode(Look.docOf(diwali, dock, cards = true, null).first)
+        val on = LookPreview.of(bytes, null, names, today, 600)
+        assertEquals(true, on.festive); assertEquals(0xFFFFB23C.toInt(), on.accentArgb); assertEquals("Happy Diwali", on.greeting)
+        assertEquals(LookMotion.CRISP, on.motion)
+        val after = LookPreview.of(bytes, null, names, lastDay.plusDays(1), 600)
+        assertEquals(false, after.festive); assertEquals("", after.greeting)
     }
 }

@@ -1,6 +1,20 @@
 package tv.cleanyour.feature.launcher
 
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import java.time.LocalDate
+import tv.cleanyour.core.model.BlobRef
+import tv.cleanyour.core.spec.BundledThemeSource
+import tv.cleanyour.core.spec.DockLayers
+import tv.cleanyour.core.spec.LauncherConfigCodec
+import tv.cleanyour.ui.design.theme.CytTheme
 import androidx.compose.runtime.remember
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.dp
@@ -18,6 +32,7 @@ import tv.cleanyour.core.flows.HomeBlock
 import tv.cleanyour.core.flows.NotOnTv
 import tv.cleanyour.core.flows.HomeScreenState
 import tv.cleanyour.core.flows.LookDraft
+import tv.cleanyour.core.flows.LookPreview
 import tv.cleanyour.core.flows.PictureOption
 import tv.cleanyour.core.flows.ThemeOption
 import tv.cleanyour.core.model.Op
@@ -58,12 +73,29 @@ private fun home(
     endedLook = endedLook,
 )
 
-// 0.4.0 Look sheet: the looks, the Picture row (thumbnails left plain: the tests draw no files) and
-// "Use this look".
-private val noPictures = emptyMap<String, androidx.compose.ui.graphics.ImageBitmap>()
+// 0.4.0 Look sheet: the preview, the looks, the Picture row and "Use this look". The previews are
+// made as the machine makes them, from the bytes the push would send for the bundled looks, with
+// their real pictures read from the :core:spec resources.
+private val bundledLooks = BundledThemeSource().bundled().associateBy { it.id }
+private val gallery = BundledThemeSource().pictures().associateBy { it.id }
+private fun resourcePath(ref: BlobRef?) = ref?.path?.removePrefix(BundledThemeSource.PREFIX)?.let { "/$it" }
+private val pictureFiles: Map<String, ImageBitmap> by lazy {
+    (bundledLooks.values.map { it.wallpaper } + gallery.values.map { it.wallpaper }).mapNotNull { resourcePath(it) }.distinct().associateWith { path ->
+        BitmapFactory.decodeStream(LauncherShots::class.java.getResourceAsStream(path), null, BitmapFactory.Options().apply { inSampleSize = 4 })!!.asImageBitmap()
+    }
+}
+private fun preview(id: String, picture: String? = null, minute: Int = 21 * 60 + 5): LookPreview {
+    val look = bundledLooks.getValue(id)
+    var doc = DockLayers.applyTo(look.doc, rowsDock.map { it.pkg })
+    var wallpaper = look.wallpaper
+    if (picture != null) { doc = doc.copy(wallpaper = true, wallpaperRotationMinutes = 0); wallpaper = gallery.getValue(picture).wallpaper }
+    val p = LookPreview.of(LauncherConfigCodec.encode(doc), null, rowsDock.map { it.name }, LocalDate.of(2026, 10, 25), minute)
+    return p.copy(picturePath = if (doc.wallpaper != false) resourcePath(wallpaper) else null)
+}
+private val noPictures = emptyMap<String, ImageBitmap>()
 private fun lookSheet(draft: LookDraft) = home(themeId = "aurora").copy(
-    themes = themes + ThemeOption("diwali", "Diwali", "Lamps, a gold rangoli and festive icons, until 10 November."),
-    pictures = listOf(PictureOption("aurora", "Aurora", null), PictureOption("glass", "Glass", null), PictureOption("ruska", "Ruska", null)),
+    themes = bundledLooks.values.map { ThemeOption(it.id, it.name, it.description, resourcePath(it.wallpaper)) },
+    pictures = gallery.values.map { PictureOption(it.id, it.name, resourcePath(it.wallpaper)) },
     look = draft,
 )
 
@@ -86,6 +118,11 @@ private val stockPlan = Samples.plan(
 ).let { p ->
     val lines = listOf("Switch the TV's own home screen back on", "Make it the home screen", "Check that Home opens it")
     p.copy(steps = p.steps.mapIndexed { i, s -> s.copy(narration = lines[i]) })
+}
+
+@Composable
+private fun PreviewShot(p: LookPreview, name: String) {
+    Box(Modifier.fillMaxSize().background(CytTheme.colors.bg).padding(16.dp)) { LookPreviewCard(p, name, pictureFiles) }
 }
 
 object LauncherShots {
@@ -112,9 +149,21 @@ object LauncherShots {
         Shot("home_not_on_tv_home_changed") { HomeScreen(notOnTv(NotOnTv(HomeBlock.HOME_CHANGED, "TCL", setupAgain = true), "TCL G07"), {}, {}) },
 
         // Look (theme picker), the dock sheet (S3b on Manage) and the stock home screen preview
-        Shot("home_look_sheet", 1300.dp) { SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(lookSheet(LookDraft("aurora", null)), {}, noPictures) } },
-        Shot("home_look_sheet_picture", 1300.dp) { SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(lookSheet(LookDraft("six-columns", "glass")), {}, noPictures) } },
-        Shot("home_look_sheet_festival", 1300.dp) { SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(lookSheet(LookDraft("diwali", null, ownPictureOnly = true)), {}, noPictures) } },
+        Shot("home_look_sheet", 1700.dp) { SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(lookSheet(LookDraft("aurora", null, preview = preview("aurora"))), {}, pictureFiles) } },
+        Shot("home_look_sheet_picture", 1700.dp) {
+            SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(lookSheet(LookDraft("quiet", "glass", preview = preview("quiet", "glass"))), {}, pictureFiles) }
+        },
+        Shot("home_look_sheet_festival", 1700.dp) {
+            SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(lookSheet(LookDraft("diwali", null, ownPictureOnly = true, preview = preview("diwali"))), {}, pictureFiles) }
+        },
+        Shot("home_look_sheet_no_preview", 1500.dp) { SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(lookSheet(LookDraft("six-columns", "glass")).copy(pictures = gallery.values.map { PictureOption(it.id, it.name, null) }), {}, noPictures) } },
+        // The preview of each 0.4.0 look (Horizon at night and at sunrise: its sky over the picture).
+        Shot("look_preview_cinema", 300.dp) { PreviewShot(preview("cinema"), "Cinema") },
+        Shot("look_preview_console", 300.dp) { PreviewShot(preview("console"), "Console") },
+        Shot("look_preview_horizon", 300.dp) { PreviewShot(preview("horizon"), "Horizon") },
+        Shot("look_preview_horizon_sunrise", 300.dp) { PreviewShot(preview("horizon", minute = 6 * 60 + 30), "Horizon") },
+        Shot("look_preview_quiet", 300.dp) { PreviewShot(preview("quiet"), "Quiet black") },
+        Shot("look_preview_diwali", 300.dp) { PreviewShot(preview("diwali"), "Diwali") },
         Shot("home_dock_sheet", 1000.dp) { SheetOver({ HomeScreen(home(), {}, {}) }) { DockContent(dockState(defaultDock.take(3)), apps, {}) } },
         Shot("home_dock_sheet_full", 1000.dp) { SheetOver({ HomeScreen(home(), {}, {}) }) { DockContent(dockState(defaultDock), apps, {}) } },
         Shot("home_dock_sheet_empty") { SheetOver({ HomeScreen(home(), {}, {}) }) { DockContent(dockState(emptyList()), apps, {}) } },
