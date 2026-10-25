@@ -20,7 +20,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-PIN=9071ec8d2f41826778f6b4c7f5f42dadc22f5b22
+PIN=3e34f40f42728284bbb3d4d7bea57c3f504c3b31
 . scripts/lib/forge.sh
 SECRETS="${SECRETS:-$CYT_SECRETS/cleanyourtv-launcher}"
 IMAGE="eclipse-temurin:21-jdk"

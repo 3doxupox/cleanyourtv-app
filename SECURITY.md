@@ -36,3 +36,33 @@ Problems in the launcher itself (the TV home screen) belong to the upstream proj
 Only the latest release gets security fixes. Android refuses updates signed by another key, so
 updating in place is always safe; the release certificate SHA-256 is in
 [docs/release-signer.sha256](docs/release-signer.sha256).
+
+## The bundled launcher: what it asks the TV for
+
+The app installs one launcher build, pinned by its SHA-256 (core/trust `PinnedLauncher`). Each
+upstream bump is reviewed against the previous pin; the changes in the manifest are listed here.
+
+Launcher 2.7 (upstream v2.7.0, commit 3e34f40, versionCode 8; was 2.5, v2.5.0, versionCode 6):
+
+- New permission `android.permission.WRITE_SECURE_SETTINGS`. It is a protected permission that
+  only `pm grant` over ADB can give; installing the APK does not. Upstream uses it for one optional
+  feature (`restore_key_services`, the `ServiceRepair` class): after a force stop, put the
+  launcher's own key helpers back on the enabled accessibility list. Without the grant the code
+  returns at once. This app never runs `pm grant` for it, so on a TV set up with this app the
+  launcher does not hold it and the feature stays off.
+- New permission `yandex.tv.permission.ACCESS_TV_SOURCE` (protection level normal, Yandex TV OS
+  only): lets the Inputs menu open HDMI and the tuner there. It does nothing on other TVs.
+- New package visibility queries: the standard settings screens, the HOME intent, the TCL and Fire
+  TV settings packages and two Coocaa (Skyworth) input providers. Queries only make those apps
+  visible to the launcher; they grant nothing.
+- New exported activity `InputsRequestActivity` for `com.android.tv.action.VIEW_INPUTS`, disabled
+  in the manifest. The launcher switches it on only when its config sets `handle_view_inputs`,
+  which this app does not set. It opens the launcher's own Inputs menu and takes no data.
+- New activities `ClockActivity` and `ProbeActivity`, not exported.
+- `HomeKeyService` is now direct boot aware (it can start before the first unlock), and both key
+  services no longer ask for window events: they receive
+  key events only, which is less than 2.5 received. `stock_home_redirect` would add window events
+  at run time; this app does not set it.
+- Unchanged: the HOME activity, the theme provider (exported, guarded by
+  `WRITE_SECURE_SETTINGS`), the screensaver behind `BIND_DREAM_SERVICE`, both key services behind
+  `BIND_ACCESSIBILITY_SERVICE`, and the network, Wi-Fi and location permissions.

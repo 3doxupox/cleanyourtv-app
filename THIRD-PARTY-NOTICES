@@ -4,7 +4,7 @@ The app is MIT licensed (see LICENSE). It contains, or is built with, the follow
 work. The full licence texts are linked or included below.
 
 1. Clean Your TV launcher (bundled TV launcher APK, com.gathin.tvhome)
-   https://github.com/Gathin23/cleanyourtv, tag v2.5.0, commit 9071ec8d2f41826778f6b4c7f5f42dadc22f5b22
+   https://github.com/Gathin23/cleanyourtv, tag v2.7.0, commit 3e34f40f42728284bbb3d4d7bea57c3f504c3b31
    (the third_party/cleanyourtv submodule). The APK in android/platform/src/main/assets/bundled is
    built from that commit without changes and re-signed with this project's launcher key. The
    upstream repository's per TV clean-up lists, written by its community contributors, are
