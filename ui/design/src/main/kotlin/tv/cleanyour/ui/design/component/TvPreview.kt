@@ -101,9 +101,11 @@ fun TvPreview(look: TvLook, contentDescription: String, modifier: Modifier = Mod
             if (look.sky > 0) {
                 Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(look.skyTop, look.skyBottom)), alpha = look.sky.coerceIn(0, 100) / 100f))
             }
+            // The cinematic shelf's soft art over the picture. Cinema shows it at cinematic_art 20 (the
+            // launcher's default is 50), so the wash is faint and the look's curtains stay in view.
             if (look.cinematic) {
                 Box(Modifier.fillMaxWidth().size(u(TV_W), u(TV_H * 0.55f)).background(
-                    Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.16f), Color.White.copy(alpha = 0.04f), Color.Transparent)),
+                    Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.065f), Color.White.copy(alpha = 0.016f), Color.Transparent)),
                 ))
             }
             Header(look, s, ::u)

@@ -131,7 +131,7 @@ class BundledThemeSource : ThemeSource, PictureSource {
             Entry("default", "Default", "Black, four tiles a row, the dock at the very bottom.", THEMES),
             Entry("aurora", "Aurora", "A dark aurora picture on navy behind the apps.", THEMES),
             Entry("six-columns", "Six columns", "Six smaller tiles a row, one row showing under the dock.", THEMES),
-            Entry("cinema", "Cinema", "The focused app's art across the top, velvet curtains at the sides.", LOOKS),
+            Entry("cinema", "Cinema", "Velvet curtains around a dark stage, and the focused app's name in large type.", LOOKS),
             Entry("console", "Console", "Seven small tiles, a big name and deep cobalt light.", LOOKS),
             Entry("horizon", "Horizon", "Mountain ridges under a sky that follows the time of day.", LOOKS),
             Entry("quiet", "Quiet black", "Pure black and nothing else, calm motion. Good for OLED and slow TVs.", LOOKS),

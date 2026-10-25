@@ -86,7 +86,7 @@
     <string name="theme_aurora_desc">A deep blue background with a soft glow behind the apps.</string>
     <string name="theme_six_columns">Six columns</string>
     <string name="theme_six_columns_desc">Six apps across, so more fit on the screen.</string>
-    <string name="theme_cinema_desc">The focused app\'s art across the top, velvet curtains at the sides.</string>
+    <string name="theme_cinema_desc">Velvet curtains around a dark stage, and the focused app\'s name in large type.</string>
     <string name="theme_console_desc">Seven small tiles, a big app name and deep cobalt light.</string>
     <string name="theme_horizon_desc">Mountain ridges under a sky that changes with the time of day.</string>
     <string name="theme_quiet_desc">Pure black, no picture and calm motion. Good for OLED and slower TVs.</string>

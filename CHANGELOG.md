@@ -8,8 +8,8 @@ Eight new looks for the TV's home screen, a picture you choose apart from the lo
 too), and a preview on the phone before anything reaches the TV.
 
 ### Home screen
-- New looks for the home screen: Cinema (the focused app's art across the top, velvet curtains),
-  Console (seven small tiles and a big name), Horizon (mountain ridges under a sky that follows the
+- New looks for the home screen: Cinema (velvet curtains around a dark stage and the app's name in
+  large type), Console (seven small tiles and a big name), Horizon (mountain ridges under a sky that follows the
   time of day), Library (every app on one calm page, no dock band), Arcade (a neon sun and bouncy
   tiles), Mist (soft indigo, teal and peach light), Quiet black (pure black, calm motion, for OLED
   and slower TVs) and Diwali (lamps, festive icons and a petal shower, until 10 November). Each
@@ -31,9 +31,10 @@ too), and a preview on the phone before anything reaches the TV.
   nothing.
 - Diwali is offered until 10 November. After that the phone counts your earlier look as the TV's
   again, with its picture, and Manage offers to put it back on the TV with one tap.
-- The looks use the settings of the home screen app 2.7 that 0.3.7 brought. Quiet black turns off
-  its glow in the focused app's colour, so it really is pure black (a TV still on an older home
-  screen app keeps the glow).
+- The looks use the settings of the home screen app 2.7 that 0.3.7 brought. Quiet black and Cinema
+  turn off its glow in the focused app's colour, so Quiet black really is pure black, and Cinema
+  also turns the app's art down so its curtains show (a TV still on an older home screen app keeps
+  the glow).
 
 ### Credits
 - The look pictures are this project's own work, drawn from code and released under CC0. Aurora,
