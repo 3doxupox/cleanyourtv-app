@@ -12,9 +12,9 @@ too), and a preview on the phone before anything reaches the TV.
   large type), Console (seven small tiles and a big name), Horizon (mountain ridges under a sky that
   changes with the hour), Library (every app on one calm page, no dock band), Arcade (a neon sun and
   bouncy tiles), Mist (soft indigo, teal and peach light), Quiet black (pure black, calm motion, for
-  OLED and slower TVs) and Diwali (lamps, festive icons and a petal shower, until 10 November). Each
-  look sets every layout and motion setting itself, so switching looks never keeps one from the
-  last. The pictures are our own work, free to use (CC0).
+  OLED and slower TVs) and Diwali (lamps, festive icons and a short petal shower the first time Home
+  opens each day, until 10 November). Each look sets every layout and motion setting itself, so
+  switching looks never keeps one from the last. The pictures are our own work, free to use (CC0).
 - Cinema keeps the dock low however many apps it holds. With more apps than one row, the rows
   under the dock wait one press of Down away, so the big app name never runs into the clock.
 - The Look sheet now has two choices: the look, and the picture it shows. Any look can show its
