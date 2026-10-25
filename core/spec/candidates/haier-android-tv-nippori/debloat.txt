@@ -38,7 +38,7 @@ tv.anoki.acr.controller                          # Anoki ACR
 # Haier telemetry and content apps
 # com.haierubic.usmartdevice                     # Haier smart-device service; owner's choice (an ask row on haier-h32s80efx)
 com.haier.apps                                   # HaierApps promo
-com.haier.launcher.haiermatrix                   # Zeasn content launcher, not the system Home
+# com.haier.launcher.haiermatrix                 # Zeasn content launcher; a vendor home screen, which this app never switches off
 
 # Stock-home recommendation rows and partner auto-install
 com.google.android.tvrecommendations             # recommendation and ad rows
