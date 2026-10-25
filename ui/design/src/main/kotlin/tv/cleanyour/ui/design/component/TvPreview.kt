@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -37,6 +38,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.min
+import tv.cleanyour.ui.design.R
 import tv.cleanyour.ui.design.theme.CytTheme
 import tv.cleanyour.ui.design.theme.Outfit
 
@@ -122,7 +124,7 @@ fun TvPreview(look: TvLook, contentDescription: String, modifier: Modifier = Mod
                         fontFamily = Outfit, fontWeight = FontWeight.SemiBold, fontSize = (size * s).sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     )
                     if (look.cinematic) {
-                        Text("Last opened", Modifier.offset(u(left), u(dockTop - 34f)), color = Color.White.copy(alpha = 0.7f), fontFamily = Outfit, fontSize = (16 * s).sp)
+                        Text(stringResource(R.string.cyt_tv_last_opened), Modifier.offset(u(left), u(dockTop - 34f)), color = Color.White.copy(alpha = 0.7f), fontFamily = Outfit, fontSize = (16 * s).sp)
                     }
                 }
                 val bandShape = RoundedCornerShape(u(26f))
