@@ -63,6 +63,8 @@ internal class Link(
     val onAwaitingAllow: suspend (String) -> Unit,
     // 0.3.6: a failed socket connect, for the diagnostics log (ConnectFailure).
     val onConnectFailure: (Throwable) -> Unit = {},
+    // Issues #325, #620: a handshake or identity read that failed inside the app (HandshakeFailure).
+    val onHandshakeFailure: (Throwable) -> Unit = {},
 )
 
 // TvSession over :adb:wire (PRODUCT-SPEC 5.3, ARCHITECTURE 3): one call at a time, two clocks
@@ -201,11 +203,19 @@ class AdbTvSession internal constructor(
             link.onConnectFailure(e)
             throw AdbException(classifyConnectFailure(e))
         }
-        val conn = AdbConnection.open(
-            socket, link.signer, link.tls,
-            onAwaitingAllow = { fp -> setState(ConnectionState.AwaitingAllow(clock.nowMs(), fp)); link.onAwaitingAllow(fp) },
-            firstAuthTimeoutMs = SessionConfig.FIRST_AUTH_TIMEOUT_MS,
-        )
+        val conn = try {
+            AdbConnection.open(
+                socket, link.signer, link.tls,
+                onAwaitingAllow = { fp -> setState(ConnectionState.AwaitingAllow(clock.nowMs(), fp)); link.onAwaitingAllow(fp) },
+                firstAuthTimeoutMs = SessionConfig.FIRST_AUTH_TIMEOUT_MS,
+            )
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // Issues #325, #620: typed, so the reconnect loop and the engine see an AdbException (R0: 7).
+            link.onHandshakeFailure(e)
+            throw HandshakeFailure.typed(e)
+        }
         try {
             if ("shell_v2" !in conn.features) throw AdbException(AdbError.Transport.NoShellV2)
             val found = Identity.read(conn, clock)
@@ -213,7 +223,9 @@ class AdbTvSession internal constructor(
             conn
         } catch (t: Throwable) {
             conn.close()
-            throw t
+            if (t is CancellationException || t !is Exception) throw t
+            link.onHandshakeFailure(t)
+            throw HandshakeFailure.typed(t)
         }
     }
 

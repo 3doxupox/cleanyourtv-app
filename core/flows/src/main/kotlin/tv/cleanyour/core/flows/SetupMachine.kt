@@ -609,7 +609,13 @@ class SetupMachine(
         deps.log.line("setup: connect start (${if (known != null) "known TV" else "new TV"}, ${found.sources.joinToString("+") { it.name.lowercase() }.ifEmpty { "found" }})")
         val result = attempt {
             deps.sessions.open(Endpoint.PlainTcp(found.host), known?.id) { fp -> allowShown = true; send(Ev.Allow(fp)) }
-        }.getOrElse { OpenResult.Failed(AdbError.Transport.Unreachable) }
+        }.getOrElse { e ->
+            // Issues #325, #620: an exception the session did not type was logged as "unreachable",
+            // the one word that sends the person to look at the phone's network. It is named for what
+            // it is now; the session types its own (HandshakeFailure), so this is the last defence.
+            if (e !is AdbException) deps.log.line("setup: connect threw ${LogCodes.of(e)}")
+            OpenResult.Failed((e as? AdbException)?.error ?: AdbError.Transport.Protocol("unexpected"))
+        }
         when (result) {
             is OpenResult.Ok -> {
                 session = result.session

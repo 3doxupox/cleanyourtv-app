@@ -123,7 +123,8 @@ class Harness(val clock: FakeClock = FakeClock(Samples.NOW_MS), val facts: tv.cl
                   savedWifi: tv.cleanyour.core.probe.SavedWifiOwners? = null, store: StoreRules = StoreRules.FULL,
                   candidates: CandidateLists? = null, diagnostics: Diagnostics = Diagnostics { "diagnostics" },
                   about: AppAbout? = null, connectDetail: () -> String? = { null },
-                  themes: tv.cleanyour.core.spec.ThemeSource = this.themes) = SetupDeps(
+                  themes: tv.cleanyour.core.spec.ThemeSource = this.themes,
+                  sessions: tv.cleanyour.core.session.SessionManager = this.sessions) = SetupDeps(
         discovery, sessions, prober, profiles, facts, runner, engine, gate, tvs, snapshots, ledger,
         FakeLauncherPin(Samples.launcherArtifact()), themes, restorePoint, FakeRestoreNote(), sessionEnd, access, clock, KeyCopy,
         blobs = blobs, dock = dock, screenLock = { true }, diagnostics = diagnostics,

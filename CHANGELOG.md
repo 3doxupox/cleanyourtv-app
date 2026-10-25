@@ -13,6 +13,9 @@ All notable changes to the app. Versions follow [semantic versioning](https://se
   Working screen: the step now times out and the run pauses, so you can carry on or undo. After a
   step times out the app also checks once whether the TV still answers; if not, it shows the TV as
   away and opens a fresh connection when it is back, instead of carrying on over the dead one (#616).
+- When the TV's port answers and the connection then fails inside the app, the log and Copy error
+  now say why, for example that the phone's key could not sign the TV's request, instead of
+  "unreachable" with no reason, and the connection is closed (#325, #620).
 
 ### Setting up
 - A run that stopped before its first step (the TV went away while the restore point was saved,
