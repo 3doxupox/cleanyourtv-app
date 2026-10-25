@@ -27,6 +27,9 @@ All notable changes to the app. Versions follow [semantic versioning](https://se
   of the same model; it is set up like any TV no list knows, with its brand set. This fixes
   the TCL Smart TV Pro (BeyondTV4) on its Google TV build AR11, which got the TCL 65C725 Android TV
   list and lost the remote's virtual keys helper (#114, #390).
+- PatchWall on Xiaomi TVs is now your choice, kept on unless you switch it off in Customise: with
+  it off, the remote's PatchWall button stops working while the TV's own home screen is in use.
+  This covers the Xiaomi brand set, every Xiaomi list and the Mi TV 4i test list (#111).
 
 ## 0.4.0 (2026-10-26)
 

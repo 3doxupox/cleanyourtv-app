@@ -136,7 +136,12 @@ class DefaultPlanner(
         }
 
         fun name(pkg: PackageName): String = AppNames.of(pkg, facts, snapshot.packages[pkg]?.label)
-        fun description(pkg: PackageName): String = facts.lookup(pkg)?.description ?: ""
+        // Issue #111: an owner's-choice row says what switching it off costs.
+        fun description(pkg: PackageName): String {
+            val what = facts.lookup(pkg)?.description ?: ""
+            val cost = ProfileCategory.OWNERS_CHOICE[pkg] ?: return what
+            return if (what.isEmpty()) cost else "$what. $cost"
+        }
         fun state(pkg: PackageName): PackageState? = snapshot.packages[pkg]
         fun isOff(pkg: PackageName): Boolean = state(pkg)?.enabled.let { it == EnabledState.DISABLED_USER || it == EnabledState.DISABLED }
         fun installed(pkg: PackageName): Boolean = pkg in snapshot.packages

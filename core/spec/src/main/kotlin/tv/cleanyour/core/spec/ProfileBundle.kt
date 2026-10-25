@@ -181,8 +181,20 @@ object SureSetGenerator {
             groupVotes.getOrPut(e.name) { LinkedHashMap() }.let { v -> v[g.id] = (v[g.id] ?: 0) + 1 }
         }
         val sure = count.filter { (pkg, n) -> n >= minProfiles && pkg !in keep }.keys
+        // Issue #111: an owner's-choice package (ProfileCategory.OWNERS_CHOICE) that at least
+        // minProfiles of the brand's lists offer, as a row, is an ask row of the set, never an off.
+        val askCount = LinkedHashMap<PackageName, Int>()
+        val askVotes = LinkedHashMap<PackageName, MutableMap<String, Int>>()
+        val askSeen = LinkedHashMap<PackageName, Pair<PackageGroup, PackageEntry>>()
+        for (p in ps) for (g in p.groups.filter { it.default == GroupDefault.ASK }) for (e in g.packages) if (ProfileCategory.isOwnersChoice(e.name)) {
+            askCount[e.name] = (askCount[e.name] ?: 0) + 1
+            askSeen.putIfAbsent(e.name, g to e)
+            askVotes.getOrPut(e.name) { LinkedHashMap() }.let { v -> v[g.id] = (v[g.id] ?: 0) + 1 }
+        }
+        val ask = askCount.filter { (pkg, n) -> n >= minProfiles && pkg !in keep && pkg !in sure }.keys
         val launchers = (ps.flatMap { it.stockLaunchers } + KnownLaunchers.generic).distinct()
-        return SureSet(brand, ps.map { it.id }.sorted(), groups(ps, sure, groupVotes, firstSeen), launchers)
+        val groups = groups(ps, sure, groupVotes, firstSeen) + groups(ps, ask, askVotes, askSeen, GroupDefault.ASK)
+        return SureSet(brand, ps.map { it.id }.sorted(), groups, launchers)
     }
 
     private fun carefulSet(ps: List<Profile>, profiles: List<Profile>, facts: Map<PackageName, PackageFacts>): SureSet? {
@@ -220,7 +232,7 @@ object SureSetGenerator {
     // Each package goes to the group id most of the brand's profiles file it under.
     private fun groups(
         ps: List<Profile>, sure: Collection<PackageName>, groupVotes: Map<PackageName, Map<String, Int>>,
-        firstSeen: Map<PackageName, Pair<PackageGroup, PackageEntry>>,
+        firstSeen: Map<PackageName, Pair<PackageGroup, PackageEntry>>, default: GroupDefault = GroupDefault.DISABLE,
     ): List<PackageGroup> {
         val byGroup = LinkedHashMap<String, MutableList<PackageEntry>>()
         val titles = HashMap<String, String>()
@@ -230,7 +242,7 @@ object SureSetGenerator {
             byGroup.getOrPut(id) { mutableListOf() } += PackageEntry(pkg, firstSeen.getValue(pkg).second.note)
             titles.putIfAbsent(id, ps.asSequence().flatMap { it.groups }.first { it.id == id }.title)
         }
-        return byGroup.entries.sortedBy { order(it.key) }.map { (id, es) -> PackageGroup(id, titles.getValue(id), GroupDefault.DISABLE, es.sortedBy { it.name.value }) }
+        return byGroup.entries.sortedBy { order(it.key) }.map { (id, es) -> PackageGroup(id, titles.getValue(id), default, es.sortedBy { it.name.value }) }
     }
 
     private fun order(groupId: String): Int = ProfileCategory.entries.indexOfFirst { groupId.removeSuffix("-optional") == it.id }
