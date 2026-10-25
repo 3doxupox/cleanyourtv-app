@@ -46,7 +46,19 @@ object Denylist {
         "com.google.android.gms" to "it is Google Play services",
         "com.google.android.gsf" to "it is Google Play services",
         "com.android.vending" to "it is the Play Store",
-    )
+        // Upstream v2.7.0 lists switch these off by default (owner decision for 0.3.7, refuse more):
+        // what accessibility, the remote and the TV stack need, never switched off by any profile.
+        "com.google.android.marvin.talkback" to "it reads the screen aloud for people who need it",
+        "com.google.android.tts" to "it is the TV's text-to-speech voice, which TalkBack reads with",
+        "com.sony.dtv.accessibility.tutorial" to "it is part of the TV's accessibility settings",
+        "com.tcl.hearaid" to "it is the TV's hearing aid sound setting",
+        "com.google.android.tv.remote.service" to "it runs the phone remote and the remote's microphone",
+        "com.google.android.tv.remotecontrol.logging" to "it is part of the remote control service",
+        "com.sony.dtv.seeds.iot.remotestart" to "it turns the TV on from a phone or smart speaker",
+        "com.heytap.tv.remotediagnosing" to "it is part of the remote control service",
+        "mitv.service" to "it runs the Xiaomi TV's remote keys and TV services; Settings can stop working without it",
+        "com.tcl.channelplus" to "it provides TCL Live's channels, a TV input",
+    ) + vendorSetupWizards.associateWith { REASON_VENDOR_WIZARD } + vendorHomes.associateWith { REASON_VENDOR_HOME }
 
     val prefixes: Map<String, String> = linkedMapOf(
         "com.android.networkstack" to "it keeps the TV's network running",
@@ -58,12 +70,21 @@ object Denylist {
     // even then only the home screen switch may switch it off (the planner enforces the where).
     val setupWizards: Set<String> = setOf("com.google.android.tungsten.setupwraith")
 
+    // Vendor first-run wizards and vendor home screens (upstream v2.7.0 lists switch them off): never
+    // switched off, not even by the home screen switch, which knows only the Google wizard.
+    val vendorSetupWizards: Set<String>
+        get() = setOf("com.smartdevice.setupwraith", "com.oneplus.oobe.tv", "com.xiaomi.setupwizard", "com.android.managedprovisioning")
+    val vendorHomes: Set<String>
+        get() = setOf("com.haier.launcher.haiermatrix", "com.oneplus.tv.launcher")
+
     const val REASON_SETUP_WIZARD = "the first-run setup wizard holds on to the Home button on this TV"
     const val REASON_PERSISTENT = "the TV keeps it running at all times"
     const val REASON_TV_INPUT = "it provides a TV input (HDMI, tuner or CEC)"
     const val REASON_PROFILE = "this TV's profile says never switch it off"
     const val REASON_KEYBOARD = "it is the TV's keyboard"
     const val REASON_SCREENSAVER = "it is the TV's screensaver"
+    const val REASON_VENDOR_WIZARD = "it is part of the TV's first-run setup"
+    const val REASON_VENDOR_HOME = "it is this TV's own home screen"
 
     fun staticReason(pkg: String): String? {
         exact[pkg]?.let { return it }

@@ -382,7 +382,7 @@ class DefaultEngine(
                     // The TV's own: a system app, or one of the home screens, wizards and settings apps
                     // the check knows by name (an update can move Google's home screen under /data).
                     val ownApp = run.snapshot?.packages?.get(focus.pkg)?.system == true || focus.pkg in tv.cleanyour.core.spec.KnownLaunchers.byPackage ||
-                        focus.pkg.value in Denylist.setupWizards || focus.pkg.value == Denylist.FRAMEWORK || focus.pkg.value in SETTINGS_APPS
+                        focus.pkg.value in Denylist.setupWizards || focus.pkg.value in Denylist.vendorSetupWizards || focus.pkg.value == Denylist.FRAMEWORK || focus.pkg.value in SETTINGS_APPS
                     log("engine: the home check saw ${if (ownApp) focus.flat else "an app you installed"} in front, so the old home screen goes back")
                     return HomeOutcome.WRONG_FOCUS
                 }

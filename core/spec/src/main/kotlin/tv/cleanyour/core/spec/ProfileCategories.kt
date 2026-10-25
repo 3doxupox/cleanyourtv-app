@@ -65,8 +65,11 @@ enum class ProfileCategory(val id: String, private val title: String, private va
             return c to ask
         }
 
-        // D22: a firmware updater is a "Software updates" row wherever upstream filed it.
-        private val UPDATER_SEGMENT = Regex("^(update|updates|updater|updateservice|upgrade|remoteupgrade|ota|fota|usbota|systemupdate|otaupdate)$", RegexOption.IGNORE_CASE)
+        // D22: a firmware updater is a "Software updates" row wherever upstream filed it. The second
+        // line (0.3.7) holds the updaters upstream v2.7.0 lists name: CVTE, TCL, Sber, Fire TV, the TCL
+        // remote and peripherals updater and Sony's camera firmware.
+        private val UPDATER_SEGMENT = Regex("^(update|updates|updater|updateservice|upgrade|remoteupgrade|ota|fota|usbota|systemupdate|otaupdate|" +
+            "systemupgrade|versionupdateapp|rcfupdater|easyupgrade|updateperipheral|fwupdate)$", RegexOption.IGNORE_CASE)
         fun isUpdater(pkg: PackageName): Boolean = pkg.value.split('.').drop(1).any { UPDATER_SEGMENT.matches(it) }
 
         // A software updater by its name, or by its place in a profile's "Software updates" group:

@@ -496,7 +496,7 @@ class DefaultPlanner(
             val rollbackIfFocus: Set<PackageName> = (
                 stockLaunchers.map { it.pkg } +
                     claimants.filter { it != launcher }.map { it.pkg } +
-                    (Denylist.setupWizards + Denylist.FRAMEWORK).map(::PackageName) +
+                    (Denylist.setupWizards + Denylist.vendorSetupWizards + Denylist.FRAMEWORK).map(::PackageName) +
                     PackageName("com.android.settings")
                 ).toSet()
             sections += GuardedSection(SECTION_HOME, from, to, token, confirmWindowMs, launcher, rollbackIfFocus, rollback)

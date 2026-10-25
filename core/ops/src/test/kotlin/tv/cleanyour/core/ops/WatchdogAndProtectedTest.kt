@@ -103,7 +103,7 @@ class ProtectedTest {
             "com.android.providers.media.module", "com.android.networkstack.tethering", "com.android.wifi.resources", "com.droidlogic.tvinput", "com.android.bluetooth")) {
             assertNotNull(Protected.isProtected(PackageName(name), null, null), name)
         }
-        for (name in listOf("com.miui.tv.analytics", "com.google.android.backdrop", "com.google.android.tv.remote.service", "com.droidlogic.droidlivetv", "com.android.wifiexample")) {
+        for (name in listOf("com.miui.tv.analytics", "com.google.android.backdrop", "com.droidlogic.droidlivetv", "com.android.wifiexample")) {
             assertNull(Protected.isProtected(PackageName(name), null, null), name)
         }
     }
@@ -114,6 +114,23 @@ class ProtectedTest {
         assertEquals(Denylist.REASON_PERSISTENT, Protected.isProtected(pkg, state(persistent = true), null))
         assertEquals(Denylist.REASON_TV_INPUT, Protected.isProtected(pkg, state(tvInput = true), null))
         assertEquals(Denylist.REASON_PROFILE, Protected.isProtected(pkg, state(), profile(emptySet(), neverDisable = setOf(pkg))))
+    }
+
+    // 0.3.7 (upstream v2.7.0 lists switch these off by default): vendor first-run wizards, vendor home
+    // screens, TalkBack and text-to-speech, the remote's services, the Xiaomi TV service and TCL Live are
+    // never switched off, by any profile, its takeover quirks or its never-disable list.
+    @Test fun vendorWizardsHomesAccessibilityAndRemoteServices() {
+        val takeover = profile(setOf(Quirk.HOME_TAKEOVER_SETUPWRAITH, Quirk.EXTRA_HOME_CLAIMERS))
+        for (name in Denylist.vendorSetupWizards) assertEquals(Denylist.REASON_VENDOR_WIZARD, Protected.isProtected(PackageName(name), state(), takeover), name)
+        for (name in Denylist.vendorHomes) assertEquals(Denylist.REASON_VENDOR_HOME, Protected.isProtected(PackageName(name), state(), takeover), name)
+        for (name in listOf("com.smartdevice.setupwraith", "com.oneplus.oobe.tv", "com.xiaomi.setupwizard", "com.android.managedprovisioning",
+            "com.haier.launcher.haiermatrix", "com.oneplus.tv.launcher", "com.google.android.marvin.talkback", "com.google.android.tts",
+            "com.sony.dtv.accessibility.tutorial", "com.tcl.hearaid", "com.google.android.tv.remote.service", "com.google.android.tv.remotecontrol.logging",
+            "com.sony.dtv.seeds.iot.remotestart", "com.heytap.tv.remotediagnosing", "mitv.service", "com.tcl.channelplus")) {
+            assertNotNull(Protected.isProtected(PackageName(name), state(), takeover), name)
+            assertNotNull(Denylist.staticReason(name), name)
+        }
+        assertTrue(Denylist.vendorSetupWizards.none { it in Denylist.setupWizards }, "the takeover quirk never opens a vendor wizard")
     }
 
     @Test fun theSetupWizardNeedsTheQuirk() {
