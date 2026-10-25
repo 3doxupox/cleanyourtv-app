@@ -52,6 +52,7 @@ sealed interface LookPicture {
     companion object {
         const val NONE_ID = "none"
         const val MINE_ID = "mine"     // the person's own photo for this TV (OwnPicture), resolved by HomeScreenMachine
+        const val NEW_ID = "new"       // a photo just made in the open Look sheet, not on the TV yet; never saved as a choice
 
         // HomeChoice.picture to the picture: null (the look's own) and an id the gallery no longer
         // has keep the look's own.

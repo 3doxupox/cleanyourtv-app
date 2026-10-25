@@ -6,6 +6,7 @@ import kotlinx.coroutines.test.runTest
 import tv.cleanyour.core.model.LauncherState
 import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.planner.PlanRequest
+import tv.cleanyour.core.planner.PlanResult
 import tv.cleanyour.core.model.BlobRef
 import tv.cleanyour.core.spec.BundledThemeSource
 import tv.cleanyour.core.spec.DecodeResult
@@ -212,9 +213,10 @@ class LooksTest {
         assertEquals(false, after.festive); assertEquals("", after.greeting)
     }
 
-    // "Your photo": the photo the phone made is kept for this TV in its private files and chosen in the
-    // sheet; "Use this look" sends it as wallpaper.jpg with its dim (wallpaper forced on, no
-    // rotation). After the cache lost it, "Restore mine" still sends it, from the private copy.
+    // "Your photo": the photo the phone made is staged and chosen in the sheet; "Use this look" sends
+    // it as wallpaper.jpg with its dim (wallpaper forced on, no rotation) and only then keeps it for
+    // this TV in its private files. After the cache lost it, "Restore mine" still sends it, from the
+    // private copy.
     @Test fun yourOwnPhotoIsKeptForTheTvAndSentWithItsDim() = runTest(timeout = 30.seconds) {
         val h = Harness()
         val tv = h.knownTv().copy(launcher = LauncherState(1, Samples.zeroHash, Samples.zeroHash, Samples.zeroHash))
@@ -229,11 +231,14 @@ class LooksTest {
         m.dispatch(HomeScreenIntent.OpenLook); settle()
         m.dispatch(HomeScreenIntent.SelectLook("quiet")); settle()
         m.dispatch(HomeScreenIntent.SetOwnPicture(jpeg, 40)); settle()
-        assertEquals(LookPicture.MINE_ID, m.state.value.look?.picture)
+        assertEquals(LookPicture.NEW_ID, m.state.value.look?.picture)
         assertEquals(40, m.state.value.look?.preview?.dim)
-        assertEquals(true, jpeg.contentEquals(h.documents.read(OwnPicture.path(tv.id)) { it }), "kept in the private files")
+        assertNull(h.documents.read(OwnPicture.path(tv.id)) { it }, "not kept before the TV has it")
         assertEquals(0, h.planner.requests.filterIsInstance<PlanRequest.ApplyTheme>().size, "nothing sent yet")
         m.dispatch(HomeScreenIntent.UseLook); settle()
+        assertEquals(true, jpeg.contentEquals(h.documents.read(OwnPicture.path(tv.id)) { it }), "kept in the private files")
+        assertEquals(sha256Of(jpeg), m.state.value.ownPicture?.sha256)
+        assertNull(m.state.value.newPicture)
         val sent = h.planner.requests.filterIsInstance<PlanRequest.ApplyTheme>().single()
         assertEquals(true, sent.doc.wallpaper); assertEquals(40, sent.doc.wallpaperDim); assertEquals(0, sent.doc.wallpaperRotationMinutes)
         assertEquals(sha256Of(jpeg), sent.wallpaper?.sha256)
@@ -255,5 +260,68 @@ class LooksTest {
         // A file that is not a JPEG within 280 KB is refused and the kept one stays.
         later.dispatch(HomeScreenIntent.SetOwnPicture(ByteArray(300_000), 30)); settle()
         assertEquals(true, jpeg.contentEquals(h.documents.read(OwnPicture.path(tv.id)) { it }))
+    }
+
+    // A photo picked and then cancelled, or one the TV never got, changes nothing: the kept copy,
+    // its dim and "Restore mine" stay the photo on the TV, and the sheet's dim goes back to it.
+    @Test fun aNewPhotoIsKeptOnlyOnceTheTvHasIt() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val tv = h.knownTv().copy(launcher = LauncherState(1, Samples.zeroHash, Samples.zeroHash, Samples.zeroHash))
+        h.tvs.upsert(tv)
+        h.snapshots.save(Samples.snapshot(takenAtMs = Samples.NOW_MS + 1))
+        val deps = h.manageDeps(encoder = ConfigEncoder.Codec, themes = gallery)
+        fun photo(seed: Int) = byteArrayOf(0xFF.toByte(), 0xD8.toByte()) + ByteArray(5_000) { ((it + seed) % 251).toByte() }
+        val onTv = photo(1)
+        val other = photo(2)
+        h.documents.write(OwnPicture.path(tv.id), onTv)
+        HomePrefs(h.documents).save(tv.id, HomeChoice(dock, "cinema", cards = false, picture = LookPicture.MINE_ID, dim = 40))
+        val m = HomeScreenMachine(deps, backgroundScope, tv.id)
+        settle()
+        assertEquals(sha256Of(onTv), m.state.value.ownPicture?.sha256)
+        assertEquals(40, m.state.value.ownDim)
+
+        // Picked, then the sheet closed.
+        m.dispatch(HomeScreenIntent.OpenLook); settle()
+        m.dispatch(HomeScreenIntent.SetOwnPicture(other, 60)); settle()
+        assertEquals(LookPicture.NEW_ID, m.state.value.look?.picture)
+        assertEquals(sha256Of(other), m.state.value.newPicture?.sha256)
+        assertEquals(60, m.state.value.look?.preview?.dim)
+        m.dispatch(HomeScreenIntent.CloseLook); settle()
+        assertNull(m.state.value.newPicture)
+        assertEquals(40, m.state.value.newDim, "the unapplied dim is gone")
+        assertEquals(40, m.state.value.ownDim)
+        assertEquals(true, onTv.contentEquals(h.documents.read(OwnPicture.path(tv.id)) { it }))
+        m.dispatch(HomeScreenIntent.OpenLook); settle()
+        assertEquals(LookPicture.MINE_ID, m.state.value.look?.picture, "the sheet opens on the photo the TV has")
+        assertEquals(40, m.state.value.look?.preview?.dim)
+        m.dispatch(HomeScreenIntent.CloseLook); settle()
+        assertEquals(0, h.planner.requests.filterIsInstance<PlanRequest.ApplyTheme>().size)
+
+        // Picked and sent, but the TV refused the push.
+        val previous = h.planner.respond
+        h.planner.respond = { r, snap -> if (r is PlanRequest.ApplyTheme) PlanResult.Refused(listOf("no")) else previous(r, snap) }
+        m.dispatch(HomeScreenIntent.OpenLook); settle()
+        m.dispatch(HomeScreenIntent.SetOwnPicture(other, 60)); settle()
+        m.dispatch(HomeScreenIntent.UseLook); settle()
+        assertEquals(true, onTv.contentEquals(h.documents.read(OwnPicture.path(tv.id)) { it }), "the kept copy is still the TV's")
+        assertEquals(HomeChoice(dock, "cinema", cards = false, picture = LookPicture.MINE_ID, dim = 40), HomePrefs(h.documents).load(tv.id))
+        assertNull(m.state.value.newPicture)
+        assertEquals(40, m.state.value.ownDim)
+        h.planner.respond = previous
+
+        // "Restore mine" sends the photo on the TV with its dim.
+        m.dispatch(HomeScreenIntent.RestoreMine); settle()
+        val sent = h.planner.requests.filterIsInstance<PlanRequest.ApplyTheme>().last()
+        assertEquals(sha256Of(onTv), sent.wallpaper?.sha256)
+        assertEquals(40, sent.doc.wallpaperDim)
+
+        // Picked and sent: now it is the kept one.
+        m.dispatch(HomeScreenIntent.OpenLook); settle()
+        m.dispatch(HomeScreenIntent.SetOwnPicture(other, 60)); settle()
+        m.dispatch(HomeScreenIntent.UseLook); settle()
+        assertEquals(sha256Of(other), h.planner.requests.filterIsInstance<PlanRequest.ApplyTheme>().last().wallpaper?.sha256)
+        assertEquals(true, other.contentEquals(h.documents.read(OwnPicture.path(tv.id)) { it }))
+        assertEquals(LookPicture.MINE_ID to 60, HomePrefs(h.documents).load(tv.id)?.let { it.picture to it.dim })
+        assertEquals(60, m.state.value.ownDim)
     }
 }

@@ -45,7 +45,8 @@ data class NotOnTv(
 data class PictureOption(val id: String, val name: String, val path: String?)
 
 // 0.4.0: the Look sheet's choice while it is open. Nothing reaches the TV until UseLook.
-// `picture`: null for the look's own, LookPicture.NONE_ID, MINE_ID (the person's photo) or a gallery id. `ownPictureOnly`: a dated
+// `picture`: null for the look's own, LookPicture.NONE_ID, MINE_ID (the person's photo kept for this TV),
+// NEW_ID (a photo just made in this sheet) or a gallery id. `ownPictureOnly`: a dated
 // look (a festival) keeps its own picture, so the sheet shows no Picture row for it. `preview`: the
 // TV's home screen with this choice (LookPreview), null when it cannot be made.
 data class LookDraft(val themeId: String, val picture: String?, val ownPictureOnly: Boolean = false, val preview: LookPreview? = null)
@@ -72,6 +73,11 @@ data class HomeScreenState(
     val pictures: List<PictureOption> = emptyList(),    // 0.4.0: the gallery of the Picture row
     val ownPicture: BlobRef? = null,                    // 0.4.0: the person's photo kept for this TV (OwnPicture), as a file
     val ownDim: Int = OwnPicture.DEFAULT_DIM,           // and its dim
+    // 0.4.0: a photo just made in the open Look sheet (staged, OwnPicture.stage) and its dim. It
+    // becomes the kept one only when "Use this look" put it on the TV; closing the sheet or a failed
+    // push drops it, so ownPicture and ownDim stay what the TV has.
+    val newPicture: BlobRef? = null,
+    val newDim: Int = OwnPicture.DEFAULT_DIM,
     val look: LookDraft? = null,                        // 0.4.0: the Look sheet's choice, while it is open
 )
 
@@ -82,8 +88,8 @@ sealed interface HomeScreenIntent {
     data class SelectLook(val id: String) : HomeScreenIntent
     data class SelectPicture(val id: String?) : HomeScreenIntent
     data object UseLook : HomeScreenIntent               // the sheet's choice to the TV
-    // The photo the phone just made (OwnPicture: 16:9, 1920 x 1080, at most 280 KB) and its dim: kept
-    // for this TV and chosen in the sheet. Nothing reaches the TV until UseLook.
+    // The photo the phone just made (OwnPicture: 16:9, 1920 x 1080, at most 280 KB) and its dim: staged
+    // and chosen in the sheet. Nothing reaches the TV, and nothing is kept, until UseLook succeeds.
     class SetOwnPicture(val jpeg: ByteArray, val dim: Int) : HomeScreenIntent
     data object CloseLook : HomeScreenIntent
     data object RestoreMine : HomeScreenIntent
@@ -108,20 +114,24 @@ class HomeScreenMachine(
     private data class Preview(val plan: Plan?)
     private data class Drift(val drift: Boolean)
     private data class UpdatePreview(val plan: Plan?)
-    private data class OwnPictureKept(val ref: BlobRef, val dim: Int)
+    private class OwnPictureStaged(val ref: BlobRef, val dim: Int, val jpeg: ByteArray)
+    private var staged: ByteArray? = null   // the bytes of state.newPicture, kept once the TV has them
     private var updated = false   // D4: this screen updated the launcher; the stored snapshot does not know yet
 
     init { scope.launch { load(); checkDrift() } }
 
     override fun reduce(state: HomeScreenState, event: Any): HomeScreenState = when (event) {
-        is Loaded -> event.s.copy(busy = state.busy, stockPreview = state.stockPreview, drift = state.drift, updatePreview = state.updatePreview, look = state.look)
+        is Loaded -> event.s.copy(busy = state.busy, stockPreview = state.stockPreview, drift = state.drift, updatePreview = state.updatePreview, look = state.look,
+            newPicture = state.newPicture, newDim = state.newDim)
         HomeScreenIntent.OpenLook -> if (state.busy != null || state.notOnTv != null) state else state.copy(look = draft(state.themeId ?: DEFAULT_LOOK, state.pictureId, state))
         is HomeScreenIntent.SelectLook -> state.look?.let { l -> state.copy(look = draft(event.id, l.picture, state)) } ?: state
         is HomeScreenIntent.SelectPicture -> state.look?.let { l -> state.copy(look = if (l.ownPictureOnly) l else draft(l.themeId, event.id, state)) } ?: state
-        HomeScreenIntent.CloseLook, HomeScreenIntent.UseLook -> state.copy(look = null)
-        is OwnPictureKept -> state.copy(ownPicture = event.ref, ownDim = event.dim).let { s ->
-            s.look?.takeUnless { it.ownPictureOnly }?.let { l -> s.copy(look = draft(l.themeId, LookPicture.MINE_ID, s)) } ?: s
-        }
+        // Closing the sheet drops a photo made in it and its dim; "Use this look" hands them to the push.
+        HomeScreenIntent.CloseLook, HomeScreenIntent.UseLook -> state.copy(look = null, newPicture = null, newDim = state.ownDim)
+        // A photo made for a sheet that has closed since is dropped.
+        is OwnPictureStaged -> state.look?.takeUnless { it.ownPictureOnly }?.let { l ->
+            state.copy(newPicture = event.ref, newDim = event.dim).let { s -> s.copy(look = draft(l.themeId, LookPicture.NEW_ID, s)) }
+        } ?: state
         is UpdatePreview -> state.copy(updatePreview = event.plan)
         is BusyNow -> state.copy(busy = event.busy)
         is Preview -> state.copy(stockPreview = event.plan)
@@ -142,11 +152,17 @@ class HomeScreenMachine(
             // off would drop out and change dock_apps, and the TV's own dock edit would stop applying,
             // upstream #340). Only SetDock changes the list.
             is HomeScreenIntent.SetTheme -> if (Looks.offered(event.id, d.clock.today())) scope.launch { apply(savedDock() ?: after.dock.map { it.pkg }, event.id, event.picture) }
-            HomeScreenIntent.UseLook -> before.look?.let { l -> if (Looks.offered(l.themeId, d.clock.today())) scope.launch { apply(savedDock() ?: after.dock.map { it.pkg }, l.themeId, l.picture) } }
+            HomeScreenIntent.UseLook -> {
+                val photo = staged?.let { b -> before.newPicture?.let { NewPhoto(it, b, before.newDim) } }
+                staged = null
+                before.look?.let { l -> if (Looks.offered(l.themeId, d.clock.today())) scope.launch { apply(savedDock() ?: after.dock.map { it.pkg }, l.themeId, l.picture, photo) } }
+            }
+            HomeScreenIntent.CloseLook -> staged = null
+            is OwnPictureStaged -> if (after.newPicture == event.ref) staged = event.jpeg
             HomeScreenIntent.RestoreMine -> scope.launch { apply(savedDock() ?: after.dock.map { it.pkg }, after.themeId, after.pictureId) }
             is HomeScreenIntent.SetOwnPicture -> scope.launch {
                 val dim = event.dim.coerceIn(0, 90)
-                attempt { OwnPicture.save(d, tvId, event.jpeg) }.onSuccess { send(OwnPictureKept(it, dim)) }
+                attempt { OwnPicture.stage(d, event.jpeg) }.onSuccess { send(OwnPictureStaged(it, dim, event.jpeg)) }
                     .onFailure { effect(ManageEffect.Snackbar(SnackKind.FAILED, "", false)) }
             }
             HomeScreenIntent.PreviewStock -> after.stock?.let { stock -> scope.launch { send(Preview(writer.preview(tvId, PlanRequest.UseStockHome(stock)))) } }
@@ -292,7 +308,11 @@ class HomeScreenMachine(
     // The preview from the bytes the push would send for this choice and the saved dock (cards as
     // they are do not change the picture, so they are left at the default).
     private fun preview(themeId: String, picture: String?, state: HomeScreenState): LookPreview? = runCatching {
-        val p = if (picture == LookPicture.MINE_ID) state.ownPicture?.let { LookPicture.Of(it, state.ownDim) } else LookPicture.of(picture, d.pictures)
+        val p = when (picture) {
+            LookPicture.MINE_ID -> state.ownPicture?.let { LookPicture.Of(it, state.ownDim) }
+            LookPicture.NEW_ID -> state.newPicture?.let { LookPicture.Of(it, state.newDim) }
+            else -> LookPicture.of(picture, d.pictures)
+        }
         val (doc, wallpaper) = Look.docOf(theme(themeId), state.dock.map { it.pkg }, cards = Cards.MANAGE_DEFAULT, p)
         val now = java.time.Instant.ofEpochMilli(d.clock.nowMs()).atZone(java.time.ZoneId.systemDefault())
         LookPreview.of(d.encoder.encode(doc), wallpaper, state.dock.map { it.name }, now.toLocalDate(), now.hour * 60 + now.minute)
@@ -303,28 +323,41 @@ class HomeScreenMachine(
 
     private suspend fun savedDock(): List<PackageName>? = d.homePrefs.load(tvId)?.dock
 
+    // A photo made in the Look sheet on its way to the TV: its staged file, its bytes and its dim.
+    private class NewPhoto(val ref: BlobRef, val jpeg: ByteArray, val dim: Int)
+
     // Dock and look go to the TV as one config.json (LauncherConfigCodec), pushed by an ApplyTheme
     // plan; the digest we wrote is remembered so the next connect can warn on drift. dock_apps is
     // the dock and the rows under it in order, rows_below_dock the rows under the dock that hold an
     // app (DockLayers), so the TV shows the rows the sheet showed. module_cards keeps this TV's cards
     // choice (RFC-CARDS-1): a new dock or theme never turns cards on or off.
     // 0.4.0 `picture`: the Picture row's choice (HomeChoice.picture); a dated look keeps its own.
-    private suspend fun apply(dock: List<PackageName>, themeId: String?, picture: String?) {
+    // `photo`: the photo made in the sheet (LookPicture.NEW_ID), kept for this TV only once the TV has
+    // it; until then the kept one (and "Restore mine") stays the photo on the TV.
+    private suspend fun apply(dock: List<PackageName>, themeId: String?, picture: String?, photo: NewPhoto? = null) {
         val cards = Cards.current(d, tvId, d.homePrefs.load(tvId))
         val pictureId = picture.takeUnless { Looks.dated(themeId) }
-        val dim = state.value.ownDim
-        val look = attempt { Look.encode(d.encoder, d.blobs, theme(themeId), dock, cards, OwnPicture.lookPicture(d, tvId, pictureId, dim)) }.getOrNull()
+        val sendsNew = pictureId == LookPicture.NEW_ID && photo != null
+        val dim = if (sendsNew) photo!!.dim else state.value.ownDim
+        val lookPicture = if (sendsNew) LookPicture.Of(photo!!.ref, photo.dim)
+            else OwnPicture.lookPicture(d, tvId, pictureId.takeUnless { it == LookPicture.NEW_ID }, dim)
+        val look = attempt { Look.encode(d.encoder, d.blobs, theme(themeId), dock, cards, lookPicture) }.getOrNull()
             ?: return effect(ManageEffect.Snackbar(SnackKind.FAILED, "", false))
         val kept = look.doc.dockApps.orEmpty()
         val r = writer.write(tvId, PlanRequest.ApplyTheme(look.doc, look.config, look.wallpaper)) { send(BusyNow(it)) }
         send(BusyNow(null))
         if (r is WriteResult.Done) {
+            // The new photo is kept only when the run completed, so it is the one on the TV; when it
+            // cannot be kept, the choice stays as it was saved.
+            val keptNew = sendsNew && r.finished.status == RunStatus.COMPLETED &&
+                attempt { OwnPicture.keep(d, tvId, photo!!.jpeg) }.isSuccess
             // A dated look keeps its own picture, so the picture and dim saved for the look before it
             // stay, and come back with that look once the dated one ends.
             val saved = d.homePrefs.load(tvId) ?: HomeChoice(emptyList(), null)
-            val dated = Looks.dated(themeId)
-            d.homePrefs.save(tvId, saved.withTheme(themeId, kept, cards, picture = if (dated) saved.picture else pictureId,
-                dim = if (dated) saved.dim else if (pictureId == LookPicture.MINE_ID) dim else null))
+            val keepSaved = Looks.dated(themeId) || (pictureId == LookPicture.NEW_ID && !keptNew)
+            val chosen = if (keptNew) LookPicture.MINE_ID else pictureId
+            d.homePrefs.save(tvId, saved.withTheme(themeId, kept, cards, picture = if (keepSaved) saved.picture else chosen,
+                dim = if (keepSaved) saved.dim else if (chosen == LookPicture.MINE_ID) dim else null))
             rememberPushedLook(d, tvId, look.digest)
             send(Drift(false))
             effect(ManageEffect.Snackbar(SnackKind.HOME_SAVED, "", false))

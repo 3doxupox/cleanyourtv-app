@@ -85,13 +85,14 @@ internal fun ColumnScope.LookContent(state: HomeScreenState, onIntent: (HomeScre
         Body(stringResource(R.string.look_picture_own_only), Modifier.padding(start = 4.dp, end = 4.dp))
     } else {
         // "Choose a photo" opens the system picker, then the crop and dim (PhotoCropDialog); the
-        // photo kept for this TV is "Restore mine" (LookPicture.MINE_ID) from then on.
+        // result is "New photo" (LookPicture.NEW_ID) until "Use this look" puts it on the TV, and
+        // the photo kept for this TV is "Restore mine" (LookPicture.MINE_ID).
         var picked by remember { mutableStateOf<Uri?>(null) }
         PicturePicker(pictureChoices(state, draft, pictures, choose = photos != null), draft.picture ?: OWN, { c ->
             if (c.key == PICK) photos?.pick { picked = it } else onIntent(HomeScreenIntent.SelectPicture(c.key.takeUnless { k -> k == OWN }))
         })
         picked?.let { uri ->
-            PhotoCropDialog(uri, draft.preview?.toTvLook(null), state.ownDim, onDone = { jpeg, dim ->
+            PhotoCropDialog(uri, draft.preview?.toTvLook(null), if (state.newPicture != null) state.newDim else state.ownDim, onDone = { jpeg, dim ->
                 onIntent(HomeScreenIntent.SetOwnPicture(jpeg, dim)); picked = null
             }, onCancel = { picked = null })
         }
@@ -107,8 +108,9 @@ private fun pictureChoices(state: HomeScreenState, draft: LookDraft, given: Map<
     val own = PictureChoice(OWN, stringResource(R.string.look_picture_own), picture(look?.wallpaperPath, given), color)
     val gallery = state.pictures.map { PictureChoice(it.id, it.name, picture(it.path, given), color) }
     val mine = state.ownPicture?.let { PictureChoice(LookPicture.MINE_ID, stringResource(R.string.look_picture_restore_mine), picture(it.path, given), color) }
+    val new = state.newPicture?.let { PictureChoice(LookPicture.NEW_ID, stringResource(R.string.look_picture_new), picture(it.path, given), color) }
     val pick = PictureChoice(PICK, stringResource(R.string.look_picture_choose), null, CytTheme.colors.surface3).takeIf { choose }
-    return listOf(own) + gallery + listOfNotNull(mine, pick) + PictureChoice(LookPicture.NONE_ID, stringResource(R.string.look_picture_none), null, color)
+    return listOf(own) + gallery + listOfNotNull(mine, new, pick) + PictureChoice(LookPicture.NONE_ID, stringResource(R.string.look_picture_none), null, color)
 }
 
 // A picture file as a small bitmap for a thumbnail, read off the main thread; null while it loads
