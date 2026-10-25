@@ -285,6 +285,9 @@ class LauncherConfigCodecTest {
         assertEquals(false, own.first { it.id == "library" }.doc.dockRow, "Library: one plain grid from the top")
         val diwali = own.first { it.id == "diwali" }.doc
         assertEquals("diwali", diwali.festival); assertEquals("2026-11-10", diwali.festivalUntil)
+        // rows_below_dock is the phone's to write: DockLayers sets it from the dock's length on every
+        // push (as every version since 0.1.0 does), so a look file saying 1 promised a row a 4-app dock never shows.
+        for (t in own) assertEquals(0, t.doc.rowsBelowDock, "${t.id}: the rows under the dock follow the dock")
     }
 
     @Test fun datedLooksAreOfferedUpToTheirLastDay() {

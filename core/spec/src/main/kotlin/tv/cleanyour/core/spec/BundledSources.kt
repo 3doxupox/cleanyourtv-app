@@ -130,7 +130,7 @@ class BundledThemeSource : ThemeSource, PictureSource {
         private val catalogue = listOf(
             Entry("default", "Default", "Black, four tiles a row, the dock at the very bottom.", THEMES),
             Entry("aurora", "Aurora", "A dark aurora picture on navy behind the apps.", THEMES),
-            Entry("six-columns", "Six columns", "Six smaller tiles a row, one row showing under the dock.", THEMES),
+            Entry("six-columns", "Six columns", "Six smaller tiles a row, and a row under the dock once it holds more than six apps.", THEMES),
             Entry("cinema", "Cinema", "Velvet curtains around a dark stage, and the focused app's name in large type.", LOOKS),
             Entry("console", "Console", "Seven small tiles, a big name and deep cobalt light.", LOOKS),
             Entry("horizon", "Horizon", "Mountain ridges under a sky that follows the time of day.", LOOKS),

@@ -8,7 +8,7 @@
   "dock_title": false,
   "dock_row": true,
   "columns": 6,
-  "rows_below_dock": 1,
+  "rows_below_dock": 0,
   "animations": true,
   "advanced_effects": false,
   "reduced_motion": false
