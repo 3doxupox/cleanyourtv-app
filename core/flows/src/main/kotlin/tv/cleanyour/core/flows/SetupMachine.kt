@@ -981,6 +981,7 @@ class SetupMachine(
     private suspend fun onFinished(tvId: TvId, f: RunState.Finished) {
         lastFinished = f
         mutableExtras.update { it.copy(rollingBack = false, highlightStop = false, reconnect = null) }
+        if (f.home == HomeOutcome.VERIFY_FAILED) logHomeSwitchFailure(f.plan)
         when {
             // A Manage write resumed from the S4e card (after process death) ends in Manage, never on Done.
             f.plan.kind != PlanKind.SETUP -> effect(SetupEffect.Navigate("manage/${tvId.value}"))
@@ -1459,10 +1460,21 @@ class SetupMachine(
         return "$head: ${if (failed.undo) "undo step failed" else "step failed"}: ${LogCodes.op(failed.op)}: $code$stderr"
     }
 
+    // Issue #338: the step the home screen switch stopped at, with its exit code and the head of the
+    // TV's answer, the way a pause line names its step (0.3.2 B3).
+    private suspend fun logHomeSwitchFailure(plan: Plan) {
+        val failed = attempt { deps.ledger.homeSwitchFailure(plan) }.getOrNull() ?: return
+        val code = failed.exit?.let { "exit $it" } ?: "failed"
+        val head = LogCodes.clean(failed.stderrHead, 160).takeIf { it.isNotEmpty() }?.let { ": $it" }.orEmpty()
+        deps.log.line("setup: home switch stopped at ${LogCodes.op(failed.op)}: $code$head")
+    }
+
     private fun runLabel(r: RunState): String = when (r) {
         is RunState.Running -> "running"
         is RunState.AwaitingConfirm -> "awaiting confirm"
         is RunState.RollingBack -> "rolling back"
+        // Issue #367's log said "run cd2": the class name, renamed by R8 in a release build.
+        is RunState.InDoubt -> "in doubt"
         is RunState.Paused -> "paused ${r.reason} at step ${r.at}${r.error?.let { " (${errorName(it)})" } ?: ""}"
         // 0.3.3 (issue #10): the skipped switch-offs by name, so a report shows what stayed on.
         is RunState.Finished -> "finished ${r.status}${r.home?.let { ", home $it" } ?: ""}, ${r.skipped.size} skipped" +

@@ -136,7 +136,7 @@ class AppGraph(context: Context, val appVersion: String = versionOf(context), va
     val snapshots = DocumentSnapshotStore(documents)       // W6
     val journal = FileJournal(dataDir)                     // tvs/<tvId>/journal/<planId>.jsonl
     val plans = DocumentPlanStore(documents)
-    val engine: Engine = LiveSessionEngine(DefaultEngine(renderer, prober, journal, snapshots, plans, clock, workScope, profiles), sessions, tvs)
+    val engine: Engine = LiveSessionEngine(DefaultEngine(renderer, prober, journal, snapshots, plans, clock, workScope, profiles, log = { CytLog.i(it) }), sessions, tvs)
 
     // W6: the restore files on the TV, the note, the zip.
     val restoreFiles = DefaultTvRestoreFiles(clock, zone)

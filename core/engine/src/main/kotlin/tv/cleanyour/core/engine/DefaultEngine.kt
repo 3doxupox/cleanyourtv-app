@@ -80,6 +80,9 @@ class DefaultEngine(
     private val recentThumbnailMs: Long = 15_000L,
     private val noThumbnailWindowMs: Long = 120_000L,
     private val bootTimeoutMs: Long = 300_000L,
+    // Redacted lines for the diagnostics log (issue #375): only fixed words and the TV's own
+    // package names, never an app the person installed. Defaulted and last, so every caller compiles.
+    private val log: (String) -> Unit = {},
 ) : Engine {
 
     // `fromJournalOnly`: the plan file could not be trusted on resume, so this run holds only the
@@ -373,7 +376,16 @@ class DefaultEngine(
                 if (e.error.isLost()) return HomeOutcome.CONNECTION_LOST else null
             }
             if (focus != null) {
-                if (focus.pkg in section.rollbackIfFocus) return HomeOutcome.WRONG_FOCUS
+                if (focus.pkg in section.rollbackIfFocus) {
+                    // Issues #153, #339, #375, #385: the log said WRONG_FOCUS and nothing about what
+                    // was in front, so no report could tell the setup wizard from Settings or the chooser.
+                    // The TV's own: a system app, or one of the home screens, wizards and settings apps
+                    // the check knows by name (an update can move Google's home screen under /data).
+                    val ownApp = run.snapshot?.packages?.get(focus.pkg)?.system == true || focus.pkg in tv.cleanyour.core.spec.KnownLaunchers.byPackage ||
+                        focus.pkg.value in Denylist.setupWizards || focus.pkg.value == Denylist.FRAMEWORK || focus.pkg.value in SETTINGS_APPS
+                    log("engine: the home check saw ${if (ownApp) focus.flat else "an app you installed"} in front, so the old home screen goes back")
+                    return HomeOutcome.WRONG_FOCUS
+                }
                 homeCheck = focus.pkg == section.expectedHome.pkg
             }
             thumbnail(run, force = false)
@@ -981,6 +993,7 @@ class DefaultEngine(
         // The journal's Failed text for a streamed install the TV ended with a protocol error while
         // the connection stayed up (issues #80, #367).
         const val STREAM_FAILED = "streamed install failed, the TV is still connected: "
+        val SETTINGS_APPS = setOf("com.android.settings", "com.android.tv.settings")
     }
 }
 
