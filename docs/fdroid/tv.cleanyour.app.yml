@@ -1,3 +1,8 @@
+AntiFeatures:
+  NonFreeNet:
+    en-US: On request only, "Check for updates" asks GitHub for the latest release,
+      and the optional add-ons (Cards and modules) are listed and downloaded from
+      GitHub.
 Categories:
   - App Manager
   - System
@@ -34,11 +39,6 @@ Builds:
       - android/platform/signatures/cleanyourtv-launcher/APKSigningBlock
       - android/platform/signatures/cleanyourtv-curtain/APKSigningBlock
     build: bash ../scripts/fdroid-build-tv-apks.sh
-    antifeatures:
-      NonFreeNet:
-        en-US: On request only, "Check for updates" asks GitHub for the latest release,
-          and the optional add-ons (Cards and modules) are listed and downloaded from
-          GitHub.
 
   - versionName: 0.3.1
     versionCode: 4
@@ -59,11 +59,6 @@ Builds:
       - android/platform/signatures/cleanyourtv-launcher/APKSigningBlock
       - android/platform/signatures/cleanyourtv-curtain/APKSigningBlock
     build: bash ../scripts/fdroid-build-tv-apks.sh
-    antifeatures:
-      NonFreeNet:
-        en-US: On request only, "Check for updates" asks GitHub for the latest release,
-          and the optional add-ons (Cards and modules) are listed and downloaded from
-          GitHub.
 
   - versionName: 0.3.2
     versionCode: 5
@@ -84,11 +79,6 @@ Builds:
       - android/platform/signatures/cleanyourtv-launcher/APKSigningBlock
       - android/platform/signatures/cleanyourtv-curtain/APKSigningBlock
     build: bash ../scripts/fdroid-build-tv-apks.sh
-    antifeatures:
-      NonFreeNet:
-        en-US: On request only, "Check for updates" asks GitHub for the latest release,
-          and the optional add-ons (Cards and modules) are listed and downloaded from
-          GitHub.
 
   - versionName: 0.3.3
     versionCode: 6
@@ -109,11 +99,6 @@ Builds:
       - android/platform/signatures/cleanyourtv-launcher/APKSigningBlock
       - android/platform/signatures/cleanyourtv-curtain/APKSigningBlock
     build: bash ../scripts/fdroid-build-tv-apks.sh
-    antifeatures:
-      NonFreeNet:
-        en-US: On request only, "Check for updates" asks GitHub for the latest release,
-          and the optional add-ons (Cards and modules) are listed and downloaded from
-          GitHub.
 
   - versionName: 0.3.4
     versionCode: 7
@@ -134,11 +119,6 @@ Builds:
       - android/platform/signatures/cleanyourtv-launcher/APKSigningBlock
       - android/platform/signatures/cleanyourtv-curtain/APKSigningBlock
     build: bash ../scripts/fdroid-build-tv-apks.sh
-    antifeatures:
-      NonFreeNet:
-        en-US: On request only, "Check for updates" asks GitHub for the latest release,
-          and the optional add-ons (Cards and modules) are listed and downloaded from
-          GitHub.
 
   - versionName: 0.3.5
     versionCode: 9
@@ -159,11 +139,6 @@ Builds:
       - android/platform/signatures/cleanyourtv-launcher/APKSigningBlock
       - android/platform/signatures/cleanyourtv-curtain/APKSigningBlock
     build: bash ../scripts/fdroid-build-tv-apks.sh
-    antifeatures:
-      NonFreeNet:
-        en-US: On request only, "Check for updates" asks GitHub for the latest release,
-          and the optional add-ons (Cards and modules) are listed and downloaded from
-          GitHub.
 
   - versionName: 0.3.6
     versionCode: 11
@@ -184,11 +159,6 @@ Builds:
       - android/platform/signatures/cleanyourtv-launcher/APKSigningBlock
       - android/platform/signatures/cleanyourtv-curtain/APKSigningBlock
     build: bash ../scripts/fdroid-build-tv-apks.sh
-    antifeatures:
-      NonFreeNet:
-        en-US: On request only, "Check for updates" asks GitHub for the latest release,
-          and the optional add-ons (Cards and modules) are listed and downloaded from
-          GitHub.
 
   - versionName: 0.3.7
     versionCode: 12
@@ -209,11 +179,6 @@ Builds:
       - android/platform/signatures/cleanyourtv-launcher/APKSigningBlock
       - android/platform/signatures/cleanyourtv-curtain/APKSigningBlock
     build: bash ../scripts/fdroid-build-tv-apks.sh
-    antifeatures:
-      NonFreeNet:
-        en-US: On request only, "Check for updates" asks GitHub for the latest release,
-          and the optional add-ons (Cards and modules) are listed and downloaded from
-          GitHub.
 
   - versionName: 0.4.0
     versionCode: 15
@@ -234,15 +199,11 @@ Builds:
       - android/platform/signatures/cleanyourtv-launcher/APKSigningBlock
       - android/platform/signatures/cleanyourtv-curtain/APKSigningBlock
     build: bash ../scripts/fdroid-build-tv-apks.sh
-    antifeatures:
-      NonFreeNet:
-        en-US: On request only, "Check for updates" asks GitHub for the latest release,
-          and the optional add-ons (Cards and modules) are listed and downloaded from
-          GitHub.
 
 AllowedAPKSigningKeys: eaf7af3867bb29ff4bb038854842c93f42ffe4198a087e611cb18f925201cd65
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags ^v[0-9.]+$
+UpdateCheckData: app/build.gradle.kts|versionCode\s*=\s*(\d+)|.|versionName\s*=\s*"([^"]+)"
 CurrentVersion: 0.4.0
 CurrentVersionCode: 15

@@ -4,8 +4,8 @@
 # Steps: the pins and the module graph, unit tests with Android Lint (`check`, both store
 # flavours of the app: full and play, STORES-PLAN 1), the screenshot goldens (Roborazzi verify),
 # the debug builds of both flavours, the release APK (full) and AAB (play) through R8 with the size
-# gate on both, and the Python tests of the release and redaction scripts with a redaction check
-# over the fixtures. Nothing is signed.
+# gate on both, and the Python tests of the release and redaction scripts (and of F-Droid's update
+# check, test_fdroid_recipe.py) with a redaction check over the fixtures. Nothing is signed.
 name: pr
 
 on:
