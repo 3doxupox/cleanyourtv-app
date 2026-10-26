@@ -27,7 +27,9 @@ import tv.cleanyour.ui.design.component.CountdownRing
 import tv.cleanyour.ui.design.component.DiffItem
 import tv.cleanyour.ui.design.component.DiffRow
 import tv.cleanyour.ui.design.component.NumeralHeadline
+import tv.cleanyour.ui.design.component.PinnedPreviewSize
 import tv.cleanyour.ui.design.component.SEGMENT_HIGHLIGHT_TAG
+import androidx.compose.ui.unit.dp
 import tv.cleanyour.ui.design.component.SegmentOption
 import tv.cleanyour.ui.design.component.SegmentedChoice
 import androidx.compose.runtime.mutableStateOf
@@ -158,5 +160,36 @@ class MotionAndBehaviourTest {
         assertEquals(four, start, 1f)
         assertEquals(seven, mid, 1f)
         assertEquals(seven, end, 1f)
+    }
+
+    // look2 pinned preview (spec 4, 12.2): 184 dp at rest on a wide enough phone, 96 dp scrolled,
+    // compact from font scale 1.5, never over 30% of the window, and with the footer under 40%.
+    @Test
+    fun pinnedPreviewSizes() {
+        val w = 328.dp
+        assertEquals(184.dp, PinnedPreviewSize.height(w, 800.dp, 0.dp, 1f, 0f, mainPage = true, big = false))
+        assertEquals(96.dp, PinnedPreviewSize.height(w, 800.dp, 0.dp, 1f, 1f, mainPage = true, big = false))
+        assertEquals(96.dp, PinnedPreviewSize.height(w, 800.dp, 0.dp, 2f, 0f, mainPage = true, big = false))
+        assertEquals(150.dp, PinnedPreviewSize.height(w, 500.dp, 0.dp, 1f, 0f, mainPage = true, big = false))
+        assertEquals(120.dp, PinnedPreviewSize.height(w, 800.dp, 200.dp, 1f, 0f, mainPage = true, big = false))
+        assertEquals(96.dp, PinnedPreviewSize.height(w, 800.dp, 0.dp, 1f, 0f, mainPage = false, big = false))
+        assertEquals(184.dp, PinnedPreviewSize.height(w, 800.dp, 0.dp, 1f, 0f, mainPage = false, big = true))
+    }
+
+    // look2 notes: a message with no action shows no button, and each message says when it leaves
+    // (replaced by a newer one, or dismissed), once.
+    @Test
+    fun notesLeaveOnce() {
+        val state = UndoSnackbarState()
+        val gone = mutableListOf<String>()
+        compose.setContent { CytTheme { UndoSnackbarHost(state) } }
+        compose.runOnIdle { state.note("Copied.", null, null) { gone += "copied" } }
+        compose.onNodeWithText("Copied.").assertExists()
+        compose.onNodeWithText("Undo").assertDoesNotExist()
+        compose.runOnIdle { state.note("Options reset.", "Undo", {}) { gone += "reset" } }
+        compose.onNodeWithText("Undo").performClick()
+        compose.waitForIdle()
+        assertEquals(listOf("copied", "reset"), gone)
+        assertNull(state.current)
     }
 }

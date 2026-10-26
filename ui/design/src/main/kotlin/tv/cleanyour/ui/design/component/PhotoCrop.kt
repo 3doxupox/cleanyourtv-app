@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
@@ -13,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Slider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -23,8 +23,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
@@ -39,7 +39,6 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -71,9 +70,9 @@ fun PhotoCropDialog(uri: Uri, outline: TvLook?, startDim: Int, onDone: (ByteArra
             val p = photo
             when {
                 failed -> {
+                    CropCancel(onCancel)
                     SheetHeader(stringResource(R.string.cyt_photo_title))
                     LookBody(stringResource(R.string.cyt_photo_unreadable), Modifier.padding(top = 12.dp))
-                    TertiaryButton(stringResource(R.string.cyt_cancel), onCancel, Modifier.padding(top = 20.dp))
                 }
                 p != null -> {
                     val image = remember(p) { p.asImageBitmap() }
@@ -85,7 +84,10 @@ fun PhotoCropDialog(uri: Uri, outline: TvLook?, startDim: Int, onDone: (ByteArra
                         }
                     }, onCancel = onCancel)
                 }
-                else -> SheetHeader(stringResource(R.string.cyt_photo_title))
+                else -> {
+                    CropCancel(onCancel)
+                    SheetHeader(stringResource(R.string.cyt_photo_title))
+                }
             }
         }
     }
@@ -106,6 +108,7 @@ fun PhotoCropContent(
     var panX by remember { mutableFloatStateOf(0f) }
     var panY by remember { mutableFloatStateOf(0f) }
     var dim by remember { mutableIntStateOf(startDim.coerceIn(0, 60)) }
+    CropCancel(onCancel)
     SheetHeader(stringResource(R.string.cyt_photo_title), subtitle = stringResource(R.string.cyt_photo_body))
     val frameDescription = stringResource(R.string.cyt_photo_frame_cd)
     BoxWithConstraints(
@@ -129,18 +132,23 @@ fun PhotoCropContent(
             val r = OwnPhoto.crop(photo.width, photo.height, zoom, panX, panY)
             drawImage(photo, IntOffset(r.left, r.top), IntSize(r.width(), r.height()), dstSize = IntSize(size.width.toInt(), size.height.toInt()))
         }
-        // Where the look puts the clock, the buttons and the dock, and the dim, over the photo.
+        // Where the look puts the clock, the buttons and the dock, and the dim, over the photo. The
+        // overlay (toTvLook with crop) draws the style's glow and Spotlight's shade at full strength,
+        // so faces can be kept clear of them, and the chrome faintly.
         if (outline != null) {
-            TvPreview(outline.copy(background = Color.Transparent, picture = null, dim = dim, sky = 0), "", Modifier.alpha(0.65f))
+            TvPreview(outline.copy(background = Color.Transparent, picture = null, dim = dim, sky = 0), "")
         }
     }
     val dimLine = lookMsg(R.string.cyt_photo_dim, "dim" to dim)
     LookBody(dimLine, Modifier.padding(top = 16.dp, start = 4.dp))
-    Slider(dim.toFloat(), { dim = (it / 10f).roundToInt() * 10 }, Modifier.fillMaxWidth().semantics { contentDescription = dimLine },
-        valueRange = 0f..60f, steps = 5)
+    CytSlider(dim, { dim = it }, 0..60, 10, stringResource(R.string.cyt_photo_dim_cd), lookMsg(R.string.cyt_look_percent_cd, "value" to dim))
     problem?.let { LookBody(it, Modifier.padding(top = 8.dp, start = 4.dp), color = CytTheme.colors.warning) }
-    ActionColumn(Modifier.padding(top = 16.dp)) {
-        PrimaryButton(stringResource(R.string.cyt_photo_use), { onUse(zoom, panX, panY, dim) }, guardObscured = false)
-        TertiaryButton(stringResource(R.string.cyt_cancel), onCancel, quiet = true)
-    }
+    PrimaryButton(stringResource(R.string.cyt_photo_use), { onUse(zoom, panX, panY, dim) }, Modifier.padding(top = 16.dp), guardObscured = false)
+    LookBody(stringResource(R.string.cyt_photo_after), Modifier.padding(top = 12.dp, start = 4.dp, end = 4.dp))
+}
+
+// Cancel at the top start of the crop (spec 11.6), where a way out is looked for first.
+@Composable
+private fun CropCancel(onCancel: () -> Unit) {
+    Box(Modifier.fillMaxWidth()) { TertiaryButton(stringResource(R.string.cyt_cancel), onCancel, Modifier.align(Alignment.CenterStart), quiet = true) }
 }

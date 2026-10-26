@@ -189,6 +189,21 @@ fun TertiaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modif
         }
     }
 
+// look2: an outlined pill for a quiet action that only changes the phone's choice ("Use Classic's
+// own settings"): a 1 dp outline.strong stroke, text.primary, 48 dp tall and as wide as its words.
+@Composable
+fun OutlinedPill(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
+    val c = CytTheme.colors
+    val shape = CytTheme.shapes.pill
+    Box(
+        modifier.heightIn(min = 48.dp).clip(shape).border(1.dp, if (enabled) c.outlineStrong else c.outline, shape)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick).padding(horizontal = 18.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(text, color = if (enabled) c.textPrimary else c.textSecondary, style = CytTheme.type.labelLarge, textAlign = TextAlign.Center)
+    }
+}
+
 // The one destructive action in the app, "Put everything back", inside its confirmation sheet only:
 // an outlined pill, 1.5 dp danger stroke, danger label, no fill. Never animated into place.
 @Composable

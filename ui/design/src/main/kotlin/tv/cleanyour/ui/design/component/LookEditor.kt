@@ -1,220 +1,436 @@
 package tv.cleanyour.ui.design.component
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.graphics.BitmapFactory
 import android.net.Uri
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import tv.cleanyour.core.flows.DetailWord
+import tv.cleanyour.core.flows.LookDetails
+import tv.cleanyour.core.flows.LookEdit
+import tv.cleanyour.core.flows.LookNote
+import tv.cleanyour.core.flows.LookNoteKind
+import tv.cleanyour.core.flows.LookPreview
+import tv.cleanyour.core.flows.LookRows
+import tv.cleanyour.core.flows.StyleCard
+import tv.cleanyour.core.flows.WayBack
+import tv.cleanyour.core.spec.LookGates
+import tv.cleanyour.core.spec.Movement
+import tv.cleanyour.core.spec.StyleId
 import tv.cleanyour.ui.design.R
+import tv.cleanyour.ui.design.icon.CytIcons
 import tv.cleanyour.ui.design.theme.CytTheme
 
-// 0.4.0 Look editor (RFC-LOOK-SETUP-1): the Look sheet's choices, shared by the Look sheet after
-// Setup (Manage, Home screen, Look) and Setup's look step, so both show the same thing in the same
-// order with the same words: the preview of the TV's home screen (TvPreview, drawn from the bytes
-// the push would send), Apps in a row (4 to 8, right under the preview it changes, with its helper
-// lines), the looks, and the Picture row (the look's own, the gallery, the person's photo, a new
-// photo, "Choose a photo" with its crop and dim, or none). A tap only chooses; what sends it to the
-// TV is the caller's own button under it. Both callers make the state with the one mapping from the
-// flows' Look choice in LookEditorFrom.kt (RFC-LOOK-SETUP-2).
+// look2 Look editor (spec W2 to W6, W10 to W12; the owner's prototype): the Look sheet's three
+// pages, shared by the Look sheet after Setup (footer "Put it on the TV" and the way back) and
+// Setup's look step (footer Done), so both show the same thing in the same order with the same
+// words. Look: Picture, Style, Apps in a row, Names under every app and the More options link;
+// More options: Movement, Big name, Glow and dock, Top of the screen, Picture and "Use {style}'s
+// own settings"; Advanced: Lift and zoom, the finer amounts and the settings file. The preview of
+// the TV is pinned above the pages and drawn from the bytes the push would send. Every tap is a
+// LookEdit for the caller's machine, and none of them sends: only the caller's footer does. Both
+// callers make the state with the one mapping from the flows' Look choice (LookEditorFrom.kt).
 
-// How the TV moves (LookPreview.motion).
-enum class LookEditorMotion { OFF, CALM, CRISP, BOUNCY }
+enum class LookPage { MAIN, MORE, ADVANCED }
 
-// The preview as the flows read it back from the bytes (LookPreview), in plain values.
+// A gallery picture of the Picture strip: its file on this phone (null when it has none), the day
+// a dated one ends ("Until 10 Nov") and the colour the TV shows around it.
 @Immutable
-data class LookEditorPreview(
-    val backgroundArgb: Int,
-    val picturePath: String?,
-    val dim: Int,
-    val sky: Int,
-    val columns: Int,
-    val rowsBelowDock: Int,
-    val dockRow: Boolean,
-    val dockTitle: Boolean,
-    val fillDock: Boolean,
-    val cinematic: Boolean,
-    val festive: Boolean,
-    val accentArgb: Int,
-    val greeting: String,
-    val motion: LookEditorMotion,
-    val dock: List<String>,
-    val minuteOfDay: Int,
-)
+data class LookEditorPicture(val id: String, val name: String, val path: String?, val until: LocalDate? = null,
+    val backgroundArgb: Int = 0xFF000000.toInt())
 
-// A look of the list: its own picture as a file on this phone, when it has one.
-@Immutable
-data class LookEditorLook(val id: String, val name: String, val description: String, val picturePath: String? = null)
-
-// A gallery picture of the Picture row, with its file (null when it has none on this phone).
-@Immutable
-data class LookEditorPicture(val id: String, val name: String, val path: String?)
-
-// What the editor shows. `picture`: null for the look's own, NONE, MINE, NEW or a gallery id.
-// `apps`: the dock as the TV shows it plus the apps waiting for more apps in a row; `waiting`: how
-// many of them wait at `columns`. `minePath`: the person's photo kept for this TV ("Restore mine"),
-// `newPath`: a photo just made here, not on the TV yet; `photoDim`: the dim the crop starts from.
+// What the editor shows, in the flows' own words (LookEditorFrom.kt makes it from LookDraft).
+// `picture`: NONE, MINE, NEW, EARLIER or a gallery id. `apps`: the dock as the TV shows it plus
+// the apps waiting for more apps in a row, `waiting` how many of them wait at `columns`.
+// `minePath` the person's photo kept for this TV, `newPath` a photo just made here and not on the
+// TV yet, `earlierPath` the earlier look's photo; `photoDim` the dim the crop starts from.
 @Immutable
 data class LookEditorState(
-    val looks: List<LookEditorLook>,
-    val lookId: String,
-    val preview: LookEditorPreview?,
+    val style: StyleId,
+    val picture: String,
     val columns: Int,
-    val apps: Int,
-    val waiting: Int,
-    val picture: String?,
-    val ownPictureOnly: Boolean = false,
+    val preview: LookPreview? = null,
+    val styles: List<StyleId> = StyleId.entries,
+    val styleCards: List<StyleCard> = emptyList(),
+    val reads27: Boolean = true,
     val pictures: List<LookEditorPicture> = emptyList(),
     val minePath: String? = null,
     val newPath: String? = null,
+    val earlierPath: String? = null,
     val photoDim: Int = 30,
+    val apps: Int = 0,
+    val waiting: Int = 0,
     val minColumns: Int = 4,
     val maxColumns: Int = 8,
+    val names: Boolean = false,
+    val movement: Movement = Movement.LIVELY,
+    val movementPicked: Boolean = false,
+    val lift: Boolean = false,
+    val details: LookDetails = LookDetails(),
+    val rows: LookRows? = null,
+    val changed: Boolean = false,
+    val newPhoto: Boolean = false,
+    val wayBack: WayBack = WayBack.NONE,
+    val note: LookNote? = null,
+    val ramMb: Int? = null,
+    val keyNames: Boolean = false,
+    val settingsFile: String = "",
+    val fullFile: String = "",
+    val tvChanged: Boolean = false,
 ) {
+    // A photo of the person's (kept, new or the earlier look's) rather than a gallery picture.
+    val photo: Boolean get() = picture == MINE || picture == NEW || picture == EARLIER
+
     companion object {
-        // The picture keys the flows use (LookPicture.NONE_ID, MINE_ID, NEW_ID).
+        // The picture keys the flows use (LookPicture.NONE_ID, MINE_ID, NEW_ID, EARLIER_ID).
         const val NONE = "none"
         const val MINE = "mine"
         const val NEW = "new"
+        const val EARLIER = "earlier"
     }
 }
 
-// The Picture row's keys for the look's own picture (picture null) and for "Choose a photo" (opens
-// the picker, never a choice itself).
-private const val OWN = "own"
-private const val PICK = "pick"
+// Where the editor is: the page, the leave question and the preview's size on levels 2 and 3.
+// Back (the header arrow, system Back and the predictive back gesture alike) goes up one page,
+// then asks before leaving while something is not on the TV yet (W12), then lets the sheet close.
+@Stable
+class LookEditorNav {
+    var page by mutableStateOf(LookPage.MAIN)
+        private set
+    var asking by mutableStateOf(false)
+    var big by mutableStateOf(false)
+    internal var unsent: () -> Boolean = { false }
 
-// The editor, from the sheet header to the Picture row. `onPicture` gets null for the look's own;
-// `onPhoto` the JPEG the crop made and its dim. `photos`: the system photo picker ("Choose a photo"
-// is offered only with one). `pictures`: the pictures by file, given by the screenshot tests (the
-// app reads the files).
+    // One step back; true when the sheet may close now.
+    fun back(): Boolean {
+        when {
+            asking -> asking = false
+            page == LookPage.ADVANCED -> open(LookPage.MORE)
+            page == LookPage.MORE -> open(LookPage.MAIN)
+            else -> return close()
+        }
+        return false
+    }
+
+    // Close, swipe or a tap on the scrim: asks first while something is not on the TV yet.
+    fun close(): Boolean {
+        if (asking) return false
+        if (unsent()) {
+            asking = true
+            return false
+        }
+        return true
+    }
+
+    fun open(p: LookPage) {
+        page = p
+        big = false
+    }
+}
+
 @Composable
-fun ColumnScope.LookEditor(
+fun rememberLookEditorNav(): LookEditorNav = remember { LookEditorNav() }
+
+// The editor in its own modal sheet: a swipe down, a tap on the scrim and system Back all reach
+// LookEditorNav first, so Back walks the pages and anything unsent asks before the sheet closes.
+// The swipe works on the Look page only. Setup passes `asksBeforeLeaving` false.
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LookEditorSheet(
     state: LookEditorState,
-    onLook: (String) -> Unit,
-    onColumns: (Int) -> Unit,
-    onPicture: (String?) -> Unit,
+    onEdit: (LookEdit) -> Unit,
     onPhoto: (ByteArray, Int) -> Unit,
+    onClose: () -> Unit,
+    footer: @Composable ColumnScope.(LookPage) -> Unit,
     photos: PhotoPicker? = null,
     pictures: Map<String, ImageBitmap>? = null,
+    onUpdateHomeScreen: (() -> Unit)? = null,
+    asksBeforeLeaving: Boolean = true,
 ) {
-    SheetHeader(stringResource(R.string.cyt_look_title))
-    val name = state.looks.firstOrNull { it.id == state.lookId }?.name ?: stringResource(R.string.cyt_look_default)
-    state.preview?.let { LookPreviewCard(it, name, pictures, Modifier.padding(top = 16.dp)) }
-    AppsInARow(state, onColumns)
-    Overline(stringResource(R.string.cyt_look_list_title), Modifier.padding(start = 4.dp, top = 24.dp))
-    val options = state.looks.map { t -> ThemeOption(t.id, t.name, lookDescription(t.id) ?: t.description, themeSwatch(t.id)) }
-    ThemePicker(options, state.lookId, { onLook(it.id) }, Modifier.padding(top = 8.dp))
-    Overline(stringResource(R.string.cyt_look_picture_title), Modifier.padding(start = 4.dp, top = 24.dp, bottom = 8.dp))
-    if (state.ownPictureOnly) {
-        LookBody(stringResource(R.string.cyt_look_picture_own_only), Modifier.padding(start = 4.dp, end = 4.dp))
-    } else {
-        // "Choose a photo" opens the system picker, then the crop and dim (PhotoCropDialog); the
-        // result is "New photo" (NEW) until the caller sends it, and the photo kept for this TV is
-        // "Restore mine" (MINE).
-        var picked by remember { mutableStateOf<Uri?>(null) }
-        PicturePicker(pictureChoices(state, pictures, choose = photos != null), state.picture ?: OWN, { c ->
-            if (c.key == PICK) photos?.pick { picked = it } else onPicture(c.key.takeUnless { k -> k == OWN })
-        })
-        picked?.let { uri ->
-            PhotoCropDialog(uri, state.preview?.toTvLook(null), state.photoDim, onDone = { jpeg, dim -> onPhoto(jpeg, dim); picked = null },
-                onCancel = { picked = null })
+    val nav = rememberLookEditorNav()
+    val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true, confirmValueChange = { v -> v != SheetValue.Hidden || nav.back() })
+    CytBottomSheet(onClose, sheetState = sheet, sheetGesturesEnabled = nav.page == LookPage.MAIN && !nav.asking) {
+        LookEditor(state, onEdit, onPhoto, onClose, footer, photos, pictures, onUpdateHomeScreen, nav = nav, asksBeforeLeaving = asksBeforeLeaving)
+    }
+}
+
+// The editor itself: the header, the pinned preview, the page, the caller's footer, the snackbars
+// of the flows' notes and the leave question. `onPhoto` gets the JPEG the crop made and its dim.
+// `photos`: the system photo picker ("Choose a photo" is offered only with one). `pictures`: the
+// pictures by file, given by the screenshot tests (the app reads the files). `onUpdateHomeScreen`:
+// the older home screen banner's Update (none in Setup). `asksBeforeLeaving` false: closing loses
+// nothing (Setup keeps the choice until it runs), so there is no leave question.
+@Composable
+fun LookEditor(
+    state: LookEditorState,
+    onEdit: (LookEdit) -> Unit,
+    onPhoto: (ByteArray, Int) -> Unit,
+    onClose: () -> Unit,
+    footer: @Composable ColumnScope.(LookPage) -> Unit,
+    photos: PhotoPicker? = null,
+    pictures: Map<String, ImageBitmap>? = null,
+    onUpdateHomeScreen: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
+    nav: LookEditorNav = rememberLookEditorNav(),
+    asksBeforeLeaving: Boolean = true,
+) {
+    val unsent by rememberUpdatedState(asksBeforeLeaving && (state.changed || state.newPhoto))
+    SideEffect { nav.unsent = { unsent } }
+    val edit by rememberUpdatedState(onEdit)
+    val snack = rememberUndoSnackbarState()
+    val scrolls = remember { LookPage.entries.associateWith { ScrollState(0) } }
+    val density = LocalDensity.current
+    var footerPx by remember { mutableIntStateOf(0) }
+    val footerHeight = with(density) { footerPx.toDp() }
+    var picked by remember { mutableStateOf<Uri?>(null) }
+
+    LookNotes(state, snack, edit, nav)
+
+    val pageTitle = stringResource(
+        when (nav.page) { LookPage.MAIN -> R.string.cyt_look_title; LookPage.MORE -> R.string.cyt_look_more_title; LookPage.ADVANCED -> R.string.cyt_look_advanced },
+    )
+    BoxWithConstraints(modifier.fillMaxWidth()) {
+        // In the sheet the page scrolls between the pinned parts; with no bound (a parent that
+        // scrolls, as a test may give it) the page is laid out in full and the parent scrolls.
+        val bounded = constraints.hasBoundedHeight
+        // While the leave question is up, the sheet behind it cannot be reached (W12).
+        Column(Modifier.fillMaxWidth().then(if (nav.asking) Modifier.clearAndSetSemantics { hideFromAccessibility() } else Modifier)) {
+            LookHeader(nav, pageTitle, onClose = { if (nav.close()) onClose() })
+            val collapse = with(density) { (scrolls.getValue(LookPage.MAIN).value / 140.dp.toPx()).coerceIn(0f, 1f) }
+            PinnedPreview(
+                state.preview?.toTvLook(lookPicture(state.preview.picturePath, pictures, sample = 4)), previewDescription(state),
+                collapse = collapse, mainPage = nav.page == LookPage.MAIN, big = nav.big, footer = footerHeight,
+                onToggleBig = { nav.big = !nav.big },
+                toggleLabel = stringResource(if (nav.big) R.string.cyt_look_preview_smaller_cd else R.string.cyt_look_preview_bigger_cd),
+            )
+            SheetPages(nav.page, { it.ordinal }, if (bounded) Modifier.weight(1f, fill = false) else Modifier) { page ->
+                val pageScroll = if (bounded) Modifier.verticalScroll(scrolls.getValue(page)) else Modifier
+                Column(Modifier.fillMaxWidth().then(pageScroll).padding(bottom = 12.dp)) {
+                    when (page) {
+                        LookPage.MAIN -> LookMainPage(
+                            state, edit, onMore = { nav.open(LookPage.MORE) },
+                            onPick = photos?.let { p -> { p.pick { picked = it } } }, pictures = pictures, onUpdateHomeScreen = onUpdateHomeScreen,
+                        )
+                        LookPage.MORE -> LookMorePage(state, edit, onAdvanced = { nav.open(LookPage.ADVANCED) })
+                        LookPage.ADVANCED -> LookAdvancedPage(state, edit, onCopied = { line -> snack.note(line, null, null) })
+                    }
+                }
+            }
+            Column(Modifier.fillMaxWidth().onSizeChanged { footerPx = it.height }.padding(top = 8.dp)) { footer(nav.page) }
+        }
+        UndoSnackbarHost(snack, Modifier.align(Alignment.BottomCenter).padding(bottom = footerHeight + 10.dp))
+        if (nav.asking) {
+            LeaveQuestion(
+                photoOnly = state.newPhoto,
+                onStay = { nav.asking = false },
+                onLeave = { nav.asking = false; onClose() },
+                modifier = Modifier.matchParentSize(),
+            )
+        }
+    }
+    picked?.let { uri ->
+        PhotoCropDialog(uri, state.preview?.toTvLook(null, crop = true), state.photoDim,
+            onDone = { jpeg, dim -> onPhoto(jpeg, dim); picked = null }, onCancel = { picked = null })
+    }
+}
+
+// The header: Look with More options and Close; More options with Back and Advanced; Advanced
+// with Back.
+@Composable
+private fun LookHeader(nav: LookEditorNav, title: String, onClose: () -> Unit) {
+    when (nav.page) {
+        LookPage.MAIN -> SheetPageHeader(title, focusKey = nav.page) {
+            CytIconButton(CytIcons.Settings, stringResource(R.string.cyt_look_more_cd), { nav.open(LookPage.MORE) })
+            CytIconButton(CytIcons.Close, stringResource(R.string.cyt_close), onClose)
+        }
+        LookPage.MORE -> SheetPageHeader(title, onBack = { nav.back() }, backLabel = stringResource(R.string.cyt_look_back_look), focusKey = nav.page) {
+            CytIconButton(SheetIcons.Advanced, stringResource(R.string.cyt_look_advanced_cd), { nav.open(LookPage.ADVANCED) })
+        }
+        LookPage.ADVANCED -> SheetPageHeader(title, onBack = { nav.back() }, backLabel = stringResource(R.string.cyt_look_back_more), focusKey = nav.page)
+    }
+}
+
+// W12: "Leave without sending?" over the sheet. Keep choosing is the primary; Leave closes the
+// sheet and drops what was not sent. Nothing here writes to the TV, so neither is guarded.
+@Composable
+private fun LeaveQuestion(photoOnly: Boolean, onStay: () -> Unit, onLeave: () -> Unit, modifier: Modifier = Modifier) {
+    val c = CytTheme.colors
+    // The scrim: a tap on it is Keep choosing; not a control of its own for TalkBack.
+    Box(modifier.background(c.scrim).pointerInput(Unit) { detectTapGestures { onStay() } })
+    Box(modifier, contentAlignment = Alignment.Center) {
+        Column(Modifier.padding(horizontal = 8.dp).fillMaxWidth().background(c.surface3, CytTheme.shapes.large).padding(20.dp)) {
+            SheetHeader(stringResource(R.string.cyt_look_leave_title))
+            Text(
+                stringResource(if (photoOnly) R.string.cyt_look_leave_body_photo else R.string.cyt_look_leave_body),
+                Modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp), color = c.textSecondary, style = CytTheme.type.bodyMedium,
+            )
+            ActionColumn(Modifier.padding(top = 20.dp)) {
+                PrimaryButton(stringResource(R.string.cyt_look_leave_stay), onStay, guardObscured = false)
+                SecondaryButton(stringResource(R.string.cyt_look_leave_go), onLeave)
+            }
         }
     }
 }
 
-// The look's own description, in the app's words (the bundled one otherwise).
+// The flows' notes as snackbars (W10, Undo changes, Use own settings, the earlier look): each is
+// shown once, its action (Keep mine, Bring them back, Undo) is a NoteAction, and NoteSeen follows
+// when it leaves.
 @Composable
-fun lookDescription(id: String): String? = when (id) {
-    "default" -> R.string.cyt_look_desc_default
-    "aurora" -> R.string.cyt_look_desc_aurora
-    "six-columns" -> R.string.cyt_look_desc_six_columns
-    "cinema" -> R.string.cyt_look_desc_cinema
-    "console" -> R.string.cyt_look_desc_console
-    "horizon" -> R.string.cyt_look_desc_horizon
-    "quiet" -> R.string.cyt_look_desc_quiet
-    "diwali" -> R.string.cyt_look_desc_diwali
-    "library" -> R.string.cyt_look_desc_library
-    "arcade" -> R.string.cyt_look_desc_arcade
-    "mist" -> R.string.cyt_look_desc_mist
-    else -> null
-}?.let { stringResource(it) }
-
-// Apps in a row: 4 to 8 as one segmented choice, "Bigger" under the 4 end and "More apps" under the
-// 8 end, then the helper lines (a polite live region, so TalkBack reads a new line after a change):
-// always the first, the line for 8 when it is chosen, then at most one of the waiting, the empty
-// space and the 7 line. A tap only chooses.
-@Composable
-private fun ColumnScope.AppsInARow(state: LookEditorState, onColumns: (Int) -> Unit) {
-    Overline(stringResource(R.string.cyt_look_columns_title), Modifier.padding(start = 4.dp, top = 20.dp, bottom = 8.dp))
-    val first = state.minColumns
-    val last = state.maxColumns
-    val options = (first..last).map { n ->
-        val cd = when (n) { first -> R.string.cyt_look_columns_cd_big; last -> R.string.cyt_look_columns_cd_many; else -> R.string.cyt_look_columns_cd }
-        SegmentOption(n.toString(), n.toString(), lookMsg(cd, "count" to n))
-    }
-    SegmentedChoice(options, state.columns.toString(), { onColumns(it.key.toInt()) })
-    Row(Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, top = 6.dp).clearAndSetSemantics {}, horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(stringResource(R.string.cyt_look_columns_end_big), color = CytTheme.colors.textSecondary, style = CytTheme.type.bodySmall)
-        Text(stringResource(R.string.cyt_look_columns_end_many), color = CytTheme.colors.textSecondary, style = CytTheme.type.bodySmall)
-    }
-    Column(Modifier.padding(top = 10.dp, start = 4.dp, end = 4.dp).semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
-        verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        for (line in columnsHelp(state)) LookBody(line)
+private fun LookNotes(state: LookEditorState, snack: UndoSnackbarState, edit: (LookEdit) -> Unit, nav: LookEditorNav) {
+    val note = state.note ?: return
+    val text = noteText(note)
+    val action = when (note.kind) {
+        LookNoteKind.STYLE_CHANGED -> stringResource(R.string.cyt_look_keep_mine)
+        LookNoteKind.UNDONE -> stringResource(R.string.cyt_look_undo_bring_back)
+        LookNoteKind.RESET -> stringResource(R.string.cyt_undo)
+        LookNoteKind.EARLIER_CHOSEN -> null
+    }.takeIf { note.action }
+    LaunchedEffect(note.id) {
+        if (note.kind == LookNoteKind.EARLIER_CHOSEN) nav.open(LookPage.MAIN)
+        snack.note(text, action, if (action != null) ({ edit(LookEdit.NoteAction(note.id)) }) else null, onGone = { edit(LookEdit.NoteSeen(note.id)) })
     }
 }
 
-// The helper lines for apps in a row, counted on the dock as the TV shows it (the waiting apps
-// too). A look without the dock band (Library) has no dock spaces and no waiting apps: one grid.
 @Composable
-private fun columnsHelp(state: LookEditorState): List<String> {
-    val c = state.columns
-    val apps = state.apps
-    val band = state.preview?.dockRow ?: true
-    val lines = mutableListOf(stringResource(if (c == state.minColumns) R.string.cyt_look_columns_biggest else R.string.cyt_look_columns_help))
-    if (c == state.maxColumns) lines += stringResource(R.string.cyt_look_columns_eight)
-    when {
-        band && state.waiting > 0 -> lines += lookMsg(R.string.cyt_look_columns_waiting, "count" to state.waiting)
-        band && apps in 1 until c -> lines += lookMsg(R.string.cyt_look_columns_empty, "apps" to apps, "free" to c - apps)
-        c == 7 -> lines += stringResource(R.string.cyt_look_columns_seven)
+private fun noteText(note: LookNote): String = when (note.kind) {
+    LookNoteKind.UNDONE -> stringResource(R.string.cyt_look_undo_done)
+    LookNoteKind.RESET -> stringResource(R.string.cyt_look_reset_done)
+    LookNoteKind.EARLIER_CHOSEN -> stringResource(R.string.cyt_look_earlier_chosen)
+    LookNoteKind.STYLE_CHANGED -> {
+        val name = styleName(note.style ?: StyleId.CLASSIC)
+        val own = joinWords(note.own.map { detailWord(it) })
+        val dropped = joinWords(note.dropped.map { detailWord(it) })
+        when {
+            own.isNotEmpty() && dropped.isNotEmpty() ->
+                lookMsg(R.string.cyt_look_style_own, "style" to name, "details" to own) + " " + lookMsg(R.string.cyt_look_style_none, "details" to dropped)
+            own.isNotEmpty() -> lookMsg(R.string.cyt_look_style_own, "style" to name, "details" to own)
+            else -> lookMsg(R.string.cyt_look_style_none_alone, "style" to name, "details" to dropped)
+        }
     }
-    return lines
 }
 
 @Composable
-private fun pictureChoices(state: LookEditorState, given: Map<String, ImageBitmap>?, choose: Boolean): List<PictureChoice> {
-    val look = state.looks.firstOrNull { it.id == state.lookId }
-    val color = themeSwatch(state.lookId).first()
-    val own = PictureChoice(OWN, stringResource(R.string.cyt_look_picture_own), lookPicture(look?.picturePath, given), color)
-    val gallery = state.pictures.map { PictureChoice(it.id, it.name, lookPicture(it.path, given), color) }
-    val mine = state.minePath?.let { PictureChoice(LookEditorState.MINE, stringResource(R.string.cyt_look_picture_restore_mine), lookPicture(it, given), color) }
-    val new = state.newPath?.let { PictureChoice(LookEditorState.NEW, stringResource(R.string.cyt_look_picture_new), lookPicture(it, given), color) }
-    val pick = PictureChoice(PICK, stringResource(R.string.cyt_look_picture_choose), null, CytTheme.colors.surface3).takeIf { choose }
-    return listOf(own) + gallery + listOfNotNull(mine, new, pick) + PictureChoice(LookEditorState.NONE, stringResource(R.string.cyt_look_picture_none), null, color)
+internal fun detailWord(w: DetailWord): String = stringResource(
+    when (w) {
+        DetailWord.BUTTONS -> R.string.cyt_look_word_buttons
+        DetailWord.GLOW -> R.string.cyt_look_word_glow
+        DetailWord.BIG_NAME -> R.string.cyt_look_word_big_name
+        DetailWord.RING -> R.string.cyt_look_word_ring
+        DetailWord.DOCK_BAND -> R.string.cyt_look_word_dock_band
+        DetailWord.WIFI_COLOUR -> R.string.cyt_look_word_wifi
+        DetailWord.SEE_THROUGH -> R.string.cyt_look_word_see_through
+    },
+)
+
+// "a", "a and b", "a, b and c".
+@Composable
+internal fun joinWords(words: List<String>): String {
+    val w = words.distinct()
+    if (w.size < 2) return w.firstOrNull().orEmpty()
+    var head = w.first()
+    for (next in w.subList(1, w.size - 1)) head = lookMsg(R.string.cyt_look_join, "first" to head, "next" to next)
+    return lookMsg(R.string.cyt_look_join_last, "first" to head, "last" to w.last())
+}
+
+// A style's name and its line, in the app's words.
+@Composable
+fun styleName(style: StyleId): String = stringResource(
+    when (style) {
+        StyleId.CLASSIC -> R.string.cyt_look_style_classic
+        StyleId.GLASS -> R.string.cyt_look_style_glass
+        StyleId.SPOTLIGHT -> R.string.cyt_look_style_spotlight
+        StyleId.ALL_APPS -> R.string.cyt_look_style_all_apps
+        StyleId.CALM -> R.string.cyt_look_style_calm
+    },
+)
+
+@Composable
+fun styleDescription(style: StyleId): String = stringResource(
+    when (style) {
+        StyleId.CLASSIC -> R.string.cyt_look_style_classic_desc
+        StyleId.GLASS -> R.string.cyt_look_style_glass_desc
+        StyleId.SPOTLIGHT -> R.string.cyt_look_style_spotlight_desc
+        StyleId.ALL_APPS -> R.string.cyt_look_style_all_apps_desc
+        StyleId.CALM -> R.string.cyt_look_style_calm_desc
+    },
+)
+
+// The picture in the preview's description: "the Mist picture", "your photo" or "no picture".
+@Composable
+internal fun pictureWords(state: LookEditorState): String = when {
+    state.picture == LookEditorState.NONE -> stringResource(R.string.cyt_look_picture_words_none)
+    state.photo -> stringResource(R.string.cyt_look_picture_words_photo)
+    else -> state.pictures.firstOrNull { it.id == state.picture }?.name?.let { lookMsg(R.string.cyt_look_picture_words, "name" to it) }
+        ?: stringResource(R.string.cyt_look_picture_words_none)
+}
+
+// "Preview of the TV's home screen: Glass, the Mist picture, 5 apps in a row."
+@Composable
+internal fun previewDescription(state: LookEditorState): String = lookMsg(
+    if (state.names) R.string.cyt_look_preview_cd_names else R.string.cyt_look_preview_cd,
+    "style" to styleName(state.style), "picture" to pictureWords(state), "count" to state.columns,
+)
+
+// Copy: puts text on the phone's clipboard (Advanced's settings file).
+@Composable
+internal fun rememberCopy(): (String, String) -> Unit {
+    val context = LocalContext.current
+    return remember(context) {
+        { label, text -> context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(ClipData.newPlainText(label, text)) }
+    }
+}
+
+// The memory in the words of the Quick and Lift lines: "1.5 GB", "1 GB".
+@Composable
+internal fun memoryWords(ramMb: Int): String {
+    val g = LookGates.halfGb(ramMb)
+    val text = if (g % 1.0 == 0.0) g.toInt().toString() else g.toString()
+    return lookMsg(R.string.cyt_look_memory_size, "size" to text)
 }
 
 // A picture file as a small bitmap for a thumbnail, read off the main thread; null while it loads
@@ -232,65 +448,14 @@ fun lookPicture(path: String?, given: Map<String, ImageBitmap>? = null, sample: 
     return bitmap
 }
 
-// The preview and, under it, what a picture cannot show.
-@Composable
-fun LookPreviewCard(p: LookEditorPreview, name: String, pictures: Map<String, ImageBitmap>? = null, modifier: Modifier = Modifier) {
-    Column(modifier) {
-        TvPreview(p.toTvLook(lookPicture(p.picturePath, pictures, sample = 4)), previewDescription(p, name))
-        PreviewFacts(p, Modifier.padding(top = 10.dp))
-    }
-}
-
-// The launcher's numbers for the preview (and for the outlines over the photo frame): focus scale
-// 1.12 with advanced effects, 1.10 otherwise, none with animations off; the accent focus only in a
-// festival.
-fun LookEditorPreview.toTvLook(picture: ImageBitmap?): TvLook {
-    val (top, bottom) = skyColors(minuteOfDay)
-    return TvLook(
-        background = Color(backgroundArgb), picture = picture, dim = dim, sky = sky, skyTop = top, skyBottom = bottom,
-        columns = columns, rowsBelowDock = rowsBelowDock, dockRow = dockRow, dockTitle = dockTitle, cinematic = cinematic,
-        accent = if (festive) Color(accentArgb) else null, greeting = greeting,
-        focusScale = when (motion) { LookEditorMotion.OFF -> 1f; LookEditorMotion.CRISP -> 1.12f; else -> 1.10f },
-        dock = dock, clock = "${minuteOfDay / 60}:${(minuteOfDay % 60).toString().padStart(2, '0')}",
-        emptyDockSlots = !fillDock,
-    )
-}
-
-// The time of day sky the launcher draws over the picture, in four broad stops (night, sunrise,
-// day, the warm evening peak); the TV blends between them by the minute.
-private fun skyColors(minute: Int): Pair<Color, Color> = when (minute / 60) {
-    in 5..7 -> Color(0xFF6C2E52) to Color(0xFFE2704A)
-    in 8..16 -> Color(0xFF3A6EA5) to Color(0xFF9CC3E6)
-    in 17..20 -> Color(0xFFE2704A) to Color(0xFF6C2E52)
-    else -> Color(0xFF0B1030) to Color(0xFF1B1030)
-}
-
-@Composable
-private fun previewDescription(p: LookEditorPreview, name: String): String =
-    lookMsg(if (p.picturePath != null) R.string.cyt_look_preview_cd_picture else R.string.cyt_look_preview_cd, "look" to name, "count" to p.columns)
-
-// What the picture cannot show: the motion, the sky, one page of apps. Apps in a row is the
-// control under the preview, so it has no chip; the chips wrap to a new line instead of scrolling,
-// so none is cut at 200% text.
-@Composable
-private fun PreviewFacts(p: LookEditorPreview, modifier: Modifier = Modifier) {
-    FlowRow(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        InfoChip(stringResource(when (p.motion) {
-            LookEditorMotion.OFF -> R.string.cyt_look_fact_motion_off
-            LookEditorMotion.CALM -> R.string.cyt_look_fact_motion_calm
-            LookEditorMotion.CRISP -> R.string.cyt_look_fact_motion_crisp
-            LookEditorMotion.BOUNCY -> R.string.cyt_look_fact_motion_bouncy
-        }))
-        if (p.sky > 0) InfoChip(stringResource(R.string.cyt_look_fact_sky))
-        if (!p.dockRow) InfoChip(stringResource(R.string.cyt_look_fact_grid))
-    }
-}
-
 // A supporting paragraph in body.medium, text.secondary unless the caller says otherwise.
 @Composable
 internal fun LookBody(text: String, modifier: Modifier = Modifier, color: Color = CytTheme.colors.textSecondary) {
     Text(text, modifier, color = color, style = CytTheme.type.bodyMedium)
 }
+
+// A line TalkBack reads again when it changes (the helper lines, the tint line).
+internal fun Modifier.politeLive(): Modifier = this.semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
 
 // The look editor's copy is ICU MessageFormat with named arguments, as the screens' copy is.
 @Composable

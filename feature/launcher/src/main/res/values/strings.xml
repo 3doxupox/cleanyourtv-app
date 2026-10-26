@@ -14,7 +14,7 @@
     <string name="action_done">Done</string>
     <string name="action_undo">Undo</string>
 
-    <!-- Credential prompt (D17), raised by "Restore mine" and "Use the TV's own home screen" -->
+    <!-- Credential prompt (D17), raised by "Send mine again" and "Use the TV's own home screen" -->
     <string name="gate_title">Confirm it\'s you</string>
     <string name="gate_subtitle">Before we change anything on {tv}</string>
     <string name="gate_negative">Cancel</string>
@@ -30,7 +30,7 @@
     <string name="home_row_stock">Use the TV\'s own home screen</string>
     <string name="home_row_stock_note">Brings back the TV\'s own home screen. Ours stays installed, so you can switch again.</string>
     <string name="home_drift_banner">The home screen settings on the TV changed since you set them.</string>
-    <string name="home_drift_restore">Restore mine</string>
+    <string name="home_drift_restore">Send mine again</string>
     <string name="home_applying">Updating the home screen on the TV...</string>
     <string name="home_snackbar_done">Done.</string>
 
@@ -56,12 +56,17 @@
     <string name="home_run_setup_again">Run Setup again</string>
     <string name="home_help_add_tv">Help add this TV</string>
     <string name="home_fire_tv_name" translatable="false">Fire TV</string>
-    <!-- Under the Dock and Look rows: what Launcher settings on the TV itself can change (launcher 2.4 and
-         later; 2.5 adds Edit dock, rows below the dock and a wallpaper pick). Choices there are cleared by
-         every push from the phone; a dock or tile order set there is kept by the launcher while dock_apps
-         stays the same (a new look), and dropped when the phone saves a different dock. The phone cannot
-         read either. -->
-    <string name="home_tv_changes_note">Changes made on the TV itself, such as tiles per row or motion, last until you change the home screen here. A dock changed on the TV is not shown above: a new look keeps it, a different dock saved here replaces it. Apps taken off Home on the TV stay off.</string>
+    <!-- Under the Dock and Look rows (look2, spec 11.1): a send from the phone replaces what was
+         changed with the TV's own Launcher settings (launcher 2.4 and later). -->
+    <string name="home_tv_changes_note">Settings changed on the TV itself are replaced when you send from here.</string>
+    <!-- look2 Look row: what was last sent, then how many apps in a row -->
+    <string name="home_row_look_summary_picture">{style} with {picture}</string>
+    <string name="home_row_look_summary_photo">{style} with your photo</string>
+    <string name="home_row_look_summary_none">{style}, no picture</string>
+    <string name="home_row_look_columns">{count, plural, one {# app in a row} other {# apps in a row}}</string>
+    <!-- look2: a failed look send keeps the draft; Open Look reopens it -->
+    <string name="home_look_failed">The look didn\'t reach the TV.</string>
+    <string name="home_look_failed_open">Open Look</string>
 
     <!-- M2 Update the home screen (D4): a newer build of our home screen, installed over the old one -->
     <string name="home_row_update">Update the home screen</string>
@@ -80,15 +85,8 @@
 
     <!-- M2 Look (theme picker) -->
     <string name="theme_default">Default</string>
-    <string name="theme_aurora">Aurora</string>
-    <string name="theme_six_columns">Six columns</string>
-    <string name="home_look_ended_banner">{look} has ended. Put your earlier look back on the TV?</string>
+    <string name="home_look_ended_banner">{picture} has ended. Put your earlier picture back on the TV?</string>
     <string name="home_look_ended_restore">Put it back</string>
-    <!-- 0.4.0 Apps in a row, under the preview: 4 to 8, a tap only chooses -->
-    <string name="look_clears_tv_choices">A new look also clears what was changed on the TV itself, like columns, motion and its own picture choice.</string>
-    <string name="look_use">Put it on the TV</string>
-    <string name="theme_card_cd">{name}. {description}</string>
-    <string name="theme_card_selected_cd">{name}, selected. {description}</string>
 
     <!-- S3b Your dock (sheet) -->
     <string name="dock_title">Your dock</string>

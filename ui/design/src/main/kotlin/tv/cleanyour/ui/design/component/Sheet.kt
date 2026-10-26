@@ -40,12 +40,15 @@ fun SheetDragHandle(modifier: Modifier = Modifier) {
 // The Material 3 modal sheet in the brand: surface.2, shape.large top corners, the 64% scrim, the
 // handle, 20 dp side padding. Used for Customise and See the list (D3), the dock picker, the
 // address entry, the TV details and the confirmations. No true blur in 0.1.
+// look2: `sheetGesturesEnabled` false stops the swipe down (the Look sheet's More options and
+// Advanced, where Back goes up a page instead of closing).
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CytBottomSheet(
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    sheetGesturesEnabled: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val c = CytTheme.colors
@@ -56,6 +59,7 @@ fun CytBottomSheet(
         // bar icons).
         modifier = modifier.windowInsetsPadding(WindowInsets.statusBars).padding(top = SHEET_TOP_GAP).sheetTopRim(c.rim),
         sheetState = sheetState,
+        sheetGesturesEnabled = sheetGesturesEnabled,
         shape = CytTheme.shapes.sheet,
         containerColor = c.surface2,
         contentColor = c.textPrimary,
