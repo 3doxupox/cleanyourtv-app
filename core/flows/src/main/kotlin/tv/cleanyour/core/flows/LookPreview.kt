@@ -3,9 +3,14 @@ package tv.cleanyour.core.flows
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
 import tv.cleanyour.core.model.BlobRef
+import tv.cleanyour.core.spec.AppColours
 import tv.cleanyour.core.spec.DecodeResult
+import tv.cleanyour.core.spec.EffectiveConfig
+import tv.cleanyour.core.spec.GlowStyle
 import tv.cleanyour.core.spec.LauncherConfigCodec
 import tv.cleanyour.core.spec.LauncherConfigDoc
+import tv.cleanyour.core.spec.LauncherKeys
+import tv.cleanyour.core.spec.Movement
 
 // 0.4.0: the phone's picture of the TV's home screen for the Look sheet's choice, read back from
 // the config.json bytes the push would send: encoded, then decoded and filled in with the
@@ -16,6 +21,15 @@ import tv.cleanyour.core.spec.LauncherConfigDoc
 // and the rows under it in order. `minuteOfDay` is for the sky (sky_intensity above 0).
 // `fillDock` (0.4.0, fill_dock): false, as every push writes it, leaves a dock space with no app empty
 // on the TV, so the preview draws it as empty band.
+// look2 (launcher 2.7 keys, read from the same bytes through LauncherKeys.look): `movement` from
+// the four movement keys, `lift` (advanced_effects with animations on), `others` (the TV's other
+// apps after the dock list: the All apps grid and the row peeking under the dock), `focusArgb`
+// (the focused app's colour, AppColours, for the glow and the ring), `today` (the header's date),
+// `names` (always_show_names), `glow` (NONE without ambient_glow; on the cinematic shelf it is the
+// colour flood), `ring` (the focused tile's ring in the app's colour: app_glow, or the cinematic
+// dock without cinematic_white_focus), `band` (NONE without the dock row), `bandOpacity`
+// (dock_opacity), `evenPadding`, `buttons`, `roundInputs`, `wifiGreen`, `inputs` (the TV has an
+// Inputs pill to show), `dots`, `scrim` and `art` (the cinematic shelf's dots, shade and art).
 data class LookPreview(
     val backgroundArgb: Int,
     val picturePath: String?,
@@ -33,11 +47,36 @@ data class LookPreview(
     val motion: LookMotion,
     val dock: List<String>,
     val minuteOfDay: Int,
+    val movement: Movement = Movement.LIVELY,
+    val lift: Boolean = false,
+    val others: List<String> = emptyList(),
+    val focusArgb: Int = 0xFF8A8A8A.toInt(),
+    val today: LocalDate = LocalDate.of(2026, 10, 26),
+    val names: Boolean = false,
+    val glow: PreviewGlow = PreviewGlow.RADIAL,
+    val ring: Boolean = false,
+    val band: PreviewBand = PreviewBand.SOLID,
+    val bandOpacity: Int = 100,
+    val evenPadding: Boolean = false,
+    val buttons: PreviewButtons = PreviewButtons.LABELLED,
+    val roundInputs: Boolean = false,
+    val wifiGreen: Boolean = false,
+    val inputs: Boolean = true,
+    val dots: Boolean = true,
+    val scrim: Int = 100,
+    val art: Int = 50,
 ) {
     companion object {
+        // 0.4.0, removed after look2 merges: the dock as names only.
         fun of(bytes: ByteArray, wallpaper: BlobRef?, dock: List<String>, today: LocalDate, minuteOfDay: Int): LookPreview {
-            val doc = (LauncherConfigCodec.decode(bytes) as? DecodeResult.Ok)?.doc ?: LauncherConfigDoc()
-            val e = LauncherConfigCodec.effective(doc, LauncherConfigCodec.builtInDefaults)
+            val doc = decode(bytes)
+            return of040(LauncherConfigCodec.effective(doc, LauncherConfigCodec.builtInDefaults), wallpaper, dock, today, minuteOfDay)
+        }
+
+        private fun decode(bytes: ByteArray): LauncherConfigDoc = (LauncherConfigCodec.decode(bytes) as? DecodeResult.Ok)?.doc ?: LauncherConfigDoc()
+
+        // The 0.4.0 fields, from the decoded bytes.
+        private fun of040(e: EffectiveConfig, wallpaper: BlobRef?, dock: List<String>, today: LocalDate, minuteOfDay: Int): LookPreview {
             val festive = e.festival.isNotBlank() && (e.festivalUntil.isBlank() || lastDay(e.festivalUntil)?.let { !today.isAfter(it) } == true)
             val name = e.festival.trim().lowercase()
             return LookPreview(
@@ -58,6 +97,65 @@ data class LookPreview(
             )
         }
 
+        // look2: the dock and the TV's other apps with their packages (for their names and the
+        // focused app's colour), and whether the TV shows an Inputs pill. Every other field is read
+        // from the bytes: the codec's effective config for the modelled keys and LauncherKeys.look
+        // for the carried 2.7 ones, so a key the TV would not get never shows. The dock is the
+        // bytes' dock_apps (the given dock when they have none), named from the given apps; the
+        // others are the rest of the given apps the bytes do not hide, in order.
+        fun of(bytes: ByteArray, wallpaper: BlobRef?, dock: List<AppChoice>, others: List<AppChoice>, today: LocalDate,
+            minuteOfDay: Int, hasInputs: Boolean): LookPreview {
+            val doc = decode(bytes)
+            val e = LauncherConfigCodec.effective(doc, LauncherConfigCodec.builtInDefaults)
+            val k = LauncherKeys.look(doc)
+            val apps = (dock + others).distinctBy { it.pkg }
+            val names = apps.associate { it.pkg.value to it.name }
+            val docked = doc.dockApps?.map { it.value } ?: dock.map { it.pkg.value }
+            val hidden = e.hiddenApps.toSet()
+            val rest = apps.filter { it.pkg.value !in docked && it.pkg.value !in hidden }
+            val focused = docked.firstOrNull() ?: rest.firstOrNull()?.pkg?.value
+            val base = of040(e, wallpaper, emptyList(), today, minuteOfDay)
+            return base.copy(
+                dock = docked.map { names[it] ?: it },
+                others = rest.map { it.name },
+                movement = when {
+                    !e.animations -> Movement.OFF
+                    e.reducedMotion -> Movement.QUICK
+                    k.focusOvershoot -> Movement.LIVELY
+                    else -> Movement.SMOOTH
+                },
+                lift = e.animations && e.advancedEffects,
+                focusArgb = AppColours.of(focused),
+                today = today,
+                names = k.alwaysShowNames,
+                glow = when {
+                    !k.ambientGlow -> PreviewGlow.NONE
+                    k.glowStyle == GlowStyle.HORIZON -> PreviewGlow.HORIZON
+                    else -> PreviewGlow.RADIAL
+                },
+                ring = k.appGlow || e.cinematicHome && !k.cinematicWhiteFocus,
+                band = when {
+                    !e.dockRow -> PreviewBand.NONE
+                    k.dockGlass -> PreviewBand.GLASS
+                    e.cinematicHome || k.dockOpacity < 100 -> PreviewBand.SEE_THROUGH
+                    else -> PreviewBand.SOLID
+                },
+                bandOpacity = k.dockOpacity,
+                evenPadding = k.dockEvenPadding,
+                buttons = when {
+                    k.topMenu -> PreviewButtons.MENU
+                    k.iconOnlyButtons -> PreviewButtons.ROUND
+                    else -> PreviewButtons.LABELLED
+                },
+                roundInputs = k.iconOnlyInputs,
+                wifiGreen = k.wifiStatusColor,
+                inputs = hasInputs,
+                dots = k.cinematicDots,
+                scrim = k.cinematicScrim,
+                art = k.cinematicArt,
+            )
+        }
+
         private fun lastDay(s: String): LocalDate? = try { LocalDate.parse(s.trim()) } catch (_: DateTimeParseException) { null }
 
         // The launcher's own gold for a festival without accent_color, and the greetings it
@@ -67,6 +165,15 @@ data class LookPreview(
     }
 }
 
+// look2: the glow (ambient_glow and glow_style), the dock band (dock_glass and dock_opacity, NONE
+// without the dock row) and the buttons at the top (icon_only_buttons and top_menu), as drawn.
+enum class PreviewGlow { NONE, RADIAL, HORIZON }
+
+enum class PreviewBand { SOLID, SEE_THROUGH, GLASS, NONE }
+
+enum class PreviewButtons { LABELLED, ROUND, MENU }
+
+// 0.4.0, removed after look2 merges (look2 reads Movement and lift instead).
 // How the TV moves: OFF (animations false), CALM (reduced motion), CRISP (advanced effects: lift,
 // zoom and a stiffer spring) or BOUNCY (the launcher's default spring).
 enum class LookMotion { OFF, CALM, CRISP, BOUNCY }

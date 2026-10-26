@@ -472,6 +472,7 @@ class SetupMachine(
                     editDraft { it.copy(picture = LookPicture.NEW_ID) }
                 }.onFailure { deps.log.line("setup: the photo could not be staged") }
             }
+            is SetupIntent.Look -> {}
             is SetupIntent.KeepDebuggingOn -> editDraft { it.copy(keepDebuggingOn = event.on) }
             is SetupIntent.ShowOnTv -> editDraft { it.copy(curtain = event.on) }
             SetupIntent.MakeItClean -> if (after is SetupState.Found && !mutableExtras.value.starting) {

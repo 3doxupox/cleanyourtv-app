@@ -1,5 +1,6 @@
 package tv.cleanyour.core.flows
 
+import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import tv.cleanyour.core.engine.RunStatus
@@ -14,6 +15,7 @@ import tv.cleanyour.core.planner.PlanRequest
 import tv.cleanyour.core.planner.TclGoogleTv
 import tv.cleanyour.core.spec.DockLayers
 import tv.cleanyour.core.spec.Looks
+import tv.cleanyour.core.spec.StyleId
 
 // M2 Home screen: the dock (S3b sheet), the look (theme picker), "Use the TV's own home screen"
 // with its preview, the drift banner (D15: the overlay digest re-read on every connect; "Restore
@@ -41,19 +43,10 @@ data class NotOnTv(
 )
 
 // 0.4.0: a picture of the Picture row: a gallery picture by id, with its file for the thumbnail
-// (null when it has none on this phone).
-data class PictureOption(val id: String, val name: String, val path: String?)
-
-// 0.4.0: the Look sheet's choice while it is open. Nothing reaches the TV until UseLook.
-// `picture`: null for the look's own, LookPicture.NONE_ID, MINE_ID (the person's photo kept for this TV),
-// NEW_ID (a photo just made in this sheet) or a gallery id. `ownPictureOnly`: a dated
-// look (a festival) keeps its own picture, so the sheet shows no Picture row for it. `preview`: the
-// TV's home screen with this choice (LookPreview), null when it cannot be made.
-// `columns` (0.4.0): the apps in a row this choice sends, 4 to 8, always a number; `lookColumns` the
-// look's own, for the helper lines and the save rule (HomeChoice.columns is kept only when the two
-// differ). A look tap resets `columns` to that look's own, because three looks name their count.
-data class LookDraft(val themeId: String, val picture: String?, val ownPictureOnly: Boolean = false, val preview: LookPreview? = null,
-    val columns: Int = DockLayers.DEFAULT_COLUMNS, val lookColumns: Int = DockLayers.DEFAULT_COLUMNS)
+// (null when it has none on this phone). look2: `until`, the last day of a dated picture (Diwali,
+// "Until 10 Nov"), and its background colour (spec 6.2).
+data class PictureOption(val id: String, val name: String, val path: String?, val until: LocalDate? = null,
+    val backgroundArgb: Int = 0xFF000000.toInt())
 
 data class HomeScreenState(
     val tvName: String = "",
@@ -87,6 +80,20 @@ data class HomeScreenState(
     // saved list holds up to 24, DockLayers.keep). The dock sheet never shows them, so a new dock
     // from it keeps them after its own apps; the Look sheet's preview and lines count them.
     val waitingApps: List<AppChoice> = emptyList(),
+    // look2: the earlier look's photo (the "Earlier photo" tile, EarlierLook), as a file.
+    val earlierPicture: BlobRef? = null,
+    // look2: what was last sent, for the Look row's mini preview, its style and its picture id
+    // (the ui names it); null before anything was sent from this phone.
+    val sent: LookPreview? = null,
+    val sentStyle: StyleId? = null,
+    val sentPicture: String? = null,
+    // look2: the TV's home screen version (the snapshot's package versionCode), its memory and
+    // whether it shows Inputs (snapshot HDMI sources, or the profile's live TV app installed).
+    val launcherVersionCode: Long? = null,
+    val ramMb: Int? = null,
+    val hasInputs: Boolean = true,
+    // look2: the last look send failed and the draft is kept; Home offers "Open Look" (OpenLook).
+    val lookFailed: Boolean = false,
 ) {
     val waiting: Int get() = waitingApps.size
 }
@@ -94,10 +101,12 @@ data class HomeScreenState(
 sealed interface HomeScreenIntent {
     data class SetDock(val dock: List<PackageName>) : HomeScreenIntent
     data class SetTheme(val id: String, val picture: String? = null) : HomeScreenIntent
-    data object OpenLook : HomeScreenIntent              // 0.4.0: the Look sheet, starting from the TV's look
-    data class SelectLook(val id: String) : HomeScreenIntent
-    data class SelectPicture(val id: String?) : HomeScreenIntent
-    data class SelectColumns(val count: Int) : HomeScreenIntent   // 0.4.0: apps in a row, 4 to 8; anything else is ignored
+    // 0.4.0: the Look sheet, starting from the TV's look; look2: after a failed send, the kept draft.
+    data object OpenLook : HomeScreenIntent
+    data class Look(val edit: LookEdit) : HomeScreenIntent   // look2: every tap of the Look editor
+    data class SelectLook(val id: String) : HomeScreenIntent   // 0.4.0, removed after look2 merges
+    data class SelectPicture(val id: String?) : HomeScreenIntent   // 0.4.0, removed after look2 merges
+    data class SelectColumns(val count: Int) : HomeScreenIntent   // 0.4.0, removed after look2 merges
     data object UseLook : HomeScreenIntent               // the sheet's choice to the TV
     // The photo the phone just made (OwnPicture: 16:9, 1920 x 1080, at most 280 KB) and its dim: staged
     // and chosen in the sheet. Nothing reaches the TV, and nothing is kept, until UseLook succeeds.
@@ -137,6 +146,7 @@ class HomeScreenMachine(
             newPicture = state.newPicture, newDim = state.newDim)
         HomeScreenIntent.OpenLook -> if (state.busy != null || state.notOnTv != null) state else
             state.copy(look = draft(state.themeId ?: DEFAULT_LOOK, state.pictureId, state, state.columns))
+        is HomeScreenIntent.Look -> state.look?.let { l -> state.copy(look = drafts.edit(l, event.edit, lookContext(state))) } ?: state
         // A look tap resets apps in a row to that look's own; a picture keeps the draft's.
         is HomeScreenIntent.SelectLook -> state.look?.let { l -> state.copy(look = draft(event.id, l.picture, state, null)) } ?: state
         is HomeScreenIntent.SelectPicture -> state.look?.let { l -> state.copy(look = if (l.ownPictureOnly) l else draft(l.themeId, event.id, state, l.columns)) } ?: state
@@ -331,6 +341,9 @@ class HomeScreenMachine(
             mine = state.ownPicture?.let { LookPicture.Of(it, state.ownDim) }, new = state.newPicture?.let { LookPicture.Of(it, state.newDim) })
 
     private fun pictureOptions(): List<PictureOption> = drafts.pictureOptions()
+
+    private fun lookContext(state: HomeScreenState) = LookContext(state.dock + state.waitingApps,
+        mine = state.ownPicture?.let { LookPicture.Of(it, state.ownDim) }, new = state.newPicture?.let { LookPicture.Of(it, state.newDim) })
 
     private suspend fun savedDock(): List<PackageName>? = d.homePrefs.load(tvId)?.dock
     private suspend fun savedColumns(): Int? = d.homePrefs.load(tvId)?.columns
