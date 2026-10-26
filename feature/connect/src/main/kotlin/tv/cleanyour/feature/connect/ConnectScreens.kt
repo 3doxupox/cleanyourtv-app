@@ -296,23 +296,37 @@ private fun StepsContent(state: SetupState.OpenDoor, actions: SetupActions, name
     // The card follows the TV: when the port opens it moves to step 3 on its own.
     LaunchedEffect(state.step) { page = state.step.coerceIn(0, 2) }
     val shield = state.family == Families.ATV && listOfNotNull(state.tv.model, state.tv.friendlyName).any { "shield" in it.lowercase() }
+    // Step 2's extra line: a Shield's network debugging, or for TCL outside China the Google TV
+    // switch (it is Android TV or Google TV, and the phone cannot tell which before it connects).
+    val extra = when {
+        page != 1 -> null
+        shield -> stringResource(R.string.family_atv_extra_shield)
+        state.family == Families.TCL_GLOBAL -> stringResource(R.string.family_tcl_extra_gtv)
+        else -> null
+    }
     val note = stringResource(R.string.door_menu_names_vary)
-    StepCard(
-        title = msg(R.string.door_step_cd, "current" to page + 1, "total" to 3),
-        body = if (shield && page == 1) steps[page] + " " + stringResource(R.string.family_atv_extra_shield) else steps[page],
-        modifier = Modifier.padding(top = 20.dp),
-        illustration = {
-            when (page) {
-                0 -> TvMenuArt(highlight = 3, modifier = Modifier.width(240.dp), taps = 7)
-                1 -> TvMenuArt(highlight = 1, modifier = Modifier.width(240.dp), toggleOn = true)
-                else -> TvMenuArt(highlight = 1, modifier = Modifier.width(240.dp), toggleOn = true)
-            }
-        },
-    )
-    Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        PagerDots(3, page, Modifier.padding(start = 4.dp), description = msg(R.string.door_step_cd, "current" to page + 1, "total" to 3))
-        Spacer(Modifier.weight(1f))
-        if (page < 2) TertiaryButton(stringResource(R.string.door_next), { page++ })
+    if (state.family == Families.TCL_ASK && state.phase == DoorPhase.STEPS) {
+        // The TCL chip: which menus first, then the steps that go with them (never the 本机信息
+        // ones for a TV with English menus).
+        TclMenuChips(onPick = { chinese -> actions.intent(SetupIntent.ChangeFamily(Families.ofTclMenus(chinese))) })
+    } else {
+        StepCard(
+            title = msg(R.string.door_step_cd, "current" to page + 1, "total" to 3),
+            body = if (extra != null) steps[page] + " " + extra else steps[page],
+            modifier = Modifier.padding(top = 20.dp),
+            illustration = {
+                when (page) {
+                    0 -> TvMenuArt(highlight = 3, modifier = Modifier.width(240.dp), taps = 7)
+                    1 -> TvMenuArt(highlight = 1, modifier = Modifier.width(240.dp), toggleOn = true)
+                    else -> TvMenuArt(highlight = 1, modifier = Modifier.width(240.dp), toggleOn = true)
+                }
+            },
+        )
+        Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            PagerDots(3, page, Modifier.padding(start = 4.dp), description = msg(R.string.door_step_cd, "current" to page + 1, "total" to 3))
+            Spacer(Modifier.weight(1f))
+            if (page < 2) TertiaryButton(stringResource(R.string.door_next), { page++ })
+        }
     }
     val stillWaiting = state.phase == DoorPhase.STEPS && state.waitedMs >= 180_000
     val status = when {
@@ -344,12 +358,23 @@ private fun BrandChips(onPick: (String) -> Unit) {
     }
 }
 
+// After the TCL brand chip: one question, two answers, in the brand row's chips.
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun TclMenuChips(onPick: (chinese: Boolean) -> Unit) {
+    Overline(stringResource(R.string.door_tcl_menus_prompt), Modifier.padding(start = 4.dp, top = 20.dp, bottom = 8.dp))
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        GlassChip(stringResource(R.string.door_tcl_menus_global), onClick = { onPick(false) })
+        GlassChip(stringResource(R.string.door_tcl_menus_chinese), onClick = { onPick(true) })
+    }
+}
+
 @Composable
 private fun familySteps(family: String): List<String> = when (family) {
     Families.GTV -> listOf(stringResource(R.string.family_gtv_step1), stringResource(R.string.family_gtv_step2), stringResource(R.string.family_gtv_step3))
     Families.FIRE -> listOf(stringResource(R.string.family_fire_step1), stringResource(R.string.family_fire_step2), stringResource(R.string.family_fire_step3))
     Families.TCL -> listOf(stringResource(R.string.family_tcl_step1), stringResource(R.string.family_tcl_step2), stringResource(R.string.family_tcl_step3))
-    Families.ATV -> listOf(stringResource(R.string.family_atv_step1), stringResource(R.string.family_atv_step2), stringResource(R.string.family_atv_step3))
+    Families.ATV, Families.TCL_GLOBAL -> listOf(stringResource(R.string.family_atv_step1), stringResource(R.string.family_atv_step2), stringResource(R.string.family_atv_step3))
     else -> listOf(stringResource(R.string.family_unknown_step1), stringResource(R.string.family_unknown_step2), stringResource(R.string.family_unknown_step3))
 }
 

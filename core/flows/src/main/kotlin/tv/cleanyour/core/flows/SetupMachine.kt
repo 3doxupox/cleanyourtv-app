@@ -355,6 +355,9 @@ class SetupMachine(
         }
         is SetupIntent.EnterAddress -> if (isHomeAddress(event.ip) && (state is SetupState.Welcome || state is SetupState.Picker || state is SetupState.OpenDoor || state is SetupState.PairingNeeded))
             door(manualTv(event.ip.trim())) else state
+        // A family name as it is, a brand chip through Families.ofBrand. The TCL chip asks about the
+        // menus first (TCL_ASK, no banner); the answer comes back as TCL_GLOBAL or TCL, and only
+        // TCL (China-market firmware) gets the banner about the home screen.
         is SetupIntent.ChangeFamily -> if (state is SetupState.OpenDoor) {
             val f = if (event.family in Families.all) event.family else Families.ofBrand(event.family)
             state.copy(family = f, banner = bannerFor(f, state.tv))
@@ -414,7 +417,7 @@ class SetupMachine(
 
     private fun bannerFor(family: String, tv: FoundTv): String? = when {
         family == Families.FIRE -> deps.copy.text(CopyKey.BANNER_FIRE)
-        family == Families.TCL -> deps.copy.text(CopyKey.BANNER_TCL)
+        family == Families.TCL -> deps.copy.text(CopyKey.BANNER_TCL)   // China-market menus only, not TCL_GLOBAL
         listOfNotNull(tv.model, tv.friendlyName).any { "mibox" in it.lowercase() || "mi box" in it.lowercase() } -> deps.copy.text(CopyKey.BANNER_MIBOX)
         else -> null
     }

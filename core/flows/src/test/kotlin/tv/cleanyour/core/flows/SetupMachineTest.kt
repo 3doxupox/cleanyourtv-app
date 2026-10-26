@@ -608,6 +608,48 @@ class SetupMachineTest {
         assertEquals("BANNER_FIRE", d.banner)
     }
 
+    // A TCL UnionTV in India got the China-market 本机信息 steps from the TCL chip: the chip now asks
+    // about the menus first, and only Chinese menus get those steps and the home screen banner.
+    @Test fun theTclChipAsksAboutTheMenusBeforeAnySteps() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val m = h.setup(backgroundScope)
+        m.dispatch(SetupIntent.EnterAddress("192.168.1.50")); settle()
+        m.dispatch(SetupIntent.ChangeFamily("TCL")); settle()
+        val asking = assertIs<SetupState.OpenDoor>(m.state.value)
+        assertEquals(Families.TCL_ASK, asking.family)
+        assertNull(asking.banner)
+        assertEquals(DoorPhase.STEPS, asking.phase)
+
+        m.dispatch(SetupIntent.ChangeFamily(Families.ofTclMenus(chinese = false))); settle()
+        val global = assertIs<SetupState.OpenDoor>(m.state.value)
+        assertEquals(Families.TCL_GLOBAL, global.family)
+        assertNull(global.banner)
+
+        // Changing the answer (back through the chip) works the other way too.
+        m.dispatch(SetupIntent.ChangeFamily("TCL")); settle()
+        assertEquals(Families.TCL_ASK, assertIs<SetupState.OpenDoor>(m.state.value).family)
+        m.dispatch(SetupIntent.ChangeFamily(Families.ofTclMenus(chinese = true))); settle()
+        val china = assertIs<SetupState.OpenDoor>(m.state.value)
+        assertEquals(Families.TCL, china.family)
+        assertEquals("BANNER_TCL", china.banner)
+        assertEquals("192.168.1.50", china.tv.host)
+    }
+
+    @Test fun brandChipsMapToTheirFamilies() {
+        assertEquals(Families.TCL_ASK, Families.ofBrand("TCL"))
+        assertEquals(Families.TCL_ASK, Families.ofBrand("tcl"))
+        assertEquals(Families.ATV, Families.ofBrand("Xiaomi"))
+        assertEquals(Families.GTV, Families.ofBrand("Google"))
+        assertEquals(Families.FIRE, Families.ofBrand("Amazon"))
+        assertEquals(Families.UNKNOWN, Families.ofBrand("Other"))
+        assertEquals(Families.TCL_GLOBAL, Families.ofTclMenus(chinese = false))
+        assertEquals(Families.TCL, Families.ofTclMenus(chinese = true))
+        // Every family the screen can be sent is one the machine takes as it is.
+        assertTrue(Families.TCL_ASK in Families.all && Families.TCL_GLOBAL in Families.all && Families.TCL in Families.all)
+        // A TCL found on the network still gets the generic steps, never the China-market ones.
+        assertEquals(Families.UNKNOWN, Families.of(FoundTv("192.168.1.71", "TCL C635", "C635", emptySet(), true, null, null, 0L)))
+    }
+
     @Test fun wrongTvAtARememberedAddressShowsTheIdentityCard() = runTest(timeout = 30.seconds) {
         val h = Harness()
         val other = Samples.tv().copy(id = TvId("0123456789abcdef"))

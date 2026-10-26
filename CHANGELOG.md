@@ -57,6 +57,9 @@ too), how many apps sit in a row, and a preview on the phone before anything rea
 
 ### Other
 - The README links to Obtainium, which follows the GitHub releases and updates the app by itself.
+- Picking TCL under "Change model" now asks whether the TV's menus are in English (or your
+  language) or in Chinese. TCL TVs sold outside China get the usual Developer options steps,
+  with a line for Google TV's Wireless debugging; only Chinese menus get the 本机信息 steps.
 
 ## 0.3.7 (2026-10-25)
 

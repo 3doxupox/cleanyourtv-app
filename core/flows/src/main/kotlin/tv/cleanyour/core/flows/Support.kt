@@ -87,13 +87,22 @@ fun isHomeAddress(text: String): Boolean {
 
 // The step-card family of UX 2 from what discovery knows before connecting; the person can change
 // it with "Not a Mi TV? Change model". atv: Android TV 9 to 11; gtv: Google TV 12 to 14.
+// TCL sells two kinds of TV: China-market firmware (Chinese menus, 本机信息 opens a hidden ADB
+// window; TCL refuses other home screens there) and Android TV or Google TV everywhere else (the
+// usual Developer options). The TCL chip asks which (TCL_ASK) before it shows any steps:
+// TCL_GLOBAL for menus in English or the person's language, TCL for menus in Chinese.
 object Families {
     const val ATV = "atv"
     const val GTV = "gtv"
     const val FIRE = "fire"
     const val TCL = "tcl"
+    const val TCL_ASK = "tcl-ask"
+    const val TCL_GLOBAL = "tcl-global"
     const val UNKNOWN = "unknown"
-    val all = listOf(ATV, GTV, FIRE, TCL, UNKNOWN)
+    val all = listOf(ATV, GTV, FIRE, TCL, TCL_ASK, TCL_GLOBAL, UNKNOWN)
+
+    // The answer to the TCL question: which menus the TV shows.
+    fun ofTclMenus(chinese: Boolean): String = if (chinese) TCL else TCL_GLOBAL
 
     fun of(tv: FoundTv): String {
         val text = listOfNotNull(tv.model, tv.friendlyName).joinToString(" ").lowercase()
@@ -113,7 +122,7 @@ object Families {
         "xiaomi", "hisense", "sony" -> ATV
         "google", "philips" -> GTV
         "amazon" -> FIRE
-        "tcl" -> TCL
+        "tcl" -> TCL_ASK
         else -> UNKNOWN
     }
 }
