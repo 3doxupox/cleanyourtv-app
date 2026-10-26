@@ -7,13 +7,16 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import tv.cleanyour.core.model.PackageName
 
-// The body of LauncherConfigCodec: the launcher's Config.java read path, key by key, as of
-// upstream v2.5.0 (9071ec8), the launcher this app bundles. 1bbf0c9 added input_action and
-// module_cards (RFC-W4-1); v2.4.0 added seventeen more keys (RFC-W4-2) and v2.5.0 nine more
-// (RFC-W4-3), which a TV still on an older launcher ignores. Decoding answers "what will the TV show for these bytes"; a key the
-// launcher would ignore is left null in the doc with a warning, so effective() of the decoded doc
-// equals what Config.load computes. ConfigDifferentialTest holds this to the real Config.java of
-// both launchers on the theme fixtures and on generated files.
+// The body of LauncherConfigCodec: the launcher's Config.java read path, key by key. The pinned
+// reader is launcher 2.7 (the submodule at 3e34f40, versionCode 8), the launcher this app bundles;
+// its reading of the modelled keys is unchanged since v2.5.0 (9071ec8). 1bbf0c9 added input_action
+// and module_cards (RFC-W4-1); v2.4.0 added seventeen more keys (RFC-W4-2) and v2.5.0 nine more
+// (RFC-W4-3), which a TV still on an older launcher ignores; 2.7's look keys have no field and are
+// carried (CARRIED_27, read by LauncherKeys). Decoding answers "what will the TV show for these
+// bytes"; a key the launcher would ignore is left null in the doc with a warning, so effective() of
+// the decoded doc equals what Config.load computes. ConfigDifferentialTest holds this to the real
+// Config.java of launchers 2.7, 2.5 and 2.0 on the theme fixtures and on generated files, and
+// LookDifferentialTest to 2.7's on every look LookKeys builds.
 //
 // Not modelled, because the phone cannot read it: the choices made on the TV in Launcher settings
 // (columns 4 to 7, rows below the dock 0 to 3, animations, advanced effects, a wallpaper pick),
@@ -69,7 +72,8 @@ internal object ConfigCodecImpl {
         "cinematic_white_focus", "cinematic_dots",
     )
 
-    // res/values/config.xml of the launcher at v2.5.0 (the keys of older launchers keep their values).
+    // res/values/config.xml of launcher 2.7 (unchanged for these keys since v2.5.0; the keys of older
+    // launchers keep their values).
     // config.xml has no festival, wallpaper rotation, dim or race calendar: those only ever come
     // from config.json.
     val BUILT_IN = EffectiveConfig(
@@ -86,6 +90,16 @@ internal object ConfigCodecImpl {
         appKeys = emptyList(), cinematicHome = false, wallpaperRotationMinutes = 0, wallpaperDim = 0, raceCalendar = emptyList(),
     )
 
+    const val CRASH_27_NON_FINITE = "a list holds NaN or Infinity: launcher 2.7 would crash when Home starts, as it cannot keep a copy of the file"
+
+    private fun nonFinite(v: AValue): Boolean = when (v) {
+        is AValue.Dbl -> v.v.isNaN() || v.v.isInfinite()
+        is AValue.Arr -> v.items.any(::nonFinite)
+        is AValue.Obj -> v.map.values.any(::nonFinite)
+        else -> false
+    }
+    private fun nonFinite(o: Map<String, AValue>): Boolean = o.values.any(::nonFinite)
+
     fun isPackageName(s: String): Boolean = runCatching { PackageName(s) }.isSuccess
 
     fun decode(bytes: ByteArray): DecodeResult {
@@ -99,6 +113,11 @@ internal object ConfigCodecImpl {
         } catch (e: AndroidJsonException) {
             return DecodeResult.Rejected("not readable by the launcher, so it ignores the whole file (${e.message})")
         }
+        // Launcher 2.7 keeps a copy of every config.json it reads (Config.readOverlay) and writes it
+        // with JSONObject.toString(), which is null when a list holds NaN or Infinity (org.json
+        // refuses those as object values but keeps them in a list): Home then stops with a
+        // NullPointerException on every start. 2.5 and 2.0 read such a file.
+        if (nonFinite(o)) return DecodeResult.Rejected(CRASH_27_NON_FINITE)
         val w = mutableListOf<String>()
 
         fun stringList(key: String): List<PackageName>? {

@@ -4,7 +4,8 @@ import java.util.List;
 
 // What upstream Config.load computed, copied out of its package-private fields by the bridges.
 // v24 holds the keys launcher v2.4.0 added and v25 the keys v2.5.0 added; both are null for the
-// 1bbf0c9 Config.java (launcher 2.0).
+// 1bbf0c9 Config.java (launcher 2.0). v27 holds the look keys launcher 2.7 reads that the codec
+// carries (ConfigCodecImpl.CARRIED_27); null for 2.5 and 2.0.
 public final class UpstreamConfig {
     public final List<String> dockApps;
     public final List<String> hiddenApps;
@@ -24,6 +25,38 @@ public final class UpstreamConfig {
     public final boolean overlayApplied;
     public final V24 v24;
     public final V25 v25;
+    public final V27 v27;
+
+    // The carried look keys as launcher 2.7's Config keeps them (glow_style already through
+    // Config.glowStyle, so "radial" or "horizon"; dock_opacity after the on-TV choice).
+    public static final class V27 {
+        public final boolean ambientGlow, appGlow, dockGlass, dockEvenPadding, alwaysShowNames, iconOnlyButtons,
+                iconOnlyInputs, topMenu, wifiStatusColor, focusOvershoot, cinematicDots, cinematicWhiteFocus;
+        public final String glowStyle;
+        public final int dockOpacity, cinematicArt, cinematicScrim;
+
+        public V27(boolean ambientGlow, String glowStyle, boolean appGlow, boolean dockGlass, int dockOpacity,
+                   boolean dockEvenPadding, boolean alwaysShowNames, boolean iconOnlyButtons, boolean iconOnlyInputs,
+                   boolean topMenu, boolean wifiStatusColor, boolean focusOvershoot, boolean cinematicDots,
+                   boolean cinematicWhiteFocus, int cinematicArt, int cinematicScrim) {
+            this.ambientGlow = ambientGlow;
+            this.glowStyle = glowStyle;
+            this.appGlow = appGlow;
+            this.dockGlass = dockGlass;
+            this.dockOpacity = dockOpacity;
+            this.dockEvenPadding = dockEvenPadding;
+            this.alwaysShowNames = alwaysShowNames;
+            this.iconOnlyButtons = iconOnlyButtons;
+            this.iconOnlyInputs = iconOnlyInputs;
+            this.topMenu = topMenu;
+            this.wifiStatusColor = wifiStatusColor;
+            this.focusOvershoot = focusOvershoot;
+            this.cinematicDots = cinematicDots;
+            this.cinematicWhiteFocus = cinematicWhiteFocus;
+            this.cinematicArt = cinematicArt;
+            this.cinematicScrim = cinematicScrim;
+        }
+    }
 
     // The values v2.5.0 reads beyond v2.4.0's keys. Maps as Config.packageMap keeps them; each race
     // as "round|name|place|SESSION@start;SESSION@start", the sessions in RaceWeekend's order.
@@ -101,6 +134,16 @@ public final class UpstreamConfig {
                           int rowsBelowDock, boolean shamsiDate, Boolean moduleCards, String vpnApp,
                           boolean showHomeSettingsShortcut, int backgroundColor, boolean wallpaperShown,
                           boolean overlayApplied, V24 v24, V25 v25) {
+        this(dockApps, hiddenApps, liveTvPackage, liveTvAction, sourcePanelService, sourcePanelAction, inputAction, columns,
+                rowsBelowDock, shamsiDate, moduleCards, vpnApp, showHomeSettingsShortcut, backgroundColor, wallpaperShown,
+                overlayApplied, v24, v25, null);
+    }
+
+    public UpstreamConfig(List<String> dockApps, List<String> hiddenApps, String liveTvPackage, String liveTvAction,
+                          String sourcePanelService, String sourcePanelAction, String inputAction, int columns,
+                          int rowsBelowDock, boolean shamsiDate, Boolean moduleCards, String vpnApp,
+                          boolean showHomeSettingsShortcut, int backgroundColor, boolean wallpaperShown,
+                          boolean overlayApplied, V24 v24, V25 v25, V27 v27) {
         this.dockApps = dockApps;
         this.hiddenApps = hiddenApps;
         this.liveTvPackage = liveTvPackage;
@@ -119,5 +162,6 @@ public final class UpstreamConfig {
         this.overlayApplied = overlayApplied;
         this.v24 = v24;
         this.v25 = v25;
+        this.v27 = v27;
     }
 }

@@ -58,7 +58,8 @@ sourceSets.main {
     resources.srcDir(bundleThemes)
 }
 
-// Differential test (F8): upstream Config.java and Festival.java of launcher 2.5 (v2.5.0, 9071ec8)
-// are vendored in src/test/java/com/gathin/tvhome/pinned (RFC-UP037-1). Launcher 2.7's Config.java
-// needs Android stubs and resources this test harness does not have yet; its reader of the keys the
-// codec models is unchanged from 2.5.
+// Differential test (F8): the real readers run on the JVM from the test sources, vendored with only
+// the package line changed. Launcher 2.7 (the submodule at 3e34f40, the pinned reader) in
+// src/test/java/com/gathin/tvhome/v27, checked against the submodule by LookDifferentialTest, with
+// stubs for the Android types it calls; launcher 2.5 (v2.5.0, 9071ec8) in .../pinned (RFC-UP037-1)
+// and 2.0 (1bbf0c9) in .../previous, kept for the keys they read. Nothing is generated here.

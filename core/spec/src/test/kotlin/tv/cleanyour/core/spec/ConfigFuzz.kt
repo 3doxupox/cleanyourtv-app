@@ -20,11 +20,18 @@ class ConfigFuzz(seed: Long) {
         // launcher v2.5.0 (RFC-W4-3)
         "cinematic_home",
     )
+    // launcher 2.7, carried in `unknown` (ConfigCodecImpl.CARRIED_27): read by LauncherKeys.
+    private val carriedBoolKeys = listOf(
+        "ambient_glow", "dock_glass", "dock_even_padding", "app_glow", "always_show_names", "icon_only_buttons",
+        "icon_only_inputs", "top_menu", "wifi_status_color", "focus_overshoot", "cinematic_white_focus", "cinematic_dots",
+    )
+    private val carriedIntKeys = listOf("dock_opacity", "cinematic_scrim", "cinematic_art")
     private val textListKeys = listOf("launch_actions", "app_labels", "app_banners", "app_keys")
     private val festivalKeys = listOf("festival", "festival_until", "greeting", "accent_color")
     private val knownKeys = listKeys + stringKeys + intKeys + boolKeys + festivalKeys +
         listOf("background_color", "sky_intensity", "settings_key_keycodes") + textListKeys +
-        listOf("input_key_keycodes", "wallpaper_rotation_minutes", "wallpaper_dim", "race_calendar")
+        listOf("input_key_keycodes", "wallpaper_rotation_minutes", "wallpaper_dim", "race_calendar") +
+        carriedBoolKeys + carriedIntKeys + "glow_style"
     private val packages = listOf(
         "com.netflix.ninja", "com.google.android.youtube.tv", "com.amazon.amazonvideo.livingroom", "in.startv.hotstar",
         "com.mediatek.wwtv.tvcenter", "com.android.tv", "a.b", "com.x_y.z9", "android",
@@ -199,6 +206,11 @@ class ConfigFuzz(seed: Long) {
             "wallpaper_rotation_minutes" -> pick("0", "1", "30", "1440", "1441", "-1", "30.9", "\"30\"", "4294967326", "true")
             "wallpaper_dim" -> pick("0", "40", "90", "91", "-1", "89.9", "\"40\"", "null")
             "race_calendar" -> raceCalendar()
+            in carriedBoolKeys -> pick("true", "false", "TRUE", "\"true\"", "1", "null", "\"false\"")
+            "dock_opacity" -> pick("29", "30", "50", "70", "100", "101", "45.7", "29.9", "100.9", "-1", "4294967346", "1e2", "\"50\"", "true", "null")
+            "cinematic_scrim", "cinematic_art" -> pick("0", "20", "45", "50", "100", "101", "-1", "99.9", "-0.5", "\"45\"", "4294967341", "1e400")
+            "glow_style" -> lenientStr(pick("radial", "horizon", "HORIZON", " Horizon ", "top", "", " ", "horizon\u0000", "radial horizon"), lenient)
+                .let { if (r.nextInt(6) == 0) pick("5", "true", "null", "[\"horizon\"]") else it }
             "input_key_keycodes", "settings_key_keycodes" -> {
                 val items = (0 until r.nextInt(0, 5)).map {
                     when (r.nextInt(12)) {
