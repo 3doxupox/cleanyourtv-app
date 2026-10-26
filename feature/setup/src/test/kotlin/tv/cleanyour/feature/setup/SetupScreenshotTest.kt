@@ -45,7 +45,7 @@ import tv.cleanyour.ui.design.component.SheetSurface
 import tv.cleanyour.ui.design.theme.CytTheme
 
 // The four renderings of every screen state (T8, the W7 rule for components): dark, light, 200%
-// font and right to left. Screens are 360 x 780 dp like the mockups, under reduced motion so the
+// font and right to left. Screens are 360 x 780 dp like the mockups (a long sheet is taller), under reduced motion so the
 // count-up, the Welcome film and the list fades rest in their final frame.
 enum class Variant(val dark: Boolean, val fontScale: Float, val rtl: Boolean) {
     DARK(true, 1f, false),
@@ -54,7 +54,7 @@ enum class Variant(val dark: Boolean, val fontScale: Float, val rtl: Boolean) {
     RTL(true, 1f, true),
 }
 
-class Shot(val name: String, val content: @Composable () -> Unit) {
+class Shot(val name: String, val height: Dp = 780.dp, val content: @Composable () -> Unit) {
     override fun toString() = name
 }
 
@@ -68,7 +68,7 @@ fun Rendered(shot: Shot, variant: Variant) {
         LocalLayoutDirection provides if (variant.rtl) LayoutDirection.Rtl else LayoutDirection.Ltr,
     ) {
         CytTheme(darkTheme = variant.dark, reducedMotion = true) {
-            Box(Modifier.testTag(SHOT_TAG).size(360.dp, 780.dp).background(CytTheme.colors.bg)) { shot.content() }
+            Box(Modifier.testTag(SHOT_TAG).size(360.dp, shot.height).background(CytTheme.colors.bg)) { shot.content() }
         }
     }
 }
@@ -89,7 +89,7 @@ fun SheetFrame(behind: @Composable () -> Unit, maxHeight: Dp = 690.dp, content: 
 // test on any ERROR. Record with recordRoborazziDebug, compare with verifyRoborazziDebug.
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [35], qualifiers = "w360dp-h780dp-xhdpi")
+@Config(sdk = [35], qualifiers = "w360dp-h2000dp-xhdpi")
 class SetupScreenshotTest(private val shot: Shot, private val variant: Variant) {
 
     @get:Rule

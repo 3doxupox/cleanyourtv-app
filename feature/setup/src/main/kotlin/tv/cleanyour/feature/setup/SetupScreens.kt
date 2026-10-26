@@ -29,6 +29,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
@@ -45,6 +46,8 @@ import tv.cleanyour.core.flows.ChipState
 import tv.cleanyour.core.flows.Confirmations
 import tv.cleanyour.core.flows.Finishing
 import tv.cleanyour.core.flows.HomeBlock
+import tv.cleanyour.core.flows.LookDraft
+import tv.cleanyour.core.flows.LookPreview
 import tv.cleanyour.core.flows.NothingWhy
 import tv.cleanyour.core.flows.Reconnect
 import tv.cleanyour.core.flows.RestartState
@@ -60,6 +63,7 @@ import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.planner.GroupSummary
 import tv.cleanyour.core.planner.RowSummary
 import tv.cleanyour.core.planner.switchOffCount
+import tv.cleanyour.core.spec.DockLayers
 import tv.cleanyour.ui.design.component.ActionColumn
 import tv.cleanyour.ui.design.component.Banner
 import tv.cleanyour.ui.design.component.BannerTone
@@ -104,16 +108,20 @@ import tv.cleanyour.ui.design.component.SummaryGroup
 import tv.cleanyour.ui.design.component.SwitchRow
 import tv.cleanyour.ui.design.component.TertiaryButton
 import tv.cleanyour.ui.design.component.TextActionRow
-import tv.cleanyour.ui.design.component.ThemeOption
-import tv.cleanyour.ui.design.component.ThemePicker
 import tv.cleanyour.ui.design.component.TitleSize
 import tv.cleanyour.ui.design.component.TvStatusChip
 import tv.cleanyour.ui.design.component.TvThumbnail
-import tv.cleanyour.ui.design.component.themeSwatch
 import tv.cleanyour.ui.design.component.UndoSnackbarHost
 import tv.cleanyour.ui.design.component.UndoSnackbarState
 import tv.cleanyour.ui.design.component.rememberEmphasis
 import tv.cleanyour.ui.design.component.rememberUndoSnackbarState
+import tv.cleanyour.ui.design.component.LookEditor
+import tv.cleanyour.ui.design.component.LookEditorLook
+import tv.cleanyour.ui.design.component.LookEditorMotion
+import tv.cleanyour.ui.design.component.LookEditorPicture
+import tv.cleanyour.ui.design.component.LookEditorPreview
+import tv.cleanyour.ui.design.component.LookEditorState
+import tv.cleanyour.ui.design.component.PhotoPicker
 import tv.cleanyour.ui.design.theme.CytTheme
 import tv.cleanyour.ui.design.theme.Glow
 import tv.cleanyour.core.engine.NarrationState as EngineNarration
@@ -132,10 +140,12 @@ fun SetupFlow(
     // 0.3.2 B1, B2: the report preview is the app's own screen; these open it ("report/tv/<id>",
     // "report/problem/<id>").
     onRoute: (String) -> Unit = {},
+    // 0.4.0: the system photo picker, for "Choose a photo" in the look step.
+    photos: PhotoPicker? = null,
 ) {
     when (state) {
         is SetupState.Probing -> ProbingScreen(state, extras, modifier, actions)
-        is SetupState.Found -> FoundScreen(state, extras, actions, modifier, onCopyCommands, onHelpAddTv = { onRoute("report/tv/${state.tvId.value}") })
+        is SetupState.Found -> FoundScreen(state, extras, actions, modifier, onCopyCommands, onHelpAddTv = { onRoute("report/tv/${state.tvId.value}") }, photos = photos)
         is SetupState.Working -> WorkingScreen(state, extras, actions, modifier)
         is SetupState.Check -> CheckScreen(state, extras, actions, modifier, nowMs)
         is SetupState.Stopped -> StoppedScreen(state, extras, actions, modifier, onReport = { onRoute("report/problem/${state.tvId.value}") })
@@ -193,6 +203,7 @@ internal fun CandidateCard(issue: String?, actions: SetupActions) {
 fun FoundScreen(
     state: SetupState.Found, extras: SetupExtras, actions: SetupActions, modifier: Modifier = Modifier, onCopyCommands: (String) -> Unit = {},
     onHelpAddTv: () -> Unit = {},
+    photos: PhotoPicker? = null,
 ) {
     val summary = state.plan.summary
     // Every switch-off of the plan, the home screen switch's own included (round 3).
@@ -279,7 +290,9 @@ fun FoundScreen(
         Sheet.LIST, Sheet.CUSTOMISE -> CustomiseSheet(state, extras, actions, onCopyCommands)
         Sheet.DOCK -> DockSheet(extras.dock, extras.apps, extras.dockColumns, onDone = { actions.intent(SetupIntent.SetDock(it)); actions.intent(SetupIntent.Open(null)) },
             onDismiss = { actions.intent(SetupIntent.Open(null)) })
-        Sheet.THEME -> CytBottomSheet({ actions.intent(SetupIntent.Open(null)) }) { ThemeContent(extras, actions) }
+        Sheet.THEME -> CytBottomSheet({ actions.intent(SetupIntent.Open(null)) }) {
+            Column(Modifier.verticalScroll(rememberScrollState())) { ThemeContent(extras, actions, photos) }
+        }
         else -> {}
     }
 }
@@ -364,8 +377,11 @@ internal fun ColumnScope.CustomiseContent(
         }
         ListRow(dockRow, onClick = { actions.intent(SetupIntent.Open(Sheet.DOCK)) })
         ListDivider()
+        // The look, and its apps in a row when it is not the look's own ("Look: Console, 6 apps in a row").
         val theme = extras.themes.firstOrNull { it.id == extras.draft?.themeId }?.name ?: stringResource(R.string.theme_default)
-        ListRow(msg(R.string.customise_look_row, "theme" to theme), onClick = { actions.intent(SetupIntent.Open(Sheet.THEME)) })
+        val count = extras.look?.takeIf { it.columns != it.lookColumns }?.columns
+        ListRow(if (count != null) msg(R.string.customise_look_row_count, "theme" to theme, "count" to count) else msg(R.string.customise_look_row, "theme" to theme),
+            onClick = { actions.intent(SetupIntent.Open(Sheet.THEME)) })
     }
     if (custom) {
         // RFC-CURTAIN-1: Custom only, on by default; Simple always shows the progress on the TV.
@@ -446,31 +462,46 @@ internal fun DockContent(state: DockEditorState, apps: List<AppChoice>, onDone: 
 
 internal fun AppChoice.toDockApp() = DockApp(pkg.value, name)
 
-// The look picker (S3a "Look: Default >"): Default, then the other looks on offer today.
+// The look step (S3a "Look: Default >"): the Look editor of :ui:design, the same choices in the
+// same order as the Look sheet after Setup (the preview from the bytes the push would send, Apps in
+// a row, the looks and the Picture row), then Done. A tap only changes the draft, so nothing here is
+// guarded; the push happens when Setup runs. `pictures`: the pictures by file, given by the
+// screenshot tests (the app reads the files).
 @Composable
-internal fun ThemeContent(extras: SetupExtras, actions: SetupActions) {
-    SheetHeader(stringResource(R.string.theme_title))
-    // The same picker as M2 (ThemePicker with the preview tiles), so the look reads the same in
-    // the wizard and on Manage (R4-W8). A tap here only changes the draft, so it is not guarded.
-    val options = listOf(ThemeOption("default", stringResource(R.string.theme_default), stringResource(R.string.theme_default_desc), themeSwatch("default"))) +
-        extras.themes.filter { it.id != "default" }.map { ThemeOption(it.id, it.name, themeDescription(it.id) ?: it.description, themeSwatch(it.id)) }
-    ThemePicker(options, extras.draft?.themeId ?: "default", { actions.intent(SetupIntent.SetTheme(it.id)) }, Modifier.padding(top = 16.dp))
+internal fun ColumnScope.ThemeContent(extras: SetupExtras, actions: SetupActions, photos: PhotoPicker? = null, pictures: Map<String, ImageBitmap>? = null) {
+    val draft = extras.look ?: return
+    LookEditor(
+        extras.toEditor(draft),
+        onLook = { actions.intent(SetupIntent.SetTheme(it)) },
+        onColumns = { actions.intent(SetupIntent.SelectColumns(it)) },
+        onPicture = { actions.intent(SetupIntent.SelectPicture(it)) },
+        onPhoto = { jpeg, dim -> actions.intent(SetupIntent.SetOwnPicture(jpeg, dim)) },
+        photos = photos, pictures = pictures,
+    )
+    PrimaryButton(stringResource(R.string.action_done), { actions.intent(SetupIntent.Open(null)) }, Modifier.padding(top = 20.dp), guardObscured = false)
 }
 
-@Composable
-private fun themeDescription(id: String): String? = when (id) {
-    "aurora" -> stringResource(R.string.theme_aurora_desc)
-    "six-columns" -> stringResource(R.string.theme_six_columns_desc)
-    "cinema" -> stringResource(R.string.theme_cinema_desc)
-    "console" -> stringResource(R.string.theme_console_desc)
-    "horizon" -> stringResource(R.string.theme_horizon_desc)
-    "quiet" -> stringResource(R.string.theme_quiet_desc)
-    "diwali" -> stringResource(R.string.theme_diwali_desc)
-    "library" -> stringResource(R.string.theme_library_desc)
-    "arcade" -> stringResource(R.string.theme_arcade_desc)
-    "mist" -> stringResource(R.string.theme_mist_desc)
-    else -> null
+// The look step's draft as the editor shows it: the apps are the draft's whole dock, the waiting
+// apps too.
+internal fun SetupExtras.toEditor(draft: LookDraft): LookEditorState {
+    val count = dock.size + waiting
+    return LookEditorState(
+        looks = themes.map { LookEditorLook(it.id, it.name, it.description, it.wallpaperPath) },
+        lookId = draft.themeId, preview = draft.preview?.toEditor(), columns = draft.columns,
+        apps = count, waiting = waiting,
+        picture = draft.picture, ownPictureOnly = draft.ownPictureOnly,
+        pictures = pictures.map { LookEditorPicture(it.id, it.name, it.path) },
+        minePath = ownPicture?.path, newPath = newPicture?.path, photoDim = if (newPicture != null) newDim else ownDim,
+        minColumns = DockLayers.MIN_OFFERED_COLUMNS, maxColumns = DockLayers.MAX_OFFERED_COLUMNS,
+    )
 }
+
+// The preview as the flows read it back from the bytes, in the editor's plain values.
+internal fun LookPreview.toEditor() = LookEditorPreview(
+    backgroundArgb = backgroundArgb, picturePath = picturePath, dim = dim, sky = sky, columns = columns, rowsBelowDock = rowsBelowDock,
+    dockRow = dockRow, dockTitle = dockTitle, fillDock = fillDock, cinematic = cinematic, festive = festive, accentArgb = accentArgb,
+    greeting = greeting, motion = LookEditorMotion.valueOf(motion.name), dock = dock, minuteOfDay = minuteOfDay,
+)
 
 // S4a Making it clean: narration, live thumbnail, the quiet "Stop and undo" (UX 4a, D18, D32).
 @Composable

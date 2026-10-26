@@ -235,7 +235,7 @@ fun AppRoot(graph: AppGraph, start: Dest, onExit: () -> Unit) {
                     BackHandler { if (!m.back()) { if (backStack.size > 1) backStack.removeAt(backStack.lastIndex) else onExit() } }
                     SecureWindow((state as? SetupState.OpenDoor)?.phase == DoorPhase.ALLOW)
                     if (isConnectState(state)) ConnectFlow(state, extras, m, onReturning = { go("returning") }, onCopyError = { copyText(context, it, "error") })
-                    else SetupFlow(state, extras, m, onCopyCommands = { copyText(context, it) }, onRoute = { go(it) })
+                    else SetupFlow(state, extras, m, onCopyCommands = { copyText(context, it) }, onRoute = { go(it) }, photos = photoPicker)
                 }
                 entry<Dest.Manage> { key ->
                     val m = rememberMachine("manage:${key.tvId}") { graph.manage(it, key.tvId?.let(::TvId)) }

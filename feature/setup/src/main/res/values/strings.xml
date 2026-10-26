@@ -118,6 +118,8 @@
     <string name="customise_dock_row_rows">Dock: {names}, plus {count, plural, one {# app} other {# apps}} in the {rows, plural, one {row} other {rows}} below</string>
     <string name="customise_dock_row_empty">Dock</string>
     <string name="customise_look_row">Look: {theme}</string>
+    <!-- 0.4.0: the look and its apps in a row, when that is not the look's own -->
+    <string name="customise_look_row_count">Look: {theme}, {count, plural, one {# app in a row} other {# apps in a row}}</string>
     <!-- RFC-CURTAIN-1: Custom only; the TV shows the progress while the phone works -->
     <string name="customise_group_tv">On the TV</string>
     <string name="customise_show_on_tv">Show the progress on the TV</string>
@@ -133,21 +135,9 @@
     <string name="customise_snackbar_off">{name} will be switched off.</string>
 
     <!-- Themes (S3a theme picker) -->
-    <string name="theme_title">Look</string>
     <string name="theme_default">Default</string>
-    <string name="theme_default_desc">A black background with four apps along the bottom.</string>
     <string name="theme_aurora">Aurora</string>
-    <string name="theme_aurora_desc">A deep blue background with a soft glow behind the apps.</string>
     <string name="theme_six_columns">Six columns</string>
-    <string name="theme_six_columns_desc">Six apps across, so more fit on the screen.</string>
-    <string name="theme_cinema_desc">Velvet curtains around a dark stage, and the focused app\'s name in large type.</string>
-    <string name="theme_console_desc">Seven small tiles, a big app name and deep cobalt light.</string>
-    <string name="theme_horizon_desc">Mountain ridges under a sky that changes with the hour: blue by day, warm at sunrise and sunset, dark at night.</string>
-    <string name="theme_quiet_desc">Pure black, no picture and calm motion. Good for OLED and slower TVs.</string>
-    <string name="theme_diwali_desc">Lamps, a gold rangoli and festive icons, until 10 November.</string>
-    <string name="theme_library_desc">Every app on one calm page like a bookshelf: no dock band, warm lamp light.</string>
-    <string name="theme_arcade_desc">A neon sun over a glowing grid, six tiles a row that bounce when you move.</string>
-    <string name="theme_mist_desc">Soft out of focus light in indigo, teal and peach, calm like a streaming box at night.</string>
     <string name="theme_card_cd">{name}. {description}</string>
     <string name="theme_card_selected_cd">{name}, selected. {description}</string>
 
