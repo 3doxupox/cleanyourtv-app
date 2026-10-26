@@ -189,9 +189,9 @@ class LookPreviewTest {
         val doc = decoded(bytes(LookKeys.spec(StyleId.CLASSIC)))
         val hiding = LauncherConfigCodec.encode(doc.copy(hiddenApps = listOf(PackageName("com.plexapp.android"))))
         assertEquals(listOf("Spotify", "VLC"), preview(hiding).others)
-        // A package the given lists do not name keeps its package as its name.
+        // A dock app the given lists do not name (gone or switched off) is left out, as the TV skips it.
         val unnamed = preview(bytes(LookKeys.spec(StyleId.CLASSIC)), dock = dock4.take(2), others = emptyList())
-        assertEquals(listOf("Netflix", "YouTube", "com.amazon.amazonvideo.livingroom", "in.startv.hotstar"), unnamed.dock)
+        assertEquals(listOf("Netflix", "YouTube"), unnamed.dock)
     }
 
     // Changing what is not in the bytes changes only the fields it is for.

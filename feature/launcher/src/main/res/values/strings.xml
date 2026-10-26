@@ -64,6 +64,7 @@
     <string name="home_row_look_summary_photo">{style} with your photo</string>
     <string name="home_row_look_summary_none">{style}, no picture</string>
     <string name="home_row_look_columns">{count, plural, one {# app in a row} other {# apps in a row}}</string>
+    <string name="home_row_look_sending">Sending...</string>
     <!-- look2: a failed look send keeps the draft; Open Look reopens it -->
     <string name="home_look_failed">The look didn\'t reach the TV.</string>
     <string name="home_look_failed_open">Open Look</string>

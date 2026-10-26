@@ -63,6 +63,10 @@ data class LookRows(
     val resettable: Int,                    // rows "Use {style}'s own settings" puts back; 0 disables it
     val festiveRing: Boolean,               // Diwali runs: "While Diwali runs, the highlight is gold instead."
     val liftSlowRamMb: Int?,                // Lift and zoom is on below 2 GB: the memory for its warning line
+    // Darken and Sky differ from the picture's own (counted in `resettable` too), so More options'
+    // summary names them only then, never "picture darkened 0%" for the picture's own 0.
+    val dimChanged: Boolean = false,
+    val skyChanged: Boolean = false,
 )
 
 enum class WayBack { NONE, UNDO, EARLIER }
@@ -264,6 +268,7 @@ internal object LookRules {
             greenWifi = greenWifi, dim = dim, sky = sky, lift = lift, seeThrough = seeThrough, skyStrength = skyStrength,
             resettable = resettable, festiveRing = pic.festival != null,
             liftSlowRamMb = tv.ramMb?.takeIf { p.lift && it < LookGates.LIFT_MIN_RAM_MB },
+            dimChanged = changed(dim, d.dim, pic.ownDim) > 0, skyChanged = changed(sky, d.sky, pic.sky > 0) > 0,
         )
     }
 

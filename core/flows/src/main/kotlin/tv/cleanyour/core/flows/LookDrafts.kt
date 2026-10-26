@@ -33,7 +33,12 @@ internal data class LookContext(
     val cards: Boolean = Cards.MANAGE_DEFAULT,
     val keyNames: Boolean = false,
     val tvChanged: Boolean = false,
-)
+    // The dock a send pushes (the saved one, which can still hold an app the TV no longer shows),
+    // null for the dock as shown. The bytes, so the preview, the settings file and Copy, come from it.
+    val pushDock: List<PackageName>? = null,
+) {
+    val dock: List<PackageName> get() = pushDock ?: apps.map { it.pkg }
+}
 
 // RFC-LOOK-SETUP-1 (0.4.0) and look2: the Look choice as both the Look sheet (HomeScreenMachine)
 // and Setup's look step (SetupMachine) make it, so the same choice gives the same draft, the same
@@ -80,7 +85,7 @@ internal class LookDrafts(
     // A dated picture (Diwali).
     fun datedPicture(id: String?): Boolean = galleryPicture(id)?.until != null
 
-    // ---- choice to parts
+    // Section: a choice to its parts.
 
     // The parts a saved choice opens with. null: a TV this phone never customised (Classic, no
     // picture, 4 apps in a row, Setup's Default look). A legacy choice opens from the migration
@@ -132,7 +137,7 @@ internal class LookDrafts(
         } ?: LookPictureInfo.NONE
     }
 
-    // ---- the draft
+    // Section: the draft.
 
     private var base: LookDraft? = null      // the draft as it opened: what was last sent (changed, Undo changes)
     private var pending: Pending? = null     // the note's action (Keep mine, Bring them back, Undo)
@@ -157,7 +162,7 @@ internal class LookDrafts(
         val ctx = if (edit is LookEdit.SetKeyNames) given.copy(keyNames = edit.on) else given
         val p = partsOf(draft)
         val pic = pictureOf(p.picture, ctx)
-        val rows = LookRules.rows(p, pic, ctx.apps.size, ctx.tv)
+        val rows = LookRules.rows(p, pic, ctx.dock.size, ctx.tv)
         var note = draft.note
         fun touched(next: LookParts) = if (next == p) p else next.copy(legacyThemeId = null)
         fun detail(enabled: Boolean, change: LookDetails.() -> LookDetails) = if (enabled) touched(p.copy(details = p.details.change())) else p
@@ -257,7 +262,7 @@ internal class LookDrafts(
         val next = p.copy(style = style, details = LookRules.withoutStyleDetails(d), legacyThemeId = null)
         if (lost.isEmpty()) return next
         val probe = next.copy(details = restore(next.details, d, lost))
-        val r1 = LookRules.rows(probe, pictureOf(probe.picture, ctx), ctx.apps.size, ctx.tv)
+        val r1 = LookRules.rows(probe, pictureOf(probe.picture, ctx), ctx.dock.size, ctx.tv)
         val enabled = mapOf(BIG_NAME to r1.bigName.enabled, GLOW to r1.glow.enabled, SPOT_COLOUR to r1.spotColour.enabled,
             RING to r1.ring.enabled, BAND to r1.band.enabled, BUTTONS to r1.buttons.enabled, GREEN_WIFI to r1.greenWifi.enabled,
             SEE_THROUGH to r1.seeThrough.enabled)
@@ -308,8 +313,8 @@ internal class LookDrafts(
         val p = given.copy(picture = pic.id)
         val tv = ctx.tv
         val styles = LookGates.styles(tv.versionCode)
-        val rows = LookRules.rows(p, pic, ctx.apps.size, tv)
-        val dock = ctx.apps.map { it.pkg }
+        val rows = LookRules.rows(p, pic, ctx.dock.size, tv)
+        val dock = ctx.dock
         val (doc, wallpaper) = Look.docOf(p, pic, dock, ctx.cards, tv)
         val bytes = encoder.encode(doc)
         val cards = StyleId.entries.map { s ->
@@ -349,7 +354,7 @@ internal class LookDrafts(
         }.getOrNull()
     }
 
-    // ---- the draft to a saved choice, and a saved choice to its bytes
+    // Section: the draft to a saved choice, and a saved choice to its bytes.
 
     // The choice a send saves, in the new form, with `columns` always: `picture` is what the TV
     // shows after it (a photo made in the sheet or the earlier photo is "mine" once kept), `dim`

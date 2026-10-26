@@ -33,7 +33,8 @@ internal fun ColumnScope.LookAdvancedPage(state: LookEditorState, onEdit: (LookE
                 )
             }
         }
-        LookSublabel(stringResource(R.string.cyt_look_see_amount))
+        val seeTitle = stringResource(R.string.cyt_look_see_amount)
+        LookSublabel(seeTitle)
         val options = LookKeys.SEE_THROUGH.map { v ->
             val label = lookMsg(R.string.cyt_look_percent, "value" to v)
             SegmentOption(v.toString(), label, label)
@@ -41,7 +42,7 @@ internal fun ColumnScope.LookAdvancedPage(state: LookEditorState, onEdit: (LookE
         val seeReason = r.seeThrough.reason?.let { reasonText(it) }
         SegmentedChoice(
             options, (r.seeThrough.value ?: LookKeys.SEE_THROUGH_DEFAULT).toString(), { onEdit(LookEdit.SetSeeThrough(it.key.toInt())) },
-            enabled = r.seeThrough.enabled, disabledReason = seeReason,
+            enabled = r.seeThrough.enabled, disabledReason = seeReason, groupLabel = seeTitle,
         )
         LookBody(
             if (r.seeThrough.enabled) stringResource(R.string.cyt_look_see_amount_desc) else seeReason.orEmpty(),
@@ -59,7 +60,7 @@ internal fun ColumnScope.LookAdvancedPage(state: LookEditorState, onEdit: (LookE
     ListGroup(Modifier.padding(top = 14.dp)) {
         LookSwitchRow(
             stringResource(R.string.cyt_look_key_names), keys, { onEdit(LookEdit.SetKeyNames(it)) },
-            description = stringResource(R.string.cyt_look_key_names_desc), keyName = KEY_NAMES["keys"].takeIf { keys },
+            description = stringResource(R.string.cyt_look_key_names_desc), keyName = stringResource(R.string.cyt_look_key_names_phone_only).takeIf { keys },
         )
     }
     LookSection(stringResource(R.string.cyt_look_file_title))

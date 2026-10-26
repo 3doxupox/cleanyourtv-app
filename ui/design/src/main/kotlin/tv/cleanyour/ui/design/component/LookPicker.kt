@@ -54,10 +54,12 @@ data class PictureChoice(
 // sideways, one of them chosen (a check and a white rim). A tap only chooses; the sheet's button
 // sends the look.
 @Composable
-fun PicturePicker(options: List<PictureChoice>, selectedKey: String?, onSelect: (PictureChoice) -> Unit, modifier: Modifier = Modifier) {
+fun PicturePicker(options: List<PictureChoice>, selectedKey: String?, onSelect: (PictureChoice) -> Unit, modifier: Modifier = Modifier,
+    groupLabel: String? = null) {
     val c = CytTheme.colors
     Row(
-        modifier.horizontalScroll(rememberScrollState()).selectableGroup(),
+        modifier.horizontalScroll(rememberScrollState()).selectableGroup()
+            .then(if (groupLabel != null) Modifier.semantics { contentDescription = groupLabel } else Modifier),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         for (o in options) {

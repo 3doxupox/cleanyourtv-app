@@ -472,7 +472,7 @@ internal fun ThemeSheet(extras: SetupExtras, actions: SetupActions, photos: Phot
         onPhoto = { jpeg, dim -> actions.intent(SetupIntent.SetOwnPicture(jpeg, dim)) },
         onClose = { actions.intent(SetupIntent.Open(null)) },
         footer = { LookDoneFooter { actions.intent(SetupIntent.Open(null)) } },
-        photos = photos, asksBeforeLeaving = false,
+        photos = photos, asksBeforeLeaving = false, photoAfter = stringResource(R.string.look_photo_after),
     )
 }
 
@@ -488,6 +488,7 @@ internal fun ColumnScope.ThemeContent(extras: SetupExtras, actions: SetupActions
         onClose = { actions.intent(SetupIntent.Open(null)) },
         footer = { LookDoneFooter { actions.intent(SetupIntent.Open(null)) } },
         photos = photos, pictures = pictures, modifier = modifier, nav = nav, asksBeforeLeaving = false,
+        photoAfter = stringResource(R.string.look_photo_after),
     )
 }
 

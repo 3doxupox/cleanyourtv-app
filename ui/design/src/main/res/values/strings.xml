@@ -102,6 +102,17 @@
     <string name="cyt_look_columns_cd_big">{count, plural, one {# app in a row} other {# apps in a row}}, bigger tiles</string>
     <string name="cyt_look_columns_cd_many">{count, plural, one {# app in a row} other {# apps in a row}}, more apps</string>
     <string name="cyt_look_picture_title">Picture</string>
+    <!-- look2: the gallery pictures' names (the launcher's Glass picture is Navy, its Ruska is Autumn lake) -->
+    <string name="cyt_picture_diwali">Diwali</string>
+    <string name="cyt_picture_aurora">Aurora</string>
+    <string name="cyt_picture_mist">Mist</string>
+    <string name="cyt_picture_navy">Navy</string>
+    <string name="cyt_picture_autumn_lake">Autumn lake</string>
+    <string name="cyt_picture_curtains">Curtains</string>
+    <string name="cyt_picture_mountains">Mountains</string>
+    <string name="cyt_picture_lamp">Lamp light</string>
+    <string name="cyt_picture_neon">Neon</string>
+    <string name="cyt_picture_cobalt">Cobalt</string>
     <string name="cyt_look_picture_none">No picture</string>
     <string name="cyt_look_picture_choose">Choose a photo</string>
     <string name="cyt_look_picture_new">New photo</string>
@@ -292,6 +303,7 @@
     <string name="cyt_look_sky_strength_off">Turn on Sky that follows the clock first.</string>
     <string name="cyt_look_key_names">Show launcher names</string>
     <string name="cyt_look_key_names_desc">Shows each setting\'s name as the home screen\'s settings file spells it, like dock_glass.</string>
+    <string name="cyt_look_key_names_phone_only">(phone only)</string>
     <string name="cyt_look_file_title">The settings file</string>
     <string name="cyt_look_file_desc">These are the look settings that go to the TV. The full file also lists your dock apps. Copy gives you the full file.</string>
     <string name="cyt_look_not_here">Not in this app: rows below the dock and hiding apps. Rows below the dock can be set on the TV in Launcher settings, until the next send from this phone.</string>

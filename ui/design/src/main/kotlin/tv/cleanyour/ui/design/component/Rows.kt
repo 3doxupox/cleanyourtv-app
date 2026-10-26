@@ -111,6 +111,10 @@ fun CytSwitch(checked: Boolean, onCheckedChange: ((Boolean) -> Unit)?, modifier:
         colors = SwitchDefaults.colors(
             checkedThumbColor = c.bg, checkedTrackColor = c.accent, checkedBorderColor = c.accent,
             uncheckedThumbColor = c.textTertiary, uncheckedTrackColor = c.surface3, uncheckedBorderColor = c.textTertiary,
+            // Disabled keeps its on or off look, faded (a forced-on switch still reads as on).
+            disabledCheckedThumbColor = c.bg, disabledCheckedTrackColor = c.accent.copy(alpha = 0.45f), disabledCheckedBorderColor = Color.Transparent,
+            disabledUncheckedThumbColor = c.textTertiary.copy(alpha = 0.45f), disabledUncheckedTrackColor = c.surface3.copy(alpha = 0.45f),
+            disabledUncheckedBorderColor = c.textTertiary.copy(alpha = 0.45f),
         ),
     )
 }

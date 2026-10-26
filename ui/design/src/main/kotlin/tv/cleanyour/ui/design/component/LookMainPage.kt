@@ -60,15 +60,17 @@ internal fun ColumnScope.LookMainPage(
         }
     }
     Text(bold, Modifier.padding(start = 4.dp, end = 4.dp, top = 4.dp), color = c.textSecondary, style = CytTheme.type.bodyMedium)
-    // 12.2: at large text the TV-changes line moves from under the button into the list.
-    if (state.tvChanged && LocalDensity.current.fontScale >= TV_LINE_IN_LIST_FONT_SCALE) {
+    // 12.2: at large text, or with a tall footer, the TV-changes line moves from under the button into the list.
+    if (state.tvChanged && (LocalTvLineInList.current || LocalDensity.current.fontScale >= TV_LINE_IN_LIST_FONT_SCALE)) {
         LookBody(stringResource(R.string.cyt_look_tv_note), Modifier.padding(start = 4.dp, end = 4.dp, top = 8.dp))
     }
 
-    LookSection(stringResource(R.string.cyt_look_picture_title))
+    // Spec 12.1: each strip and the segments are a group named for their section.
+    val pictureTitle = stringResource(R.string.cyt_look_picture_title)
+    LookSection(pictureTitle)
     PicturePicker(pictureChoices(state, pictures, onPick != null), state.picture, { ch ->
         if (ch.action) onPick?.invoke() else onEdit(LookEdit.SelectPicture(ch.key))
-    })
+    }, groupLabel = pictureTitle)
     // A photo under a glow gets one line and a one tap way out (review M3).
     val glowOn = state.preview?.let { it.glow != PreviewGlow.NONE } ?: false
     if (state.photo && glowOn && state.reads27) {
@@ -78,14 +80,15 @@ internal fun ColumnScope.LookMainPage(
         }
     }
 
-    LookSection(stringResource(R.string.cyt_look_style_title))
+    val styleTitle = stringResource(R.string.cyt_look_style_title)
+    LookSection(styleTitle)
     if (!state.reads27) {
         Banner(
             stringResource(R.string.cyt_look_update_banner), BannerTone.INFO, Modifier.padding(bottom = 12.dp),
             actionLabel = onUpdateHomeScreen?.let { stringResource(R.string.cyt_look_update_action) }, onAction = { onUpdateHomeScreen?.invoke() },
         )
     }
-    StylePicker(styleChoices(state, pictures), state.style.id, { ch -> StyleId.of(ch.key)?.let { onEdit(LookEdit.SelectStyle(it)) } })
+    StylePicker(styleChoices(state, pictures), state.style.id, { ch -> StyleId.of(ch.key)?.let { onEdit(LookEdit.SelectStyle(it)) } }, groupLabel = styleTitle)
 
     AppsInARow(state, onEdit)
 
@@ -126,7 +129,7 @@ private fun pictureChoices(state: LookEditorState, given: Map<String, ImageBitma
     val locale = LocalConfiguration.current.locales[0]
     val gallery = state.pictures.map { p ->
         val until = p.until?.let { d -> lookMsg(R.string.cyt_look_picture_until, "date" to d.format(DateTimeFormatter.ofPattern("d MMM", locale))) }
-        PictureChoice(p.id, p.name, lookPicture(p.path, given), Color(p.backgroundArgb), sub = until)
+        PictureChoice(p.id, galleryPictureName(p.id, p.name), lookPicture(p.path, given), Color(p.backgroundArgb), sub = until)
     }
     return listOfNotNull(pick, new, earlier, mine, none) + gallery
 }
@@ -152,14 +155,15 @@ private fun styleChoices(state: LookEditorState, given: Map<String, ImageBitmap>
 // end and "More apps" under the 8 end, then the helper lines (a polite live region).
 @Composable
 private fun ColumnScope.AppsInARow(state: LookEditorState, onEdit: (LookEdit) -> Unit) {
-    LookSection(stringResource(R.string.cyt_look_columns_title))
+    val title = stringResource(R.string.cyt_look_columns_title)
+    LookSection(title)
     val first = state.minColumns
     val last = state.maxColumns
     val options = (first..last).map { n ->
         val cd = when (n) { first -> R.string.cyt_look_columns_cd_big; last -> R.string.cyt_look_columns_cd_many; else -> R.string.cyt_look_columns_cd }
         SegmentOption(n.toString(), n.toString(), lookMsg(cd, "count" to n))
     }
-    SegmentedChoice(options, state.columns.toString(), { onEdit(LookEdit.SelectColumns(it.key.toInt())) })
+    SegmentedChoice(options, state.columns.toString(), { onEdit(LookEdit.SelectColumns(it.key.toInt())) }, groupLabel = title)
     Row(Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, top = 6.dp).clearAndSetSemantics {}, horizontalArrangement = Arrangement.SpaceBetween) {
         Text(stringResource(R.string.cyt_look_columns_end_big), color = CytTheme.colors.textSecondary, style = CytTheme.type.bodySmall)
         Text(stringResource(R.string.cyt_look_columns_end_many), color = CytTheme.colors.textSecondary, style = CytTheme.type.bodySmall)
@@ -234,8 +238,9 @@ private fun changedWords(state: LookEditorState): List<String> {
     if (changed(r.band, d.band, own.band)) r.band.value?.let { out += bandWord(it) }
     if (changed(r.buttons, d.buttons, own.buttons)) r.buttons.value?.let { out += buttonsWord(it) }
     if (changed(r.greenWifi, d.greenWifi, own.greenWifi)) out += stringResource(if (r.greenWifi.value == true) R.string.cyt_look_word_wifi_on else R.string.cyt_look_word_wifi_off)
-    if (r.dim.enabled && d.dim != null) out += lookMsg(R.string.cyt_look_word_dim, "dim" to (r.dim.value ?: d.dim ?: 0))
-    if (d.sky != null) out += stringResource(if (r.sky.value == true) R.string.cyt_look_word_sky_on else R.string.cyt_look_word_sky_off)
+    // Darken and Sky only when they differ from the picture's own, as "Use {style}'s own settings" counts them.
+    if (r.dimChanged) out += lookMsg(R.string.cyt_look_word_dim, "dim" to (r.dim.value ?: d.dim ?: 0))
+    if (r.skyChanged) out += stringResource(if (r.sky.value == true) R.string.cyt_look_word_sky_on else R.string.cyt_look_word_sky_off)
     return out
 }
 

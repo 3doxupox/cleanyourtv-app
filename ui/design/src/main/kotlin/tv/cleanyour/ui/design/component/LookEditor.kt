@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -19,6 +20,7 @@ import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
@@ -30,6 +32,7 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -178,7 +181,8 @@ fun rememberLookEditorNav(): LookEditorNav = remember { LookEditorNav() }
 
 // The editor in its own modal sheet: a swipe down, a tap on the scrim and system Back all reach
 // LookEditorNav first, so Back walks the pages and anything unsent asks before the sheet closes.
-// The swipe works on the Look page only. Setup passes `asksBeforeLeaving` false.
+// The swipe works on the Look page only. Setup passes `asksBeforeLeaving` false, and `photoAfter`,
+// the photo crop's line on when the photo goes to the TV, in its own words.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LookEditorSheet(
@@ -191,11 +195,13 @@ fun LookEditorSheet(
     pictures: Map<String, ImageBitmap>? = null,
     onUpdateHomeScreen: (() -> Unit)? = null,
     asksBeforeLeaving: Boolean = true,
+    photoAfter: String? = null,
 ) {
     val nav = rememberLookEditorNav()
     val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true, confirmValueChange = { v -> v != SheetValue.Hidden || nav.back() })
     CytBottomSheet(onClose, sheetState = sheet, sheetGesturesEnabled = nav.page == LookPage.MAIN && !nav.asking) {
-        LookEditor(state, onEdit, onPhoto, onClose, footer, photos, pictures, onUpdateHomeScreen, nav = nav, asksBeforeLeaving = asksBeforeLeaving)
+        LookEditor(state, onEdit, onPhoto, onClose, footer, photos, pictures, onUpdateHomeScreen, nav = nav, asksBeforeLeaving = asksBeforeLeaving,
+            photoAfter = photoAfter)
     }
 }
 
@@ -218,6 +224,7 @@ fun LookEditor(
     modifier: Modifier = Modifier,
     nav: LookEditorNav = rememberLookEditorNav(),
     asksBeforeLeaving: Boolean = true,
+    photoAfter: String? = null,
 ) {
     val unsent by rememberUpdatedState(asksBeforeLeaving && (state.changed || state.newPhoto))
     SideEffect { nav.unsent = { unsent } }
@@ -227,6 +234,13 @@ fun LookEditor(
     val density = LocalDensity.current
     var footerPx by remember { mutableIntStateOf(0) }
     val footerHeight = with(density) { footerPx.toDp() }
+    // W3, 12.2: the TV-changes line moves into the list at large text, or once the footer passes a
+    // quarter of the window. It stays there while the sheet is open, so the footer cannot bounce
+    // between the two heights.
+    val windowPx = with(density) { LocalConfiguration.current.screenHeightDp.dp.toPx() }
+    var tallFooter by remember { mutableStateOf(false) }
+    SideEffect { if (!tallFooter && windowPx > 0f && footerPx > windowPx * FOOTER_MAX_SHARE) tallFooter = true }
+    val lineInList = tallFooter || density.fontScale >= TV_LINE_IN_LIST_FONT_SCALE
     var picked by remember { mutableStateOf<Uri?>(null) }
 
     LookNotes(state, snack, edit, nav)
@@ -234,50 +248,58 @@ fun LookEditor(
     val pageTitle = stringResource(
         when (nav.page) { LookPage.MAIN -> R.string.cyt_look_title; LookPage.MORE -> R.string.cyt_look_more_title; LookPage.ADVANCED -> R.string.cyt_look_advanced },
     )
-    BoxWithConstraints(modifier.fillMaxWidth()) {
-        // In the sheet the page scrolls between the pinned parts; with no bound (a parent that
-        // scrolls, as a test may give it) the page is laid out in full and the parent scrolls.
-        val bounded = constraints.hasBoundedHeight
-        // While the leave question is up, the sheet behind it cannot be reached (W12).
-        Column(Modifier.fillMaxWidth().then(if (nav.asking) Modifier.clearAndSetSemantics { hideFromAccessibility() } else Modifier)) {
-            LookHeader(nav, pageTitle, onClose = { if (nav.close()) onClose() })
-            val collapse = with(density) { (scrolls.getValue(LookPage.MAIN).value / 140.dp.toPx()).coerceIn(0f, 1f) }
-            PinnedPreview(
-                state.preview?.toTvLook(lookPicture(state.preview.picturePath, pictures, sample = 4)), previewDescription(state),
-                collapse = collapse, mainPage = nav.page == LookPage.MAIN, big = nav.big, footer = footerHeight,
-                onToggleBig = { nav.big = !nav.big },
-                toggleLabel = stringResource(if (nav.big) R.string.cyt_look_preview_smaller_cd else R.string.cyt_look_preview_bigger_cd),
-            )
-            SheetPages(nav.page, { it.ordinal }, if (bounded) Modifier.weight(1f, fill = false) else Modifier) { page ->
-                val pageScroll = if (bounded) Modifier.verticalScroll(scrolls.getValue(page)) else Modifier
-                Column(Modifier.fillMaxWidth().then(pageScroll).padding(bottom = 12.dp)) {
-                    when (page) {
-                        LookPage.MAIN -> LookMainPage(
-                            state, edit, onMore = { nav.open(LookPage.MORE) },
-                            onPick = photos?.let { p -> { p.pick { picked = it } } }, pictures = pictures, onUpdateHomeScreen = onUpdateHomeScreen,
-                        )
-                        LookPage.MORE -> LookMorePage(state, edit, onAdvanced = { nav.open(LookPage.ADVANCED) })
-                        LookPage.ADVANCED -> LookAdvancedPage(state, edit, onCopied = { line -> snack.note(line, null, null) })
+    CompositionLocalProvider(LocalTvLineInList provides lineInList) {
+        BoxWithConstraints(modifier.fillMaxWidth()) {
+            // In the sheet the page scrolls between the pinned parts; with no bound (a parent that
+            // scrolls, as a test may give it) the page is laid out in full and the parent scrolls.
+            val bounded = constraints.hasBoundedHeight
+            // While the leave question is up, the sheet behind it cannot be reached (W12).
+            Column(Modifier.fillMaxWidth().then(if (nav.asking) Modifier.clearAndSetSemantics { hideFromAccessibility() } else Modifier)) {
+                LookHeader(nav, pageTitle, onClose = { if (nav.close()) onClose() })
+                val collapse = with(density) { (scrolls.getValue(LookPage.MAIN).value / 140.dp.toPx()).coerceIn(0f, 1f) }
+                PinnedPreview(
+                    state.preview?.toTvLook(lookPicture(state.preview.picturePath, pictures, sample = 4)), previewDescription(state),
+                    collapse = collapse, mainPage = nav.page == LookPage.MAIN, big = nav.big, footer = footerHeight,
+                    onToggleBig = { nav.big = !nav.big },
+                    toggleLabel = stringResource(if (nav.big) R.string.cyt_look_preview_smaller_cd else R.string.cyt_look_preview_bigger_cd),
+                )
+                SheetPages(nav.page, { it.ordinal }, if (bounded) Modifier.weight(1f, fill = false) else Modifier) { page ->
+                    val pageScroll = if (bounded) Modifier.verticalScroll(scrolls.getValue(page)) else Modifier
+                    Column(Modifier.fillMaxWidth().then(pageScroll).padding(bottom = 12.dp)) {
+                        when (page) {
+                            LookPage.MAIN -> LookMainPage(
+                                state, edit, onMore = { nav.open(LookPage.MORE) },
+                                onPick = photos?.let { p -> { p.pick { picked = it } } }, pictures = pictures, onUpdateHomeScreen = onUpdateHomeScreen,
+                            )
+                            LookPage.MORE -> LookMorePage(state, edit, onAdvanced = { nav.open(LookPage.ADVANCED) })
+                            LookPage.ADVANCED -> LookAdvancedPage(state, edit, onCopied = { line -> snack.note(line, null, null) })
+                        }
                     }
                 }
+                Column(Modifier.fillMaxWidth().onSizeChanged { footerPx = it.height }.padding(top = 8.dp)) { footer(nav.page) }
             }
-            Column(Modifier.fillMaxWidth().onSizeChanged { footerPx = it.height }.padding(top = 8.dp)) { footer(nav.page) }
+            UndoSnackbarHost(snack, Modifier.align(Alignment.BottomCenter).padding(bottom = footerHeight + 10.dp))
+            if (nav.asking) {
+                LeaveQuestion(
+                    photoOnly = state.newPhoto,
+                    onStay = { nav.asking = false },
+                    onLeave = { nav.asking = false; onClose() },
+                    modifier = Modifier.matchParentSize(),
+                )
+            }
         }
-        UndoSnackbarHost(snack, Modifier.align(Alignment.BottomCenter).padding(bottom = footerHeight + 10.dp))
-        if (nav.asking) {
-            LeaveQuestion(
-                photoOnly = state.newPhoto,
-                onStay = { nav.asking = false },
-                onLeave = { nav.asking = false; onClose() },
-                modifier = Modifier.matchParentSize(),
-            )
+        picked?.let { uri ->
+            PhotoCropDialog(uri, state.preview?.toTvLook(null, crop = true), state.photoDim,
+                onDone = { jpeg, dim -> onPhoto(jpeg, dim); picked = null }, onCancel = { picked = null }, after = photoAfter)
         }
-    }
-    picked?.let { uri ->
-        PhotoCropDialog(uri, state.preview?.toTvLook(null, crop = true), state.photoDim,
-            onDone = { jpeg, dim -> onPhoto(jpeg, dim); picked = null }, onCancel = { picked = null })
     }
 }
+
+// The share of the window the footer may take before the TV-changes line moves into the list.
+private const val FOOTER_MAX_SHARE = 0.25f
+
+// Whether the TV-changes line sits in the Look page's list (true) or under the footer's button.
+internal val LocalTvLineInList = staticCompositionLocalOf { false }
 
 // The header: Look with More options and Close; More options with Back and Advanced; Advanced
 // with Back.
@@ -295,15 +317,16 @@ private fun LookHeader(nav: LookEditorNav, title: String, onClose: () -> Unit) {
     }
 }
 
-// W12: "Leave without sending?" over the sheet. Keep choosing is the primary; Leave closes the
-// sheet and drops what was not sent. Nothing here writes to the TV, so neither is guarded.
+// W12: "Leave without sending?" over the sheet, low near the thumb as in the prototype. Keep
+// choosing is the primary; Leave, outlined, closes the sheet and drops what was not sent. Nothing
+// here writes to the TV, so neither is guarded.
 @Composable
 private fun LeaveQuestion(photoOnly: Boolean, onStay: () -> Unit, onLeave: () -> Unit, modifier: Modifier = Modifier) {
     val c = CytTheme.colors
     // The scrim: a tap on it is Keep choosing; not a control of its own for TalkBack.
     Box(modifier.background(c.scrim).pointerInput(Unit) { detectTapGestures { onStay() } })
-    Box(modifier, contentAlignment = Alignment.Center) {
-        Column(Modifier.padding(horizontal = 8.dp).fillMaxWidth().background(c.surface3, CytTheme.shapes.large).padding(20.dp)) {
+    Box(modifier, contentAlignment = Alignment.BottomCenter) {
+        Column(Modifier.padding(horizontal = 8.dp, vertical = 16.dp).fillMaxWidth().background(c.surface3, CytTheme.shapes.large).padding(20.dp)) {
             SheetHeader(stringResource(R.string.cyt_look_leave_title))
             Text(
                 stringResource(if (photoOnly) R.string.cyt_look_leave_body_photo else R.string.cyt_look_leave_body),
@@ -311,7 +334,7 @@ private fun LeaveQuestion(photoOnly: Boolean, onStay: () -> Unit, onLeave: () ->
             )
             ActionColumn(Modifier.padding(top = 20.dp)) {
                 PrimaryButton(stringResource(R.string.cyt_look_leave_stay), onStay, guardObscured = false)
-                SecondaryButton(stringResource(R.string.cyt_look_leave_go), onLeave)
+                OutlinedPill(stringResource(R.string.cyt_look_leave_go), onLeave, Modifier.fillMaxWidth().heightIn(min = 52.dp))
             }
         }
     }
@@ -400,12 +423,29 @@ fun styleDescription(style: StyleId): String = stringResource(
     },
 )
 
+// A gallery picture's name in the app's words, from its id (BundledThemeSource's gallery);
+// `fallback`, the name the flows gave, for a picture this list does not know.
+@Composable
+fun galleryPictureName(id: String, fallback: String): String = when (id) {
+    "diwali" -> stringResource(R.string.cyt_picture_diwali)
+    "aurora" -> stringResource(R.string.cyt_picture_aurora)
+    "mist" -> stringResource(R.string.cyt_picture_mist)
+    "glass" -> stringResource(R.string.cyt_picture_navy)
+    "ruska" -> stringResource(R.string.cyt_picture_autumn_lake)
+    "curtains" -> stringResource(R.string.cyt_picture_curtains)
+    "mountains" -> stringResource(R.string.cyt_picture_mountains)
+    "lamp" -> stringResource(R.string.cyt_picture_lamp)
+    "neon" -> stringResource(R.string.cyt_picture_neon)
+    "cobalt" -> stringResource(R.string.cyt_picture_cobalt)
+    else -> fallback
+}
+
 // The picture in the preview's description: "the Mist picture", "your photo" or "no picture".
 @Composable
 internal fun pictureWords(state: LookEditorState): String = when {
     state.picture == LookEditorState.NONE -> stringResource(R.string.cyt_look_picture_words_none)
     state.photo -> stringResource(R.string.cyt_look_picture_words_photo)
-    else -> state.pictures.firstOrNull { it.id == state.picture }?.name?.let { lookMsg(R.string.cyt_look_picture_words, "name" to it) }
+    else -> state.pictures.firstOrNull { it.id == state.picture }?.let { lookMsg(R.string.cyt_look_picture_words, "name" to galleryPictureName(it.id, it.name)) }
         ?: stringResource(R.string.cyt_look_picture_words_none)
 }
 

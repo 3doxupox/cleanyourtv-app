@@ -28,12 +28,12 @@ fun ColumnScope.LookSendFooter(
     PrimaryButton(stringResource(R.string.cyt_look_use), onPut, guardObscured = true)
     when (state.wayBack) {
         WayBack.UNDO -> TertiaryButton(stringResource(R.string.cyt_look_undo_changes), { onEdit(LookEdit.UndoChanges) },
-            Modifier.align(Alignment.CenterHorizontally))
+            Modifier.align(Alignment.CenterHorizontally), plain = true)
         WayBack.EARLIER -> TertiaryButton(stringResource(R.string.cyt_look_earlier), { onEdit(LookEdit.PutBackEarlier) },
-            Modifier.align(Alignment.CenterHorizontally))
+            Modifier.align(Alignment.CenterHorizontally), plain = true)
         WayBack.NONE -> {}
     }
-    if (page == LookPage.MAIN && state.tvChanged && LocalDensity.current.fontScale < TV_LINE_IN_LIST_FONT_SCALE) {
+    if (page == LookPage.MAIN && state.tvChanged && !LocalTvLineInList.current && LocalDensity.current.fontScale < TV_LINE_IN_LIST_FONT_SCALE) {
         LookBody(stringResource(R.string.cyt_look_tv_note), Modifier.padding(start = 4.dp, end = 4.dp, top = 4.dp))
     }
 }

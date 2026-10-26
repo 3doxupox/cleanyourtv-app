@@ -166,13 +166,16 @@ fun SecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modi
 // Tertiary: a 48 dp text button in accent ("Customise", "I've set up a TV before"). Quiet: in
 // text.secondary ("Stop and undo": always present, never hidden, never red). guardObscured = true
 // when the tertiary writes to the TV ("Undo what we did" as the third button of a stop card).
+// `plain`: in text.primary instead of accent (the Look sheet's way back, as the prototype has it).
 @Composable
-fun TertiaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, quiet: Boolean = false, guardObscured: Boolean = false) =
+fun TertiaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, quiet: Boolean = false, guardObscured: Boolean = false,
+    plain: Boolean = false) =
     Guarded(modifier, guardObscured) { outer, guard ->
         val c = CytTheme.colors
         val color = when {
             !enabled -> c.textTertiary
             quiet -> c.textSecondary
+            plain -> c.textPrimary
             else -> c.accent
         }
         val source = remember { MutableInteractionSource() }

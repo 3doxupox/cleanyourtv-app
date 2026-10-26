@@ -102,7 +102,9 @@ data class LookPreview(
         // from the bytes: the codec's effective config for the modelled keys and LauncherKeys.look
         // for the carried 2.7 ones, so a key the TV would not get never shows. The dock is the
         // bytes' dock_apps (the given dock when they have none), named from the given apps; the
-        // others are the rest of the given apps the bytes do not hide, in order.
+        // others are the rest of the given apps the bytes do not hide, in order. A dock app that is
+        // not among the given apps (gone or switched off) is left out, as the TV skips it
+        // (DockLayers.decode).
         fun of(bytes: ByteArray, wallpaper: BlobRef?, dock: List<AppChoice>, others: List<AppChoice>, today: LocalDate,
             minuteOfDay: Int, hasInputs: Boolean): LookPreview {
             val doc = decode(bytes)
@@ -110,7 +112,7 @@ data class LookPreview(
             val k = LauncherKeys.look(doc)
             val apps = (dock + others).distinctBy { it.pkg }
             val names = apps.associate { it.pkg.value to it.name }
-            val docked = doc.dockApps?.map { it.value } ?: dock.map { it.pkg.value }
+            val docked = doc.dockApps?.map { it.value }?.let { d -> if (names.isEmpty()) d else d.filter { it in names } } ?: dock.map { it.pkg.value }
             val hidden = e.hiddenApps.toSet()
             val rest = apps.filter { it.pkg.value !in docked && it.pkg.value !in hidden }
             val focused = docked.firstOrNull() ?: rest.firstOrNull()?.pkg?.value

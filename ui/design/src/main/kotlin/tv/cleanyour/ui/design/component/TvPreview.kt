@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -76,9 +77,9 @@ import tv.cleanyour.ui.design.theme.Outfit
 // - the background colour, the picture (centre crop), the dim, the sky (Sky.java's three colours,
 //   the middle at 55%, and the sun's warm glow 80% down) at its strength;
 // - the glow in the focused app's colour (MainActivity.setAmbient): a soft round blob, a wash from
-//   the top, or none; on the cinematic shelf (Spotlight) the colour flood across the top, only
-//   with ambient_glow, over the app's art at cinematic_art and the two-gradient shade
-//   (scrimDrawable) at cinematic_scrim;
+//   the top, or none; on the cinematic shelf (Spotlight) the app's art at cinematic_art,
+//   the colour flood across the top (only with ambient_glow), then the two-gradient shade
+//   (scrimDrawable) at cinematic_scrim over both;
 // - the header: the day's greeting (a festival's own, in its gold), the clock and the date; the
 //   buttons as labelled pills (Inputs when the TV has inputs, Wi-Fi, Settings), round icons, or one
 //   gear level with the clock; Wi-Fi green when asked;
@@ -154,6 +155,10 @@ private val WHITE = Color.White
 private val SHADE = Color(0xFF060406)
 private val GREEN_WIFI = Color(0xFF34C759)
 private val FULL = Size(TV_W, TV_H)
+// The cinematic art's stand-in: the app's colour a third of the way up from black, at half of
+// cinematic_art (matched to the emulator's shots of a dark banner with a coloured name).
+private const val ART_COLOUR = 0.35f
+private const val ART_STRENGTH = 0.5f
 
 // Launcher 2.7's layout, in dp on its 960 x 540 screen: activity_main.xml (56 dp side padding, the
 // header from 26 dp, the grid 10 dp under it with its own 10 dp padding), item_app.xml (8 dp above
@@ -209,10 +214,12 @@ private class TvLayout(look: TvLook) {
     }
     val h = w * 101f / 180f
     private val itemH = h + if (dockRow) ITEM_EXTRA else COMPACT_EXTRA
+    // MainActivity's grid padding: never below 0 (Math.max with the library's clearance, 0 with
+    // app_library off), so rows that do not fit at the smallest tile run off the bottom.
     private val padTop: Float = when {
         !dockRow -> TOP_ROOM
         title && rows > 0 -> max(GRID_H - (itemH + DOCK_EXTRA) - itemH * rows - BOTTOM_ROOM, TITLE_ROOM)
-        else -> GRID_H - (itemH + DOCK_EXTRA) - itemH * rows - BOTTOM_ROOM
+        else -> max(0f, GRID_H - (itemH + DOCK_EXTRA) - itemH * rows - BOTTOM_ROOM)
     }
     // The dock's tiles; the k-th grid row under the dock (from 1); the r-th row of the plain grid (from 0).
     val dockTop = GRID_TOP + padTop + 6f + 8f
@@ -299,12 +306,20 @@ private fun DrawScope.sky(look: TvLook) {
 }
 
 // The layers that tint the picture, in the focused app's colour: the glow, or on the cinematic
-// shelf the art, the shade and the colour flood. The photo crop draws them too, at full strength.
+// shelf the art, the colour flood and the shade, in the launcher's order (activity_main.xml: heroArt,
+// ambient, then heroScrim over both). The photo crop draws them too, at full strength.
 private fun DrawScope.tint(look: TvLook) {
     val c = look.glowColour
     if (look.cinematic) {
+        // heroArt: the app's banner softened to a few pixels and stretched over the screen at
+        // cinematic_art. The phone has no banner, and most banners are dark round their name, so
+        // the art is a dark wash in the app's colour: it mostly darkens, as on the TV.
         if (!look.crop && look.art > 0) {
-            drawRect(Brush.horizontalGradient(0.30f to c.copy(alpha = 0f), 0.75f to c.copy(alpha = look.art / 100f * 0.55f), startX = 0f, endX = TV_W), size = FULL)
+            drawRect(lerp(Color.Black, c, ART_COLOUR).copy(alpha = look.art.coerceIn(0, 100) / 100f * ART_STRENGTH), size = FULL)
+        }
+        if (look.glow != PreviewGlow.NONE) {
+            drawRect(Brush.radialGradient(0f to c.copy(alpha = 0xA6 / 255f), 0.5f to c.copy(alpha = 0x47 / 255f), 1f to c.copy(alpha = 0f),
+                center = Offset(TV_W * 0.80f, TV_H * 0.06f), radius = TV_W * 0.78f), size = FULL)
         }
         val a = look.scrim.coerceIn(0, 100) / 100f
         if (a > 0f) {
@@ -312,10 +327,6 @@ private fun DrawScope.tint(look: TvLook) {
                 startX = 0f, endX = TV_W), size = FULL)
             drawRect(Brush.verticalGradient(0f to SHADE.copy(alpha = 0f), 0.28f to SHADE.copy(alpha = 0f), 0.58f to SHADE.copy(alpha = 0xDB / 255f * a),
                 0.76f to SHADE.copy(alpha = a), startY = 0f, endY = TV_H), size = FULL)
-        }
-        if (look.glow != PreviewGlow.NONE) {
-            drawRect(Brush.radialGradient(0f to c.copy(alpha = 0xA6 / 255f), 0.5f to c.copy(alpha = 0x47 / 255f), 1f to c.copy(alpha = 0f),
-                center = Offset(TV_W * 0.80f, TV_H * 0.06f), radius = TV_W * 0.78f), size = FULL)
         }
         return
     }
@@ -384,20 +395,25 @@ private fun Buttons(look: TvLook, tv: Tv) {
     val menu = look.buttons == PreviewButtons.MENU
     val round = look.buttons == PreviewButtons.ROUND
     val icon = look.accent ?: WHITE
+    // A festival on (Festival.java, applyFestiveSkin): a bell for Inputs, a diya for the network and
+    // a marigold for Settings, in their own colours.
+    val festive = look.accent != null && look.greeting.isNotEmpty()
     Row(Modifier.bottomEndAt(tv, TV_W - 56f, if (menu) 86f else CLOCK_BOTTOM - 6f), horizontalArrangement = Arrangement.spacedBy(tv.u(10f))) {
         if (menu) {
-            Pill(TvIcons.gear, null, icon, tv)
+            Pill(TvIcons.gear, null, icon, tv, if (festive) FestiveIcon.MARIGOLD else null)
         } else {
-            if (look.inputs) Pill(TvIcons.input, if (look.roundInputs) null else stringResource(R.string.cyt_tv_inputs), icon, tv)
-            Pill(TvIcons.wifi, if (round) null else stringResource(R.string.cyt_tv_wifi), if (look.wifiGreen) GREEN_WIFI else icon, tv)
-            Pill(TvIcons.gear, if (round) null else stringResource(R.string.cyt_tv_settings), icon, tv)
+            if (look.inputs) Pill(TvIcons.input, if (look.roundInputs) null else stringResource(R.string.cyt_tv_inputs), icon, tv, if (festive) FestiveIcon.BELL else null)
+            Pill(TvIcons.wifi, if (round) null else stringResource(R.string.cyt_tv_wifi), if (look.wifiGreen) GREEN_WIFI else icon, tv, if (festive) FestiveIcon.DIYA else null)
+            Pill(TvIcons.gear, if (round) null else stringResource(R.string.cyt_tv_settings), icon, tv, if (festive) FestiveIcon.MARIGOLD else null)
         }
     }
 }
 
+private enum class FestiveIcon { DIYA, BELL, MARIGOLD }
+
 // pill_bg: white 18% to 8% top to bottom, a 22% edge, 21 dp corners.
 @Composable
-private fun Pill(vector: ImageVector, label: String?, tint: Color, tv: Tv) {
+private fun Pill(vector: ImageVector, label: String?, tint: Color, tv: Tv, festive: FestiveIcon? = null) {
     val shape = RoundedCornerShape(tv.u(21f))
     Row(
         Modifier.height(tv.u(42f)).then(if (label == null) Modifier.width(tv.u(42f)) else Modifier)
@@ -407,7 +423,20 @@ private fun Pill(vector: ImageVector, label: String?, tint: Color, tv: Tv) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = if (label == null) Arrangement.Center else Arrangement.spacedBy(tv.u(9f)),
     ) {
-        Image(vector, null, Modifier.size(tv.u(22f)), colorFilter = ColorFilter.tint(tint))
+        if (festive != null) {
+            Canvas(Modifier.size(tv.u(22f))) {
+                val k = size.width / 24f
+                scale(k, k, pivot = Offset.Zero) {
+                    when (festive) {
+                        FestiveIcon.DIYA -> diya()
+                        FestiveIcon.BELL -> bell()
+                        FestiveIcon.MARIGOLD -> marigold()
+                    }
+                }
+            }
+        } else {
+            Image(vector, null, Modifier.size(tv.u(22f)), colorFilter = ColorFilter.tint(tint))
+        }
         if (label != null) Text(label, maxLines = 1, style = tv.text(15f, FontWeight.Medium, em = 0.01f))
     }
 }
@@ -597,4 +626,80 @@ private object TvIcons {
         "input",
         "M18,7V4c0,-1.1 -0.9,-2 -2,-2H8C6.9,2 6,2.9 6,4v3H5v6l3,6v3h8v-3l3,-6V7H18zM8,4h8v3h-2V5h-1v2h-2V5h-1v2H8V4z",
     )
+}
+
+// The festival's pill icons, still and simplified from the launcher's own (DiyaDrawable,
+// BellDrawable, MarigoldDrawable), in their 24 x 24 box: a clay diya with its flame at the spout, a
+// gold bell, a marigold of orange petals.
+private val CLAY_EDGE = Color(0xFF3D1408)
+
+private fun DrawScope.diya() {
+    drawCircle(Brush.radialGradient(listOf(Color(0x99FFC45A), Color(0x00FF8A1A)), center = Offset(18.5f, 9f), radius = 6f), radius = 6f, center = Offset(18.5f, 9f))
+    drawRoundRect(Color(0xFF8E3E1E), topLeft = Offset(7.2f, 20f), size = Size(5.2f, 2.4f), cornerRadius = CornerRadius(1f))
+    val body = Path().apply {
+        moveTo(1.6f, 14.2f)
+        cubicTo(1.8f, 18.6f, 5.4f, 21.0f, 9.6f, 21.0f)
+        cubicTo(13.2f, 21.0f, 15.6f, 19.4f, 16.8f, 16.6f)
+        cubicTo(17.6f, 15.0f, 18.6f, 13.6f, 20.2f, 12.4f)
+        quadraticTo(20.5f, 12.0f, 19.9f, 11.9f)
+        cubicTo(18.2f, 12.1f, 16.8f, 12.6f, 15.4f, 13.0f)
+        cubicTo(12.0f, 11.6f, 5.0f, 11.8f, 1.6f, 14.2f)
+        close()
+    }
+    drawPath(body, Brush.radialGradient(0f to Color(0xFFE58C57), 0.35f to Color(0xFFC4612F), 0.7f to Color(0xFF9A4220), 1f to Color(0xFF6E2C14),
+        center = Offset(7.5f, 14.5f), radius = 13f))
+    drawPath(body, CLAY_EDGE, style = Stroke(0.7f))
+    val opening = Path().apply {
+        moveTo(2.6f, 14.2f)
+        cubicTo(5.6f, 12.6f, 11.8f, 12.5f, 15.2f, 13.4f)
+        cubicTo(16.6f, 13.0f, 17.8f, 12.7f, 19.2f, 12.4f)
+        cubicTo(17.6f, 13.4f, 16.6f, 14.0f, 15.4f, 14.6f)
+        cubicTo(11.6f, 16.4f, 5.0f, 16.2f, 2.6f, 14.2f)
+        close()
+    }
+    drawPath(opening, Color(0xFF4A1E0E))
+    for (i in 0 until 5) drawCircle(Color(0xFFFFE0A3), radius = 0.55f, center = Offset(5.0f + i * 2.4f, 17.6f + if (i in 1..3) 0.9f else 0f))
+    // The flame: a teardrop standing on the wick.
+    val flame = Path().apply {
+        moveTo(18.5f, 12.1f)
+        cubicTo(16.3f, 11.6f, 16.6f, 8.0f, 18.5f, 3.9f)
+        cubicTo(20.4f, 8.0f, 20.7f, 11.6f, 18.5f, 12.1f)
+        close()
+    }
+    drawPath(flame, Brush.verticalGradient(0f to Color(0xFFD9430B), 0.3f to Color(0xFFFF7A14), 0.65f to Color(0xFFFFA62B), 1f to Color(0xFFF08A24), startY = 3.9f, endY = 12.1f))
+    drawOval(Color(0xFFFFE9A6), topLeft = Offset(17.9f, 8.4f), size = Size(1.2f, 3f))
+}
+
+private fun DrawScope.bell() {
+    val gold = Brush.horizontalGradient(0f to Color(0xFFB07A14), 0.45f to Color(0xFFFFD45A), 1f to Color(0xFF9A6410), startX = 4f, endX = 20f)
+    drawRoundRect(Color(0xFF8A5A10), topLeft = Offset(10.6f, 2f), size = Size(2.8f, 3f), cornerRadius = CornerRadius(1.2f))
+    val shell = Path().apply {
+        moveTo(12f, 4.2f)
+        cubicTo(7.6f, 4.2f, 6.6f, 8.6f, 6.4f, 12.6f)
+        cubicTo(6.2f, 15.6f, 5.2f, 17.0f, 3.8f, 18.2f)
+        lineTo(20.2f, 18.2f)
+        cubicTo(18.8f, 17.0f, 17.8f, 15.6f, 17.6f, 12.6f)
+        cubicTo(17.4f, 8.6f, 16.4f, 4.2f, 12f, 4.2f)
+        close()
+    }
+    drawPath(shell, gold)
+    drawPath(shell, Color(0xFF5A3A06), style = Stroke(0.7f))
+    drawRoundRect(Color(0xFFE0A52C), topLeft = Offset(3.4f, 17.6f), size = Size(17.2f, 1.8f), cornerRadius = CornerRadius(0.9f))
+    drawCircle(Color(0xFF7A4C08), radius = 1.7f, center = Offset(12f, 20.8f))
+}
+
+private fun DrawScope.marigold() {
+    val c = Offset(12f, 12f)
+    fun ring(count: Int, r: Float, len: Float, wide: Float, fill: Color, turn: Float) {
+        for (i in 0 until count) {
+            val a = (i + turn) * 2.0 * Math.PI / count
+            val x = c.x + (r * kotlin.math.cos(a)).toFloat()
+            val y = c.y + (r * kotlin.math.sin(a)).toFloat()
+            drawCircle(fill, radius = (len + wide) / 2f, center = Offset(x, y))
+        }
+    }
+    ring(12, 7.4f, 4.4f, 3.6f, Color(0xFFE5600A), 0f)
+    ring(10, 5.0f, 3.8f, 3.2f, Color(0xFFF79A16), 0.5f)
+    ring(8, 2.8f, 3.2f, 2.6f, Color(0xFFFFC63E), 0.25f)
+    drawCircle(Brush.radialGradient(listOf(Color(0xFFE0821A), Color(0xFF7A3004)), center = c, radius = 2.4f), radius = 2.4f, center = c)
 }

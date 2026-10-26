@@ -54,9 +54,10 @@ fun interface PhotoPicker { fun pick(onPicked: (Uri) -> Unit) }
 // "Your photo": the picked photo in a 16:9 frame to pinch and drag, with the look's clock, buttons
 // and dock drawn faintly over it (so faces stay clear of them) and the dim, live. "Use this crop"
 // makes the TV's JPEG (OwnPhoto) and hands it on; nothing reaches the TV until the caller sends it
-// (the Look sheet's "Put it on the TV", or Setup when it runs).
+// (the Look sheet's "Put it on the TV", or Setup when it runs). `after`: the line under the button
+// that says when it goes to the TV, in the caller's words (null: the Look sheet's).
 @Composable
-fun PhotoCropDialog(uri: Uri, outline: TvLook?, startDim: Int, onDone: (ByteArray, Int) -> Unit, onCancel: () -> Unit) {
+fun PhotoCropDialog(uri: Uri, outline: TvLook?, startDim: Int, onDone: (ByteArray, Int) -> Unit, onCancel: () -> Unit, after: String? = null) {
     val context = LocalContext.current
     var photo by remember(uri) { mutableStateOf<Bitmap?>(null) }
     var failed by remember(uri) { mutableStateOf(false) }
@@ -82,7 +83,7 @@ fun PhotoCropDialog(uri: Uri, outline: TvLook?, startDim: Int, onDone: (ByteArra
                             val bytes = withContext(Dispatchers.Default) { OwnPhoto.make(p, OwnPhoto.crop(p.width, p.height, zoom, panX, panY)) }
                             if (bytes == null) tooBig = true else onDone(bytes, dim)
                         }
-                    }, onCancel = onCancel)
+                    }, onCancel = onCancel, after = after)
                 }
                 else -> {
                     CropCancel(onCancel)
@@ -103,6 +104,7 @@ fun PhotoCropContent(
     problem: String?,
     onUse: (zoom: Float, panX: Float, panY: Float, dim: Int) -> Unit,
     onCancel: () -> Unit,
+    after: String? = null,
 ) {
     var zoom by remember { mutableFloatStateOf(1f) }
     var panX by remember { mutableFloatStateOf(0f) }
@@ -144,7 +146,7 @@ fun PhotoCropContent(
     CytSlider(dim, { dim = it }, 0..60, 10, stringResource(R.string.cyt_photo_dim_cd), lookMsg(R.string.cyt_look_percent_cd, "value" to dim))
     problem?.let { LookBody(it, Modifier.padding(top = 8.dp, start = 4.dp), color = CytTheme.colors.warning) }
     PrimaryButton(stringResource(R.string.cyt_photo_use), { onUse(zoom, panX, panY, dim) }, Modifier.padding(top = 16.dp), guardObscured = false)
-    LookBody(stringResource(R.string.cyt_photo_after), Modifier.padding(top = 12.dp, start = 4.dp, end = 4.dp))
+    LookBody(after ?: stringResource(R.string.cyt_photo_after), Modifier.padding(top = 12.dp, start = 4.dp, end = 4.dp))
 }
 
 // Cancel at the top start of the crop (spec 11.6), where a way out is looked for first.

@@ -73,6 +73,7 @@ fun SegmentedChoice(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     disabledReason: String? = null,
+    groupLabel: String? = null,
 ) {
     val c = CytTheme.colors
     val reduced = CytTheme.reducedMotion
@@ -107,7 +108,8 @@ fun SegmentedChoice(
                     .alpha(if (enabled) 1f else 0.5f).glass(track, CytTheme.highlight).testTag(SEGMENT_HIGHLIGHT_TAG),
             )
         }
-        Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(Modifier.fillMaxWidth().selectableGroup().then(if (groupLabel != null) Modifier.semantics { contentDescription = groupLabel } else Modifier),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             options.forEachIndexed { i, o ->
                 val on = i == selected
                 val ink by animateColorAsState(

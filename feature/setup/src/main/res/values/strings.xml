@@ -120,6 +120,8 @@
     <string name="customise_look_row">Look: {theme}</string>
     <!-- 0.4.0: the look and its apps in a row, when that is not the look's own -->
     <string name="customise_look_row_count">Look: {theme}, {count, plural, one {# app in a row} other {# apps in a row}}</string>
+    <!-- look2: the photo crop in Setup's look step, under Use this crop (Setup has no Put it on the TV) -->
+    <string name="look_photo_after">Nothing is sent yet. It goes to the TV when you tap Make it clean.</string>
     <!-- RFC-CURTAIN-1: Custom only; the TV shows the progress while the phone works -->
     <string name="customise_group_tv">On the TV</string>
     <string name="customise_show_on_tv">Show the progress on the TV</string>

@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
+import tv.cleanyour.core.flows.LookDetails
 import tv.cleanyour.core.flows.LookEdit
 import tv.cleanyour.core.flows.WayBack
 import tv.cleanyour.core.spec.BandChoice
@@ -18,6 +19,7 @@ import tv.cleanyour.core.spec.StyleId
 import tv.cleanyour.ui.design.component.LookDoneFooter
 import tv.cleanyour.ui.design.component.LookEditor
 import tv.cleanyour.ui.design.component.LookEditorNav
+import tv.cleanyour.ui.design.component.LookEditorState
 import tv.cleanyour.ui.design.component.LookPage
 import tv.cleanyour.ui.design.component.toEditor
 import org.junit.Assert.assertEquals
@@ -131,6 +133,25 @@ class GuardedActionsTest {
         expect()
         tapText("Put it on the TV", 0)
         assertEquals(listOf<HomeScreenIntent>(HomeScreenIntent.UseLook), hits)
+    }
+
+    // The controls the test above does not reach: Put back the earlier look, Turn it off (a photo
+    // under a glow) and the See-through segments also send only their own edits, through an overlay too.
+    @Test fun theEarlierLookTheTintLineAndSeeThroughOnlyEdit() {
+        val hits = mutableListOf<HomeScreenIntent>()
+        val nav = LookEditorNav()
+        val mine = LookFixtures.gallery.getValue("aurora").wallpaper.let { w -> w.copy(path = LookFixtures.resourcePath(w)!!) }
+        val state = HomeScreenState(tvName = "Mi TV 4A", dock = LookFixtures.dock4, pictures = LookFixtures.pictureOptions, ownPicture = mine,
+            look = LookFixtures.draft(picture = LookEditorState.MINE, wayBack = WayBack.EARLIER, details = LookDetails(band = BandChoice.SEE_THROUGH)))
+        compose.showColumn { LookContent(state, { hits += it }, nav = nav) }
+        fun tapText(text: String) = compose.tap(compose.onNodeWithText(text).inView(), OBSCURED)
+        fun tapLabel(label: String) = compose.tap(compose.onNodeWithContentDescription(label).inView(), OBSCURED)
+
+        tapText("Put back the earlier look")
+        tapText("Turn it off")
+        compose.runOnIdle { nav.open(LookPage.ADVANCED) }
+        tapLabel("30%")
+        assertEquals(listOf(LookEdit.PutBackEarlier, LookEdit.TurnGlowOff, LookEdit.SetSeeThrough(30)).map { HomeScreenIntent.Look(it) }, hits.toList())
     }
 
     // Setup's look step: the same editor with Done, which only closes the step.

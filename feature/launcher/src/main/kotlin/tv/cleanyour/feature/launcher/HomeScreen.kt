@@ -61,6 +61,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import tv.cleanyour.ui.design.component.LookEditorState
 import tv.cleanyour.ui.design.component.TvPreview
+import tv.cleanyour.ui.design.component.galleryPictureName
 import tv.cleanyour.ui.design.component.lookPicture
 import tv.cleanyour.ui.design.component.styleName
 import tv.cleanyour.ui.design.component.toTvLook
@@ -251,7 +252,10 @@ internal fun AppChoice.toDockApp() = DockApp(pkg.value, name)
 internal fun LookRow(state: HomeScreenState, onClick: (() -> Unit)?) {
     val sent = state.sent
     val style = state.sentStyle
-    val subtitle = if (style == null) {
+    // W1: while a look send runs (the sheet closes on Put it on the TV), the row says so.
+    val subtitle = if (state.lookSending && state.busy != null) {
+        stringResource(R.string.home_row_look_sending)
+    } else if (style == null) {
         state.themes.firstOrNull { it.id == state.themeId }?.name ?: stringResource(R.string.theme_default)
     } else {
         val name = styleName(style)
@@ -259,7 +263,7 @@ internal fun LookRow(state: HomeScreenState, onClick: (() -> Unit)?) {
         val first = when {
             pic == null || pic == LookEditorState.NONE -> msg(R.string.home_row_look_summary_none, "style" to name)
             pic == LookEditorState.MINE || pic == LookEditorState.NEW || pic == LookEditorState.EARLIER -> msg(R.string.home_row_look_summary_photo, "style" to name)
-            else -> state.pictures.firstOrNull { it.id == pic }?.name?.let { msg(R.string.home_row_look_summary_picture, "style" to name, "picture" to it) }
+            else -> state.pictures.firstOrNull { it.id == pic }?.let { msg(R.string.home_row_look_summary_picture, "style" to name, "picture" to galleryPictureName(it.id, it.name)) }
                 ?: msg(R.string.home_row_look_summary_none, "style" to name)
         }
         first + "\n" + msg(R.string.home_row_look_columns, "count" to (sent?.columns ?: state.columns))

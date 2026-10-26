@@ -94,6 +94,8 @@ data class HomeScreenState(
     val hasInputs: Boolean = true,
     // look2: the last look send failed and the draft is kept; Home offers "Open Look" (OpenLook).
     val lookFailed: Boolean = false,
+    // look2 W1: a look send runs with the sheet closed; the Look row reads "Sending..." while busy.
+    val lookSending: Boolean = false,
 ) {
     val waiting: Int get() = waitingApps.size
 }
@@ -152,7 +154,7 @@ class HomeScreenMachine(
 
     override fun reduce(state: HomeScreenState, event: Any): HomeScreenState = when (event) {
         is Loaded -> event.s.copy(busy = state.busy, stockPreview = state.stockPreview, drift = state.drift, updatePreview = state.updatePreview,
-            newPicture = state.newPicture, newDim = state.newDim, lookFailed = state.lookFailed).let { s ->
+            newPicture = state.newPicture, newDim = state.newDim, lookFailed = state.lookFailed, lookSending = state.lookSending).let { s ->
             saved = event.saved; earlier = event.earlier; cards = event.cards; keyNames = event.keyNames
             s.copy(look = state.look?.let { drafts.refresh(it, lookContext(s)) })
         }
@@ -172,8 +174,10 @@ class HomeScreenMachine(
         // Closing the sheet drops a photo made in it and its dim, and a draft kept from a failed send.
         HomeScreenIntent.CloseLook -> { kept = null; state.copy(look = null, newPicture = null, newDim = state.ownDim, lookFailed = false) }
         // "Put it on the TV" closes the sheet; the draft and a new photo stay until the result.
-        HomeScreenIntent.UseLook -> state.copy(look = null, lookFailed = false)
-        is LookResult -> if (event.sent) state.copy(newPicture = null, newDim = state.ownDim, lookFailed = false) else state.copy(lookFailed = true)
+        HomeScreenIntent.UseLook -> state.copy(look = null, lookFailed = false,
+            lookSending = state.lookSending || (state.look != null && state.busy == null && state.notOnTv == null))
+        is LookResult -> if (event.sent) state.copy(newPicture = null, newDim = state.ownDim, lookFailed = false, lookSending = false)
+            else state.copy(lookFailed = true, lookSending = false)
         // A photo made for a sheet that has closed since is dropped.
         is OwnPictureStaged -> state.look?.let { l ->
             state.copy(newPicture = event.ref, newDim = event.dim).let { s ->
@@ -197,6 +201,7 @@ class HomeScreenMachine(
             apps = dock, others = state.apps.filter { it.pkg !in inDock },
             mine = state.ownPicture?.let { LookPicture.Of(it, state.ownDim) }, new = state.newPicture?.let { LookPicture.Of(it, state.newDim) },
             earlier = earlier, sent = saved, tv = lookTv(state), cards = cards, keyNames = keyNames, tvChanged = state.drift,
+            pushDock = saved?.dock,
         )
     }
 

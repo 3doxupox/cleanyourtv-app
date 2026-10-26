@@ -195,6 +195,7 @@ object LookFixtures {
                 else LookRow(details.seeThrough ?: 50, false, LookReason.SEE_THROUGH_OFF),
             skyStrength = if (sky.value == true) LookRow(details.skyStrength ?: 55, true) else LookRow(details.skyStrength ?: 55, false, LookReason.SKY_OFF),
             resettable = resettable, festiveRing = picture == "diwali", liftSlowRamMb = ramMb?.takeIf { lift && it < 2048 },
+            dimChanged = picture != "none" && details.dim != null && details.dim != 0, skyChanged = details.sky != null && details.sky != (picture == "mountains"),
         )
     }
 

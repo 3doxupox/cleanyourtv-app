@@ -172,7 +172,7 @@ internal fun ColumnScope.LookMorePage(state: LookEditorState, onEdit: (LookEdit)
 // The festival picture's name for the ring line ("While Diwali runs, ...").
 @Composable
 private fun festivalName(state: LookEditorState): String =
-    state.pictures.firstOrNull { it.id == state.picture }?.name ?: state.pictures.firstOrNull { it.until != null }?.name.orEmpty()
+    (state.pictures.firstOrNull { it.id == state.picture } ?: state.pictures.firstOrNull { it.until != null })?.let { galleryPictureName(it.id, it.name) }.orEmpty()
 
 @Composable
 private fun reasons(row: LookRow<*>): List<String> = listOfNotNull(row.reason?.takeUnless { row.enabled }?.let { reasonText(it) })
@@ -196,13 +196,13 @@ internal fun reasonText(r: LookReason): String = stringResource(
 )
 
 // "Show launcher names": each row's keys as the home screen's settings file spells them. Code,
-// not copy: they stay the same in every language.
+// not copy: they stay the same in every language. Show launcher names itself has no key; its line,
+// "(phone only)", is copy (cyt_look_key_names_phone_only).
 internal val KEY_NAMES = mapOf(
     "motion" to "animations, reduced_motion, focus_overshoot", "names" to "always_show_names", "spotGlow" to "ambient_glow",
     "bigName" to "dock_title", "glow" to "ambient_glow, glow_style", "ring" to "app_glow, cinematic_white_focus",
     "band" to "dock_glass, dock_opacity", "buttons" to "icon_only_buttons, icon_only_inputs, top_menu", "wifi" to "wifi_status_color",
     "dim" to "wallpaper_dim", "sky" to "sky_intensity", "lift" to "advanced_effects", "see" to "dock_opacity", "skyStr" to "sky_intensity",
-    "keys" to "(phone only)",
 )
 
 // A launcher key name under a row, in mono and always left to right.
@@ -241,8 +241,11 @@ internal fun LookSwitchRow(
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Column(Modifier.weight(1f)) {
-            Text(title, color = c.textPrimary, style = CytTheme.type.bodyLarge)
-            if (description != null) Text(description, color = c.textSecondary, style = CytTheme.type.bodySmall)
+            // Disabled (the prototype's .45): the title and its line dim, the reason stays readable.
+            Column(Modifier.alpha(if (enabled) 1f else DISABLED_ALPHA)) {
+                Text(title, color = c.textPrimary, style = CytTheme.type.bodyLarge)
+                if (description != null) Text(description, color = c.textSecondary, style = CytTheme.type.bodySmall)
+            }
             for (l in lines) Text(l, Modifier.padding(top = 2.dp), color = c.textSecondary, style = CytTheme.type.bodySmall)
             if (warning != null) Text(warning, Modifier.padding(top = 2.dp), color = c.warning, style = CytTheme.type.bodySmall)
             if (keyName != null) KeyNameLine(keyName)
@@ -250,6 +253,11 @@ internal fun LookSwitchRow(
         CytSwitch(checked, null, Modifier.clearAndSetSemantics {}, enabled = enabled)
     }
 }
+
+// How far a disabled row dims (the prototype: .45 for a switch row's title and track, .42 for the
+// choices of a radio list).
+internal const val DISABLED_ALPHA = 0.45f
+internal const val DISABLED_CHOICE_ALPHA = 0.42f
 
 // One choice of a radio list: an id, the title, its line and an optional extra line ("Suggested
 // for this TV: ...").
@@ -282,13 +290,14 @@ internal fun LookRadioList(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                Column(Modifier.weight(1f)) {
+                // Disabled (the prototype's .42): every choice dims; the reason above stays readable.
+                Column(Modifier.weight(1f).alpha(if (enabled) 1f else DISABLED_CHOICE_ALPHA)) {
                     Text(ch.title, color = c.textPrimary, style = CytTheme.type.bodyLarge)
                     Text(ch.description, color = c.textSecondary, style = CytTheme.type.bodySmall)
                     ch.extra?.let { Text(it, Modifier.padding(top = 2.dp), color = c.textSecondary, style = CytTheme.type.bodySmall) }
                 }
-                Box(Modifier.size(24.dp).alpha(if (on) 1f else 0f), contentAlignment = Alignment.Center) {
-                    CytIcon(CytIcons.Check, null, tint = if (enabled) c.accent else c.textSecondary)
+                Box(Modifier.size(24.dp).alpha(if (!on) 0f else if (enabled) 1f else DISABLED_CHOICE_ALPHA), contentAlignment = Alignment.Center) {
+                    CytIcon(CytIcons.Check, null, tint = c.accent)
                 }
             }
         }
@@ -312,8 +321,9 @@ internal fun LookSliderRow(
     val c = CytTheme.colors
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
         Row(Modifier.fillMaxWidth().clearAndSetSemantics {}, verticalAlignment = Alignment.CenterVertically) {
-            Text(title, Modifier.weight(1f), color = c.textPrimary, style = CytTheme.type.bodyLarge)
-            Text(lookMsg(R.string.cyt_look_percent, "value" to value), color = c.textSecondary, style = CytTheme.type.bodyMedium)
+            Text(title, Modifier.weight(1f).alpha(if (enabled) 1f else DISABLED_ALPHA), color = c.textPrimary, style = CytTheme.type.bodyLarge)
+            Text(lookMsg(R.string.cyt_look_percent, "value" to value), Modifier.alpha(if (enabled) 1f else DISABLED_ALPHA), color = c.textSecondary,
+                style = CytTheme.type.bodyMedium)
         }
         if (!enabled && reason != null) Text(reason, color = c.textSecondary, style = CytTheme.type.bodySmall)
         if (keyName != null) KeyNameLine(keyName)
