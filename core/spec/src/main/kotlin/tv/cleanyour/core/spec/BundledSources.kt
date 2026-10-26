@@ -113,8 +113,9 @@ class BundledFactsTable(private val facts: Map<PackageName, PackageFacts> = bund
 // the last. A wallpaper is a bundled asset: BlobRef.path is "bundled:" plus the resource path, and
 // bytes(blob) reads it back. Dated looks are in the list after their last day too (a saved choice
 // still names them); the flows offer only what Looks.offered allows.
-// The pictures (PictureSource) are Aurora's, from the submodule, and Glass and Ruska, from later
-// upstream releases (MIT), kept in this module's resources under pictures/.
+// The pictures (PictureSource) are Aurora's, from the submodule, and Glass and Ruska (shown as
+// Autumn lake, the id stays "ruska"), from later upstream releases (MIT), kept in this module's
+// resources under pictures/.
 class BundledThemeSource : ThemeSource, PictureSource {
     override fun bundled(): List<Theme> = themes
 
@@ -159,7 +160,7 @@ class BundledThemeSource : ThemeSource, PictureSource {
             listOf(
                 Triple("aurora", "Aurora", "$THEMES/aurora/wallpaper.jpg"),
                 Triple("glass", "Glass", "$PICTURES/glass.jpg"),
-                Triple("ruska", "Ruska", "$PICTURES/ruska.jpg"),
+                Triple("ruska", "Autumn lake", "$PICTURES/ruska.jpg"),   // the launcher's Ruska, named for what it shows
             ).map { (id, name, path) ->
                 val b = resourceBytes(path) ?: error("picture $id missing from the :core:spec resources")
                 Picture(id, name, BlobRef(sha256(b), b.size.toLong(), PREFIX + path.removePrefix("/")))
