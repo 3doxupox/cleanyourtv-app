@@ -6,6 +6,7 @@ import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.model.Profile
 import tv.cleanyour.core.model.Sha256
 import java.security.MessageDigest
+import java.time.LocalDate
 
 private fun resourceBytes(path: String): ByteArray? = BundledProfileSource::class.java.getResourceAsStream(path)?.use { it.readBytes() }
 
@@ -113,9 +114,9 @@ class BundledFactsTable(private val facts: Map<PackageName, PackageFacts> = bund
 // the last. A wallpaper is a bundled asset: BlobRef.path is "bundled:" plus the resource path, and
 // bytes(blob) reads it back. Dated looks are in the list after their last day too (a saved choice
 // still names them); the flows offer only what Looks.offered allows.
-// The pictures (PictureSource) are Aurora's, from the submodule, and Glass and Ruska (shown as
-// Autumn lake, the id stays "ruska"), from later upstream releases (MIT), kept in this module's
-// resources under pictures/.
+// The pictures (PictureSource) are Aurora's, from the submodule, Glass and Ruska (shown as Navy and
+// Autumn lake, the ids stay "glass" and "ruska"), from later upstream releases (MIT), kept in this
+// module's resources under pictures/, and (look2) the pictures of the app's own looks.
 class BundledThemeSource : ThemeSource, PictureSource {
     override fun bundled(): List<Theme> = themes
 
@@ -156,14 +157,31 @@ class BundledThemeSource : ThemeSource, PictureSource {
             }
         }
 
+        // look2 (spec 6.2): every picture of today's looks, each with its background colour; no new
+        // image bytes. The 0.4.0 ids stay (aurora, glass shown as Navy, ruska shown as Autumn lake).
+        // Diwali is a dated picture with its festival keys, offered up to its last day.
+        private class GalleryEntry(val id: String, val name: String, val path: String, val background: Int, val until: LocalDate? = null,
+            val festival: String? = null, val accent: String? = null, val sky: Int = 0)
+
+        private val galleryEntries = listOf(
+            GalleryEntry("diwali", "Diwali", "$LOOKS/diwali/wallpaper.jpg", 0xFF120809.toInt(), until = LocalDate.of(2026, 11, 10),
+                festival = "diwali", accent = "#FFB23C"),
+            GalleryEntry("aurora", "Aurora", "$THEMES/aurora/wallpaper.jpg", 0xFF070A14.toInt()),
+            GalleryEntry("mist", "Mist", "$LOOKS/mist/wallpaper.jpg", 0xFF0E1022.toInt()),
+            GalleryEntry("glass", "Navy", "$PICTURES/glass.jpg", 0xFF090C14.toInt()),      // the launcher's Glass picture, named for what it shows
+            GalleryEntry("ruska", "Autumn lake", "$PICTURES/ruska.jpg", 0xFF07080D.toInt()),   // the launcher's Ruska, named for what it shows
+            GalleryEntry("curtains", "Curtains", "$LOOKS/cinema/wallpaper.jpg", 0xFF07060A.toInt()),
+            GalleryEntry("mountains", "Mountains", "$LOOKS/horizon/wallpaper.jpg", 0xFF000000.toInt(), sky = 55),
+            GalleryEntry("lamp", "Lamp light", "$LOOKS/library/wallpaper.jpg", 0xFF141210.toInt()),
+            GalleryEntry("neon", "Neon", "$LOOKS/arcade/wallpaper.jpg", 0xFF0B0614.toInt()),
+            GalleryEntry("cobalt", "Cobalt", "$LOOKS/console/wallpaper.jpg", 0xFF020611.toInt()),
+        )
+
         val gallery: List<Picture> by lazy {
-            listOf(
-                Triple("aurora", "Aurora", "$THEMES/aurora/wallpaper.jpg"),
-                Triple("glass", "Glass", "$PICTURES/glass.jpg"),
-                Triple("ruska", "Autumn lake", "$PICTURES/ruska.jpg"),   // the launcher's Ruska, named for what it shows
-            ).map { (id, name, path) ->
-                val b = resourceBytes(path) ?: error("picture $id missing from the :core:spec resources")
-                Picture(id, name, BlobRef(sha256(b), b.size.toLong(), PREFIX + path.removePrefix("/")))
+            galleryEntries.map { e ->
+                val b = resourceBytes(e.path) ?: error("picture ${e.id} missing from the :core:spec resources")
+                Picture(e.id, e.name, BlobRef(sha256(b), b.size.toLong(), PREFIX + e.path.removePrefix("/")), e.background, e.until,
+                    e.festival, e.accent, e.sky)
             }
         }
 
