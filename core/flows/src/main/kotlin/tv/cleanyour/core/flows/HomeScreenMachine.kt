@@ -120,6 +120,7 @@ class HomeScreenMachine(
 ) : Machine<HomeScreenState, HomeScreenIntent, ManageEffect>(HomeScreenState(themes = offeredThemes(d)), scope) {
 
     private val writer = TvWriter(d)
+    private val drafts = LookDrafts(d.themes, d.pictures, d.encoder, d.clock)
     private data class Loaded(val s: HomeScreenState)
     private data class BusyNow(val busy: Busy?)
     private data class Preview(val plan: Plan?)
@@ -318,41 +319,18 @@ class HomeScreenMachine(
         private val OFFERED_COLUMNS = DockLayers.MIN_OFFERED_COLUMNS..DockLayers.MAX_OFFERED_COLUMNS
 
         // 0.4.0: the looks on offer today; a dated look (a festival) up to its last day.
-        private fun offeredThemes(d: ManageDeps): List<ThemeOption> {
-            val today = d.clock.today()
-            return d.themes.bundled().filter { Looks.offered(it.id, today) }
-                .map { ThemeOption(it.id, it.name, it.description, it.wallpaper?.path?.takeIf { p -> p.startsWith("/") }) }
-        }
+        private fun offeredThemes(d: ManageDeps): List<ThemeOption> = LookDrafts(d.themes, d.pictures, d.encoder, d.clock).offered()
     }
 
-    private fun theme(id: String?) = id?.let { d.themes.bundled().firstOrNull { t -> t.id == it } }
+    private fun theme(id: String?) = drafts.theme(id)
 
-    // `columns`: the draft's apps in a row; null for the look's own.
-    private fun draft(themeId: String, picture: String?, state: HomeScreenState, columns: Int?): LookDraft {
-        val dated = Looks.dated(themeId)
-        val p = picture.takeUnless { dated }
-        val own = DockLayers.columnsOf(theme(themeId)?.doc)
-        val count = columns ?: own
-        return LookDraft(themeId, p, ownPictureOnly = dated, preview = preview(themeId, p, state, count), columns = count, lookColumns = own)
-    }
+    // `columns`: the draft's apps in a row; null for the look's own. The preview shows the whole dock
+    // as the TV shows it, the waiting apps too: with more apps in a row they come into view.
+    private fun draft(themeId: String, picture: String?, state: HomeScreenState, columns: Int?): LookDraft =
+        drafts.draft(themeId, picture, columns, state.dock + state.waitingApps,
+            mine = state.ownPicture?.let { LookPicture.Of(it, state.ownDim) }, new = state.newPicture?.let { LookPicture.Of(it, state.newDim) })
 
-    // The preview from the bytes the push would send for this choice and the saved dock (cards as
-    // they are do not change the picture, so they are left at the default). The whole dock as the TV
-    // shows it, the waiting apps too: with more apps in a row they come into view.
-    private fun preview(themeId: String, picture: String?, state: HomeScreenState, columns: Int): LookPreview? = runCatching {
-        val p = when (picture) {
-            LookPicture.MINE_ID -> state.ownPicture?.let { LookPicture.Of(it, state.ownDim) }
-            LookPicture.NEW_ID -> state.newPicture?.let { LookPicture.Of(it, state.newDim) }
-            else -> LookPicture.of(picture, d.pictures)
-        }
-        val apps = state.dock + state.waitingApps
-        val (doc, wallpaper) = Look.docOf(theme(themeId), apps.map { it.pkg }, cards = Cards.MANAGE_DEFAULT, p, columns)
-        val now = java.time.Instant.ofEpochMilli(d.clock.nowMs()).atZone(java.time.ZoneId.systemDefault())
-        LookPreview.of(d.encoder.encode(doc), wallpaper, apps.map { it.name }, now.toLocalDate(), now.hour * 60 + now.minute)
-    }.getOrNull()
-
-    private fun pictureOptions(): List<PictureOption> =
-        runCatching { d.pictures.pictures() }.getOrNull().orEmpty().map { PictureOption(it.id, it.name, it.wallpaper.path.takeIf { p -> p.startsWith("/") }) }
+    private fun pictureOptions(): List<PictureOption> = drafts.pictureOptions()
 
     private suspend fun savedDock(): List<PackageName>? = d.homePrefs.load(tvId)?.dock
     private suspend fun savedColumns(): Int? = d.homePrefs.load(tvId)?.columns
@@ -378,7 +356,7 @@ class HomeScreenMachine(
         val dim = if (sendsNew) photo!!.dim else state.value.ownDim
         val lookPicture = if (sendsNew) LookPicture.Of(photo!!.ref, photo.dim)
             else OwnPicture.lookPicture(d, tvId, pictureId.takeUnless { it == LookPicture.NEW_ID }, dim)
-        val override = columns?.takeIf { it in OFFERED_COLUMNS && it != DockLayers.columnsOf(theme(themeId)?.doc) }
+        val override = drafts.override(themeId, columns)
         val look = attempt { Look.encode(d.encoder, d.blobs, theme(themeId), dock, cards, lookPicture, override) }.getOrNull()
             ?: return effect(ManageEffect.Snackbar(SnackKind.FAILED, "", false))
         val kept = DockLayers.keep(dock)
