@@ -516,7 +516,7 @@ class HomeScreenMachine(
             }
             val dim = when {
                 picture != LookPicture.MINE_ID -> null
-                keptNew -> sendsPhoto!!.dim
+                keptNew -> sendsPhoto.dim
                 else -> at.ownDim
             }
             val kept = DockLayers.keep(dock)

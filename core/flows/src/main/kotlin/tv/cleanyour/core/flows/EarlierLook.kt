@@ -38,7 +38,7 @@ internal object EarlierLook {
         if (!newPhoto && lookOf(before) == lookOf(next)) return false
         val withPhoto = before.picture == LookPicture.MINE_ID && photo != null && photo.size <= OwnPicture.MAX_BYTES
         documents.write(textPath(id), HomePrefs.encode(before.copy(cards = null)).encodeToByteArray())
-        if (withPhoto) documents.write(photoPath(id), photo!!) else attempt { documents.delete(photoPath(id)) }
+        if (withPhoto) documents.write(photoPath(id), photo) else attempt { documents.delete(photoPath(id)) }
         return true
     }
 

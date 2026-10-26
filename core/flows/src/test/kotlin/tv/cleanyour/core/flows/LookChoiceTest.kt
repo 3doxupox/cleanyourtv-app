@@ -211,6 +211,20 @@ class LookChoiceTest {
         assertEquals("/blobs/earlier.jpg" to 50, p.preview?.picturePath to p.preview?.dim)
     }
 
+    // Build plan risk table: one edit (the draft, its bytes, its preview and the five style cards)
+    // stays well under 50 ms on a 15 app dock.
+    @Test fun anEditIsQuick() {
+        var d = drafts.open(choice(StyleId.CLASSIC), ctx(n = 15))
+        val styles = listOf(StyleId.GLASS, StyleId.SPOTLIGHT, StyleId.ALL_APPS, StyleId.CALM, StyleId.CLASSIC)
+        repeat(50) { i -> d = drafts.edit(d, LookEdit.SelectStyle(styles[i % 5]), ctx(n = 15)) }
+        val times = (0 until 50).map { i ->
+            val t = System.nanoTime()
+            d = drafts.edit(d, LookEdit.SelectStyle(styles[i % 5]), ctx(n = 15))
+            (System.nanoTime() - t) / 1_000_000.0
+        }.sorted()
+        assertTrue(times[times.size / 2] < 50.0, "median ${times[times.size / 2]} ms")
+    }
+
     @Test fun theDraftCarriesTheFilesAndCounts() {
         val d = drafts.open(choice(StyleId.CLASSIC, columns = 4), ctx(n = 15))
         assertEquals(15 to 3, d.apps to d.waiting)

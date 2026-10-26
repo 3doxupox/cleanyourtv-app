@@ -875,7 +875,7 @@ class SetupMachine(
         val sendsNew = sheet.picture == LookPicture.NEW_ID && new != null
         val chosen = if (sendsNew) LookPicture.MINE_ID else sheet.picture ?: LookPicture.NONE_ID
         val dim = when {
-            sendsNew -> photo!!.dim
+            sendsNew -> photo.dim
             chosen == LookPicture.MINE_ID -> saved?.dim ?: OwnPicture.DEFAULT_DIM
             else -> null
         }

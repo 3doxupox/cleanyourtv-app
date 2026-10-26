@@ -220,7 +220,10 @@ class SetupLookTest {
         val tv = Samples.tv().copy(wizard = WizardDraft(3, Level.SIMPLE, emptySet(), emptySet(), apps, "console", false, null, 5, columns = 6, picture = "glass"))
         assertEquals(tv, TvJson.decode(TvJson.encode(tv)))
         val old = TvJson.encode(tv.copy(wizard = tv.wizard?.copy(columns = null, picture = null))).decodeToString()
-        assertEquals(tv.wizard?.copy(columns = null, picture = null), TvJson.decode(old.replace(",\"columns\":null,\"picture\":null", "").encodeToByteArray()).wizard,
+        assertEquals(tv.wizard?.copy(columns = null, picture = null), TvJson.decode(old.replace(",\"columns\":null,\"picture\":null,\"look\":null", "").encodeToByteArray()).wizard,
             "a draft written before 0.4.0 still loads")
+        // look2: the look step's choice in home.txt line form.
+        val look2 = tv.copy(wizard = tv.wizard?.copy(look = HomePrefs.encode(HomeChoice(emptyList(), null, picture = "neon", columns = 6, style = "glass"))))
+        assertEquals(look2, TvJson.decode(TvJson.encode(look2)))
     }
 }
