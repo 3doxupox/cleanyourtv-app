@@ -19,6 +19,7 @@ import tv.cleanyour.core.spec.BundledThemeSource
 import tv.cleanyour.core.spec.DecodeResult
 import tv.cleanyour.core.spec.LauncherConfigCodec
 import tv.cleanyour.core.spec.LauncherConfigDoc
+import tv.cleanyour.core.spec.StyleId
 import tv.cleanyour.testing.fixtures.Samples
 import tv.cleanyour.testing.fixtures.sha256Of
 import kotlin.test.Test
@@ -80,43 +81,44 @@ class SetupLookTest {
     private fun Harness.lastSetup() = planner.requests.filterIsInstance<PlanRequest.Setup>().last()
     private fun Harness.sentDoc(): LauncherConfigDoc = assertIs<DecodeResult.Ok>(LauncherConfigCodec.decode(blobs.bytes(assertNotNull(lastSetup().config)))).doc
 
+    private fun SetupMachine.choice(): HomeChoice? = extras.value.draft?.look?.let { HomePrefs.decode(it) }
+
+    // look2: the look step's choice is kept in WizardDraft.look (home.txt line form); apps in a row
+    // is always kept, and a look of the 0.4.0 list is the draft it migrates to.
     @Test fun appsInARowAndThePictureOnlyChangeTheDraftAndALookTapResetsTheCount() = runTest(timeout = 30.seconds) {
         val h = Harness()
         val m = found(h)
         assertEquals("default", m.extras.value.look?.themeId)
+        assertEquals(StyleId.CLASSIC to LookPicture.NONE_ID, m.extras.value.look?.let { it.style to it.picture }, "Setup's Default look")
         m.dispatch(SetupIntent.SetDock(apps)); settle()
         m.dispatch(SetupIntent.SetTheme("console")); settle()
-        assertEquals(7, m.extras.value.look?.columns, "Console's own")
+        assertEquals(7 to "cobalt", m.extras.value.look?.let { it.columns to it.picture }, "Console's own")
         assertNull(m.extras.value.draft?.columns)
-        m.dispatch(SetupIntent.SelectColumns(6)); settle()
-        assertEquals(6, m.extras.value.draft?.columns)
+        m.dispatch(SetupIntent.Look(LookEdit.SelectColumns(6))); settle()
+        assertEquals(6, m.choice()?.columns)
         assertEquals(6, m.extras.value.look?.columns)
-        assertEquals(7, m.extras.value.look?.lookColumns)
         assertEquals(6, m.extras.value.dockColumns, "the dock sheet holds 6 a row")
         assertEquals(6, h.sentDoc().columns)
         assertEquals(1, h.sentDoc().rowsBelowDock, "7 apps at 6 in a row: the dock and one row")
         m.dispatch(SetupIntent.SelectColumns(9)); settle()
-        assertEquals(6, m.extras.value.draft?.columns, "9 is not offered")
+        assertEquals(6, m.choice()?.columns, "9 is not offered")
         m.dispatch(SetupIntent.SelectColumns(7)); settle()
-        assertNull(m.extras.value.draft?.columns, "the look's own is not kept")
+        assertEquals(7, m.choice()?.columns, "always kept")
         m.dispatch(SetupIntent.SelectColumns(5)); settle()
-        m.dispatch(SetupIntent.SelectPicture("glass")); settle()
-        assertEquals("glass", m.extras.value.draft?.picture)
+        m.dispatch(SetupIntent.Look(LookEdit.SelectPicture("glass"))); settle()
+        assertEquals("glass", m.choice()?.picture)
         assertEquals("glass", m.extras.value.look?.picture)
         assertEquals(glass.wallpaper, h.lastSetup().wallpaper)
         assertEquals(true, h.sentDoc().wallpaper)
         assertEquals(5, h.sentDoc().columns)
-        // A look tap resets apps in a row to that look's own; the picture stays.
-        m.dispatch(SetupIntent.SetTheme("mist")); settle()
-        assertNull(m.extras.value.draft?.columns)
-        assertEquals("glass", m.extras.value.draft?.picture)
-        assertEquals(m.extras.value.look?.lookColumns, m.extras.value.look?.columns)
+        assertEquals(false, h.sentDoc().fillDock)
+        // A style keeps the picture and apps in a row (they belong to nobody).
+        m.dispatch(SetupIntent.Look(LookEdit.SelectStyle(StyleId.GLASS))); settle()
+        assertEquals(Triple("glass", "glass", 5), m.choice()?.let { Triple(it.style, it.picture, it.columns) })
         assertEquals(glass.wallpaper, h.lastSetup().wallpaper)
-        m.dispatch(SetupIntent.SelectPicture(LookPicture.NONE_ID)); settle()
+        m.dispatch(SetupIntent.Look(LookEdit.SelectPicture(LookPicture.NONE_ID))); settle()
         assertEquals(false, h.sentDoc().wallpaper)
         assertNull(h.lastSetup().wallpaper)
-        m.dispatch(SetupIntent.SelectPicture(null)); settle()
-        assertEquals(looks.bundled().single { it.id == "mist" }.wallpaper, h.lastSetup().wallpaper, "the look's own")
         // The draft is saved with the TV, so a Setup continued later has the same choice.
         assertEquals(m.extras.value.draft, h.tvs.tvs.value.single().wizard)
     }
@@ -138,20 +140,22 @@ class SetupLookTest {
             java.io.File(this, "config.json").writeBytes(setupBytes)
             java.io.File(this, "wallpaper.jpg").writeBytes(assertNotNull(BundledThemeSource.bytes(assertNotNull(setup.wallpaper))))
         }
+        val inSetup = assertNotNull(m.extras.value.look)
         makeItClean(h, m)
         val tv = h.tvs.tvs.value.single()
         assertEquals(sha256Of(setupBytes), tv.launcher?.ourOverlayDigest)
-        assertEquals(HomeChoice(apps, "console", cards = false, picture = "glass", columns = 6), HomePrefs(h.documents).load(tv.id))
+        val saved = assertNotNull(HomePrefs(h.documents).load(tv.id))
+        assertEquals(listOf<Any?>(apps, false, "classic", "glass", 6, "quick", false), listOf(saved.dock, saved.cards, saved.style, saved.picture,
+            saved.columns, saved.movement, saved.lift), "the new form, the migrated Console on a 1 GB TV (Quick, Lift and zoom off)")
 
         val home = HomeScreenMachine(h.manageDeps(encoder = ConfigEncoder.Codec, themes = looks), backgroundScope, tv.id)
         settle()
         assertEquals(6, home.state.value.columns)
         home.dispatch(HomeScreenIntent.OpenLook); settle()
         val draft = assertNotNull(home.state.value.look)
-        assertEquals("console", draft.themeId)
-        assertEquals(6, draft.columns)
-        assertEquals("glass", draft.picture)
-        assertEquals(m.extras.value.look?.copy(preview = null), draft.copy(preview = null), "the same draft as Setup's look step")
+        assertEquals(listOf<Any?>(inSetup.style, inSetup.picture, inSetup.columns, inSetup.movement, inSetup.lift, inSetup.details, inSetup.fullFile),
+            listOf(draft.style, draft.picture, draft.columns, draft.movement, draft.lift, draft.details, draft.fullFile), "the same choice as Setup's look step")
+        assertEquals(WayBack.EARLIER, draft.wayBack, "Setup's Default look is the earlier look")
         home.dispatch(HomeScreenIntent.UseLook); settle()
         val push = h.planner.requests.filterIsInstance<PlanRequest.ApplyTheme>().last()
         assertContentEquals(setupBytes, h.blobs.bytes(push.config), "the same config.json")
@@ -165,7 +169,8 @@ class SetupLookTest {
         val m = found(h)
         val jpeg = byteArrayOf(0xFF.toByte(), 0xD8.toByte()) + ByteArray(2000) { it.toByte() }
         m.dispatch(SetupIntent.SetOwnPicture(jpeg, 40)); settle()
-        assertEquals(LookPicture.NEW_ID, m.extras.value.draft?.picture)
+        assertEquals(LookPicture.NEW_ID, m.extras.value.look?.picture)
+        assertEquals(LookPicture.NEW_ID, m.choice()?.picture)
         assertEquals(sha256Of(jpeg), m.extras.value.newPicture?.sha256)
         assertEquals(40, m.extras.value.newDim)
         assertEquals(sha256Of(jpeg), h.lastSetup().wallpaper?.sha256)
@@ -195,12 +200,30 @@ class SetupLookTest {
         assertTrue(m.extras.value.look?.let { it.columns == 6 && it.picture == "glass" } == true)
     }
 
+    // look2: a Setup run again on a TV whose saved choice is in the new form starts from it.
+    @Test fun setupAgainStartsFromASavedLook2Choice() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.tvs.upsert(Samples.tv())
+        HomePrefs(h.documents).save(Samples.miTvId(), HomeChoice(apps, null, cards = false, picture = "neon", columns = 6, style = "glass",
+            movement = "smooth", lift = false, names = true, details = LookDetails(ring = false)))
+        val m = found(h)
+        val look = assertNotNull(m.extras.value.look)
+        assertEquals(listOf<Any?>(StyleId.GLASS, "neon", 6, tv.cleanyour.core.spec.Movement.SMOOTH, true, LookDetails(ring = false)),
+            listOf(look.style, look.picture, look.columns, look.movement, look.names, look.details))
+        assertEquals("glass", m.choice()?.style)
+        assertEquals(6, h.sentDoc().columns)
+        assertEquals("false", h.sentDoc().unknown["app_glow"]?.toString(), "the ring stays off")
+    }
+
     // The draft's look choice survives a restart with the TV record.
     @Test fun theDraftKeepsItsLookChoiceOnDisk() {
         val tv = Samples.tv().copy(wizard = WizardDraft(3, Level.SIMPLE, emptySet(), emptySet(), apps, "console", false, null, 5, columns = 6, picture = "glass"))
         assertEquals(tv, TvJson.decode(TvJson.encode(tv)))
         val old = TvJson.encode(tv.copy(wizard = tv.wizard?.copy(columns = null, picture = null))).decodeToString()
-        assertEquals(tv.wizard?.copy(columns = null, picture = null), TvJson.decode(old.replace(",\"columns\":null,\"picture\":null", "").encodeToByteArray()).wizard,
+        assertEquals(tv.wizard?.copy(columns = null, picture = null), TvJson.decode(old.replace(",\"columns\":null,\"picture\":null,\"look\":null", "").encodeToByteArray()).wizard,
             "a draft written before 0.4.0 still loads")
+        // look2: the look step's choice in home.txt line form.
+        val look2 = tv.copy(wizard = tv.wizard?.copy(look = HomePrefs.encode(HomeChoice(emptyList(), null, picture = "neon", columns = 6, style = "glass"))))
+        assertEquals(look2, TvJson.decode(TvJson.encode(look2)))
     }
 }

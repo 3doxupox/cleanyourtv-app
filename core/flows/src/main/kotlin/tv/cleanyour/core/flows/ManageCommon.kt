@@ -229,19 +229,20 @@ class HomePrefs(private val store: DocumentStore) {
     }
 }
 
-// App settings (M8) that are preferences, not records: haptics and large text.
-data class AppPrefsValue(val haptics: Boolean = true, val largeTextFollowsSystem: Boolean = true)
+// App settings (M8) that are preferences, not records: haptics and large text. look2: the Look
+// editor's Show launcher names ("lookKeyNames=", Advanced), off unless turned on.
+data class AppPrefsValue(val haptics: Boolean = true, val largeTextFollowsSystem: Boolean = true, val lookKeyNames: Boolean = false)
 
 class AppPrefs(private val store: DocumentStore) {
     private val path = "settings.txt"
 
     suspend fun load(): AppPrefsValue = store.read(path) { bytes ->
         val map = bytes.decodeToString().lines().filter { '=' in it }.associate { it.substringBefore('=') to it.substringAfter('=') }
-        AppPrefsValue(haptics = map["haptics"] != "false", largeTextFollowsSystem = map["largeText"] != "false")
+        AppPrefsValue(haptics = map["haptics"] != "false", largeTextFollowsSystem = map["largeText"] != "false", lookKeyNames = map["lookKeyNames"] == "true")
     } ?: AppPrefsValue()
 
     suspend fun save(v: AppPrefsValue) {
-        store.write(path, "haptics=${v.haptics}\nlargeText=${v.largeTextFollowsSystem}\n".encodeToByteArray())
+        store.write(path, ("haptics=${v.haptics}\nlargeText=${v.largeTextFollowsSystem}\n" + if (v.lookKeyNames) "lookKeyNames=true\n" else "").encodeToByteArray())
     }
 }
 

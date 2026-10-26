@@ -59,11 +59,6 @@ internal class LookDrafts(
     // The apps in a row to keep and send for `columns`: null when it is the look's own or not offered.
     fun override(themeId: String?, columns: Int?): Int? = columns?.takeIf { it in OFFERED && it != ownColumns(themeId) }
 
-    // 0.4.0, removed after look2 merges: the draft for a 0.4.0 choice (a look id, a picture and apps
-    // in a row), now the migrated look2 draft of that choice.
-    fun draft(themeId: String, picture: String?, columns: Int?, apps: List<AppChoice>, mine: LookPicture.Of?, new: LookPicture.Of?): LookDraft =
-        open(HomeChoice(apps.map { it.pkg }, themeId, picture = picture, columns = columns), LookContext(apps, mine = mine, new = new))
-
     // The gallery of the Picture row: the pictures offered today (a dated one up to its last day).
     fun pictureOptions(): List<PictureOption> {
         val today = clock.today()
@@ -222,6 +217,21 @@ internal class LookDrafts(
         }
         if (next == p && note == draft.note && ctx.keyNames == draft.keyNames) return draft
         return fill(next, ctx, note)
+    }
+
+    // 0.4.0, removed after look2 merges: a look tap of the 0.4.0 looks list (SelectLook, SetTheme),
+    // the draft that look migrates to (its style, picture, apps in a row, movement and details).
+    fun selectLegacy(draft: LookDraft, themeId: String, ctx: LookContext): LookDraft =
+        if (themeId == draft.legacyThemeId) draft else fill(partsOf(HomeChoice(emptyList(), themeId), ctx.tv).copy(names = draft.names), ctx, null)
+
+    // 0.4.0, removed after look2 merges: the picture of a 0.4.0 SelectPicture (null: the look's own).
+    fun legacyPicture(draft: LookDraft, id: String?): String = id ?: LegacyLooks.of(draft.legacyThemeId).picture
+
+    // The doc and the wallpaper sending the draft pushes, with the saved dock.
+    fun docOf(draft: LookDraft, dock: List<PackageName>, cards: Boolean, ctx: LookContext): Pair<LauncherConfigDoc, BlobRef?> {
+        val p = partsOf(draft)
+        val pic = pictureOf(p.picture, ctx)
+        return Look.docOf(p.copy(picture = pic.id), pic, dock, cards, ctx.tv)
     }
 
     // A style change (the prototype's chooseStyle): the new style's own details; the note names the

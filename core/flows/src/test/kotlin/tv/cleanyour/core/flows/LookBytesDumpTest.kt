@@ -40,6 +40,17 @@ class LookBytesDumpTest {
 
     private fun bundled(ref: BlobRef?): ByteArray? = ref?.let { BundledThemeSource.bytes(it) ?: error("not a bundled picture: $it") }
 
+    // look2: every case of the emulator matrix (LookSamples.matrix, build plan section 10) by its
+    // name, with the bytes and the wallpaper its push sends, and its home.txt.
+    @Test fun everySampleOfTheMatrix() {
+        for (s in LookSamples.matrix) {
+            val (_, bytes, wallpaper) = LookSamples.push(s, looks, looks)
+            write(s.name, bytes, bundled(wallpaper))
+            File(out, "${s.name}/home.txt").writeText(HomePrefs.encode(s.choice))
+        }
+        assertEquals(LookSamples.matrix.size, out.listFiles().orEmpty().count { f -> LookSamples.matrix.any { it.name == f.name } })
+    }
+
     @Test fun appsInARowAndEmptyDockSpaces() {
         val mist = looks.bundled().single { it.id == "mist" }
         val six = fifteen.take(6)

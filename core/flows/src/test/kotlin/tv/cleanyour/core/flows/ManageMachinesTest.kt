@@ -722,6 +722,28 @@ class ManageMachinesTest {
         assertEquals(HomeChoice(apps, "aurora", cards = true, columns = 5), HomePrefs(h.documents).load(tv.id))
     }
 
+    // look2: a saved choice in the new form is pushed in its own form, with module_cards on, and
+    // stays in the new form.
+    @Test fun theCardsPushSendsANewFormChoiceInItsOwnForm() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val apps = List(18) { PackageName("com.example.app$it") }
+        val (tv, _) = h.cardsOffTv(apps)
+        val choice = HomeChoice(apps, null, cards = false, picture = LookPicture.NONE_ID, columns = 5, style = "glass", movement = "smooth", lift = false,
+            names = true)
+        HomePrefs(h.documents).save(tv.id, choice)
+        h.respond(PlanKind.ADD_MODULE, listOf(Op.Disable(adPkg)))
+        val m = ModulesMachine(h.cardsDeps(), backgroundScope, tv.id, pollMs = 1_000)
+        settle()
+        m.dispatch(ModulesIntent.Add("retro")); settle()
+        val doc = h.pushedDoc(h.planner.requests.filterIsInstance<PlanRequest.AddModule>().single().config)
+        assertEquals(5, doc.columns)
+        assertEquals(apps.take(15), doc.dockApps)
+        assertEquals(true, doc.moduleCards)
+        assertEquals("true", doc.unknown["dock_glass"]?.toString(), "Glass's band")
+        assertEquals("true", doc.unknown["always_show_names"]?.toString())
+        assertEquals(choice.copy(cards = true), HomePrefs(h.documents).load(tv.id))
+    }
+
     // A card module already on the TV while the cards are off: "Show its card" sends the look with
     // module_cards on as an ApplyTheme plan, then mirrors the TV's question.
     @Test fun showItsCardTurnsModuleCardsOnAndMirrorsTheQuestion() = runTest(timeout = 30.seconds) {

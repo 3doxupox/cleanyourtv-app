@@ -13,7 +13,12 @@ import tv.cleanyour.core.model.PackageState
 import tv.cleanyour.core.planner.PlanRequest
 import tv.cleanyour.core.planner.PlanResult
 import tv.cleanyour.core.model.BlobRef
+import tv.cleanyour.core.spec.BandChoice
 import tv.cleanyour.core.spec.BundledThemeSource
+import tv.cleanyour.core.spec.ButtonsChoice
+import tv.cleanyour.core.spec.GlowChoice
+import tv.cleanyour.core.spec.Movement
+import tv.cleanyour.core.spec.StyleId
 import tv.cleanyour.core.spec.DecodeResult
 import tv.cleanyour.core.spec.DockLayers
 import tv.cleanyour.core.spec.LauncherConfigCodec
@@ -136,6 +141,8 @@ class LooksTest {
 
     // The Look sheet only chooses; "Put it on the TV" sends the look and the picture as one ApplyTheme,
     // and both are kept for the next push (a new dock keeps the picture). Apps in a row only chooses too.
+    // look2: the saved 0.4.0 Cinema opens as its migrated draft (Spotlight; Curtains is not in this
+    // gallery, so no picture), on this 1 GB TV with Quick picked; the send writes the new form.
     @Test fun theLookSheetSendsNothingUntilUseThisLook() = runTest(timeout = 30.seconds) {
         val h = Harness()
         val tv = h.knownTv().copy(launcher = LauncherState(1, Samples.zeroHash, Samples.zeroHash, Samples.zeroHash))
@@ -150,24 +157,26 @@ class LooksTest {
         assertEquals(listOf("glass"), m.state.value.pictures.map { it.id })
         val plansBefore = h.planner.requests.size
         m.dispatch(HomeScreenIntent.OpenLook); settle()
-        assertEquals("cinema" to null, m.state.value.look?.let { it.themeId to it.picture })
-        m.dispatch(HomeScreenIntent.SelectLook("quiet")); settle()
-        m.dispatch(HomeScreenIntent.SelectPicture("glass")); settle()
-        assertEquals("quiet" to "glass", m.state.value.look?.let { it.themeId to it.picture })
-        // The preview is made from the bytes the push would send: the picture forced on, calm motion.
-        val preview = assertNotNull(m.state.value.look?.preview)
+        val opened = assertNotNull(m.state.value.look)
+        assertEquals(listOf("cinema", "cinema", LookPicture.NONE_ID), listOf(opened.themeId, opened.legacyThemeId, opened.picture))
+        assertEquals(StyleId.SPOTLIGHT, opened.style)
+        assertEquals(Movement.QUICK to true, opened.movement to opened.movementPicked, "a 1 GB TV: Quick, picked for it")
+        assertEquals(false, opened.changed)
+        m.dispatch(HomeScreenIntent.Look(LookEdit.SelectStyle(StyleId.CALM))); settle()
+        m.dispatch(HomeScreenIntent.Look(LookEdit.SelectPicture("glass"))); settle()
+        val draft = assertNotNull(m.state.value.look)
+        assertEquals(listOf("default", null, "glass"), listOf(draft.themeId, draft.legacyThemeId, draft.picture), "an edit ends the migrated look")
+        assertEquals(StyleId.CALM, draft.style)
+        assertEquals(true, draft.changed)
+        assertEquals(WayBack.UNDO, draft.wayBack)
+        // The preview is made from the bytes the push would send: the picture on, quick movement.
+        val preview = assertNotNull(draft.preview)
         assertEquals("/blobs/glass.jpg", preview.picturePath)
         assertEquals(LookMotion.CALM, preview.motion)
         assertEquals(dock.size, preview.dock.size)
-        m.dispatch(HomeScreenIntent.SelectLook("diwali")); settle()
-        assertEquals(true, m.state.value.look?.ownPictureOnly, "a festival keeps its own picture")
-        assertEquals(true, m.state.value.look?.preview?.festive)
-        assertEquals("/blobs/cinema.jpg", m.state.value.look?.preview?.picturePath)
-        m.dispatch(HomeScreenIntent.SelectPicture("glass")); settle()
-        assertNull(m.state.value.look?.picture)
-        m.dispatch(HomeScreenIntent.SelectLook("quiet")); settle()
-        m.dispatch(HomeScreenIntent.SelectPicture("glass")); settle()
-        for (n in listOf(4, 8, 6, 3, 9)) { m.dispatch(HomeScreenIntent.SelectColumns(n)); settle() }
+        assertEquals(StyleId.entries, draft.styleCards.map { it.style })
+        assertTrue(draft.styleCards.all { it.preview?.picturePath == "/blobs/glass.jpg" }, "every card shows this picture")
+        for (n in listOf(4, 8, 6, 3, 9)) { m.dispatch(HomeScreenIntent.Look(LookEdit.SelectColumns(n))); settle() }
         assertEquals(6, m.state.value.look?.columns, "3 and 9 are ignored")
         assertEquals(6, m.state.value.look?.preview?.columns, "the preview follows at once")
         assertEquals(plansBefore, h.planner.requests.size, "no plan of any kind while choosing")
@@ -180,19 +189,47 @@ class LooksTest {
         assertEquals(6, sent.doc.columns)
         assertEquals(false, sent.doc.fillDock)
         assertEquals(glass.wallpaper, sent.wallpaper)
+        assertEquals(6, m.state.value.sent?.columns, "the Look row's mini preview is what was sent")
         val kept = assertNotNull(HomePrefs(h.documents).load(tv.id))
-        assertEquals("quiet", kept.themeId); assertEquals("glass", kept.picture)
+        assertEquals(listOf<Any?>("calm", "glass", 6, "quick", null), listOf(kept.style, kept.picture, kept.columns, kept.movement, kept.themeId))
         assertEquals("glass", m.state.value.pictureId)
+        assertEquals(StyleId.CALM to "glass", m.state.value.sentStyle to m.state.value.sentPicture)
         // A new dock later keeps the look and its picture.
         m.dispatch(HomeScreenIntent.SetDock(dock.reversed())); settle()
         assertEquals(glass.wallpaper, h.planner.requests.filterIsInstance<PlanRequest.ApplyTheme>().last().wallpaper)
+        assertEquals("calm", HomePrefs(h.documents).load(tv.id)?.style)
         // Closing the sheet sends nothing.
         m.dispatch(HomeScreenIntent.OpenLook); settle()
-        assertEquals("quiet" to "glass", m.state.value.look?.let { it.themeId to it.picture })
-        m.dispatch(HomeScreenIntent.SelectLook("cinema")); settle()
+        assertEquals(StyleId.CALM to "glass", m.state.value.look?.let { it.style to it.picture })
+        m.dispatch(HomeScreenIntent.Look(LookEdit.SelectStyle(StyleId.GLASS))); settle()
         m.dispatch(HomeScreenIntent.CloseLook); settle()
         assertEquals(2, h.planner.requests.filterIsInstance<PlanRequest.ApplyTheme>().size)
         assertNull(m.state.value.look)
+    }
+
+    // look2: every edit of the Look editor changes the draft only; no plan of any kind runs, and
+    // "Put it on the TV" sends exactly once.
+    @Test fun noLookEditRunsAPlanAndUseLookSendsOnce() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val (m, id) = homeWith(h, pkgs(6), HomeChoice(pkgs(6), "mist", cards = false))
+        m.dispatch(HomeScreenIntent.OpenLook); settle()
+        val before = h.planner.requests.size
+        val edits = listOf(
+            LookEdit.SelectStyle(StyleId.GLASS), LookEdit.SelectPicture("aurora"), LookEdit.SelectColumns(6), LookEdit.SetNames(true),
+            LookEdit.SetMovement(Movement.SMOOTH), LookEdit.SetLift(true), LookEdit.SetBigName(false), LookEdit.SetGlow(GlowChoice.SOFT),
+            LookEdit.SetSpotColour(false), LookEdit.SetRing(false), LookEdit.SetBand(BandChoice.SEE_THROUGH), LookEdit.SetSeeThrough(30),
+            LookEdit.SetButtons(ButtonsChoice.MENU), LookEdit.SetGreenWifi(false), LookEdit.SetDim(40), LookEdit.SetSky(true),
+            LookEdit.SetSkyStrength(80), LookEdit.TurnGlowOff, LookEdit.ResetDetails, LookEdit.UndoChanges, LookEdit.PutBackEarlier,
+            LookEdit.NoteAction(1), LookEdit.NoteSeen(1), LookEdit.SetKeyNames(true), LookEdit.SelectStyle(StyleId.SPOTLIGHT),
+        )
+        for (e in edits) { m.dispatch(HomeScreenIntent.Look(e)); settle() }
+        assertEquals(before, h.planner.requests.size, "no plan of any kind while choosing")
+        assertEquals(true, h.manageDeps().appPrefs.load().lookKeyNames, "Show launcher names is kept on the phone")
+        m.dispatch(HomeScreenIntent.UseLook)
+        m.dispatch(HomeScreenIntent.UseLook)
+        settle()
+        assertEquals(1, h.pushes().size, "one send")
+        assertEquals("spotlight", HomePrefs(h.documents).load(id)?.style)
     }
 
     @Test fun homeTxtKeepsThePicture() = runTest {
@@ -336,7 +373,8 @@ class LooksTest {
         m.dispatch(HomeScreenIntent.CloseLook); settle()
         assertEquals(0, h.planner.requests.filterIsInstance<PlanRequest.ApplyTheme>().size)
 
-        // Picked and sent, but the TV refused the push.
+        // Picked and sent, but the TV refused the push. look2: the draft and the new photo are kept,
+        // and Open Look reopens them; closing then drops them.
         val previous = h.planner.respond
         h.planner.respond = { r, snap -> if (r is PlanRequest.ApplyTheme) PlanResult.Refused(listOf("no")) else previous(r, snap) }
         m.dispatch(HomeScreenIntent.OpenLook); settle()
@@ -344,8 +382,14 @@ class LooksTest {
         m.dispatch(HomeScreenIntent.UseLook); settle()
         assertEquals(true, onTv.contentEquals(h.documents.read(OwnPicture.path(tv.id)) { it }), "the kept copy is still the TV's")
         assertEquals(HomeChoice(dock, "cinema", cards = false, picture = LookPicture.MINE_ID, dim = 40), HomePrefs(h.documents).load(tv.id))
-        assertNull(m.state.value.newPicture)
+        assertEquals(true, m.state.value.lookFailed)
+        assertEquals(sha256Of(other), m.state.value.newPicture?.sha256, "the new photo is kept")
         assertEquals(40, m.state.value.ownDim)
+        m.dispatch(HomeScreenIntent.OpenLook); settle()
+        assertEquals(LookPicture.NEW_ID to 60, m.state.value.look?.let { it.picture to it.preview?.dim }, "the kept draft")
+        assertEquals(false, m.state.value.lookFailed)
+        m.dispatch(HomeScreenIntent.CloseLook); settle()
+        assertNull(m.state.value.newPicture)
         h.planner.respond = previous
 
         // "Restore mine" sends the photo on the TV with its dim.
@@ -362,6 +406,55 @@ class LooksTest {
         assertEquals(true, other.contentEquals(h.documents.read(OwnPicture.path(tv.id)) { it }))
         assertEquals(LookPicture.MINE_ID to 60, HomePrefs(h.documents).load(tv.id)?.let { it.picture to it.dim })
         assertEquals(60, m.state.value.ownDim)
+    }
+
+    // look2 pictures (spec 6.2): every picture of today's looks, with its background colour, and no
+    // new image bytes; the 0.4.0 ids keep working.
+    @Test fun theGalleryHasEveryPictureWithItsColour() {
+        val p = BundledThemeSource().pictures()
+        assertEquals(listOf("diwali", "aurora", "mist", "glass", "ruska", "curtains", "mountains", "lamp", "neon", "cobalt"), p.map { it.id })
+        assertEquals(listOf("Diwali", "Aurora", "Mist", "Navy", "Autumn lake", "Curtains", "Mountains", "Lamp light", "Neon", "Cobalt"), p.map { it.name })
+        assertEquals(listOf(0x120809, 0x070A14, 0x0E1022, 0x090C14, 0x07080D, 0x07060A, 0x000000, 0x141210, 0x0B0614, 0x020611),
+            p.map { it.backgroundArgb and 0xFFFFFF })
+        assertTrue(p.all { it.backgroundArgb ushr 24 == 0xFF })
+        val diwali = p.first()
+        assertEquals(listOf<Any?>(lastDay, "diwali", "#FFB23C"), listOf(diwali.until, diwali.festival, diwali.accentColor))
+        assertEquals(listOf(55), p.filter { it.sky > 0 }.map { it.sky })
+        assertEquals("mountains", p.single { it.sky > 0 }.id)
+        assertTrue(p.drop(1).all { it.until == null && it.festival == null })
+        val themes = BundledThemeSource().bundled().associateBy { it.id }
+        for ((picture, look) in listOf("curtains" to "cinema", "mountains" to "horizon", "lamp" to "library", "neon" to "arcade", "cobalt" to "console",
+            "mist" to "mist", "diwali" to "diwali", "aurora" to "aurora")) {
+            assertEquals(themes.getValue(look).wallpaper?.sha256, p.single { it.id == picture }.wallpaper.sha256, "$picture is $look's picture")
+        }
+    }
+
+    // A dated picture: Diwali keeps the picture before it, is offered up to its last day, and after
+    // it the draft opens on the picture before it and Home names it as ended.
+    @Test fun diwaliIsADatedPictureThatGivesThePictureBackWhenItEnds() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.clock.setWall(ms(lastDay))
+        val apps = pkgs(4)
+        val (m, id) = homeWith(h, apps, HomeChoice(apps, null, cards = false, picture = "mist", columns = 5, style = "classic", movement = "lively", lift = false))
+        assertTrue("diwali" in m.state.value.pictures.map { it.id })
+        assertEquals(lastDay, m.state.value.pictures.single { it.id == "diwali" }.until)
+        m.dispatch(HomeScreenIntent.OpenLook)
+        m.dispatch(HomeScreenIntent.Look(LookEdit.SelectPicture("diwali")))
+        assertEquals(true, m.state.value.look?.rows?.festiveRing)
+        m.dispatch(HomeScreenIntent.UseLook); settle()
+        val sent = h.pushes().last().doc
+        assertEquals(listOf("diwali", "2026-11-10", "#FFB23C"), listOf(sent.festival, sent.festivalUntil, sent.accentColor))
+        assertEquals("diwali" to "mist", HomePrefs(h.documents).load(id)?.let { it.picture to it.previousPicture })
+        assertNull(m.state.value.endedLook)
+        h.clock.setWall(ms(lastDay.plusDays(1)))
+        val later = HomeScreenMachine(h.manageDeps(encoder = ConfigEncoder.Codec, themes = looks), backgroundScope, id)
+        settle()
+        assertTrue("diwali" !in later.state.value.pictures.map { it.id }, "no longer offered")
+        assertEquals("Diwali", later.state.value.endedLook)
+        later.dispatch(HomeScreenIntent.OpenLook); settle()
+        assertEquals("mist", later.state.value.look?.picture, "the picture before it")
+        // The draft opens on it as what is sent next; the ended line on Home is the way to send it.
+        assertEquals(false, later.state.value.look?.changed)
     }
 
     // 0.4.0 Apps in a row. ---------------------------------------------------------------------
@@ -440,11 +533,12 @@ class LooksTest {
         m.dispatch(HomeScreenIntent.SelectColumns(4)); settle()
         m.dispatch(HomeScreenIntent.UseLook); settle()
         assertEquals(4, h.pushes().single().doc.columns)
-        assertEquals(4, HomePrefs(h.documents).load(id)?.columns, "kept: it differs from the look's own")
+        assertEquals(4, HomePrefs(h.documents).load(id)?.columns)
         m.dispatch(HomeScreenIntent.OpenLook); settle()
+        assertEquals(4, m.state.value.look?.columns, "the sheet opens on what was sent")
         m.dispatch(HomeScreenIntent.SelectColumns(6)); settle()
         m.dispatch(HomeScreenIntent.UseLook); settle()
-        assertNull(HomePrefs(h.documents).load(id)?.columns, "the look's own is not kept")
+        assertEquals(6, HomePrefs(h.documents).load(id)?.columns, "look2: apps in a row is always kept")
         assertEquals(6, h.pushes().last().doc.columns)
     }
 
@@ -471,13 +565,13 @@ class LooksTest {
         use(null, 7); settle()
         assertEquals(apps, h.pushes().last().doc.dockApps, "back at 7: all 15, in order")
         assertEquals(apps, HomePrefs(h.documents).load(id)?.dock)
-        assertNull(HomePrefs(h.documents).load(id)?.columns, "Console's own 7")
+        assertEquals(7, HomePrefs(h.documents).load(id)?.columns)
         use("default", null); settle()
         assertEquals(apps.take(12), h.pushes().last().doc.dockApps)
         assertEquals(apps, HomePrefs(h.documents).load(id)?.dock)
         use("console", null); settle()
         assertEquals(apps, h.pushes().last().doc.dockApps, "Console again: the 15 in the same order")
-        assertEquals(HomeChoice(apps, "console", cards = false), HomePrefs(h.documents).load(id))
+        assertEquals(apps to 7, HomePrefs(h.documents).load(id)?.let { it.dock to it.columns })
         assertEquals(apps, m.state.value.dock.map { it.pkg })
         assertEquals(0, m.state.value.waiting)
     }
