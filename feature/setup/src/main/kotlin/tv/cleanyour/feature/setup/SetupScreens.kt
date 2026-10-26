@@ -46,7 +46,6 @@ import tv.cleanyour.core.flows.ChipState
 import tv.cleanyour.core.flows.Confirmations
 import tv.cleanyour.core.flows.Finishing
 import tv.cleanyour.core.flows.HomeBlock
-import tv.cleanyour.core.flows.LookDraft
 import tv.cleanyour.core.flows.NothingWhy
 import tv.cleanyour.core.flows.Reconnect
 import tv.cleanyour.core.flows.RestartState
@@ -113,7 +112,9 @@ import tv.cleanyour.ui.design.component.UndoSnackbarHost
 import tv.cleanyour.ui.design.component.UndoSnackbarState
 import tv.cleanyour.ui.design.component.rememberEmphasis
 import tv.cleanyour.ui.design.component.rememberUndoSnackbarState
+import tv.cleanyour.ui.design.component.LookDoneFooter
 import tv.cleanyour.ui.design.component.LookEditor
+import tv.cleanyour.ui.design.component.LookEditorSheet
 import tv.cleanyour.ui.design.component.LookEditorState
 import tv.cleanyour.ui.design.component.PhotoPicker
 import tv.cleanyour.ui.design.component.toEditor
@@ -285,9 +286,7 @@ fun FoundScreen(
         Sheet.LIST, Sheet.CUSTOMISE -> CustomiseSheet(state, extras, actions, onCopyCommands)
         Sheet.DOCK -> DockSheet(extras.dock, extras.apps, extras.dockColumns, onDone = { actions.intent(SetupIntent.SetDock(it)); actions.intent(SetupIntent.Open(null)) },
             onDismiss = { actions.intent(SetupIntent.Open(null)) })
-        Sheet.THEME -> CytBottomSheet({ actions.intent(SetupIntent.Open(null)) }) {
-            Column(Modifier.verticalScroll(rememberScrollState())) { ThemeContent(extras, actions, photos) }
-        }
+        Sheet.THEME -> ThemeSheet(extras, actions, photos)
         else -> {}
     }
 }
@@ -457,30 +456,42 @@ internal fun DockContent(state: DockEditorState, apps: List<AppChoice>, onDone: 
 
 internal fun AppChoice.toDockApp() = DockApp(pkg.value, name)
 
-// The look step (S3a "Look: Default >"): the Look editor of :ui:design, the same choices in the
-// same order as the Look sheet after Setup (the preview from the bytes the push would send, Apps in
-// a row, the looks and the Picture row), then Done. A tap only changes the draft, so nothing here is
-// guarded; the push happens when Setup runs. `pictures`: the pictures by file, given by the
-// screenshot tests (the app reads the files).
+// The look step (S3a "Look: Default >"): the Look editor of :ui:design, the same pages in the same
+// order as the Look sheet after Setup (Picture, Style, Apps in a row, Names under every app, More
+// options and Advanced), with Done as its footer. A tap only changes the draft (SetupIntent.Look,
+// the same edits as the Look sheet), so nothing here is guarded; the push happens when Setup runs.
+// Closing keeps the choice, so there is no leave question. `pictures`: the pictures by file, given
+// by the screenshot tests (the app reads the files).
 @Composable
-internal fun ColumnScope.ThemeContent(extras: SetupExtras, actions: SetupActions, photos: PhotoPicker? = null, pictures: Map<String, ImageBitmap>? = null) {
-    val draft = extras.look ?: return
-    LookEditor(
-        extras.toEditor(draft),
-        onLook = { actions.intent(SetupIntent.SetTheme(it)) },
-        onColumns = { actions.intent(SetupIntent.SelectColumns(it)) },
-        onPicture = { actions.intent(SetupIntent.SelectPicture(it)) },
+internal fun ThemeSheet(extras: SetupExtras, actions: SetupActions, photos: PhotoPicker? = null) {
+    val editor = extras.toEditor() ?: return
+    LookEditorSheet(
+        editor, onEdit = { actions.intent(SetupIntent.Look(it)) },
         onPhoto = { jpeg, dim -> actions.intent(SetupIntent.SetOwnPicture(jpeg, dim)) },
-        photos = photos, pictures = pictures,
+        onClose = { actions.intent(SetupIntent.Open(null)) },
+        footer = { LookDoneFooter { actions.intent(SetupIntent.Open(null)) } },
+        photos = photos, asksBeforeLeaving = false,
     )
-    PrimaryButton(stringResource(R.string.action_done), { actions.intent(SetupIntent.Open(null)) }, Modifier.padding(top = 20.dp), guardObscured = false)
 }
 
-// The look step's draft as the editor shows it (LookEditorFrom): the apps are the draft's whole
-// dock, the waiting apps too, and the machine has counted the waiting ones at the draft's apps in a
-// row already.
-internal fun SetupExtras.toEditor(draft: LookDraft): LookEditorState =
-    draft.toEditor(themes, pictures, ownPicture, ownDim, newPicture, newDim, dock = dock.size, waitingApps = waiting, waiting = waiting)
+// The same editor without the modal window, for the screenshot tests (a bounded height, as the
+// sheet gives it).
+@Composable
+internal fun ColumnScope.ThemeContent(extras: SetupExtras, actions: SetupActions, photos: PhotoPicker? = null, pictures: Map<String, ImageBitmap>? = null,
+    modifier: Modifier = Modifier) {
+    val editor = extras.toEditor() ?: return
+    LookEditor(
+        editor, onEdit = { actions.intent(SetupIntent.Look(it)) },
+        onPhoto = { jpeg, dim -> actions.intent(SetupIntent.SetOwnPicture(jpeg, dim)) },
+        onClose = { actions.intent(SetupIntent.Open(null)) },
+        footer = { LookDoneFooter { actions.intent(SetupIntent.Open(null)) } },
+        photos = photos, pictures = pictures, modifier = modifier, asksBeforeLeaving = false,
+    )
+}
+
+// The look step's draft as the editor shows it: the one mapping, LookEditorFrom. Setup has no
+// earlier look yet.
+internal fun SetupExtras.toEditor(): LookEditorState? = look?.toEditor(pictures, ownPicture, ownDim, newPicture, newDim, earlierPicture = null)
 
 // S4a Making it clean: narration, live thumbnail, the quiet "Stop and undo" (UX 4a, D18, D32).
 @Composable
