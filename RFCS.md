@@ -1,4 +1,4 @@
-# RFCs (stream up037)
+# RFCs
 
 ## RFC-UP037-1: the config differential test keeps launcher 2.5's reader
 
@@ -35,3 +35,41 @@ change: `:ui:design` gets one edge, `implementation(project(":core:flows"))`, al
 under the editor. No layer, allowlist or feature rule changes; a feature still sees only
 `:core:flows`, `:core:model` and `:ui:design`, and the components stay plain values. Not chosen: a
 new shared module (a new layer and a rule 3 change) or `:core:flows` (it cannot see `:ui:design`).
+
+## RFC-LOOK2-ENGINE: the codec reads with launcher 2.7's own Config.java
+
+Launcher 2.7 (3e34f40, versionCode 8) is now the pinned reader of `LauncherConfigCodec`: its
+Config.java (and the files it needs) is vendored under `core/spec/src/test/java/com/gathin/tvhome/v27`
+with small Android stubs, and the differential test runs it, with the 2.5 and 2.0 readers kept for
+their keys. `CARRIED_27` grows to 16 keys (the dock band, glow, names, top bar, focus spring and
+cinematic shelf keys), read by `LauncherKeys` with Config.java's rules; `LauncherConfigDoc` is
+unchanged. `LookKeys.build` writes every look2 push from scratch, and 43,050 distinct docs agree
+with 2.7 with no warning. The codec refuses a config.json with NaN or Infinity in a list
+(`CRASH_27_NON_FINITE`): 2.7 crashes Home on every start when it keeps its copy of such a file.
+
+## RFC-LOOK2-MODEL: a saved look is a legacy choice or a look2 choice
+
+A saved look is either a legacy 0.4.0 choice (style null), encoded by the frozen `LegacyLook` path
+byte for byte, or a look2 choice (style, picture, columns, movement, lift, names, details), encoded
+by `LookKeys.build` from the rules resolved on this TV (`LookRules`). The first send of a migrated
+draft writes the new form, with `columns=` always. home.txt gains style, movement, lift, names,
+prevpic and d.* lines, and every line stays optional. One earlier look per TV is kept in
+tvs/<id>/earlier.txt, plus earlier.jpg when that look showed the person's photo; Forget this TV
+deletes both with the TV's folder.
+
+## RFC-LOOK2-PREVIEW: the preview reads every look2 field from the bytes
+
+`LookPreview.of` reads the codec's effective config plus `LauncherKeys.look`, so the phone draws
+what the TV will read and never the choice itself. The sky is a port of Sky.java (`Sky`), the focus
+colour comes from a small table of app colours (`AppColours`), and `TvPreview` follows launcher
+2.7's own layout code (activity_main.xml, item_app.xml, AppAdapter tile sizing, DockDecoration).
+`TvLook` and `LookPreview` only gained defaulted fields, so 0.4.0 callers draw as before.
+
+## RFC-LOOK2-UI: one Look editor with three pages, in two places
+
+`LookEditor` in `:ui:design` holds the Look, More options and Advanced pages, the pinned preview,
+the leave question and the notes; `LookEditorFrom.kt` stays the one mapping from `LookDraft`. The
+Look sheet gives it "Put it on the TV" with the way back under it, and Setup's look step gives it
+Done (and no leave question, as closing keeps the choice). System Back, the predictive gesture,
+swipe and the scrim all go through the modal sheet's `confirmValueChange` into `LookEditorNav`, so
+no activity-compose dependency is added. No module, layer or dependency changes.

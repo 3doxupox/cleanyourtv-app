@@ -2,60 +2,69 @@
 
 All notable changes to the app. Versions follow [semantic versioning](https://semver.org/).
 
-## 0.4.0 (2026-10-25)
+## 0.4.0 (2026-10-26)
 
-Eight new looks for the TV's home screen, a picture you choose apart from the look (your own photo
-too), how many apps sit in a row, and a preview on the phone before anything reaches the TV.
+A new Look sheet for the TV's home screen: pick a picture, pick one of five styles, pick how many
+apps sit in a row, and see your own TV in a preview before anything reaches it.
 
 ### Home screen
-- New looks for the home screen: Cinema (velvet curtains around a dark stage and the app's name in
-  large type), Console (seven small tiles and a big name), Horizon (mountain ridges under a sky that
-  changes with the hour), Library (every app on one calm page, no dock band), Arcade (a neon sun and
-  bouncy tiles), Mist (soft indigo, teal and peach light), Quiet black (pure black, calm motion, for
-  OLED and slower TVs) and Diwali (lamps, festive icons and a short petal shower the first time Home
-  opens each day, until 10 November). Each look sets every layout and motion setting itself, so
-  switching looks never keeps one from the last. The pictures are our own work, free to use (CC0).
-- Cinema keeps the dock low however many apps it holds. With more apps than one row, the rows
-  under the dock wait one press of Down away, so the big app name never runs into the clock.
-- The Look sheet now has three choices: how many apps sit in a row, the look, and the picture it
-  shows. Any look can show its own picture, Aurora, Glass or Autumn lake, or no picture at all
-  (Diwali keeps its own). A tap only chooses; nothing is sent to the TV until you tap "Put it on
-  the TV".
-- Apps in a row is its own choice, right under the preview: 4, 5, 6, 7 or 8. Fewer apps means
-  bigger tiles, and 4 is the biggest the TV can show. At 8 the tiles are small and long names get
-  cut short (the TV's own settings stop at 7). Picking a look puts it back to that look's own
-  number, so the look's description stays true.
-- Your dock keeps its order when you go to fewer apps in a row. Say Console showed your 15 apps,
-  7 in a row, and you switched to Default with 4 in a row: the TV shows the first 12, the other 3
-  wait (the Look and Dock sheets say so), and going back brings all 15 back in the same order.
-  Before, those 3 were dropped for good.
-- Empty spaces in the dock stay empty on the TV now, instead of filling up with whatever app comes
-  next, so the dock only ever holds the apps you picked. The preview draws them as empty band.
-- A preview of the TV's home screen sits at the top of the Look sheet: the picture, its dim, the
-  sky, the dock band, the tiles a row with your own app names and the focus, drawn from the same
-  settings the TV will get, with how it moves underneath in plain words (Lively movement, Lively
-  with lift and zoom, Quick movement for slower TVs, No movement).
-- Your own photo as the TV's picture (Manage, then Home screen, then Look): "Choose a photo" opens
-  Android's photo picker (no permission needed), then you pinch and drag it in a 16:9 frame with
-  the clock and the dock drawn over it, set how dim it is and tap "Use this crop". The TV gets a
-  1920 x 1080 copy under 280 KB without the photo's place, camera or time. Once the TV has it, the
-  phone keeps that copy for the TV, so "Restore mine" puts it back later; a photo you pick and then
-  cancel changes nothing.
-- Setup's Look step now has the same choices as the Look sheet (apps in a row, the picture, your
-  own photo), and running Setup again starts from the look you saved.
-- Diwali is offered until 10 November. After that the phone counts your earlier look as the TV's
-  again, with its picture, and Manage offers to put it back on the TV with one tap.
-- The looks use the settings of the home screen app 2.7 that 0.3.7 brought. Quiet black, Horizon and
-  Cinema turn off its glow in the focused app's colour, so Quiet black really is pure black,
-  Horizon's sky keeps the colours of the hour, and Cinema also turns the app's art down so its
-  curtains show (a TV still on an older home screen app keeps the glow).
+- The Look sheet starts with the picture, then the style, then apps in a row. Nothing is sent to
+  the TV until you tap "Put it on the TV".
+- Five styles, each shown as a small preview of your TV with your picture: Classic (a dark dock, a
+  big name and a soft glow), Glass (a frosted dock and light in each app's colour), Spotlight (a
+  big banner of the app you are on, like newer smart TVs, with the app's colour across the top),
+  All apps (every app in one grid, no dock band) and Calm (no glow and no big name, just apps and
+  your picture).
+- Pictures to go with any style: Mist, Aurora, Navy, Autumn lake, Curtains, Mountains (with a sky
+  that changes with the hour), Lamp light, Neon, Cobalt, no picture, or your own photo. Diwali is
+  there until 10 November, with its lamps and festive icons. The pictures are our own work, free
+  to use (CC0).
+- Apps in a row: 4, 5, 6, 7 or 8. Fewer apps means bigger tiles, and 4 is the biggest the TV can
+  show. At 8 the tiles are small and long names get cut short (the TV's own settings stop at 7).
+  "Names under every app" puts each app's name under its tile, easier to read from the sofa.
+- More options, for when you want to tweak a style: how the highlight moves (Lively, Smooth, Quick
+  or Off), the big name, the glow (soft, from the top or none), a ring in the app's colour, the
+  dock band (solid, see-through or glass), the buttons at the top (with names, round icons or one
+  menu button) and a green Wi-Fi icon when the TV is online. Rows the style can't use say why.
+  "Use Classic's own settings" (or whichever style you're on) puts them all back.
+- TVs with 1.5 GB of memory or less get Quick movement picked for them, so Home stays snappy. A
+  style change that drops one of your tweaks says so, with Keep mine.
+- Advanced: lift and zoom on the app you're on, how see-through the dock band is, how strong the
+  sky is, the home screen's own setting names, and the settings file itself with a Copy button.
+- Changed your mind? "Undo changes" takes the sheet back to how it opened, and "Put back the earlier
+  look" brings back the look the TV had before your last send, photo and all. Closing with changes
+  asks first.
+- The preview is drawn from the same settings the TV gets, laid out the way the home screen app
+  2.7 lays out Home: the picture, its dim, the sky, the dock band, your apps, the focus glow and
+  the buttons at the top.
+- Your own photo (Manage, then Home screen, then Look): "Choose a photo" opens Android's photo
+  picker (no permission needed), then you pinch and drag it in a 16:9 frame with the clock and the
+  dock drawn over it, choose how dark it is and tap "Use this crop". The TV gets a 1920 x 1080 copy
+  under 280 KB without the photo's place, camera or time, and the phone keeps that copy for the TV.
+- Your dock keeps its order when you go to fewer apps in a row. Say you had 15 apps 7 in a row and
+  went to 4: the TV shows the first 12, the other 3 wait (the Look and Dock sheets say so), and
+  going back brings all 15 back in the same order. Empty spaces in the dock stay empty on the TV
+  now, instead of filling up with whatever app comes next.
+- Home's Look row shows a small preview of what you last sent, like "Glass with Mist" and "5 apps
+  in a row". If a look doesn't reach the TV, the phone keeps your choice and Home offers Open Look.
+- Setup's Look step is the same sheet with Done at the bottom, and running Setup again starts from
+  the look you saved.
+- A look you picked before this version stays on the TV exactly as it is, byte for byte, until you
+  send a new one. It opens in the new sheet as the closest style with its own picture and apps in
+  a row.
+- On a TV with a home screen app older than 2.7, Classic is the one style it can show, and the
+  sheet offers the update.
+- After Diwali ends, the phone counts your earlier picture as the TV's again and Home offers to
+  put it back with one tap.
 
 ### Credits
 - The look pictures are this project's own work, drawn from code and released under CC0. Aurora,
-  Glass and Autumn lake (the launcher's Ruska, named for what it shows) come from Clean Your TV
-  (MIT). The app's Licences screen lists them.
+  Navy (the launcher's Glass picture) and Autumn lake (the launcher's Ruska, named for what it
+  shows) come from Clean Your TV (MIT). The app's Licences screen lists them.
 
 ### Other
+- The app now refuses a home screen settings file with a number that isn't finite in a list, which
+  makes the home screen app 2.7 stop on every start. The app never writes one itself.
 - The README links to Obtainium, which follows the GitHub releases and updates the app by itself.
 
 ## 0.3.7 (2026-10-25)
