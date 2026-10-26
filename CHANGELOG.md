@@ -5,7 +5,7 @@ All notable changes to the app. Versions follow [semantic versioning](https://se
 ## 0.4.0 (2026-10-25)
 
 Eight new looks for the TV's home screen, a picture you choose apart from the look (your own photo
-too), and a preview on the phone before anything reaches the TV.
+too), how many apps sit in a row, and a preview on the phone before anything reaches the TV.
 
 ### Home screen
 - New looks for the home screen: Cinema (velvet curtains around a dark stage and the app's name in
@@ -17,18 +17,30 @@ too), and a preview on the phone before anything reaches the TV.
   switching looks never keeps one from the last. The pictures are our own work, free to use (CC0).
 - Cinema keeps the dock low however many apps it holds. With more apps than one row, the rows
   under the dock wait one press of Down away, so the big app name never runs into the clock.
-- The Look sheet now has two choices: the look, and the picture it shows. Any look can show its
-  own picture, Aurora, Glass or Ruska, or no picture at all (Diwali keeps its own). A tap only
-  chooses; nothing is sent to the TV until you tap "Use this look".
+- The Look sheet now has three choices: how many apps sit in a row, the look, and the picture it
+  shows. Any look can show its own picture, Aurora, Glass or Autumn lake, or no picture at all
+  (Diwali keeps its own). A tap only chooses; nothing is sent to the TV until you tap "Put it on
+  the TV".
+- Apps in a row is its own choice, right under the preview: 4, 5, 6, 7 or 8. Fewer apps means
+  bigger tiles, and 4 is the biggest the TV can show. At 8 the tiles are small and long names get
+  cut short (the TV's own settings stop at 7). Picking a look puts it back to that look's own
+  number, so the look's description stays true.
+- Your dock keeps its order when you go to fewer apps in a row. Say Console showed your 15 apps,
+  7 in a row, and you switched to Default with 4 in a row: the TV shows the first 12, the other 3
+  wait (the Look and Dock sheets say so), and going back brings all 15 back in the same order.
+  Before, those 3 were dropped for good.
+- Empty spaces in the dock stay empty on the TV now, instead of filling up with whatever app comes
+  next, so the dock only ever holds the apps you picked. The preview draws them as empty band.
 - A preview of the TV's home screen sits at the top of the Look sheet: the picture, its dim, the
   sky, the dock band, the tiles a row with your own app names and the focus, drawn from the same
-  settings the TV will get, with how it moves and how many apps fit a row underneath.
+  settings the TV will get, with how it moves underneath in plain words (Lively movement, Lively
+  with lift and zoom, Quick movement for slower TVs, No movement).
 - Your own photo as the TV's picture (Manage, then Home screen, then Look): "Choose a photo" opens
   Android's photo picker (no permission needed), then you pinch and drag it in a 16:9 frame with
-  the clock and the dock drawn over it and set how dim it is. The TV gets a 1920 x 1080 copy under
-  280 KB without the photo's place, camera or time. Once the TV has it, the phone keeps that copy
-  for the TV, so "Restore mine" puts it back later; a photo you pick and then cancel changes
-  nothing.
+  the clock and the dock drawn over it, set how dim it is and tap "Use this crop". The TV gets a
+  1920 x 1080 copy under 280 KB without the photo's place, camera or time. Once the TV has it, the
+  phone keeps that copy for the TV, so "Restore mine" puts it back later; a photo you pick and then
+  cancel changes nothing.
 - Diwali is offered until 10 November. After that the phone counts your earlier look as the TV's
   again, with its picture, and Manage offers to put it back on the TV with one tap.
 - The looks use the settings of the home screen app 2.7 that 0.3.7 brought. Quiet black, Horizon and
@@ -38,7 +50,8 @@ too), and a preview on the phone before anything reaches the TV.
 
 ### Credits
 - The look pictures are this project's own work, drawn from code and released under CC0. Aurora,
-  Glass and Ruska come from Clean Your TV (MIT). The app's Licences screen lists them.
+  Glass and Autumn lake (the launcher's Ruska, named for what it shows) come from Clean Your TV
+  (MIT). The app's Licences screen lists them.
 
 ### Other
 - The README links to Obtainium, which follows the GitHub releases and updates the app by itself.
