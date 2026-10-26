@@ -2,7 +2,24 @@ package tv.cleanyour.feature.launcher
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performScrollTo
+import tv.cleanyour.core.flows.LookEdit
+import tv.cleanyour.core.flows.WayBack
+import tv.cleanyour.core.spec.BandChoice
+import tv.cleanyour.core.spec.ButtonsChoice
+import tv.cleanyour.core.spec.GlowChoice
+import tv.cleanyour.core.spec.Movement
+import tv.cleanyour.core.spec.StyleId
+import tv.cleanyour.ui.design.component.LookDoneFooter
+import tv.cleanyour.ui.design.component.LookEditor
+import tv.cleanyour.ui.design.component.LookEditorNav
+import tv.cleanyour.ui.design.component.LookPage
+import tv.cleanyour.ui.design.component.toEditor
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -13,8 +30,6 @@ import org.robolectric.annotation.GraphicsMode
 import tv.cleanyour.core.flows.AppChoice
 import tv.cleanyour.core.flows.HomeScreenIntent
 import tv.cleanyour.core.flows.HomeScreenState
-import tv.cleanyour.core.flows.LookDraft
-import tv.cleanyour.core.flows.ThemeOption
 import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.testing.fixtures.Samples
 import tv.cleanyour.ui.design.component.DockApp
@@ -59,19 +74,75 @@ class GuardedActionsTest {
         assertEquals(1, done)
     }
 
-    // 0.4.0 Look sheet: a tap on an Apps in a row segment only chooses (SelectColumns, also through
-    // an overlay, like any choice), and "Put it on the TV" is still the one guarded write.
-    @Test fun appsInARowOnlyChoosesAndPutItOnTheTvIsGuarded() {
+    // look2 Look sheet: on each page "Put it on the TV" is the one guarded write (a tap through an
+    // overlay is dropped), and every other control only chooses: it sends its own LookEdit, also
+    // through an overlay, and never a send.
+    @Test fun everyLookPageHasOneGuardedPrimaryAndEveryControlSendsOnlyItsEdit() {
         val hits = mutableListOf<HomeScreenIntent>()
-        val state = HomeScreenState(themes = listOf(ThemeOption("default", "Default", "Black")), look = LookDraft("default", null, columns = 4, lookColumns = 4))
-        compose.showColumn { LookContent(state, { hits += it }) }
-        compose.tap(compose.onNodeWithContentDescription("5 apps in a row"), 0)
-        compose.tap(compose.onNodeWithContentDescription("8 apps in a row, more apps"), OBSCURED)
-        assertEquals(listOf<HomeScreenIntent>(HomeScreenIntent.SelectColumns(5), HomeScreenIntent.SelectColumns(8)), hits)
-        compose.tap("Put it on the TV", OBSCURED)
-        assertEquals(2, hits.size)
-        compose.tap("Put it on the TV", 0)
-        assertEquals(HomeScreenIntent.UseLook, hits.last())
-        assertEquals(1, hits.count { it == HomeScreenIntent.UseLook })
+        val nav = LookEditorNav()
+        val state = HomeScreenState(tvName = "Mi TV 4A", dock = LookFixtures.dock4, pictures = LookFixtures.pictureOptions,
+            look = LookFixtures.draft(resettable = 1, wayBack = WayBack.UNDO, changed = true, previews = false))
+        compose.showColumn { LookContent(state, { hits += it }, nav = nav) }
+        fun tapText(text: String, flags: Int = OBSCURED) = compose.tap(compose.onNodeWithText(text).inView(), flags)
+        fun tapLabel(label: String, flags: Int = OBSCURED) = compose.tap(compose.onNodeWithContentDescription(label).inView(), flags)
+        fun expect(vararg edits: LookEdit) = assertEquals(edits.map { HomeScreenIntent.Look(it) }, hits.toList()).also { hits.clear() }
+
+        // Look
+        compose.onAllNodesWithText("Put it on the TV").assertCountEquals(1)
+        tapText("Aurora")
+        tapLabel("Glass. A frosted dock and light in each app's colour.")
+        tapLabel("6 apps in a row")
+        tapText("Names under every app")
+        tapText("Undo changes")
+        expect(LookEdit.SelectPicture("aurora"), LookEdit.SelectStyle(StyleId.GLASS), LookEdit.SelectColumns(6), LookEdit.SetNames(true), LookEdit.UndoChanges)
+        tapText("Put it on the TV")
+        expect()
+
+        // More options
+        tapText("More options")
+        assertEquals(LookPage.MORE, nav.page)
+        compose.onAllNodesWithText("Put it on the TV").assertCountEquals(1)
+        tapText("Smooth")
+        tapText("Big name above the apps")
+        tapText("From the top")
+        tapText("Ring in the app's colour")
+        tapText("Glass")
+        tapText("Round icons")
+        tapText("Green Wi-Fi when online")
+        tapText("Sky that follows the clock")
+        tapText("Use Classic's own settings")
+        expect(
+            LookEdit.SetMovement(Movement.SMOOTH), LookEdit.SetBigName(false), LookEdit.SetGlow(GlowChoice.FROM_TOP), LookEdit.SetRing(true),
+            LookEdit.SetBand(BandChoice.GLASS), LookEdit.SetButtons(ButtonsChoice.ROUND), LookEdit.SetGreenWifi(true), LookEdit.SetSky(true),
+            LookEdit.ResetDetails,
+        )
+        tapText("Put it on the TV")
+        expect()
+
+        // Advanced
+        tapText("Advanced")
+        assertEquals(LookPage.ADVANCED, nav.page)
+        compose.onAllNodesWithText("Put it on the TV").assertCountEquals(1)
+        tapText("Lift and zoom")
+        tapText("Show launcher names")
+        tapText("Copy")
+        expect(LookEdit.SetLift(true), LookEdit.SetKeyNames(true))
+        tapText("Put it on the TV")
+        expect()
+        tapText("Put it on the TV", 0)
+        assertEquals(listOf<HomeScreenIntent>(HomeScreenIntent.UseLook), hits)
+    }
+
+    // Setup's look step: the same editor with Done, which only closes the step.
+    @Test fun setupFooterIsDoneOnly() {
+        var done = 0
+        val editor = LookFixtures.draft(previews = false).toEditor(LookFixtures.pictureOptions, null, 30, null, 30)
+        compose.showColumn { LookEditor(editor, {}, { _, _ -> }, {}, footer = { LookDoneFooter { done++ } }) }
+        compose.onAllNodesWithText("Put it on the TV").assertCountEquals(0)
+        compose.tap("Done", 0)
+        assertEquals(1, done)
     }
 }
+
+// Scrolls a node into view when it sits in a scrolling list (the pinned footer does not).
+internal fun SemanticsNodeInteraction.inView(): SemanticsNodeInteraction = also { runCatching { it.performScrollTo() } }

@@ -1,6 +1,7 @@
 package tv.cleanyour.ui.design.shots
 
 import androidx.compose.ui.graphics.Color
+import tv.cleanyour.ui.design.component.TvLook
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.geometry.Offset
@@ -108,4 +109,12 @@ object Fx {
         canvas.drawRect(Rect(30f, 40f, 140f, 80f), p.apply { color = Color(0x33FFFFFF) })
         bmp
     }
+
+    // look2: a small TV drawing for the style strip and the sheet pages (no picture, the 2.7
+    // defaults otherwise), in a style's colours.
+    fun tvLook(glow: Color = Color(0xFFE50914), dockRow: Boolean = true, dockTitle: Boolean = true, cinematic: Boolean = false) = TvLook(
+        background = Color(0xFF0E1022), picture = null, dim = 0, sky = 0, skyTop = Color.Black, skyBottom = Color.Black, columns = 5,
+        rowsBelowDock = 0, dockRow = dockRow, dockTitle = dockTitle, cinematic = cinematic, accent = null, greeting = "", focusScale = 1.1f,
+        dock = listOf("Netflix", "YouTube", "Prime Video", "JioHotstar"), clock = "8:30", emptyDockSlots = true, glowColour = glow,
+    )
 }

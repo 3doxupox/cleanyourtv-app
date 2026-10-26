@@ -5,6 +5,24 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import tv.cleanyour.core.flows.HomeChoice
+import tv.cleanyour.core.flows.LookReason
+import tv.cleanyour.core.flows.LookRow
+import tv.cleanyour.core.flows.LookRows
+import tv.cleanyour.core.flows.LookSample
+import tv.cleanyour.core.flows.LookSamples
+import tv.cleanyour.core.flows.LookTv
+import tv.cleanyour.core.flows.StyleCard
+import tv.cleanyour.core.spec.LookKeys
+import tv.cleanyour.core.spec.Movement
+import tv.cleanyour.core.spec.StyleId
+import tv.cleanyour.ui.design.component.LookEditorNav
+import tv.cleanyour.ui.design.component.LookPage
+import tv.cleanyour.ui.design.component.SheetSurface
+import tv.cleanyour.ui.design.theme.CytTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -222,6 +240,45 @@ private fun lookStep(draft: LookDraft, dock: List<AppChoice> = dockApps, waiting
     draft = customising.draft?.copy(themeId = themeId, columns = draft.columns.takeIf { it != draft.lookColumns }, picture = draft.picture),
 )
 
+// look2 look step: the same Look editor as the Look sheet, with Done. The previews come from the
+// bytes the push would send (LookSamples); the rows are written out here (a fake in test sources).
+private val lookSource = BundledThemeSource()
+private fun look2Preview(style: StyleId, picture: String, columns: Int = 5): LookPreview {
+    val choice = HomeChoice(dockApps.map { it.pkg }, null, cards = false, picture = picture, columns = columns, style = style.id, movement = Movement.LIVELY.id)
+    val p = LookSamples.preview(LookSample("setup", choice, choice.dock, LookTv(8L, 2048, false)), lookSource, lookSource, LocalDate.of(2026, 10, 26), 20 * 60 + 30)
+    return p.copy(picturePath = gallery[picture]?.let { resourcePath(it.wallpaper) }, dock = dockApps.map { it.name })
+}
+private fun look2Rows(style: StyleId, picture: String): LookRows {
+    val own = LookKeys.own(style)
+    return LookRows(
+        names = LookRow(false, true), bigName = LookRow(own.bigName, true), glow = LookRow(own.glow, true),
+        spotColour = LookRow(false, false, visible = false), ring = LookRow(own.ring, true), band = LookRow(own.band, true),
+        buttons = LookRow(own.buttons, true), greenWifi = LookRow(own.greenWifi, true),
+        dim = if (picture == LookPicture.NONE_ID) LookRow(0, false, LookReason.NO_PICTURE) else LookRow(0, true), sky = LookRow(false, true),
+        lift = LookRow(false, true), seeThrough = LookRow(50, false, LookReason.SEE_THROUGH_OFF), skyStrength = LookRow(55, false, LookReason.SKY_OFF),
+        resettable = 0, festiveRing = false, liftSlowRamMb = null,
+    )
+}
+private fun look2Draft(style: StyleId = StyleId.CLASSIC, picture: String = "mist", columns: Int = 5, newPhoto: Boolean = false, waiting: Int = 0) = LookDraft(
+    "default", picture, preview = look2Preview(style, if (newPhoto) "mist" else picture, columns), columns = columns, lookColumns = columns, style = style,
+    styleCards = StyleId.entries.map { StyleCard(it, look2Preview(it, if (newPhoto) "mist" else picture, columns), true) },
+    rows = look2Rows(style, picture), newPhoto = newPhoto, settingsFile = "{\n  \"columns\": $columns\n}", apps = dockApps.size + waiting, waiting = waiting,
+)
+private fun look2Step(draft: LookDraft) = customising.copy(
+    pictures = gallery.values.map { PictureOption(it.id, it.name, resourcePath(it.wallpaper), it.until, it.backgroundArgb) }, look = draft, dock = dockApps,
+)
+
+// The look step's sheet with a bounded height, as the modal sheet gives it.
+@Composable
+private fun LookFrame(behind: @Composable () -> Unit, page: LookPage = LookPage.MAIN, content: @Composable ColumnScope.(LookEditorNav) -> Unit) {
+    val nav = remember { LookEditorNav().apply { open(page) } }
+    Box(Modifier.fillMaxSize()) {
+        Box(Modifier.fillMaxSize().clearAndSetSemantics {}) { behind() }
+        Box(Modifier.fillMaxSize().background(CytTheme.colors.scrim))
+        SheetSurface(Modifier.align(Alignment.BottomCenter).padding(top = 48.dp)) { content(nav) }
+    }
+}
+
 // The dock sheet's state as DockSheet makes it (remembered, so it survives recomposition).
 @Composable
 private fun dockState(apps: List<AppChoice>, addRow: Boolean = false) =
@@ -364,26 +421,20 @@ object SetupShots {
         // The dock with a row under it, and a row just added and still empty.
         Shot("dock_sheet_rows") { SheetFrame({ Setup(found()) }) { DockContent(dockState(dockApps + otherApps.take(2)), dockApps + otherApps, {}) } },
         Shot("dock_sheet_new_row") { SheetFrame({ Setup(found()) }) { DockContent(dockState(dockApps, addRow = true), dockApps + otherApps, {}) } },
-        // 0.4.0 look step: the same choices as the Look sheet after Setup, then Done. Default with the
-        // four app dock, "Choose a photo" offered; Console at 6 apps in a row (not its own 7) with
-        // Glass and seven apps; a photo made here ("New photo", dimmed 40%) next to the one kept for
-        // the TV ("Restore mine"), with apps waiting at 4 in a row.
-        Shot("theme_sheet", 1900.dp) {
-            SheetFrame({ Setup(found()) }, maxHeight = 1880.dp) { ThemeContent(lookStep(lookDraft("default")), NoSetupActions, PhotoPicker {}, pictureFiles) }
+        // look2 look step: the same pages as the Look sheet after Setup, with Done as the footer.
+        // Classic with Mist and "Choose a photo"; More options; a photo made here ("New photo")
+        // next to the one kept for the TV ("Your photo").
+        Shot("theme_sheet", 1100.dp) {
+            LookFrame({ Setup(found()) }) { nav -> ThemeContent(look2Step(look2Draft()), NoSetupActions, PhotoPicker {}, pictureFiles, nav = nav) }
         },
-        Shot("theme_sheet_columns", 1900.dp) {
-            SheetFrame({ Setup(found()) }, maxHeight = 1880.dp) {
-                ThemeContent(lookStep(lookDraft("console", "glass", columns = 6, dock = dockApps + otherApps), dock = dockApps + otherApps), NoSetupActions, PhotoPicker {}, pictureFiles)
-            }
+        Shot("theme_sheet_more", 1700.dp) {
+            LookFrame({ Setup(found()) }, LookPage.MORE) { nav -> ThemeContent(look2Step(look2Draft(StyleId.GLASS)), NoSetupActions, PhotoPicker {}, pictureFiles, nav = nav) }
         },
-        Shot("theme_sheet_photo", 1900.dp) {
-            val long = dockApps + otherApps + otherApps.map { AppChoice(PackageName(it.pkg.value + ".tv"), it.name + " TV") } +
-                listOf(app("com.example.one", "One"), app("com.example.two", "Two"), app("com.example.three", "Three"), app("com.example.four", "Four"), app("com.example.five", "Five"))
-            SheetFrame({ Setup(found()) }, maxHeight = 1880.dp) {
-                // No gallery here, so "Restore mine" and the chosen "New photo" are in view.
-                ThemeContent(lookStep(lookDraft("aurora", LookPicture.NEW_ID, dock = long), dock = long.take(12), waiting = long.size - 12).copy(
-                    pictures = emptyList(), ownPicture = BlobRef(Samples.zeroHash, 1, resourcePath(gallery.getValue("glass").wallpaper)!!), newPicture = newPhoto, newDim = 40),
-                    NoSetupActions, PhotoPicker {}, pictureFiles)
+        Shot("theme_sheet_photo", 1100.dp) {
+            LookFrame({ Setup(found()) }) { nav ->
+                ThemeContent(look2Step(look2Draft(picture = LookPicture.NEW_ID, newPhoto = true, waiting = 3)).copy(
+                    ownPicture = BlobRef(Samples.zeroHash, 1, resourcePath(gallery.getValue("glass").wallpaper)!!), newPicture = newPhoto, newDim = 40),
+                    NoSetupActions, PhotoPicker {}, pictureFiles, nav = nav)
             }
         },
         // The Customise row names the look and its apps in a row when that is not the look's own.

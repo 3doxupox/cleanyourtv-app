@@ -55,6 +55,14 @@ import tv.cleanyour.ui.design.component.ListRow
 import tv.cleanyour.ui.design.component.ModuleCard
 import tv.cleanyour.ui.design.component.ModuleHero
 import tv.cleanyour.ui.design.component.MonospaceBlock
+import tv.cleanyour.ui.design.component.CytSlider
+import tv.cleanyour.ui.design.component.OutlinedPill
+import tv.cleanyour.ui.design.component.PictureChoice
+import tv.cleanyour.ui.design.component.PicturePicker
+import tv.cleanyour.ui.design.component.PinnedPreview
+import tv.cleanyour.ui.design.component.SheetPageHeader
+import tv.cleanyour.ui.design.component.StyleChoice
+import tv.cleanyour.ui.design.component.StylePicker
 import tv.cleanyour.ui.design.component.MorphingPrimaryButton
 import tv.cleanyour.ui.design.component.NumeralHeadline
 import tv.cleanyour.ui.design.component.OffKeptPill
@@ -373,6 +381,48 @@ object Samples {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 SegmentedChoice(options, "4", {})
                 SegmentedChoice(options, "7", {})
+            }
+        },
+        // look2 parts of the Look sheet: the percent slider (on and off), the Picture strip with
+        // Choose a photo and a dated picture's second line, the Style strip (the chosen card, and
+        // one this TV cannot show), the page header with Back and an action over the pinned preview,
+        // and the outlined pill.
+        Sample("c39_slider") {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                CytSlider(30, {}, 0..60, 10, "Darken the picture", "30 percent")
+                CytSlider(55, {}, 20..100, 5, "Sky strength", "55 percent", enabled = false)
+            }
+        },
+        Sample("c40_picture_second_line") {
+            PicturePicker(
+                listOf(
+                    PictureChoice("pick", "Choose a photo", null, action = true, actionDescription = "Choose a photo. Opens your photos."),
+                    PictureChoice("none", "No picture", null),
+                    PictureChoice("diwali", "Diwali", null, Color(0xFF120809), sub = "Until 10 Nov"),
+                    PictureChoice("mist", "Mist", null, Color(0xFF0E1022)),
+                ),
+                "diwali", {},
+            )
+        },
+        Sample("c41_style_picker") {
+            StylePicker(
+                listOf(
+                    StyleChoice("classic", "Classic", "A dark dock, a big name and a soft glow.", Fx.tvLook()),
+                    StyleChoice("glass", "Glass", "A frosted dock and light in each app's colour.", Fx.tvLook(Color(0xFF00A8E1)),
+                        enabled = false, note = "Needs the home screen update"),
+                    StyleChoice("spotlight", "Spotlight", "A big banner of the app you are on, like newer smart TVs.", Fx.tvLook(cinematic = true)),
+                ),
+                "classic", {},
+            )
+        },
+        Sample("c42_sheet_pages") {
+            Column {
+                SheetPageHeader("More options", onBack = {}, backLabel = "Back to Look") {
+                    CytIconButton(tv.cleanyour.ui.design.icon.CytIcons.Close, "Close", {})
+                }
+                PinnedPreview(Fx.tvLook(), "Preview of the TV's home screen: Classic, no picture, 5 apps in a row.", mainPage = false,
+                    onToggleBig = {}, toggleLabel = "Show the preview bigger")
+                OutlinedPill("Use Classic's own settings", {})
             }
         },
     )

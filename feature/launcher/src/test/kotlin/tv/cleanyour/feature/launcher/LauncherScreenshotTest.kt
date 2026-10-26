@@ -1,6 +1,5 @@
 package tv.cleanyour.feature.launcher
 
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,15 +7,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
-import java.time.LocalDate
-import tv.cleanyour.core.model.BlobRef
-import tv.cleanyour.core.spec.BundledThemeSource
-import tv.cleanyour.core.spec.DockLayers
-import tv.cleanyour.core.spec.LauncherConfigCodec
-import tv.cleanyour.core.flows.LookDocs
-import tv.cleanyour.core.flows.LookPicture
 import tv.cleanyour.ui.design.theme.CytTheme
 import androidx.compose.runtime.remember
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -35,17 +25,28 @@ import tv.cleanyour.core.flows.HomeBlock
 import tv.cleanyour.core.flows.NotOnTv
 import tv.cleanyour.core.flows.HomeScreenState
 import tv.cleanyour.core.flows.LookDraft
-import tv.cleanyour.core.flows.LookPreview
-import tv.cleanyour.core.flows.PictureOption
 import tv.cleanyour.core.flows.ThemeOption
 import tv.cleanyour.core.model.Op
 import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.testing.fixtures.Samples
 import tv.cleanyour.ui.design.component.DockEditorState
-import tv.cleanyour.ui.design.component.LookPreviewCard
 import tv.cleanyour.ui.design.component.PhotoCropContent
+import tv.cleanyour.ui.design.component.LookEditorNav
+import tv.cleanyour.ui.design.component.LookEditorState
+import tv.cleanyour.ui.design.component.LookPage
+import tv.cleanyour.ui.design.component.SheetSurface
+import tv.cleanyour.core.flows.DetailWord
+import tv.cleanyour.core.flows.LookDetails
+import tv.cleanyour.core.flows.LookNote
+import tv.cleanyour.core.flows.LookNoteKind
+import tv.cleanyour.core.flows.WayBack
+import tv.cleanyour.core.spec.BandChoice
+import tv.cleanyour.core.spec.GlowChoice
+import tv.cleanyour.core.spec.Movement
+import tv.cleanyour.core.spec.StyleId
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import tv.cleanyour.ui.design.component.PhotoPicker
-import tv.cleanyour.ui.design.component.toEditor
 import tv.cleanyour.ui.design.component.toTvLook
 
 // Every section 4 state of :feature:launcher (PRODUCT-SPEC 4: M2 with the drift banner, the
@@ -87,35 +88,22 @@ private fun home(
     endedLook = endedLook,
 )
 
-// 0.4.0 Look sheet: the preview, Apps in a row, the looks, the Picture row and "Put it on the TV".
-// The previews are made as the machine makes them, from the bytes the push would send for the
-// bundled looks (LookDocs, so fill_dock false and the apps in a row are in them), with their real
-// pictures read from the :core:spec resources.
-private val bundledLooks = BundledThemeSource().bundled().associateBy { it.id }
-private val gallery = BundledThemeSource().pictures().associateBy { it.id }
-private fun resourcePath(ref: BlobRef?) = ref?.path?.removePrefix(BundledThemeSource.PREFIX)?.let { "/$it" }
-private val pictureFiles: Map<String, ImageBitmap> by lazy {
-    (bundledLooks.values.map { it.wallpaper } + gallery.values.map { it.wallpaper }).mapNotNull { resourcePath(it) }.distinct().associateWith { path ->
-        BitmapFactory.decodeStream(LauncherShots::class.java.getResourceAsStream(path), null, BitmapFactory.Options().apply { inSampleSize = 4 })!!.asImageBitmap()
+// look2 Look sheet: the editor on the sheet surface, over the Home screen and its scrim, with a
+// bounded height as the modal sheet gives it (the page scrolls between the pinned parts).
+private fun lookSheet(draft: LookDraft, extra: (HomeScreenState) -> HomeScreenState = { it }) =
+    extra(home(themeId = "aurora", dock = LookFixtures.dock4).copy(pictures = LookFixtures.pictureOptions, look = draft))
+
+@Composable
+private fun LookShot(state: HomeScreenState, page: LookPage = LookPage.MAIN, asking: Boolean = false) {
+    val nav = remember { LookEditorNav().apply { open(page); this.asking = asking } }
+    Box(Modifier.fillMaxSize()) {
+        Box(Modifier.fillMaxSize().clearAndSetSemantics {}) { HomeScreen(home(), {}, {}) }
+        Box(Modifier.fillMaxSize().background(CytTheme.colors.scrim).clearAndSetSemantics {})
+        SheetSurface(Modifier.align(Alignment.BottomCenter).padding(top = 48.dp)) {
+            LookContent(state, {}, pictures = LookFixtures.pictureFiles, photos = PhotoPicker {}, nav = nav)
+        }
     }
 }
-private fun preview(id: String, picture: String? = null, minute: Int = 21 * 60 + 5, columns: Int? = null, dock: List<AppChoice> = rowsDock): LookPreview {
-    val look = bundledLooks.getValue(id)
-    val (doc, wallpaper) = LookDocs.of(look, dock.map { it.pkg }, cards = true, picture?.let { LookPicture.Of(gallery.getValue(it).wallpaper) }, columns)
-    val p = LookPreview.of(LauncherConfigCodec.encode(doc), null, dock.map { it.name }, LocalDate.of(2026, 10, 25), minute)
-    return p.copy(picturePath = if (doc.wallpaper != false) resourcePath(wallpaper) else null)
-}
-// The sheet's draft as HomeScreenMachine makes it: the look's own apps in a row unless `columns`.
-private fun draft(id: String, picture: String? = null, columns: Int? = null, dock: List<AppChoice> = rowsDock, ownPictureOnly: Boolean = false): LookDraft {
-    val own = DockLayers.columnsOf(bundledLooks.getValue(id).doc)
-    return LookDraft(id, picture, ownPictureOnly, preview(id, picture, columns = columns, dock = dock), columns ?: own, own)
-}
-private val noPictures = emptyMap<String, ImageBitmap>()
-private fun lookSheet(draft: LookDraft) = home(themeId = "aurora", dock = rowsDock).copy(
-    themes = bundledLooks.values.map { ThemeOption(it.id, it.name, it.description, resourcePath(it.wallpaper)) },
-    pictures = gallery.values.map { PictureOption(it.id, it.name, resourcePath(it.wallpaper)) },
-    look = draft,
-)
 
 // 0.3.3 D2: a TV without the new home screen, as HomeScreenMachine loads it (no dock, no stock row).
 private fun notOnTv(n: NotOnTv, tvName: String = "Mi TV 4A") =
@@ -136,11 +124,6 @@ private val stockPlan = Samples.plan(
 ).let { p ->
     val lines = listOf("Switch the TV's own home screen back on", "Make it the home screen", "Check that Home opens it")
     p.copy(steps = p.steps.mapIndexed { i, s -> s.copy(narration = lines[i]) })
-}
-
-@Composable
-private fun PreviewShot(p: LookPreview, name: String) {
-    Box(Modifier.fillMaxSize().background(CytTheme.colors.bg).padding(16.dp)) { LookPreviewCard(p.toEditor(), name, pictureFiles) }
 }
 
 object LauncherShots {
@@ -166,48 +149,41 @@ object LauncherShots {
         Shot("home_not_on_tv_fire_tv") { HomeScreen(notOnTv(NotOnTv(HomeBlock.TV_REFUSES, "Insignia", fireTv = true), "Insignia Fire TV"), {}, {}) },
         Shot("home_not_on_tv_home_changed") { HomeScreen(notOnTv(NotOnTv(HomeBlock.HOME_CHANGED, "TCL", setupAgain = true), "TCL G07"), {}, {}) },
 
-        // Look (theme picker), the dock sheet (S3b on Manage) and the stock home screen preview
-        Shot("home_look_sheet", 2000.dp) { SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(lookSheet(draft("aurora")), {}, pictureFiles, PhotoPicker {}) } },
-        Shot("home_look_sheet_picture", 2000.dp) {
-            SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(lookSheet(draft("quiet", "glass")), {}, pictureFiles) }
+        // look2 Home: the Look row with its mini of what was last sent; a failed send kept for Open Look.
+        Shot("home_look_row_mini") { HomeScreen(home().copy(sent = LookFixtures.preview(StyleId.GLASS), sentStyle = StyleId.GLASS, sentPicture = "mist",
+            pictures = LookFixtures.pictureOptions), {}, {}) },
+        Shot("look_failed_kept") { HomeScreen(lookSheet(LookFixtures.draft(changed = true)) { it.copy(lookFailed = true, look = it.look) }, {}, {}) },
+        // look2 Look sheet: the three pages, the states of spec W2 to W12.
+        Shot("look_main", 1100.dp) { LookShot(lookSheet(LookFixtures.draft())) },
+        Shot("look_main_changed", 1100.dp) {
+            LookShot(lookSheet(LookFixtures.draft(StyleId.GLASS, columns = 7, wayBack = WayBack.UNDO, changed = true, tvChanged = true)))
         },
-        Shot("home_look_sheet_festival", 2000.dp) {
-            SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(lookSheet(draft("diwali", ownPictureOnly = true)), {}, pictureFiles) }
+        Shot("look_main_earlier", 1100.dp) { LookShot(lookSheet(LookFixtures.draft(StyleId.CALM, "none", wayBack = WayBack.EARLIER))) },
+        Shot("look_main_eight", 1100.dp) { LookShot(lookSheet(LookFixtures.draft(columns = 8, movement = Movement.QUICK, movementPicked = true))) },
+        Shot("look_older_home_screen", 1100.dp) { LookShot(lookSheet(LookFixtures.draft(reads27 = false)) { it.copy(updateTo = "2.7") }) },
+        Shot("look_photo_tint_line", 1100.dp) {
+            LookShot(lookSheet(LookFixtures.draft(picture = LookEditorState.MINE)) { it.copy(ownPicture = LookFixtures.gallery.getValue("aurora").wallpaper.let { w ->
+                w.copy(path = LookFixtures.resourcePath(w)!!) }) })
         },
-        Shot("home_look_sheet_no_preview", 1700.dp) {
-            SheetOver({ HomeScreen(home(), {}, {}) }) {
-                LookContent(lookSheet(LookDraft("six-columns", "glass", columns = 6, lookColumns = 6)).copy(pictures = gallery.values.map { PictureOption(it.id, it.name, null) }), {}, noPictures)
-            }
+        Shot("look_style_snackbar", 1100.dp) {
+            LookShot(lookSheet(LookFixtures.draft(StyleId.SPOTLIGHT, changed = true, wayBack = WayBack.UNDO,
+                note = LookNote(1, LookNoteKind.STYLE_CHANGED, StyleId.SPOTLIGHT, own = listOf(DetailWord.BUTTONS, DetailWord.GLOW), dropped = listOf(DetailWord.DOCK_BAND), action = true))))
         },
-        // 0.4.0 Apps in a row: Default at 7 with a 4-app dock (3 spaces stay empty, drawn as empty
-        // band); Mist at 8 with 6 apps (the 8 line); a saved 15-app dock at 4 (3 apps wait).
-        Shot("home_look_sheet_columns", 2000.dp) {
-            SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(lookSheet(draft("default", columns = 7, dock = defaultDock)).copy(dock = defaultDock), {}, pictureFiles) }
+        Shot("look_leave", 1100.dp) { LookShot(lookSheet(LookFixtures.draft(changed = true, wayBack = WayBack.UNDO)), asking = true) },
+        Shot("look_more", 1700.dp) { LookShot(lookSheet(LookFixtures.draft(details = LookDetails(glow = GlowChoice.FROM_TOP), resettable = 1, keyNames = true)), LookPage.MORE) },
+        Shot("look_more_spotlight", 1700.dp) { LookShot(lookSheet(LookFixtures.draft(StyleId.SPOTLIGHT, "diwali")), LookPage.MORE) },
+        Shot("look_more_all_apps", 1700.dp) { LookShot(lookSheet(LookFixtures.draft(StyleId.ALL_APPS, ramMb = 1024, movement = Movement.QUICK)), LookPage.MORE) },
+        Shot("look_advanced", 1700.dp) {
+            LookShot(lookSheet(LookFixtures.draft(details = LookDetails(band = BandChoice.SEE_THROUGH, seeThrough = 30), keyNames = true)), LookPage.ADVANCED)
         },
-        Shot("home_look_sheet_eight", 2000.dp) {
-            SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(lookSheet(draft("mist", columns = 8)).copy(dock = rowsDock), {}, pictureFiles) }
-        },
-        Shot("home_look_sheet_waiting", 2000.dp) {
-            SheetOver({ HomeScreen(home(), {}, {}) }) {
-                LookContent(lookSheet(draft("console", columns = 4, dock = longDock)).copy(dock = longDock.take(12), waitingApps = longDock.drop(12)), {}, pictureFiles)
-            }
-        },
-        // The preview of each 0.4.0 look (Horizon at night and at sunrise: its sky over the picture).
-        Shot("look_preview_cinema", 360.dp) { PreviewShot(preview("cinema"), "Cinema") },
-        Shot("look_preview_console", 360.dp) { PreviewShot(preview("console"), "Console") },
-        Shot("look_preview_horizon", 360.dp) { PreviewShot(preview("horizon"), "Horizon") },
-        Shot("look_preview_horizon_sunrise", 360.dp) { PreviewShot(preview("horizon", minute = 6 * 60 + 30), "Horizon") },
-        Shot("look_preview_quiet", 360.dp) { PreviewShot(preview("quiet"), "Quiet black") },
-        Shot("look_preview_diwali", 360.dp) { PreviewShot(preview("diwali"), "Diwali") },
-        // "Your photo": the crop frame with the look's clock, buttons and dock over it, and the dim.
+        Shot("look_advanced_low_memory", 1700.dp) { LookShot(lookSheet(LookFixtures.draft(lift = true, ramMb = 1536)), LookPage.ADVANCED) },
+        // "Your photo": Cancel at the top, the style's glow over the photo, the Darken line.
         Shot("home_photo_crop", 900.dp) {
             Column(Modifier.fillMaxSize().background(CytTheme.colors.bg).padding(20.dp)) {
-                PhotoCropContent(pictureFiles.getValue(resourcePath(bundledLooks.getValue("mist").wallpaper)!!), preview("console").toEditor().toTvLook(null), 30, null, { _, _, _, _ -> }, {})
+                PhotoCropContent(LookFixtures.pictureFiles.getValue(LookFixtures.resourcePath(LookFixtures.gallery.getValue("mist").wallpaper)!!),
+                    LookFixtures.preview(StyleId.GLASS).toTvLook(null, crop = true), 30, null, { _, _, _, _ -> }, {})
             }
         },
-        Shot("look_preview_library", 360.dp) { PreviewShot(preview("library"), "Library") },
-        Shot("look_preview_arcade", 360.dp) { PreviewShot(preview("arcade"), "Arcade") },
-        Shot("look_preview_mist", 360.dp) { PreviewShot(preview("mist"), "Mist") },
         Shot("home_dock_sheet", 1000.dp) { SheetOver({ HomeScreen(home(), {}, {}) }) { DockContent(dockState(defaultDock.take(3)), apps, {}) } },
         Shot("home_dock_sheet_full", 1000.dp) { SheetOver({ HomeScreen(home(), {}, {}) }) { DockContent(dockState(defaultDock), apps, {}) } },
         Shot("home_dock_sheet_empty") { SheetOver({ HomeScreen(home(), {}, {}) }) { DockContent(dockState(emptyList()), apps, {}) } },
