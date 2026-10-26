@@ -35,6 +35,8 @@ object CytMotion {
     val highlight = spring<Offset>(dampingRatio = 0.58f, stiffness = 260f)
     val highlightFloat = spring<Float>(dampingRatio = 0.58f, stiffness = 260f)
     val press = spring<Float>(dampingRatio = 0.6f, stiffness = 800f)
+    // SegmentedChoice's highlight: settles in about 300 ms with a small overshoot (0.4.0).
+    val segment = spring<Float>(dampingRatio = 0.72f, stiffness = 400f)
     val emphasizedDecelerate = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)
     val emphasizedAccelerate = CubicBezierEasing(0.3f, 0f, 0.8f, 0.15f)
     const val PRESS_MS = 90

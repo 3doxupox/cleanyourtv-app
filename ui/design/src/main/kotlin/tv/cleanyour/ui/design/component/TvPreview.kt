@@ -53,6 +53,10 @@ import tv.cleanyour.ui.design.theme.Outfit
 // 12% white edge and 26 dp corners, the cinematic band #121014 at 55%. It is a picture, not the
 // TV: always left to right like the TV, text at a fixed size, one description for TalkBack (none
 // when it is drawn over something that has its own, like the photo frame).
+// `emptyDockSlots` (0.4.0, fill_dock false): a dock space after the person's dock apps is not drawn,
+// so the band shows through, as on the TV (DockSlots.empty: only when the dock holds at least one
+// app and fewer than a row). The rows under the dock keep their plain tiles: the TV fills those
+// with the person's other apps.
 @Immutable
 data class TvLook(
     val background: Color,
@@ -71,6 +75,7 @@ data class TvLook(
     val focusScale: Float,
     val dock: List<String>,
     val clock: String,
+    val emptyDockSlots: Boolean = false,
 )
 
 private const val TV_W = 960f
@@ -84,8 +89,15 @@ fun tvTileWidth(columns: Int): Float {
     return min(180f, (TV_W - 2 * MARGIN - (n - 1) * GAP) / n)
 }
 
+// Left to right like the TV: the direction is set around BoxWithConstraints, not inside it, so in an
+// RTL layout the offsets inside are measured from the left edge and the picture is not pushed off.
 @Composable
 fun TvPreview(look: TvLook, contentDescription: String, modifier: Modifier = Modifier) {
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) { TvPreviewLtr(look, contentDescription, modifier) }
+}
+
+@Composable
+private fun TvPreviewLtr(look: TvLook, contentDescription: String, modifier: Modifier) {
     val shape = CytTheme.shapes.medium
     BoxWithConstraints(
         modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(shape).background(look.background)
@@ -95,7 +107,7 @@ fun TvPreview(look: TvLook, contentDescription: String, modifier: Modifier = Mod
         val s = maxWidth.value / TV_W
         fun u(v: Float): Dp = (v * s).dp
         val density = LocalDensity.current
-        CompositionLocalProvider(LocalDensity provides Density(density.density, 1f), LocalLayoutDirection provides LayoutDirection.Ltr) {
+        CompositionLocalProvider(LocalDensity provides Density(density.density, 1f)) {
             if (look.picture != null) Image(look.picture, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
             if (look.dim > 0) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = look.dim.coerceIn(0, 90) / 100f)))
             if (look.sky > 0) {
@@ -135,7 +147,8 @@ fun TvPreview(look: TvLook, contentDescription: String, modifier: Modifier = Mod
                     Modifier.offset(u(left - 14f), u(dockTop - 14f)).size(u(rowW + 28f), u(tileH + 28f))
                         .background(bandColor, bandShape).border(1.dp, Color.White.copy(alpha = if (look.cinematic) 0.15f else 0.12f), bandShape),
                 )
-                for (i in 0 until rowsWide) Tile(names.getOrNull(i), i == 0, look, u(left + i * (tileW + GAP)), u(dockTop), u(tileW), u(tileH), s)
+                val docked = if (look.emptyDockSlots && names.isNotEmpty()) names.size.coerceAtMost(rowsWide) else rowsWide
+                for (i in 0 until docked) Tile(names.getOrNull(i), i == 0, look, u(left + i * (tileW + GAP)), u(dockTop), u(tileW), u(tileH), s)
                 for (r in 1..rowsBelow) {
                     val top = dockTop + tileH + 14f + rowGap + (r - 1) * (tileH + rowGap)
                     for (i in 0 until rowsWide) Tile(names.getOrNull(r * rowsWide + i), false, look, u(left + i * (tileW + GAP)), u(top), u(tileW), u(tileH), s)

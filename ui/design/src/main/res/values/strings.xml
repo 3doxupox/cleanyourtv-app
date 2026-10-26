@@ -83,6 +83,7 @@
     <string name="cyt_dock_full">The dock holds %1$d. Take one out, or add a row under it.</string>
     <string name="cyt_dock_row_full">These rows are full. Take one out, or add another row.</string>
     <string name="cyt_dock_all_full">The dock and the two rows under it are full. Take one out to add another.</string>
-    <string name="cyt_dock_gaps">Empty places on the TV show your other apps by name.</string>
+    <string name="cyt_dock_gaps">Empty places in the dock stay empty on the TV.</string>
+    <string name="cyt_dock_gaps_rows">Empty places in the rows under the dock show your other apps by name.</string>
     <string name="cyt_dock_others">Other apps on the TV</string>
 </resources>

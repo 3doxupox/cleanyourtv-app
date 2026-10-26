@@ -242,7 +242,8 @@ private class DockMotion {
 // `scroll` is the sheet's scroll state. TalkBack and switch access get "Move up", "Move down",
 // "Move to the dock", "Move to row n" and "Take out" on every app instead of dragging. Under
 // reduced motion nothing lifts or springs: the apps change places at once. Rows under the dock
-// have "Remove row"; with `undo`, a snackbar offers to put the row back.
+// have "Remove row"; with `undo`, a snackbar offers to put the row back. `footnote` (0.4.0): one more
+// line under the rows' note, before the other apps (the Home screen's "3 apps wait" line).
 @Composable
 fun DockEditor(
     state: DockEditorState,
@@ -251,6 +252,7 @@ fun DockEditor(
     haptics: Boolean = true,
     scroll: ScrollState? = null,
     undo: UndoSnackbarState? = null,
+    footnote: String? = null,
 ) {
     val reduced = CytTheme.reducedMotion
     val feel = rememberCytHaptics(haptics)
@@ -331,14 +333,17 @@ fun DockEditor(
                 DragGhost(state, reduced)
             }
             val note = when {
-                state.hasRoom && state.apps.size % state.columns != 0 -> stringResource(R.string.cyt_dock_gaps)
+                // 0.4.0 fill_dock false: a free dock space stays empty on the TV; a free place in a
+                // row under the dock still shows the next of the TV's other apps.
+                state.hasRoom && state.apps.isNotEmpty() && state.apps.size < state.columns -> stringResource(R.string.cyt_dock_gaps)
+                state.hasRoom && state.apps.size % state.columns != 0 -> stringResource(R.string.cyt_dock_gaps_rows)
                 state.hasRoom -> null
                 state.canAddRow && state.rowCount == 1 -> stringResource(R.string.cyt_dock_full, state.columns)
                 state.canAddRow -> stringResource(R.string.cyt_dock_row_full)
                 else -> stringResource(R.string.cyt_dock_all_full)
             }
-            if (note != null) {
-                Text(note, Modifier.padding(start = 4.dp, end = 4.dp, top = 8.dp), color = CytTheme.colors.textSecondary, style = CytTheme.type.bodyMedium)
+            for (line in listOfNotNull(note, footnote)) {
+                Text(line, Modifier.padding(start = 4.dp, end = 4.dp, top = 8.dp), color = CytTheme.colors.textSecondary, style = CytTheme.type.bodyMedium)
             }
             if (state.canAddRow) {
                 TertiaryButton(stringResource(R.string.cyt_dock_add_row), { edit { state.addRow() } }, Modifier.padding(top = 4.dp))

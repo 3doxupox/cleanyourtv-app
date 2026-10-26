@@ -38,6 +38,8 @@ import tv.cleanyour.ui.design.component.DestructiveButton
 import tv.cleanyour.ui.design.component.DiffGroupSection
 import tv.cleanyour.ui.design.component.DiscoveryChip
 import tv.cleanyour.ui.design.component.ConfirmQuestion
+import tv.cleanyour.ui.design.component.SegmentOption
+import tv.cleanyour.ui.design.component.SegmentedChoice
 import tv.cleanyour.ui.design.component.DockApp
 import tv.cleanyour.ui.design.component.DockEditor
 import tv.cleanyour.ui.design.component.DockEditorState
@@ -362,6 +364,15 @@ object Samples {
                 ConfirmQuestion(
                     "Stop now?", "We stop here and put back what we changed so far. Your TV stays safe.", "Stop and undo", {}, "Keep going", {},
                 )
+            }
+        },
+        // 0.4.0 SegmentedChoice (Apps in a row, 4 to 8): one highlight behind the chosen number, no
+        // tick, the chosen number in the primary colour; 4 chosen, then 7.
+        Sample("c38_segmented_choice") {
+            val options = (4..8).map { SegmentOption("$it", "$it", "$it apps in a row") }
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                SegmentedChoice(options, "4", {})
+                SegmentedChoice(options, "7", {})
             }
         },
     )

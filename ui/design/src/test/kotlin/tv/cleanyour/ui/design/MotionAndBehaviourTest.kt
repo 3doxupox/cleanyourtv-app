@@ -16,6 +16,7 @@ import androidx.compose.ui.platform.testTag
 import com.github.takahirom.roborazzi.captureRoboImage
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -26,6 +27,11 @@ import tv.cleanyour.ui.design.component.CountdownRing
 import tv.cleanyour.ui.design.component.DiffItem
 import tv.cleanyour.ui.design.component.DiffRow
 import tv.cleanyour.ui.design.component.NumeralHeadline
+import tv.cleanyour.ui.design.component.SEGMENT_HIGHLIGHT_TAG
+import tv.cleanyour.ui.design.component.SegmentOption
+import tv.cleanyour.ui.design.component.SegmentedChoice
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.test.onNodeWithContentDescription
 import tv.cleanyour.ui.design.component.UndoSnackbarHost
 import tv.cleanyour.ui.design.component.UndoSnackbarState
 import tv.cleanyour.ui.design.component.WelcomeIllustration
@@ -114,5 +120,43 @@ class MotionAndBehaviourTest {
         compose.mainClock.advanceTimeBy(5_500)
         compose.waitForIdle()
         assertNull(state.current)
+    }
+
+    // 0.4.0 SegmentedChoice: the one highlight slides from the old choice to the new one, about
+    // 300 ms on a short spring, and under reduced motion it is on the new one at once.
+    private fun highlightLeft() = compose.onNodeWithTag(SEGMENT_HIGHLIGHT_TAG, useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.left
+    private fun segmentLeft(n: Int) = compose.onNodeWithContentDescription("$n apps in a row").fetchSemanticsNode().boundsInRoot.left
+
+    private fun slide(reduced: Boolean): List<Float> {
+        var chosen by mutableStateOf("4")
+        val options = (4..8).map { SegmentOption("$it", "$it", "$it apps in a row") }
+        compose.mainClock.autoAdvance = false
+        compose.setContent { CytTheme(reducedMotion = reduced) { SegmentedChoice(options, chosen, {}) } }
+        compose.mainClock.advanceTimeBy(100)
+        val start = highlightLeft()
+        chosen = "7"
+        androidx.compose.runtime.snapshots.Snapshot.sendApplyNotifications()
+        compose.mainClock.advanceTimeByFrame()
+        compose.mainClock.advanceTimeByFrame()
+        compose.mainClock.advanceTimeBy(64)
+        val mid = highlightLeft()
+        compose.mainClock.advanceTimeBy(600)
+        return listOf(start, mid, highlightLeft(), segmentLeft(4), segmentLeft(7))
+    }
+
+    @Test
+    fun theSegmentHighlightSlidesToTheNewChoice() {
+        val (start, mid, end, four, seven) = slide(reduced = false)
+        assertEquals(four, start, 1f)
+        assertTrue("mid-slide at $mid, between $four and $seven", mid > four + 1f && mid < seven - 1f)
+        assertEquals(seven, end, 1f)
+    }
+
+    @Test
+    fun theSegmentHighlightJumpsUnderReducedMotion() {
+        val (start, mid, end, four, seven) = slide(reduced = true)
+        assertEquals(four, start, 1f)
+        assertEquals(seven, mid, 1f)
+        assertEquals(seven, end, 1f)
     }
 }
