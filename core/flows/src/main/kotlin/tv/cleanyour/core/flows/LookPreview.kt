@@ -14,6 +14,8 @@ import tv.cleanyour.core.spec.LauncherConfigDoc
 // this phone, when the TV shows one. `festive`: a festival is on for `today` (the diya, bell and
 // marigold pills, the accent focus and the greeting). `dock`: the person's own app names, the dock
 // and the rows under it in order. `minuteOfDay` is for the sky (sky_intensity above 0).
+// `fillDock` (0.4.0, fill_dock): false, as every push writes it, leaves a dock space with no app empty
+// on the TV, so the preview draws it as empty band.
 data class LookPreview(
     val backgroundArgb: Int,
     val picturePath: String?,
@@ -23,6 +25,7 @@ data class LookPreview(
     val rowsBelowDock: Int,
     val dockRow: Boolean,
     val dockTitle: Boolean,
+    val fillDock: Boolean,
     val cinematic: Boolean,
     val festive: Boolean,
     val accentArgb: Int,
@@ -42,7 +45,7 @@ data class LookPreview(
                 picturePath = wallpaper?.path?.takeIf { e.wallpaper && it.startsWith("/") },
                 dim = e.wallpaperDim, sky = e.skyIntensity,
                 columns = e.columns, rowsBelowDock = e.rowsBelowDock, dockRow = e.dockRow, dockTitle = e.dockTitle,
-                cinematic = e.cinematicHome, festive = festive,
+                fillDock = e.fillDock, cinematic = e.cinematicHome, festive = festive,
                 accentArgb = if (festive) (e.accentColorArgb.takeIf { it != 0 } ?: DIYA_GOLD) else 0,
                 greeting = if (!festive) "" else e.greeting.ifBlank { BUILT_IN_GREETINGS[name].orEmpty() },
                 motion = when {

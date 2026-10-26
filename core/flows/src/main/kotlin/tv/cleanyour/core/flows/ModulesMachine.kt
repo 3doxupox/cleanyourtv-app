@@ -19,6 +19,7 @@ import tv.cleanyour.core.registry.FetchFailure
 import tv.cleanyour.core.registry.FetchResult
 import tv.cleanyour.core.registry.IndexState
 import tv.cleanyour.core.session.TvSession
+import tv.cleanyour.core.spec.DockLayers
 import tv.cleanyour.core.trust.IndexFailure
 
 // M3 Cards and modules, M3a Add, M3b detail, M3c the card prompt mirror (UX 5, D1, D6, D45, F9).
@@ -185,8 +186,11 @@ class ModulesMachine(
         if (Cards.current(d, tvId, choice, overlay)) return null
         // 0.4.0: once a dated look has ended, the look before it (HomeChoice.lookOn).
         val theme = choice?.lookOn(d.clock.today())?.let { id -> d.themes.bundled().firstOrNull { it.id == id } }
-        val look = Look.encode(d.encoder, d.blobs, theme, choice?.dock.orEmpty(), cards = true, OwnPicture.lookPicture(d, tvId, choice?.picture, choice?.dim))
-        return look to (choice ?: HomeChoice(emptyList(), null)).withTheme(theme?.id, look.doc.dockApps.orEmpty(), cards = true)
+        // 0.4.0: with the person's apps in a row, and the whole saved order kept (DockLayers.keep),
+        // not only the part the TV shows.
+        val look = Look.encode(d.encoder, d.blobs, theme, choice?.dock.orEmpty(), cards = true, OwnPicture.lookPicture(d, tvId, choice?.picture, choice?.dim),
+            choice?.columns)
+        return look to (choice ?: HomeChoice(emptyList(), null)).withTheme(theme?.id, DockLayers.keep(choice?.dock.orEmpty()), cards = true)
     }
 
     private suspend fun keepCardsOn(pushed: Pair<Look, HomeChoice>) {

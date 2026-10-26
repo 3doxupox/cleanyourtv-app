@@ -610,7 +610,8 @@ class ManageMachinesTest {
         assertEquals(sha256Of(bytes), apply.config.sha256)
         val back = assertIs<DecodeResult.Ok>(LauncherConfigCodec.decode(bytes)).doc
         // RFC-CARDS-1: no kept choice and no overlay on the TV: Manage keeps the launcher's default, on.
-        assertEquals(LauncherConfigDoc(dockApps = six, rowsBelowDock = 1, moduleCards = true), back)
+        // 0.4.0: fill_dock false in every push.
+        assertEquals(LauncherConfigDoc(dockApps = six, rowsBelowDock = 1, moduleCards = true, fillDock = false), back)
         assertEquals(six, m.state.value.dock.map { it.pkg })
         // Later the second app is switched off on the TV: the rest move up a slot, as on the TV.
         h.snapshots.save(Samples.snapshot(packages = Samples.miTvPackages() + six.associateWith { state(it != six[1]) }, takenAtMs = Samples.NOW_MS + 2))
@@ -640,10 +641,13 @@ class ManageMachinesTest {
         assertEquals(apps, h.planner.requests.filterIsInstance<PlanRequest.ApplyTheme>().last().doc.dockApps)
         m.dispatch(HomeScreenIntent.RestoreMine); settle()
         assertEquals(apps, h.planner.requests.filterIsInstance<PlanRequest.ApplyTheme>().last().doc.dockApps)
-        // A four-tile look holds 12: the saved dock is cut to its first 12 there, the stated limit.
+        // A four-tile look holds 12: the TV gets the first 12 there, the stated limit. 0.4.0: the
+        // saved dock keeps all 18 in order (DockLayers.keep), so Six columns gets them back.
         m.dispatch(HomeScreenIntent.SetTheme("aurora")); settle()
         assertEquals(apps.take(12), h.planner.requests.filterIsInstance<PlanRequest.ApplyTheme>().last().doc.dockApps)
-        assertEquals(apps.take(12), HomePrefs(h.documents).load(tv.id)?.dock)
+        assertEquals(apps, HomePrefs(h.documents).load(tv.id)?.dock)
+        m.dispatch(HomeScreenIntent.SetTheme("six-columns")); settle()
+        assertEquals(apps, h.planner.requests.filterIsInstance<PlanRequest.ApplyTheme>().last().doc.dockApps)
     }
 
     // RFC-CARDS-1: a TV set up with the new home screen and module cards off, Retro in the index.
@@ -698,6 +702,24 @@ class ManageMachinesTest {
         m.dispatch(ModulesIntent.DismissInstall); settle()
         m.dispatch(ModulesIntent.Add("retro")); settle()
         assertNull(h.planner.requests.filterIsInstance<PlanRequest.AddModule>().last().config)
+    }
+
+    // 0.4.0 (LooksTest 7): the cards push keeps the person's apps in a row and the whole saved dock,
+    // not only the part the TV shows.
+    @Test fun theCardsPushKeepsAppsInARowAndTheWholeDock() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val apps = List(18) { PackageName("com.example.app$it") }
+        val (tv, _) = h.cardsOffTv(apps)
+        HomePrefs(h.documents).save(tv.id, HomeChoice(apps, "aurora", cards = false, columns = 5))
+        h.respond(PlanKind.ADD_MODULE, listOf(Op.Disable(adPkg)))
+        val m = ModulesMachine(h.cardsDeps(), backgroundScope, tv.id, pollMs = 1_000)
+        settle()
+        m.dispatch(ModulesIntent.Add("retro")); settle()
+        val doc = h.pushedDoc(h.planner.requests.filterIsInstance<PlanRequest.AddModule>().single().config)
+        assertEquals(5, doc.columns)
+        assertEquals(apps.take(15), doc.dockApps, "5 a row shows 15 of the 18")
+        assertEquals(false, doc.fillDock)
+        assertEquals(HomeChoice(apps, "aurora", cards = true, columns = 5), HomePrefs(h.documents).load(tv.id))
     }
 
     // A card module already on the TV while the cards are off: "Show its card" sends the look with

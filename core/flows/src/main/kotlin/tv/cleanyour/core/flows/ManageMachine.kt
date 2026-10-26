@@ -7,6 +7,7 @@ import tv.cleanyour.core.engine.RunState
 import tv.cleanyour.core.model.DebugState
 import tv.cleanyour.core.model.Level
 import tv.cleanyour.core.model.TvId
+import tv.cleanyour.core.spec.DockLayers
 
 // M1, the app's home once a TV exists (UX 4.11 case A).
 data class TvCard(
@@ -79,7 +80,7 @@ class ManageMachine(
                         id = tv.id, name = tv.nickname, room = tv.room, clean = off > 0, checkedAtMs = tv.lastSeenAt, level = tv.level,
                         chip = chipFor(states[tv.id]?.takeIf { d.access.live(tv.id) != null }, run, tv.debugging),
                         thumbnail = state.value.cards.firstOrNull { it.id == tv.id }?.thumbnail,
-                        switchedOff = off, dockNames = home?.dock?.map { d.nameOf(it) }.orEmpty(),
+                        switchedOff = off, dockNames = home?.let { shownDock(it) }.orEmpty().map { d.nameOf(it) },
                         restorePointAtMs = latest?.takenAtMs, debugging = tv.debugging,
                         helpAddTv = tv.profileId == null && latest != null,
                         ownHome = tv.launcher == null && latest != null && Launcher.pkg !in latest.packages,
@@ -89,6 +90,13 @@ class ManageMachine(
             }
         }
         scope.launch { thumbnail() }
+    }
+
+    // 0.4.0: the saved dock can hold more apps than the TV shows (HomeChoice.dock), so the card names
+    // the ones the TV shows: the dock and its rows at the saved apps in a row, else the look's own.
+    private fun shownDock(home: HomeChoice): List<tv.cleanyour.core.model.PackageName> {
+        val look = home.lookOn(d.clock.today())?.let { id -> d.themes.bundled().firstOrNull { it.id == id } }
+        return DockLayers.trim(home.dock, home.columns ?: DockLayers.columnsOf(look?.doc))
     }
 
     override fun reduce(state: ManageState, event: Any): ManageState = when (event) {

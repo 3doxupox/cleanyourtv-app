@@ -9,7 +9,7 @@ import tv.cleanyour.core.model.TvId
 // never in a TV report or a restore point. Each push puts it into the BlobStore (a cache the system
 // may clear) and sends it as the launcher's wallpaper.jpg, the same push a look's own picture takes.
 // A newly made photo is only staged (stage: the BlobStore, for the preview and the push) and kept
-// (keep) once "Use this look" has put it on the TV, so the kept copy, and "Restore mine", is always
+// (keep) once "Put it on the TV" has put it there, so the kept copy, and "Restore mine", is always
 // the photo the TV last got from this phone.
 internal object OwnPicture {
     const val MAX_BYTES = 280_000

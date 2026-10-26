@@ -26,6 +26,7 @@ import tv.cleanyour.core.registry.Registry
 import tv.cleanyour.core.session.SessionManager
 import tv.cleanyour.core.session.TvSession
 import tv.cleanyour.core.spec.AppNames
+import tv.cleanyour.core.spec.DockLayers
 import tv.cleanyour.core.spec.FactsTable
 import tv.cleanyour.core.spec.Looks
 import tv.cleanyour.core.spec.PictureSource
@@ -123,8 +124,12 @@ class ManageDeps(
 // has it again once the dated look ends (lookOn). `picture` (0.4.0, "picture=id"): the picture the
 // look shows instead of its own (LookPicture), null for the look's own. `dim` (0.4.0, "dim=n"): the
 // dim the person chose for their own photo (LookPicture.MINE_ID), 0 to 90.
+// `columns` (0.4.0, "columns=n"): the person's own apps in a row (4 to 8), kept only when it differs
+// from the look's own; null means the look's own. `dock` is the whole saved order (DockLayers.keep,
+// up to 24 apps), which can hold more apps than the TV shows at this many in a row: every reader
+// cuts it with DockLayers (decode, applyTo, trim) before use.
 data class HomeChoice(val dock: List<PackageName>, val themeId: String?, val cards: Boolean? = null, val previousThemeId: String? = null,
-    val picture: String? = null, val dim: Int? = null) {
+    val picture: String? = null, val dim: Int? = null, val columns: Int? = null) {
     // The look that is this TV's on `today`: the saved one, or once a dated look has ended, the one
     // before it (null, the Default look, when that one has ended too or there was none).
     fun lookOn(today: LocalDate): String? = when {
@@ -140,8 +145,8 @@ data class HomeChoice(val dock: List<PackageName>, val themeId: String?, val car
     // The choice after the person picks `next`: a dated look keeps the look before it, any other
     // look forgets it.
     fun withTheme(next: String?, dock: List<PackageName> = this.dock, cards: Boolean? = this.cards, picture: String? = this.picture,
-        dim: Int? = this.dim): HomeChoice =
-        HomeChoice(dock, next, cards, previousThemeId = previousFor(themeId, previousThemeId, next), picture = picture, dim = dim)
+        dim: Int? = this.dim, columns: Int? = this.columns): HomeChoice =
+        HomeChoice(dock, next, cards, previousThemeId = previousFor(themeId, previousThemeId, next), picture = picture, dim = dim, columns = columns)
 
     companion object {
         fun previousFor(current: String?, earlier: String?, next: String?): String? = when {
@@ -163,13 +168,15 @@ class HomePrefs(private val store: DocumentStore) {
         val map = bytes.decodeToString().lines().filter { '=' in it }.associate { it.substringBefore('=') to it.substringAfter('=') }
         HomeChoice(map["dock"].orEmpty().split(',').filter { it.isNotBlank() }.mapNotNull { runCatching { PackageName(it) }.getOrNull() },
             map["theme"]?.takeIf { it.isNotBlank() }, map["cards"]?.toBooleanStrictOrNull(), map["previous"]?.takeIf { it.isNotBlank() },
-            map["picture"]?.takeIf { it.isNotBlank() }, map["dim"]?.toIntOrNull()?.takeIf { it in 0..90 })
+            map["picture"]?.takeIf { it.isNotBlank() }, map["dim"]?.toIntOrNull()?.takeIf { it in 0..90 },
+            map["columns"]?.toIntOrNull()?.takeIf { it in DockLayers.MIN_OFFERED_COLUMNS..DockLayers.MAX_OFFERED_COLUMNS })
     }
 
     suspend fun save(id: TvId, choice: HomeChoice) {
         val text = "dock=${choice.dock.joinToString(",") { it.value }}\ntheme=${choice.themeId.orEmpty()}\n" +
             (choice.cards?.let { "cards=$it\n" } ?: "") + (choice.previousThemeId?.let { "previous=$it\n" } ?: "") +
-            (choice.picture?.let { "picture=$it\n" } ?: "") + (choice.dim?.let { "dim=$it\n" } ?: "")
+            (choice.picture?.let { "picture=$it\n" } ?: "") + (choice.dim?.let { "dim=$it\n" } ?: "") +
+            (choice.columns?.let { "columns=$it\n" } ?: "")
         store.write(path(id), text.encodeToByteArray())
     }
 }

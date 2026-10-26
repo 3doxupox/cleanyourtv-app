@@ -3,13 +3,19 @@ package tv.cleanyour.core.flows
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
+import tv.cleanyour.core.model.EnabledState
 import tv.cleanyour.core.model.LauncherState
 import tv.cleanyour.core.model.PackageName
+import tv.cleanyour.core.model.PackageState
 import tv.cleanyour.core.planner.PlanRequest
 import tv.cleanyour.core.planner.PlanResult
 import tv.cleanyour.core.model.BlobRef
 import tv.cleanyour.core.spec.BundledThemeSource
 import tv.cleanyour.core.spec.DecodeResult
+import tv.cleanyour.core.spec.DockLayers
 import tv.cleanyour.core.spec.LauncherConfigCodec
 import tv.cleanyour.core.spec.LauncherConfigDoc
 import tv.cleanyour.core.spec.Picture
@@ -120,7 +126,7 @@ class LooksTest {
         val (none, noFile) = Look.docOf(cinema, dock, cards = false, LookPicture.of(LookPicture.NONE_ID, gallery))
         assertEquals(false, none.wallpaper)
         assertNull(noFile)
-        assertEquals(cinema.doc.copy(dockApps = dock, rowsBelowDock = 0, moduleCards = false) to ownPicture,
+        assertEquals(cinema.doc.copy(dockApps = dock, rowsBelowDock = 0, moduleCards = false, fillDock = false) to ownPicture,
             Look.docOf(cinema, dock, cards = false, LookPicture.of(null, gallery)), "the look's own")
         assertEquals(ownPicture, Look.docOf(cinema, dock, cards = false, LookPicture.of("gone", gallery)).second, "a picture no longer there: the look's own")
         val (festive, festiveFile) = Look.docOf(gallery.bundled()[2], dock, cards = false, LookPicture.of("glass", gallery))
@@ -128,8 +134,8 @@ class LooksTest {
         assertEquals(ownPicture, festiveFile)
     }
 
-    // The Look sheet only chooses; "Use this look" sends the look and the picture as one ApplyTheme,
-    // and both are kept for the next push (a new dock keeps the picture).
+    // The Look sheet only chooses; "Put it on the TV" sends the look and the picture as one ApplyTheme,
+    // and both are kept for the next push (a new dock keeps the picture). Apps in a row only chooses too.
     @Test fun theLookSheetSendsNothingUntilUseThisLook() = runTest(timeout = 30.seconds) {
         val h = Harness()
         val tv = h.knownTv().copy(launcher = LauncherState(1, Samples.zeroHash, Samples.zeroHash, Samples.zeroHash))
@@ -142,6 +148,7 @@ class LooksTest {
         val m = HomeScreenMachine(deps, backgroundScope, tv.id)
         settle()
         assertEquals(listOf("glass"), m.state.value.pictures.map { it.id })
+        val plansBefore = h.planner.requests.size
         m.dispatch(HomeScreenIntent.OpenLook); settle()
         assertEquals("cinema" to null, m.state.value.look?.let { it.themeId to it.picture })
         m.dispatch(HomeScreenIntent.SelectLook("quiet")); settle()
@@ -160,12 +167,18 @@ class LooksTest {
         assertNull(m.state.value.look?.picture)
         m.dispatch(HomeScreenIntent.SelectLook("quiet")); settle()
         m.dispatch(HomeScreenIntent.SelectPicture("glass")); settle()
+        for (n in listOf(4, 8, 6, 3, 9)) { m.dispatch(HomeScreenIntent.SelectColumns(n)); settle() }
+        assertEquals(6, m.state.value.look?.columns, "3 and 9 are ignored")
+        assertEquals(6, m.state.value.look?.preview?.columns, "the preview follows at once")
+        assertEquals(plansBefore, h.planner.requests.size, "no plan of any kind while choosing")
         assertEquals(0, h.planner.requests.filterIsInstance<PlanRequest.ApplyTheme>().size, "nothing sent while choosing")
         m.dispatch(HomeScreenIntent.UseLook); settle()
         assertNull(m.state.value.look)
         val sent = h.planner.requests.filterIsInstance<PlanRequest.ApplyTheme>().single()
         assertEquals(true, sent.doc.wallpaper)
         assertEquals(true, sent.doc.reducedMotion)
+        assertEquals(6, sent.doc.columns)
+        assertEquals(false, sent.doc.fillDock)
         assertEquals(glass.wallpaper, sent.wallpaper)
         val kept = assertNotNull(HomePrefs(h.documents).load(tv.id))
         assertEquals("quiet", kept.themeId); assertEquals("glass", kept.picture)
@@ -239,7 +252,7 @@ class LooksTest {
             "a look without the cinematic shelf still shows the row")
     }
 
-    // "Your photo": the photo the phone made is staged and chosen in the sheet; "Use this look" sends
+    // "Your photo": the photo the phone made is staged and chosen in the sheet; "Put it on the TV" sends
     // it as wallpaper.jpg with its dim (wallpaper forced on, no rotation) and only then keeps it for
     // this TV in its private files. After the cache lost it, "Restore mine" still sends it, from the
     // private copy.
@@ -349,5 +362,193 @@ class LooksTest {
         assertEquals(true, other.contentEquals(h.documents.read(OwnPicture.path(tv.id)) { it }))
         assertEquals(LookPicture.MINE_ID to 60, HomePrefs(h.documents).load(tv.id)?.let { it.picture to it.dim })
         assertEquals(60, m.state.value.ownDim)
+    }
+
+    // 0.4.0 Apps in a row. ---------------------------------------------------------------------
+
+    private val looks = BundledThemeSource()
+    private fun pkgs(n: Int) = List(n) { PackageName("com.example.app$it") }
+    private fun on() = PackageState(EnabledState.ENABLED, false, 0, null, false, false, null, false)
+
+    // A TV with the new home screen whose snapshot shows `apps`, with `choice` saved, and the
+    // machine on it with the bundled looks.
+    private suspend fun kotlinx.coroutines.test.TestScope.homeWith(h: Harness, apps: List<PackageName>, choice: HomeChoice): Pair<HomeScreenMachine, tv.cleanyour.core.model.TvId> {
+        val tv = h.knownTv().copy(launcher = LauncherState(1, Samples.zeroHash, Samples.zeroHash, Samples.zeroHash))
+        h.tvs.upsert(tv)
+        h.snapshots.save(Samples.snapshot(packages = Samples.miTvPackages() + apps.associateWith { on() }, takenAtMs = Samples.NOW_MS + 1))
+        HomePrefs(h.documents).save(tv.id, choice)
+        val m = HomeScreenMachine(h.manageDeps(encoder = ConfigEncoder.Codec, themes = looks), backgroundScope, tv.id)
+        settle()
+        return m to tv.id
+    }
+
+    private fun Harness.pushes() = planner.requests.filterIsInstance<PlanRequest.ApplyTheme>()
+
+    // 1. Every look at every offered count: the override wins, rows_below_dock and dock_title follow
+    // it, not the look, and the bytes decode with no codec warning.
+    @Test fun appsInARowWinsOverTheLookForEveryLook() {
+        for (t in looks.bundled()) for (c in DockLayers.MIN_OFFERED_COLUMNS..DockLayers.MAX_OFFERED_COLUMNS) for (n in listOf(4, 6, 9, 15)) {
+            val label = "${t.id} at $c with $n apps"
+            val (doc, _) = Look.docOf(t, pkgs(n), cards = false, null, c)
+            val back = assertIs<DecodeResult.Ok>(LauncherConfigCodec.decode(LauncherConfigCodec.encode(doc)), label)
+            assertEquals(emptyList(), back.warnings, "$label: no codec warning")
+            val e = LauncherConfigCodec.effective(back.doc, LauncherConfigCodec.builtInDefaults)
+            assertEquals(c, e.columns, label)
+            val shown = minOf(n, 3 * c)
+            val rows = DockLayers.rowsBelowDock(shown, c)
+            assertEquals(if (t.doc.cinematicHome == true) 0 else rows, e.rowsBelowDock, label)
+            assertEquals(pkgs(shown).map { it.value }, e.dockApps, label)
+            assertEquals(false, e.fillDock, label)
+            if (rows == 2 && t.doc.cinematicHome != true) assertEquals(false, e.dockTitle, "$label: three rows, no big name")
+        }
+    }
+
+    // 2. With no override, each look's bytes are today's bytes plus one key, "fill_dock": false. A
+    // JSON diff, so a failure names the key that changed.
+    @Test fun withoutAnOverrideTheBytesOnlyAddFillDockFalse() {
+        for (t in looks.bundled()) for (n in listOf(0, 2, 6, 15)) for (cards in listOf(true, false)) {
+            val label = "${t.id} with $n apps, cards $cards"
+            val before = LauncherConfigCodec.encode(DockLayers.applyTo(t.doc, pkgs(n)).copy(moduleCards = cards))
+            val now = LauncherConfigCodec.encode(Look.docOf(t, pkgs(n), cards, null).first)
+            val a = Json.parseToJsonElement(before.decodeToString()).jsonObject
+            val b = Json.parseToJsonElement(now.decodeToString()).jsonObject
+            assertEquals(setOf("fill_dock"), b.keys - a.keys, "$label: added keys")
+            assertEquals(emptySet(), a.keys - b.keys, "$label: removed keys")
+            assertEquals(emptyList(), a.keys.filter { a[it] != b[it] }, "$label: changed keys")
+            assertEquals(JsonPrimitive(false), b["fill_dock"], label)
+            assertEquals(LauncherConfigCodec.encode(Look.docOf(t, pkgs(n), cards, null, DockLayers.columnsOf(t.doc)).first).decodeToString(),
+                now.decodeToString(), "$label: the look's own count is no override")
+        }
+    }
+
+    // 4. A look tap resets apps in a row to that look's own; a picture keeps the draft's count, and
+    // the sheet opens on the saved count.
+    @Test fun aLookTapResetsAppsInARowAndAPictureKeepsIt() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val (m, id) = homeWith(h, pkgs(6), HomeChoice(pkgs(6), "console", cards = false, columns = 5))
+        assertEquals(5, m.state.value.columns)
+        m.dispatch(HomeScreenIntent.OpenLook); settle()
+        assertEquals(5 to 7, m.state.value.look?.let { it.columns to it.lookColumns }, "opens on the saved count")
+        m.dispatch(HomeScreenIntent.SelectColumns(8)); settle()
+        m.dispatch(HomeScreenIntent.SelectPicture("aurora")); settle()
+        assertEquals(8, m.state.value.look?.columns, "a picture keeps it")
+        m.dispatch(HomeScreenIntent.SelectLook("mist")); settle()
+        assertEquals(5 to 5, m.state.value.look?.let { it.columns to it.lookColumns }, "Mist's own 5")
+        m.dispatch(HomeScreenIntent.SelectLook("six-columns")); settle()
+        assertEquals(6, m.state.value.look?.columns)
+        assertEquals(6, m.state.value.look?.preview?.columns)
+        m.dispatch(HomeScreenIntent.SelectColumns(4)); settle()
+        m.dispatch(HomeScreenIntent.UseLook); settle()
+        assertEquals(4, h.pushes().single().doc.columns)
+        assertEquals(4, HomePrefs(h.documents).load(id)?.columns, "kept: it differs from the look's own")
+        m.dispatch(HomeScreenIntent.OpenLook); settle()
+        m.dispatch(HomeScreenIntent.SelectColumns(6)); settle()
+        m.dispatch(HomeScreenIntent.UseLook); settle()
+        assertNull(HomePrefs(h.documents).load(id)?.columns, "the look's own is not kept")
+        assertEquals(6, h.pushes().last().doc.columns)
+    }
+
+    // 5. The order survives (the data loss fix): Console with 15 apps, then 4 in a row, then 7 again,
+    // and Console to Default to Console. The saved list stays the same 15 in order; the TV gets the
+    // part each count shows.
+    @Test fun theDockOrderSurvivesASmallerRowAndBack() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val apps = pkgs(15)
+        val (m, id) = homeWith(h, apps, HomeChoice(apps, "console", cards = false))
+        assertEquals(apps, m.state.value.dock.map { it.pkg }, "7 a row shows all 15")
+        fun use(look: String?, columns: Int?) {
+            m.dispatch(HomeScreenIntent.OpenLook)
+            if (look != null) m.dispatch(HomeScreenIntent.SelectLook(look))
+            if (columns != null) m.dispatch(HomeScreenIntent.SelectColumns(columns))
+            m.dispatch(HomeScreenIntent.UseLook)
+        }
+        use(null, 4); settle()
+        assertEquals(apps.take(12), h.pushes().last().doc.dockApps)
+        assertEquals(apps, HomePrefs(h.documents).load(id)?.dock, "the 3 apps beyond 12 are kept")
+        assertEquals(apps.take(12), m.state.value.dock.map { it.pkg })
+        assertEquals(apps.drop(12), m.state.value.waitingApps.map { it.pkg })
+        assertEquals(3, m.state.value.waiting)
+        use(null, 7); settle()
+        assertEquals(apps, h.pushes().last().doc.dockApps, "back at 7: all 15, in order")
+        assertEquals(apps, HomePrefs(h.documents).load(id)?.dock)
+        assertNull(HomePrefs(h.documents).load(id)?.columns, "Console's own 7")
+        use("default", null); settle()
+        assertEquals(apps.take(12), h.pushes().last().doc.dockApps)
+        assertEquals(apps, HomePrefs(h.documents).load(id)?.dock)
+        use("console", null); settle()
+        assertEquals(apps, h.pushes().last().doc.dockApps, "Console again: the 15 in the same order")
+        assertEquals(HomeChoice(apps, "console", cards = false), HomePrefs(h.documents).load(id))
+        assertEquals(apps, m.state.value.dock.map { it.pkg })
+        assertEquals(0, m.state.value.waiting)
+    }
+
+    // 6. The dock sheet at 4 with 15 saved: it shows 12 and its new order goes first; the 3 it never
+    // showed stay after it, in their order. An app moved by dragging keeps its new place.
+    @Test fun aNewDockFromTheSheetKeepsTheAppsItDidNotShow() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val apps = pkgs(15)
+        val (m, id) = homeWith(h, apps, HomeChoice(apps, "default", cards = false))
+        assertEquals(apps.take(12), m.state.value.dock.map { it.pkg })
+        assertEquals(3, m.state.value.waiting)
+        // Dragged: app 5 to the front, app 2 taken out.
+        val edited = listOf(apps[5]) + apps.take(12).filter { it != apps[5] && it != apps[2] }
+        m.dispatch(HomeScreenIntent.SetDock(edited)); settle()
+        val saved = edited + apps.drop(12)
+        assertEquals(saved, HomePrefs(h.documents).load(id)?.dock)
+        assertEquals(saved.take(12), h.pushes().last().doc.dockApps)
+        assertEquals(saved.take(12), m.state.value.dock.map { it.pkg })
+        assertEquals(saved.drop(12), m.state.value.waitingApps.map { it.pkg })
+        // A waiting app added in the sheet is not there twice.
+        m.dispatch(HomeScreenIntent.SetDock(m.state.value.dock.map { it.pkg }.take(11) + apps[14])); settle()
+        // Shown: the 11 edited and app 12; waiting: 13 and 14. App 12 left out, app 14 added.
+        assertEquals(edited + apps[14] + apps[13], HomePrefs(h.documents).load(id)?.dock)
+        // Saved apps in a row stay what they were.
+        HomePrefs(h.documents).save(id, HomePrefs(h.documents).load(id)!!.copy(columns = 5))
+        val again = HomeScreenMachine(h.manageDeps(encoder = ConfigEncoder.Codec, themes = looks), backgroundScope, id)
+        settle()
+        again.dispatch(HomeScreenIntent.SetDock(again.state.value.dock.map { it.pkg }.reversed())); settle()
+        assertEquals(5, h.pushes().last().doc.columns)
+        assertEquals(5, HomePrefs(h.documents).load(id)?.columns)
+    }
+
+    // A saved order from the dock sheet survives a change of apps in a row in the Look sheet: going
+    // from 4 to 8 brings the waiting apps into view after the sheet's order, and back to 4 keeps all.
+    @Test fun theDockSheetOrderSurvivesAppsInARow() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val apps = pkgs(20)
+        val (m, id) = homeWith(h, apps, HomeChoice(apps, "default", cards = false))
+        val edited = apps.take(12).reversed()
+        m.dispatch(HomeScreenIntent.SetDock(edited)); settle()
+        val order = edited + apps.drop(12)
+        assertEquals(order, HomePrefs(h.documents).load(id)?.dock)
+        m.dispatch(HomeScreenIntent.OpenLook); settle()
+        m.dispatch(HomeScreenIntent.SelectColumns(8)); settle()
+        assertEquals(order.map { h.manageDeps().nameOf(it) }, m.state.value.look?.preview?.dock, "the preview shows the whole order")
+        m.dispatch(HomeScreenIntent.UseLook); settle()
+        assertEquals(order, h.pushes().last().doc.dockApps)
+        m.dispatch(HomeScreenIntent.OpenLook); settle()
+        m.dispatch(HomeScreenIntent.SelectColumns(4)); settle()
+        m.dispatch(HomeScreenIntent.UseLook); settle()
+        assertEquals(order.take(12), h.pushes().last().doc.dockApps)
+        assertEquals(order, HomePrefs(h.documents).load(id)?.dock)
+    }
+
+    // 8. home.txt: an old file loads with no apps in a row; 4 to 8 load, anything else is dropped; a
+    // new file round trips.
+    @Test fun homeTxtKeepsAppsInARow() = runTest {
+        val h = Harness()
+        val id = h.knownTv().id
+        val prefs = HomePrefs(h.documents)
+        h.documents.write("tvs/${id.value}/home.txt", "dock=com.netflix.ninja\ntheme=console\npicture=glass\n".encodeToByteArray())
+        assertNull(prefs.load(id)?.columns)
+        for ((text, want) in listOf("3" to null, "4" to 4, "8" to 8, "9" to null, "x" to null, "" to null)) {
+            h.documents.write("tvs/${id.value}/home.txt", "dock=com.netflix.ninja\ntheme=console\ncolumns=$text\n".encodeToByteArray())
+            assertEquals(want, prefs.load(id)?.columns, "columns=$text")
+        }
+        val choice = HomeChoice(pkgs(24), "mist", cards = true, picture = "glass", columns = 8)
+        prefs.save(id, choice)
+        assertEquals(choice, prefs.load(id))
+        assertEquals(choice.copy(columns = null), choice.withTheme("mist", columns = null))
+        assertEquals(8, choice.withTheme("console").columns, "a new look keeps a saved count unless told")
     }
 }

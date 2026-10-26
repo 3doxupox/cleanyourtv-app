@@ -24,17 +24,24 @@ import tv.cleanyour.core.store.BlobStore
 // and the push removes wallpaper.jpg); LookPicture.Of shows that one, so wallpaper is forced true
 // (a look like Quiet black says false, and the picture would be pushed and not shown), the single
 // picture rather than a rotation, and its dim when it has one. A dated look (a festival) keeps its own.
+// 0.4.0 `columns`: the person's apps in a row (HomeChoice.columns), null for the look's own. It goes
+// into the look's doc before the dock is cut (DockLayers.applyTo), so rows_below_dock and dock_title
+// follow it. A dated look takes it too: apps in a row is not the picture.
+// 0.4.0 fill_dock is false in every push: a dock space the person left free stays empty on the TV
+// instead of taking the first app of the grid (launcher DockSlots.empty), so the dock holds only the
+// apps they picked, and the Look sheet's preview draws the space as empty band.
 internal class Look(val doc: LauncherConfigDoc, val digest: Sha256, val config: BlobRef, val wallpaper: BlobRef?) {
     companion object {
-        suspend fun encode(encoder: ConfigEncoder, blobs: BlobStore, theme: Theme?, dock: List<PackageName>, cards: Boolean, picture: LookPicture? = null): Look {
-            val (doc, wallpaper) = docOf(theme, dock, cards, picture)
+        suspend fun encode(encoder: ConfigEncoder, blobs: BlobStore, theme: Theme?, dock: List<PackageName>, cards: Boolean, picture: LookPicture? = null,
+            columns: Int? = null): Look {
+            val (doc, wallpaper) = docOf(theme, dock, cards, picture, columns)
             val bytes = encoder.encode(doc)
             return Look(doc, sha256Of(bytes), blobs.putBytes(bytes), wallpaper)
         }
 
         // The doc and the wallpaper a choice pushes, without storing anything (the preview reads it).
-        fun docOf(theme: Theme?, dock: List<PackageName>, cards: Boolean, picture: LookPicture?): Pair<LauncherConfigDoc, BlobRef?> {
-            val base = DockLayers.applyTo(theme?.doc ?: LauncherConfigDoc(), dock).copy(moduleCards = cards)
+        fun docOf(theme: Theme?, dock: List<PackageName>, cards: Boolean, picture: LookPicture?, columns: Int? = null): Pair<LauncherConfigDoc, BlobRef?> {
+            val base = DockLayers.applyTo(theme?.doc ?: LauncherConfigDoc(), dock, columns).copy(moduleCards = cards, fillDock = false)
             return when (val p = picture.takeUnless { Looks.dated(theme?.id) }) {
                 null -> base to theme?.wallpaper
                 LookPicture.None -> base.copy(wallpaper = false, wallpaperRotationMinutes = 0) to null
@@ -42,6 +49,13 @@ internal class Look(val doc: LauncherConfigDoc, val digest: Sha256, val config: 
             }
         }
     }
+}
+
+// The public face of Look.docOf, for the tests outside this module (the Look sheet's screenshot
+// goldens and the emulator byte dump), so they draw and send exactly the doc a push makes.
+object LookDocs {
+    fun of(theme: Theme?, dock: List<PackageName>, cards: Boolean, picture: LookPicture? = null, columns: Int? = null): Pair<LauncherConfigDoc, BlobRef?> =
+        Look.docOf(theme, dock, cards, picture, columns)
 }
 
 // The picture a look shows instead of its own (HomeChoice.picture).

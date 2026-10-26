@@ -686,8 +686,8 @@ class SetupMachineTest {
         val m = h.setup(backgroundScope)
         toFound(h, m)
         fun last() = h.planner.requests.filterIsInstance<PlanRequest.Setup>().last()
-        // RFC-CARDS-1: module_cards is always written, off on a first Setup.
-        fun expected(doc: LauncherConfigDoc, dock: List<PackageName>) = LauncherConfigCodec.encode(DockLayers.applyTo(doc, dock).copy(moduleCards = false))
+        // RFC-CARDS-1: module_cards is always written, off on a first Setup. 0.4.0: fill_dock false.
+        fun expected(doc: LauncherConfigDoc, dock: List<PackageName>) = LauncherConfigCodec.encode(DockLayers.applyTo(doc, dock).copy(moduleCards = false, fillDock = false))
         // The first plan: the picked dock on the launcher's own look.
         val first = expected(LauncherConfigDoc(), listOf(PackageName("com.netflix.ninja")))
         assertTrue(first.contentEquals(h.blobs.bytes(assertNotNull(last().config))))
