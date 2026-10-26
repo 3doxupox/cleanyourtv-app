@@ -16,6 +16,10 @@ import tv.cleanyour.core.model.PackageName
 object DockLayers {
     const val MAX_ROWS = 3
     const val DEFAULT_COLUMNS = 4
+    // 0.4.0: the most apps in a row the phone offers (Apps in a row, 4 to 8). The TV's own Launcher
+    // settings stop at 7; config.json takes 1 to 8 (Config.load), so 8 comes only from the phone.
+    const val MIN_OFFERED_COLUMNS = 4
+    const val MAX_OFFERED_COLUMNS = 8
 
     // Tiles per row for a theme's doc, as the launcher reads it (1 to 8, else the default 4).
     fun columnsOf(doc: LauncherConfigDoc?): Int = doc?.columns?.takeIf { it in 1..8 } ?: DEFAULT_COLUMNS
@@ -24,6 +28,15 @@ object DockLayers {
 
     // The list the phone keeps: no repeats, at most MAX_ROWS rows.
     fun trim(apps: List<PackageName>, columns: Int): List<PackageName> = apps.distinct().take(capacity(columns))
+
+    // 0.4.0: the list the phone saves (HomeChoice.dock): no repeats, at most the rows of the most
+    // apps in a row it offers (24 apps). It is never cut to the look's own capacity, so going from
+    // 7 apps in a row to 4 and back loses no app and no place. Only encoding and drawing cut it
+    // (applyTo, decode, rows).
+    fun keep(apps: List<PackageName>): List<PackageName> = apps.distinct().take(capacity(MAX_OFFERED_COLUMNS))
+
+    // How many apps of a saved list of `count` wait beyond what `columns` a row shows (three rows).
+    fun waiting(count: Int, columns: Int): Int = (count - capacity(columns)).coerceAtLeast(0)
 
     // The list cut into rows: [dock, row 2, row 3], only the rows that hold an app.
     fun <T> rows(apps: List<T>, columns: Int): List<List<T>> = apps.take(capacity(columns)).chunked(columns.coerceAtLeast(1))
@@ -50,7 +63,16 @@ object DockLayers {
     // under the dock pushed the name up into the clock. The rows still hold their apps: dock_apps
     // keeps the whole list in order, so on the TV they are the first rows of the grid, peeking under
     // the dock, one press of Down away.
-    fun applyTo(doc: LauncherConfigDoc, apps: List<PackageName>): LauncherConfigDoc {
+    //
+    // 0.4.0 `columns`: the person's own apps in a row (HomeChoice.columns), written into the doc
+    // before the list is cut, so the rows and dock_title follow it, not the look. Null, outside 1 to
+    // 8 or the look's own leaves the doc's columns as they are.
+    fun applyTo(doc: LauncherConfigDoc, apps: List<PackageName>, columns: Int? = null): LauncherConfigDoc {
+        val override = columns?.takeIf { it in 1..8 && it != columnsOf(doc) }
+        return cut(if (override != null) doc.copy(columns = override) else doc, apps)
+    }
+
+    private fun cut(doc: LauncherConfigDoc, apps: List<PackageName>): LauncherConfigDoc {
         val columns = columnsOf(doc)
         val dock = trim(apps, columns)
         if (dock.isEmpty()) return doc.copy(dockApps = null)

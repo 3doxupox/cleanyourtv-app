@@ -160,6 +160,37 @@ class ConfigDifferentialTest {
         }
     }
 
+    // 0.4.0 Apps in a row: every bundled look at 4 to 8 apps in a row, with fill_dock false and a
+    // 6-app dock, as Look.docOf makes the doc (the override before the dock is cut, then fill_dock),
+    // agrees with Config.java on both launchers (2.0 for the keys it reads) and decodes with no
+    // warning. 55 docs; columns 8 is in Config.load's range (1 to 8), as on launcher 2.7.
+    @Test fun everyLookAtEveryOfferedAppsInARowAgrees() {
+        val six = List(6) { PackageName("com.example.app$it") }
+        val docs = BundledThemeSource().bundled().flatMap { look ->
+            (DockLayers.MIN_OFFERED_COLUMNS..DockLayers.MAX_OFFERED_COLUMNS).map { c ->
+                "${look.id} at $c" to DockLayers.applyTo(look.doc, six, c).copy(fillDock = false, moduleCards = false)
+            }
+        }
+        assertEquals(55, docs.size)
+        for ((label, doc) in docs) {
+            val bytes = LauncherConfigCodec.encode(doc)
+            val ok = assertIs<DecodeResult.Ok>(LauncherConfigCodec.decode(bytes), label)
+            assertEquals(emptyList(), ok.warnings, "$label decodes with no warning")
+            assertEquals(doc, ok.doc, label)
+        }
+        for (up in bothLaunchers()) {
+            val t = Tally()
+            for ((label, doc) in docs) {
+                val bytes = LauncherConfigCodec.encode(doc)
+                agree(up, bytes, wallpaper = true, label = label, t = t)
+                val u = assertIs<UpstreamLauncher.Outcome.Loaded>(up.load(bytes, wallpaper = true)).config
+                assertEquals(DockLayers.columnsOf(doc), u.columns, "$label: the launcher's columns")
+                if (up.pinned) assertEquals(false, u.v24.fillDock, "$label: fill_dock")
+            }
+            assertEquals(55, t.applied)
+        }
+    }
+
     // WallpaperRotation and RaceWeekend, which v2.5.0's Config.java calls, are vendored in the test
     // sources; they must be the submodule's own files, with only the package line changed.
     // RFC-UP037-1: the vendored reader is launcher 2.5's (v2.5.0, 9071ec8), byte for byte, with only the

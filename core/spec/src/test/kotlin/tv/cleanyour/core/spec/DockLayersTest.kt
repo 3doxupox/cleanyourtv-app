@@ -155,4 +155,57 @@ class DockLayersTest {
             if (n > 0) assertEquals(DockLayers.rows(decoded, columns).size - 1, back.rowsBelowDock)
         }
     }
+
+    // 0.4.0 Apps in a row, 4 to 8, over every look and dock length: the override wins, the rows and
+    // dock_title follow it, not the look, and Cinema's shelf keeps rows_below_dock 0 whatever it is.
+    @Test fun appsInARowDecidesTheRowsForEveryLookAndDockLength() {
+        val looks = BundledThemeSource().bundled()
+        for (look in looks) for (columns in DockLayers.MIN_OFFERED_COLUMNS..DockLayers.MAX_OFFERED_COLUMNS) for (n in 0..24) {
+            val doc = DockLayers.applyTo(look.doc, apps(n), columns)
+            val label = "${look.id} at $columns with $n apps"
+            assertEquals(columns, DockLayers.columnsOf(doc), label)
+            val kept = apps(n).take(DockLayers.capacity(columns))
+            if (n == 0) { assertNull(doc.dockApps, label); continue }
+            assertEquals(kept, doc.dockApps, label)
+            val rows = DockLayers.rowsBelowDock(kept.size, columns)
+            if (look.doc.cinematicHome == true) {
+                assertEquals(0, doc.rowsBelowDock, "$label: the shelf keeps the rows out of view")
+            } else {
+                assertEquals(rows, doc.rowsBelowDock, label)
+                if (rows == 2) assertEquals(false, doc.dockTitle, "$label: three rows turn the big name off")
+            }
+            if (rows < 2 || look.doc.cinematicHome == true) assertEquals(look.doc.dockTitle, doc.dockTitle, "$label: the look's own big name")
+        }
+    }
+
+    // The look's own count, a value outside 1 to 8 and null all leave the doc's columns as they are,
+    // so a choice with no override sends exactly the look's bytes.
+    @Test fun theLooksOwnCountIsNoOverride() {
+        for (look in BundledThemeSource().bundled()) {
+            val own = DockLayers.columnsOf(look.doc)
+            for (c in listOf(null, own, 0, 9, -1)) assertEquals(DockLayers.applyTo(look.doc, apps(6)), DockLayers.applyTo(look.doc, apps(6), c), "${look.id} $c")
+        }
+        assertEquals(null, DockLayers.applyTo(LauncherConfigDoc(), apps(6), 4).columns, "Default's own 4 is not written")
+        assertEquals(8, DockLayers.applyTo(LauncherConfigDoc(), apps(6), 8).columns)
+    }
+
+    // The saved list (HomeChoice.dock) keeps up to 24 apps, the rows of 8 apps in a row, in order and
+    // without repeats, so a smaller row never drops an app the person put in the dock.
+    @Test fun keepNeverDropsAnAppBelowTwentyFour() {
+        assertEquals(8, DockLayers.MAX_OFFERED_COLUMNS)
+        assertEquals(24, DockLayers.capacity(DockLayers.MAX_OFFERED_COLUMNS))
+        for (n in 0..24) assertEquals(apps(n), DockLayers.keep(apps(n)), "$n apps")
+        assertEquals(apps(24), DockLayers.keep(apps(30)))
+        assertEquals(apps(5), DockLayers.keep(apps(5) + apps(3)), "repeats are dropped")
+    }
+
+    @Test fun waitingCountsTheAppsBeyondThreeRows() {
+        assertEquals(0, DockLayers.waiting(12, 4))
+        assertEquals(3, DockLayers.waiting(15, 4))
+        assertEquals(0, DockLayers.waiting(15, 5))
+        assertEquals(12, DockLayers.waiting(24, 4))
+        assertEquals(0, DockLayers.waiting(24, 8))
+        assertEquals(0, DockLayers.waiting(0, 7))
+        for (c in 4..8) for (n in 0..24) assertEquals(maxOf(0, n - 3 * c), DockLayers.waiting(n, c))
+    }
 }
