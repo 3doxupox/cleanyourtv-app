@@ -39,7 +39,8 @@ import tv.cleanyour.ui.design.theme.CytTheme
 // the push would send), Apps in a row (4 to 8, right under the preview it changes, with its helper
 // lines), the looks, and the Picture row (the look's own, the gallery, the person's photo, a new
 // photo, "Choose a photo" with its crop and dim, or none). A tap only chooses; what sends it to the
-// TV is the caller's own button under it.
+// TV is the caller's own button under it. Both callers make the state with the one mapping from the
+// flows' Look choice in LookEditorFrom.kt (RFC-LOOK-SETUP-2).
 
 // How the TV moves (LookPreview.motion).
 enum class LookEditorMotion { OFF, CALM, CRISP, BOUNCY }

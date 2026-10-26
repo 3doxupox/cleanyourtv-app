@@ -45,6 +45,7 @@ import tv.cleanyour.ui.design.component.DockEditorState
 import tv.cleanyour.ui.design.component.LookPreviewCard
 import tv.cleanyour.ui.design.component.PhotoCropContent
 import tv.cleanyour.ui.design.component.PhotoPicker
+import tv.cleanyour.ui.design.component.toEditor
 import tv.cleanyour.ui.design.component.toTvLook
 
 // Every section 4 state of :feature:launcher (PRODUCT-SPEC 4: M2 with the drift banner, the

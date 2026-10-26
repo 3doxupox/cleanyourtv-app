@@ -24,3 +24,14 @@ sees only `:core:flows`, `:core:model` and `:ui:design`. Frozen signatures grow,
 `documents` (where the person's photo is kept) and `pictures`. One helper in `:core:flows`
 (`LookDrafts`) makes the draft and its preview for both machines, and Setup encodes its look with
 the same picture and apps in a row as the Look sheet, so the same choice is the same bytes.
+
+## RFC-LOOK-SETUP-2: one mapping from the Look choice to the Look editor
+
+After RFC-LOOK-SETUP-1 each feature mapped the flows' Look choice into `LookEditorState` itself,
+and the preview mapping (`LookPreview` to `LookEditorPreview`) was the same code in both. Smallest
+change: `:ui:design` gets one edge, `implementation(project(":core:flows"))`, allowed by rule 1
+(layer 7 over layer 5), and `LookEditorFrom.kt` holds the one mapping (`LookDraft.toEditor`,
+`LookPreview.toEditor`). Each feature hands in only its own state fields and keeps its own button
+under the editor. No layer, allowlist or feature rule changes; a feature still sees only
+`:core:flows`, `:core:model` and `:ui:design`, and the components stay plain values. Not chosen: a
+new shared module (a new layer and a rule 3 change) or `:core:flows` (it cannot see `:ui:design`).

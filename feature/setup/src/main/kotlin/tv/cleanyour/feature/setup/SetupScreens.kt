@@ -47,7 +47,6 @@ import tv.cleanyour.core.flows.Confirmations
 import tv.cleanyour.core.flows.Finishing
 import tv.cleanyour.core.flows.HomeBlock
 import tv.cleanyour.core.flows.LookDraft
-import tv.cleanyour.core.flows.LookPreview
 import tv.cleanyour.core.flows.NothingWhy
 import tv.cleanyour.core.flows.Reconnect
 import tv.cleanyour.core.flows.RestartState
@@ -63,7 +62,6 @@ import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.planner.GroupSummary
 import tv.cleanyour.core.planner.RowSummary
 import tv.cleanyour.core.planner.switchOffCount
-import tv.cleanyour.core.spec.DockLayers
 import tv.cleanyour.ui.design.component.ActionColumn
 import tv.cleanyour.ui.design.component.Banner
 import tv.cleanyour.ui.design.component.BannerTone
@@ -116,12 +114,9 @@ import tv.cleanyour.ui.design.component.UndoSnackbarState
 import tv.cleanyour.ui.design.component.rememberEmphasis
 import tv.cleanyour.ui.design.component.rememberUndoSnackbarState
 import tv.cleanyour.ui.design.component.LookEditor
-import tv.cleanyour.ui.design.component.LookEditorLook
-import tv.cleanyour.ui.design.component.LookEditorMotion
-import tv.cleanyour.ui.design.component.LookEditorPicture
-import tv.cleanyour.ui.design.component.LookEditorPreview
 import tv.cleanyour.ui.design.component.LookEditorState
 import tv.cleanyour.ui.design.component.PhotoPicker
+import tv.cleanyour.ui.design.component.toEditor
 import tv.cleanyour.ui.design.theme.CytTheme
 import tv.cleanyour.ui.design.theme.Glow
 import tv.cleanyour.core.engine.NarrationState as EngineNarration
@@ -481,27 +476,11 @@ internal fun ColumnScope.ThemeContent(extras: SetupExtras, actions: SetupActions
     PrimaryButton(stringResource(R.string.action_done), { actions.intent(SetupIntent.Open(null)) }, Modifier.padding(top = 20.dp), guardObscured = false)
 }
 
-// The look step's draft as the editor shows it: the apps are the draft's whole dock, the waiting
-// apps too.
-internal fun SetupExtras.toEditor(draft: LookDraft): LookEditorState {
-    val count = dock.size + waiting
-    return LookEditorState(
-        looks = themes.map { LookEditorLook(it.id, it.name, it.description, it.wallpaperPath) },
-        lookId = draft.themeId, preview = draft.preview?.toEditor(), columns = draft.columns,
-        apps = count, waiting = waiting,
-        picture = draft.picture, ownPictureOnly = draft.ownPictureOnly,
-        pictures = pictures.map { LookEditorPicture(it.id, it.name, it.path) },
-        minePath = ownPicture?.path, newPath = newPicture?.path, photoDim = if (newPicture != null) newDim else ownDim,
-        minColumns = DockLayers.MIN_OFFERED_COLUMNS, maxColumns = DockLayers.MAX_OFFERED_COLUMNS,
-    )
-}
-
-// The preview as the flows read it back from the bytes, in the editor's plain values.
-internal fun LookPreview.toEditor() = LookEditorPreview(
-    backgroundArgb = backgroundArgb, picturePath = picturePath, dim = dim, sky = sky, columns = columns, rowsBelowDock = rowsBelowDock,
-    dockRow = dockRow, dockTitle = dockTitle, fillDock = fillDock, cinematic = cinematic, festive = festive, accentArgb = accentArgb,
-    greeting = greeting, motion = LookEditorMotion.valueOf(motion.name), dock = dock, minuteOfDay = minuteOfDay,
-)
+// The look step's draft as the editor shows it (LookEditorFrom): the apps are the draft's whole
+// dock, the waiting apps too, and the machine has counted the waiting ones at the draft's apps in a
+// row already.
+internal fun SetupExtras.toEditor(draft: LookDraft): LookEditorState =
+    draft.toEditor(themes, pictures, ownPicture, ownDim, newPicture, newDim, dock = dock.size, waitingApps = waiting, waiting = waiting)
 
 // S4a Making it clean: narration, live thumbnail, the quiet "Stop and undo" (UX 4a, D18, D32).
 @Composable

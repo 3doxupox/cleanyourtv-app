@@ -3,6 +3,12 @@ plugins {
     id("cleanyourtv.android.roborazzi")
 }
 
+// RFC-LOOK-SETUP-2: the Look editor maps the flows' Look choice itself (LookEditorFrom), so the Look
+// sheet and Setup's look step share one mapping. A lower layer (rule 1); the components stay plain.
+dependencies {
+    implementation(project(":core:flows"))
+}
+
 // Compose compiler reports for this module (W7 definition of done: the state classes are stable,
 // so screens skip recomposition; ARCHITECTURE 2.1 "verified with the compiler metrics report").
 composeCompiler {
