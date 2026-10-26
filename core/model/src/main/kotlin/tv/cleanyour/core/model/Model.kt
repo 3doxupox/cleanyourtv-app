@@ -51,7 +51,10 @@ data class WizardDraft(val step: Int, val level: Level, val kept: Set<PackageNam
     // 0.4.0 (RFC-LOOK-SETUP-1): the look step's apps in a row, only when it differs from the look's
     // own (4 to 8, null for the look's own), and its picture (HomeChoice.picture: null for the look's
     // own, "none", "mine", "new" or a gallery id).
-    val columns: Int? = null, val picture: String? = null)
+    val columns: Int? = null, val picture: String? = null,
+    // look2: the look step's choice in home.txt line form (HomePrefs), null before the look step made
+    // one; themeId, columns and picture stay for the legacy (0.4.0) form.
+    val look: String? = null)
 
 sealed interface ConnectionState {
     data object Idle : ConnectionState

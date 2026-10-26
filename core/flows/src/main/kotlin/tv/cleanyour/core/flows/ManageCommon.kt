@@ -26,7 +26,13 @@ import tv.cleanyour.core.registry.Registry
 import tv.cleanyour.core.session.SessionManager
 import tv.cleanyour.core.session.TvSession
 import tv.cleanyour.core.spec.AppNames
+import tv.cleanyour.core.spec.BandChoice
+import tv.cleanyour.core.spec.ButtonsChoice
 import tv.cleanyour.core.spec.DockLayers
+import tv.cleanyour.core.spec.GlowChoice
+import tv.cleanyour.core.spec.LookKeys
+import tv.cleanyour.core.spec.Movement
+import tv.cleanyour.core.spec.StyleId
 import tv.cleanyour.core.spec.FactsTable
 import tv.cleanyour.core.spec.Looks
 import tv.cleanyour.core.spec.PictureSource
@@ -128,8 +134,16 @@ class ManageDeps(
 // from the look's own; null means the look's own. `dock` is the whole saved order (DockLayers.keep,
 // up to 24 apps), which can hold more apps than the TV shows at this many in a row: every reader
 // cuts it with DockLayers (decode, applyTo, trim) before use.
+// look2: `style` (StyleId.id, "style=") is set for a choice in the new form; null is a legacy 0.4.0
+// choice, which keeps its look id and its 0.4.0 bytes (LegacyLook) until the next send. `movement`
+// ("movement="), `lift` ("lift=") and `names` ("names=") belong to nobody; `details` (the "d." lines)
+// are the person's changes over the style's and the picture's own; `previousPicture` ("prevpic=") is
+// the picture before a dated one (Diwali), which is theirs again once it ends. In the new form
+// `picture` is never null and `columns` is always written.
 data class HomeChoice(val dock: List<PackageName>, val themeId: String?, val cards: Boolean? = null, val previousThemeId: String? = null,
-    val picture: String? = null, val dim: Int? = null, val columns: Int? = null) {
+    val picture: String? = null, val dim: Int? = null, val columns: Int? = null,
+    val style: String? = null, val movement: String? = null, val lift: Boolean? = null, val names: Boolean? = null,
+    val details: LookDetails = LookDetails(), val previousPicture: String? = null) {
     // The look that is this TV's on `today`: the saved one, or once a dated look has ended, the one
     // before it (null, the Default look, when that one has ended too or there was none).
     fun lookOn(today: LocalDate): String? = when {
@@ -148,6 +162,9 @@ data class HomeChoice(val dock: List<PackageName>, val themeId: String?, val car
         dim: Int? = this.dim, columns: Int? = this.columns): HomeChoice =
         HomeChoice(dock, next, cards, previousThemeId = previousFor(themeId, previousThemeId, next), picture = picture, dim = dim, columns = columns)
 
+    // look2: the choice is in the new form (a style), not a saved 0.4.0 look.
+    val isNew: Boolean get() = style != null
+
     companion object {
         fun previousFor(current: String?, earlier: String?, next: String?): String? = when {
             !Looks.dated(next) -> null
@@ -161,23 +178,54 @@ data class HomeChoice(val dock: List<PackageName>, val themeId: String?, val car
 // The day on the phone, for dated looks.
 fun Clock.today(): LocalDate = Instant.ofEpochMilli(nowMs()).atZone(ZoneId.systemDefault()).toLocalDate()
 
+// tvs/<id>/home.txt, one "key=value" line each. Every line is optional, and a value that does not
+// read loads as null, so a file of any version loads: 0.3.x (dock, theme, cards, previous), 0.4.0
+// (picture, dim, columns) and look2 (style, movement, lift, names, prevpic and the "d." details).
 class HomePrefs(private val store: DocumentStore) {
     private fun path(id: TvId) = "tvs/${id.value}/home.txt"
 
-    suspend fun load(id: TvId): HomeChoice? = store.read(path(id)) { bytes ->
-        val map = bytes.decodeToString().lines().filter { '=' in it }.associate { it.substringBefore('=') to it.substringAfter('=') }
-        HomeChoice(map["dock"].orEmpty().split(',').filter { it.isNotBlank() }.mapNotNull { runCatching { PackageName(it) }.getOrNull() },
-            map["theme"]?.takeIf { it.isNotBlank() }, map["cards"]?.toBooleanStrictOrNull(), map["previous"]?.takeIf { it.isNotBlank() },
-            map["picture"]?.takeIf { it.isNotBlank() }, map["dim"]?.toIntOrNull()?.takeIf { it in 0..90 },
-            map["columns"]?.toIntOrNull()?.takeIf { it in DockLayers.MIN_OFFERED_COLUMNS..DockLayers.MAX_OFFERED_COLUMNS })
-    }
+    suspend fun load(id: TvId): HomeChoice? = store.read(path(id)) { bytes -> decode(bytes.decodeToString()) }
 
     suspend fun save(id: TvId, choice: HomeChoice) {
-        val text = "dock=${choice.dock.joinToString(",") { it.value }}\ntheme=${choice.themeId.orEmpty()}\n" +
-            (choice.cards?.let { "cards=$it\n" } ?: "") + (choice.previousThemeId?.let { "previous=$it\n" } ?: "") +
-            (choice.picture?.let { "picture=$it\n" } ?: "") + (choice.dim?.let { "dim=$it\n" } ?: "") +
-            (choice.columns?.let { "columns=$it\n" } ?: "")
-        store.write(path(id), text.encodeToByteArray())
+        store.write(path(id), encode(choice).encodeToByteArray())
+    }
+
+    companion object {
+        private val OFFERED = DockLayers.MIN_OFFERED_COLUMNS..DockLayers.MAX_OFFERED_COLUMNS
+
+        // The text form of a choice, also kept as WizardDraft.look and in tvs/<id>/earlier.txt.
+        fun encode(choice: HomeChoice): String {
+            val d = choice.details
+            val lines = listOf(
+                "dock" to choice.dock.joinToString(",") { it.value }, "theme" to choice.themeId.orEmpty(),
+                "cards" to choice.cards, "previous" to choice.previousThemeId, "picture" to choice.picture, "dim" to choice.dim,
+                "columns" to choice.columns, "style" to choice.style, "movement" to choice.movement, "lift" to choice.lift,
+                "names" to choice.names, "prevpic" to choice.previousPicture,
+                "d.bigname" to d.bigName, "d.glow" to d.glow?.id, "d.spotcolour" to d.spotColour, "d.ring" to d.ring,
+                "d.band" to d.band?.id, "d.see" to d.seeThrough, "d.buttons" to d.buttons?.id, "d.wifi" to d.greenWifi,
+                "d.dim" to d.dim, "d.sky" to d.sky, "d.skystr" to d.skyStrength,
+            )
+            return lines.filter { (k, v) -> v != null || k == "dock" || k == "theme" }.joinToString("") { (k, v) -> "$k=$v\n" }
+        }
+
+        fun decode(text: String): HomeChoice {
+            val map = text.lines().filter { '=' in it }.associate { it.substringBefore('=') to it.substringAfter('=') }
+            fun str(k: String) = map[k]?.takeIf { it.isNotBlank() }
+            fun bool(k: String) = map[k]?.toBooleanStrictOrNull()
+            fun int(k: String, range: IntRange) = map[k]?.toIntOrNull()?.takeIf { it in range }
+            val details = LookDetails(
+                bigName = bool("d.bigname"), glow = GlowChoice.of(map["d.glow"]), spotColour = bool("d.spotcolour"), ring = bool("d.ring"),
+                band = BandChoice.of(map["d.band"]), seeThrough = int("d.see", 0..100)?.takeIf { it in LookKeys.SEE_THROUGH },
+                buttons = ButtonsChoice.of(map["d.buttons"]), greenWifi = bool("d.wifi"), dim = int("d.dim", 0..90),
+                sky = bool("d.sky"), skyStrength = int("d.skystr", LookRules.SKY_STRENGTH),
+            )
+            return HomeChoice(
+                str("dock").orEmpty().split(',').filter { it.isNotBlank() }.mapNotNull { runCatching { PackageName(it) }.getOrNull() },
+                str("theme"), bool("cards"), str("previous"), str("picture"), int("dim", 0..90), int("columns", OFFERED),
+                style = StyleId.of(map["style"])?.id, movement = Movement.of(map["movement"])?.id, lift = bool("lift"), names = bool("names"),
+                details = details, previousPicture = str("prevpic"),
+            )
+        }
     }
 }
 
