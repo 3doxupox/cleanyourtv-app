@@ -296,12 +296,13 @@ private fun StepsContent(state: SetupState.OpenDoor, actions: SetupActions, name
     // The card follows the TV: when the port opens it moves to step 3 on its own.
     LaunchedEffect(state.step) { page = state.step.coerceIn(0, 2) }
     val shield = state.family == Families.ATV && listOfNotNull(state.tv.model, state.tv.friendlyName).any { "shield" in it.lowercase() }
-    // Step 2's extra line: a Shield's network debugging, or for TCL outside China the Google TV
-    // switch (it is Android TV or Google TV, and the phone cannot tell which before it connects).
+    // A step's extra line: a Shield's network debugging on step 2, or for TCL outside China the Google
+    // TV menu on step 1 and its switch on step 2 (it is Android TV or Google TV, and the phone cannot
+    // tell which before it connects).
     val extra = when {
-        page != 1 -> null
-        shield -> stringResource(R.string.family_atv_extra_shield)
-        state.family == Families.TCL_GLOBAL -> stringResource(R.string.family_tcl_extra_gtv)
+        page == 1 && shield -> stringResource(R.string.family_atv_extra_shield)
+        page == 0 && state.family == Families.TCL_GLOBAL -> stringResource(R.string.family_tcl_extra_gtv_step1)
+        page == 1 && state.family == Families.TCL_GLOBAL -> stringResource(R.string.family_tcl_extra_gtv)
         else -> null
     }
     val note = stringResource(R.string.door_menu_names_vary)

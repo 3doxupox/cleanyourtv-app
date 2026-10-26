@@ -123,6 +123,7 @@ object ConnectShots {
         // The TCL chip asks about the menus; English or local menus get the Android TV steps (and the
         // Google TV line on step 2), Chinese menus the 本机信息 steps and the home screen banner.
         Shot("door_steps_tcl_ask") { Connect(door(Families.TCL_ASK, DoorPhase.STEPS, 0, tv = tclTv), waiting.copy(tvName = "TCL C635")) },
+        Shot("door_steps_tcl_global") { Connect(door(Families.TCL_GLOBAL, DoorPhase.STEPS, 0, tv = tclTv), waiting.copy(tvName = "TCL C635")) },
         Shot("door_steps_tcl_global_step2") { Connect(door(Families.TCL_GLOBAL, DoorPhase.STEPS, 1, tv = tclTv), waiting.copy(tvName = "TCL C635")) },
         Shot("door_steps_tcl") { Connect(door(Families.TCL, DoorPhase.STEPS, 0, banner = stringResource(R.string.banner_tcl), tv = tclTv), waiting.copy(tvName = "TCL C635")) },
         Shot("door_steps_mibox_usb") { Connect(door(Families.ATV, DoorPhase.STEPS, 0, banner = stringResource(R.string.banner_mibox_usb)), waiting.copy(tvName = "Mi Box S")) },

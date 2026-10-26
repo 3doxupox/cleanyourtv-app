@@ -101,7 +101,8 @@
     <string name="family_tcl_step1">On the TV, open Settings > About > 本机信息, then press Up, Down, Left, Right on the remote.</string>
     <string name="family_tcl_step2">A small \"ADB\" window appears with an address. Leave it open.</string>
     <string name="family_tcl_step3">Leave the TV on this screen. Your phone will connect on its own.</string>
-    <!-- TCL outside China (menus in English or the person's language): the Android TV steps plus this line on step 2 -->
+    <!-- TCL outside China (menus in English or the person's language): the Android TV steps plus these lines on steps 1 and 2 -->
+    <string name="family_tcl_extra_gtv_step1">On Google TV: System > About, then press OK on \"Android TV OS build\" seven times.</string>
     <string name="family_tcl_extra_gtv">On Google TV, also switch on Wireless debugging.</string>
     <!-- Unknown brand: the generic Android TV path -->
     <string name="family_unknown_step1">On the TV, open Settings (the gear, top right), then Device Preferences > About. Press OK on \"Build\" seven times until the TV says \"You are now a developer\".</string>
