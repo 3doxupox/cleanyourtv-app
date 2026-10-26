@@ -58,8 +58,8 @@ import tv.cleanyour.ui.design.theme.CytTheme
 fun interface PhotoPicker { fun pick(onPicked: (Uri) -> Unit) }
 
 // "Your photo": the picked photo in a 16:9 frame to pinch and drag, with the look's clock, buttons
-// and dock drawn faintly over it (so faces stay clear of them) and the dim, live. "Use this photo"
-// makes the TV's JPEG (OwnPhoto) and hands it on; nothing reaches the TV until "Use this look".
+// and dock drawn faintly over it (so faces stay clear of them) and the dim, live. "Use this crop"
+// makes the TV's JPEG (OwnPhoto) and hands it on; nothing reaches the TV until "Put it on the TV".
 @Composable
 internal fun PhotoCropDialog(uri: Uri, outline: TvLook?, startDim: Int, onDone: (ByteArray, Int) -> Unit, onCancel: () -> Unit) {
     val context = LocalContext.current

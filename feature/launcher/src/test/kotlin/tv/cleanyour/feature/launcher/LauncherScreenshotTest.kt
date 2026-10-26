@@ -15,6 +15,8 @@ import tv.cleanyour.core.model.BlobRef
 import tv.cleanyour.core.spec.BundledThemeSource
 import tv.cleanyour.core.spec.DockLayers
 import tv.cleanyour.core.spec.LauncherConfigCodec
+import tv.cleanyour.core.flows.LookDocs
+import tv.cleanyour.core.flows.LookPicture
 import tv.cleanyour.ui.design.theme.CytTheme
 import androidx.compose.runtime.remember
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -53,6 +55,12 @@ private val defaultDock = listOf(
 )
 private val apps = defaultDock + listOf(app("com.spotify.tv.android", "Spotify"), app("com.plexapp.android", "Plex"), app("org.videolan.vlc", "VLC"))
 private val rowsDock = defaultDock + apps.drop(4).take(2)
+// 0.4.0: a saved dock of 15 (the Console look's three rows of 7 hold it all), for the waiting lines.
+private val longDock = apps + listOf(
+    app("com.disney.disneyplus", "Disney+"), app("tv.twitch.android.app", "Twitch"), app("com.sonyliv", "Sony LIV"),
+    app("com.graymatrix.did", "ZEE5"), app("com.jio.media.ondemand", "JioCinema"), app("in.startv.hotstar", "JioHotstar"),
+    app("com.zattoo.player", "Zattoo"), app("com.apple.atve.androidtv.appletv", "Apple TV"),
+)
 
 // The dock sheet's state as DockSheet makes it (remembered, so it survives recomposition).
 @Composable
@@ -74,9 +82,10 @@ private fun home(
     endedLook = endedLook,
 )
 
-// 0.4.0 Look sheet: the preview, the looks, the Picture row and "Use this look". The previews are
-// made as the machine makes them, from the bytes the push would send for the bundled looks, with
-// their real pictures read from the :core:spec resources.
+// 0.4.0 Look sheet: the preview, Apps in a row, the looks, the Picture row and "Put it on the TV".
+// The previews are made as the machine makes them, from the bytes the push would send for the
+// bundled looks (LookDocs, so fill_dock false and the apps in a row are in them), with their real
+// pictures read from the :core:spec resources.
 private val bundledLooks = BundledThemeSource().bundled().associateBy { it.id }
 private val gallery = BundledThemeSource().pictures().associateBy { it.id }
 private fun resourcePath(ref: BlobRef?) = ref?.path?.removePrefix(BundledThemeSource.PREFIX)?.let { "/$it" }
@@ -85,16 +94,19 @@ private val pictureFiles: Map<String, ImageBitmap> by lazy {
         BitmapFactory.decodeStream(LauncherShots::class.java.getResourceAsStream(path), null, BitmapFactory.Options().apply { inSampleSize = 4 })!!.asImageBitmap()
     }
 }
-private fun preview(id: String, picture: String? = null, minute: Int = 21 * 60 + 5): LookPreview {
+private fun preview(id: String, picture: String? = null, minute: Int = 21 * 60 + 5, columns: Int? = null, dock: List<AppChoice> = rowsDock): LookPreview {
     val look = bundledLooks.getValue(id)
-    var doc = DockLayers.applyTo(look.doc, rowsDock.map { it.pkg })
-    var wallpaper = look.wallpaper
-    if (picture != null) { doc = doc.copy(wallpaper = true, wallpaperRotationMinutes = 0); wallpaper = gallery.getValue(picture).wallpaper }
-    val p = LookPreview.of(LauncherConfigCodec.encode(doc), null, rowsDock.map { it.name }, LocalDate.of(2026, 10, 25), minute)
+    val (doc, wallpaper) = LookDocs.of(look, dock.map { it.pkg }, cards = true, picture?.let { LookPicture.Of(gallery.getValue(it).wallpaper) }, columns)
+    val p = LookPreview.of(LauncherConfigCodec.encode(doc), null, dock.map { it.name }, LocalDate.of(2026, 10, 25), minute)
     return p.copy(picturePath = if (doc.wallpaper != false) resourcePath(wallpaper) else null)
 }
+// The sheet's draft as HomeScreenMachine makes it: the look's own apps in a row unless `columns`.
+private fun draft(id: String, picture: String? = null, columns: Int? = null, dock: List<AppChoice> = rowsDock, ownPictureOnly: Boolean = false): LookDraft {
+    val own = DockLayers.columnsOf(bundledLooks.getValue(id).doc)
+    return LookDraft(id, picture, ownPictureOnly, preview(id, picture, columns = columns, dock = dock), columns ?: own, own)
+}
 private val noPictures = emptyMap<String, ImageBitmap>()
-private fun lookSheet(draft: LookDraft) = home(themeId = "aurora").copy(
+private fun lookSheet(draft: LookDraft) = home(themeId = "aurora", dock = rowsDock).copy(
     themes = bundledLooks.values.map { ThemeOption(it.id, it.name, it.description, resourcePath(it.wallpaper)) },
     pictures = gallery.values.map { PictureOption(it.id, it.name, resourcePath(it.wallpaper)) },
     look = draft,
@@ -150,35 +162,56 @@ object LauncherShots {
         Shot("home_not_on_tv_home_changed") { HomeScreen(notOnTv(NotOnTv(HomeBlock.HOME_CHANGED, "TCL", setupAgain = true), "TCL G07"), {}, {}) },
 
         // Look (theme picker), the dock sheet (S3b on Manage) and the stock home screen preview
-        Shot("home_look_sheet", 1700.dp) { SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(lookSheet(LookDraft("aurora", null, preview = preview("aurora"))), {}, pictureFiles, PhotoPicker {}) } },
-        Shot("home_look_sheet_picture", 1700.dp) {
-            SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(lookSheet(LookDraft("quiet", "glass", preview = preview("quiet", "glass"))), {}, pictureFiles) }
+        Shot("home_look_sheet", 2000.dp) { SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(lookSheet(draft("aurora")), {}, pictureFiles, PhotoPicker {}) } },
+        Shot("home_look_sheet_picture", 2000.dp) {
+            SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(lookSheet(draft("quiet", "glass")), {}, pictureFiles) }
         },
-        Shot("home_look_sheet_festival", 1700.dp) {
-            SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(lookSheet(LookDraft("diwali", null, ownPictureOnly = true, preview = preview("diwali"))), {}, pictureFiles) }
+        Shot("home_look_sheet_festival", 2000.dp) {
+            SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(lookSheet(draft("diwali", ownPictureOnly = true)), {}, pictureFiles) }
         },
-        Shot("home_look_sheet_no_preview", 1500.dp) { SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(lookSheet(LookDraft("six-columns", "glass")).copy(pictures = gallery.values.map { PictureOption(it.id, it.name, null) }), {}, noPictures) } },
+        Shot("home_look_sheet_no_preview", 1700.dp) {
+            SheetOver({ HomeScreen(home(), {}, {}) }) {
+                LookContent(lookSheet(LookDraft("six-columns", "glass", columns = 6, lookColumns = 6)).copy(pictures = gallery.values.map { PictureOption(it.id, it.name, null) }), {}, noPictures)
+            }
+        },
+        // 0.4.0 Apps in a row: Default at 7 with a 4-app dock (3 spaces stay empty, drawn as empty
+        // band); Mist at 8 with 6 apps (the 8 line); a saved 15-app dock at 4 (3 apps wait).
+        Shot("home_look_sheet_columns", 2000.dp) {
+            SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(lookSheet(draft("default", columns = 7, dock = defaultDock)).copy(dock = defaultDock), {}, pictureFiles) }
+        },
+        Shot("home_look_sheet_eight", 2000.dp) {
+            SheetOver({ HomeScreen(home(), {}, {}) }) { LookContent(lookSheet(draft("mist", columns = 8)).copy(dock = rowsDock), {}, pictureFiles) }
+        },
+        Shot("home_look_sheet_waiting", 2000.dp) {
+            SheetOver({ HomeScreen(home(), {}, {}) }) {
+                LookContent(lookSheet(draft("console", columns = 4, dock = longDock)).copy(dock = longDock.take(12), waitingApps = longDock.drop(12)), {}, pictureFiles)
+            }
+        },
         // The preview of each 0.4.0 look (Horizon at night and at sunrise: its sky over the picture).
-        Shot("look_preview_cinema", 300.dp) { PreviewShot(preview("cinema"), "Cinema") },
-        Shot("look_preview_console", 300.dp) { PreviewShot(preview("console"), "Console") },
-        Shot("look_preview_horizon", 300.dp) { PreviewShot(preview("horizon"), "Horizon") },
-        Shot("look_preview_horizon_sunrise", 300.dp) { PreviewShot(preview("horizon", minute = 6 * 60 + 30), "Horizon") },
-        Shot("look_preview_quiet", 300.dp) { PreviewShot(preview("quiet"), "Quiet black") },
-        Shot("look_preview_diwali", 300.dp) { PreviewShot(preview("diwali"), "Diwali") },
+        Shot("look_preview_cinema", 360.dp) { PreviewShot(preview("cinema"), "Cinema") },
+        Shot("look_preview_console", 360.dp) { PreviewShot(preview("console"), "Console") },
+        Shot("look_preview_horizon", 360.dp) { PreviewShot(preview("horizon"), "Horizon") },
+        Shot("look_preview_horizon_sunrise", 360.dp) { PreviewShot(preview("horizon", minute = 6 * 60 + 30), "Horizon") },
+        Shot("look_preview_quiet", 360.dp) { PreviewShot(preview("quiet"), "Quiet black") },
+        Shot("look_preview_diwali", 360.dp) { PreviewShot(preview("diwali"), "Diwali") },
         // "Your photo": the crop frame with the look's clock, buttons and dock over it, and the dim.
         Shot("home_photo_crop", 900.dp) {
             Column(Modifier.fillMaxSize().background(CytTheme.colors.bg).padding(20.dp)) {
                 PhotoCropContent(pictureFiles.getValue(resourcePath(bundledLooks.getValue("mist").wallpaper)!!), preview("console").toTvLook(null), 30, null, { _, _, _, _ -> }, {})
             }
         },
-        Shot("look_preview_library", 300.dp) { PreviewShot(preview("library"), "Library") },
-        Shot("look_preview_arcade", 300.dp) { PreviewShot(preview("arcade"), "Arcade") },
-        Shot("look_preview_mist", 300.dp) { PreviewShot(preview("mist"), "Mist") },
+        Shot("look_preview_library", 360.dp) { PreviewShot(preview("library"), "Library") },
+        Shot("look_preview_arcade", 360.dp) { PreviewShot(preview("arcade"), "Arcade") },
+        Shot("look_preview_mist", 360.dp) { PreviewShot(preview("mist"), "Mist") },
         Shot("home_dock_sheet", 1000.dp) { SheetOver({ HomeScreen(home(), {}, {}) }) { DockContent(dockState(defaultDock.take(3)), apps, {}) } },
         Shot("home_dock_sheet_full", 1000.dp) { SheetOver({ HomeScreen(home(), {}, {}) }) { DockContent(dockState(defaultDock), apps, {}) } },
         Shot("home_dock_sheet_empty") { SheetOver({ HomeScreen(home(), {}, {}) }) { DockContent(dockState(emptyList()), apps, {}) } },
         Shot("home_dock_sheet_rows", 1200.dp) { SheetOver({ HomeScreen(home(dock = rowsDock), {}, {}) }) { DockContent(dockState(rowsDock), apps, {}) } },
         Shot("home_dock_sheet_new_row", 1200.dp) { SheetOver({ HomeScreen(home(), {}, {}) }) { DockContent(dockState(defaultDock, addRow = true), apps, {}) } },
+        // 0.4.0: 15 saved at 4 in a row: the sheet holds 12, and one line says 3 apps wait.
+        Shot("home_dock_sheet_waiting", 1500.dp) {
+            SheetOver({ HomeScreen(home(dock = longDock.take(12)), {}, {}) }) { DockContent(dockState(longDock.take(12)), longDock, {}, waiting = 3) }
+        },
         Shot("home_stock_preview") { SheetOver({ HomeScreen(home(), {}, {}) }) { StockPreviewContent(stockPlan) {} } },
         Shot("home_update_preview") { SheetOver({ HomeScreen(home(updateTo = "2.4"), {}, {}) }) { UpdatePreviewContent(updatePlan, "2.4") {} } },
     )

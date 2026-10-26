@@ -94,13 +94,25 @@
     <string name="home_look_ended_banner">{look} has ended. Put your earlier look back on the TV?</string>
     <string name="home_look_ended_restore">Put it back</string>
     <string name="look_list_title">Looks</string>
-    <string name="look_preview_cd">Preview of the TV\'s home screen with {look}: {count} apps a row, no picture.</string>
-    <string name="look_preview_cd_picture">Preview of the TV\'s home screen with {look}: {count} apps a row over a picture.</string>
-    <string name="look_fact_columns">{count, plural, one {# app a row} other {# apps a row}}</string>
-    <string name="look_fact_motion_off">No motion</string>
-    <string name="look_fact_motion_calm">Calm motion</string>
-    <string name="look_fact_motion_crisp">Lift and zoom</string>
-    <string name="look_fact_motion_bouncy">Bouncy motion</string>
+    <string name="look_preview_cd">Preview of the TV\'s home screen with {look}: {count, plural, one {# app in a row} other {# apps in a row}}, no picture.</string>
+    <string name="look_preview_cd_picture">Preview of the TV\'s home screen with {look}: {count, plural, one {# app in a row} other {# apps in a row}} over a picture.</string>
+    <string name="look_fact_motion_off">No movement</string>
+    <string name="look_fact_motion_calm">Quick movement, for slower TVs</string>
+    <string name="look_fact_motion_crisp">Lively, with lift and zoom</string>
+    <string name="look_fact_motion_bouncy">Lively movement</string>
+    <!-- 0.4.0 Apps in a row, under the preview: 4 to 8, a tap only chooses -->
+    <string name="look_columns_title">Apps in a row</string>
+    <string name="look_columns_help">Fewer apps means bigger tiles.</string>
+    <string name="look_columns_biggest">4 gives the biggest tiles the TV can show.</string>
+    <string name="look_columns_end_big">Bigger</string>
+    <string name="look_columns_end_many">More apps</string>
+    <string name="look_columns_empty">{apps, plural, one {Your dock has # app} other {Your dock has # apps}}, so {free, plural, one {# space stays} other {# spaces stay}} empty. You can add apps in Dock.</string>
+    <string name="look_columns_waiting">{count, plural, one {# app waits} other {# apps wait}} in the grid until you pick more apps in a row.</string>
+    <string name="look_columns_seven">At 7, long app names are cut short on the TV.</string>
+    <string name="look_columns_eight">At 8 the tiles are small and long names are cut short. The TV\'s own settings stop at 7.</string>
+    <string name="look_columns_cd">{count, plural, one {# app in a row} other {# apps in a row}}</string>
+    <string name="look_columns_cd_big">{count, plural, one {# app in a row} other {# apps in a row}}, bigger tiles</string>
+    <string name="look_columns_cd_many">{count, plural, one {# app in a row} other {# apps in a row}}, more apps</string>
     <string name="look_fact_sky">Sky follows the clock</string>
     <string name="look_fact_grid">All apps on one page</string>
     <string name="look_picture_choose">Choose a photo</string>
@@ -110,7 +122,7 @@
     <string name="photo_body">Pinch and drag to choose what the TV shows. Keep faces clear of the clock and the dock drawn over it.</string>
     <string name="photo_frame_cd">Your photo as the TV will show it, with the clock, the buttons and the dock drawn over it.</string>
     <string name="photo_dim">Dim: {dim}%</string>
-    <string name="photo_use">Use this photo</string>
+    <string name="photo_use">Use this crop</string>
     <string name="photo_unreadable">This photo can\'t be read. Try another one.</string>
     <string name="photo_too_big">This photo couldn\'t be made small enough for the TV. Try another one.</string>
     <string name="look_picture_title">Picture</string>
@@ -118,7 +130,7 @@
     <string name="look_picture_none">No picture</string>
     <string name="look_picture_own_only">This look keeps its own picture.</string>
     <string name="look_clears_tv_choices">A new look also clears what was changed on the TV itself, like columns, motion and its own picture choice.</string>
-    <string name="look_use">Use this look</string>
+    <string name="look_use">Put it on the TV</string>
     <string name="theme_library_desc">Every app on one calm page like a bookshelf: no dock band, warm lamp light.</string>
     <string name="theme_arcade_desc">A neon sun over a glowing grid, six tiles a row that bounce when you move.</string>
     <string name="theme_mist_desc">Soft out of focus light in indigo, teal and peach, calm like a streaming box at night.</string>
@@ -128,5 +140,6 @@
     <!-- S3b Your dock (sheet) -->
     <string name="dock_title">Your dock</string>
     <string name="dock_body">Up to {count, spellout} along the bottom. Drag an app by its dots to change the order.</string>
+    <string name="dock_waiting">{count, plural, one {# app waits} other {# apps wait}} in the grid until you pick more apps in a row in Look.</string>
 
 </resources>

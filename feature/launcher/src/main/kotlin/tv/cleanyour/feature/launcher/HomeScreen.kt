@@ -115,7 +115,10 @@ fun HomeScreen(state: HomeScreenState, onIntent: (HomeScreenIntent) -> Unit, onB
             }
         }
     }
-    if (dockOpen) DockSheet(state.dock, state.apps, state.columns, onDone = { onIntent(HomeScreenIntent.SetDock(it)); dockOpen = false }, onDismiss = { dockOpen = false })
+    if (dockOpen) {
+        DockSheet(state.dock, state.apps, state.columns, onDone = { onIntent(HomeScreenIntent.SetDock(it)); dockOpen = false }, onDismiss = { dockOpen = false },
+            waiting = state.waiting)
+    }
     if (state.look != null) CytBottomSheet({ onIntent(HomeScreenIntent.CloseLook) }) {
         Column(Modifier.verticalScroll(rememberScrollState())) { LookContent(state, onIntent, photos = photos) }
     }
@@ -202,8 +205,10 @@ internal fun ColumnScope.UpdatePreviewContent(plan: Plan, version: String, onInt
 
 // S3b on Manage: the dock and the rows under it (DockEditor), held and dragged to order, with up
 // and down buttons for the UX 7.1 motor rule. Done applies the one ordered list to the TV.
+// 0.4.0 `waiting`: saved apps beyond the three rows at this many apps in a row. The sheet does not
+// show them and Done keeps them after its own list (HomeScreenMachine), so one line says where they are.
 @Composable
-fun DockSheet(current: List<AppChoice>, apps: List<AppChoice>, columns: Int, onDone: (List<PackageName>) -> Unit, onDismiss: () -> Unit) {
+fun DockSheet(current: List<AppChoice>, apps: List<AppChoice>, columns: Int, onDone: (List<PackageName>) -> Unit, onDismiss: () -> Unit, waiting: Int = 0) {
     val state = remember(current, columns) { DockEditorState(current.map { it.toDockApp() }, columns) }
     val scroll = rememberScrollState()
     val undo = rememberUndoSnackbarState()
@@ -211,16 +216,18 @@ fun DockSheet(current: List<AppChoice>, apps: List<AppChoice>, columns: Int, onD
         // Three rows and the other apps can be taller than the screen; the sheet scrolls, also by
         // itself while an app is dragged near its edge.
         Box(Modifier.fillMaxWidth()) {
-            Column(Modifier.verticalScroll(scroll)) { DockContent(state, apps, { onDone(state.apps.map { PackageName(it.key) }) }, scroll, undo) }
+            Column(Modifier.verticalScroll(scroll)) { DockContent(state, apps, { onDone(state.apps.map { PackageName(it.key) }) }, scroll, undo, waiting) }
             UndoSnackbarHost(undo, Modifier.align(Alignment.BottomCenter))
         }
     }
 }
 
 @Composable
-internal fun ColumnScope.DockContent(state: DockEditorState, apps: List<AppChoice>, onDone: () -> Unit, scroll: ScrollState? = null, undo: UndoSnackbarState? = null) {
+internal fun ColumnScope.DockContent(state: DockEditorState, apps: List<AppChoice>, onDone: () -> Unit, scroll: ScrollState? = null, undo: UndoSnackbarState? = null,
+    waiting: Int = 0) {
     SheetHeader(stringResource(R.string.dock_title), subtitle = msg(R.string.dock_body, "count" to state.columns))
-    DockEditor(state, remember(apps) { apps.map { it.toDockApp() } }, scroll = scroll, undo = undo)
+    DockEditor(state, remember(apps) { apps.map { it.toDockApp() } }, scroll = scroll, undo = undo,
+        footnote = if (waiting > 0) msg(R.string.dock_waiting, "count" to waiting) else null)
     PrimaryButton(stringResource(R.string.action_done), onDone, Modifier.padding(top = 20.dp))
 }
 

@@ -12,6 +12,9 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import tv.cleanyour.core.flows.AppChoice
 import tv.cleanyour.core.flows.HomeScreenIntent
+import tv.cleanyour.core.flows.HomeScreenState
+import tv.cleanyour.core.flows.LookDraft
+import tv.cleanyour.core.flows.ThemeOption
 import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.testing.fixtures.Samples
 import tv.cleanyour.ui.design.component.DockApp
@@ -54,5 +57,21 @@ class GuardedActionsTest {
         assertEquals(emptyList<DockApp>(), state.apps)
         compose.tap("Done", 0)
         assertEquals(1, done)
+    }
+
+    // 0.4.0 Look sheet: a tap on an Apps in a row segment only chooses (SelectColumns, also through
+    // an overlay, like any choice), and "Put it on the TV" is still the one guarded write.
+    @Test fun appsInARowOnlyChoosesAndPutItOnTheTvIsGuarded() {
+        val hits = mutableListOf<HomeScreenIntent>()
+        val state = HomeScreenState(themes = listOf(ThemeOption("default", "Default", "Black")), look = LookDraft("default", null, columns = 4, lookColumns = 4))
+        compose.showColumn { LookContent(state, { hits += it }) }
+        compose.tap(compose.onNodeWithContentDescription("5 apps in a row"), 0)
+        compose.tap(compose.onNodeWithContentDescription("8 apps in a row, more apps"), OBSCURED)
+        assertEquals(listOf<HomeScreenIntent>(HomeScreenIntent.SelectColumns(5), HomeScreenIntent.SelectColumns(8)), hits)
+        compose.tap("Put it on the TV", OBSCURED)
+        assertEquals(2, hits.size)
+        compose.tap("Put it on the TV", 0)
+        assertEquals(HomeScreenIntent.UseLook, hits.last())
+        assertEquals(1, hits.count { it == HomeScreenIntent.UseLook })
     }
 }
