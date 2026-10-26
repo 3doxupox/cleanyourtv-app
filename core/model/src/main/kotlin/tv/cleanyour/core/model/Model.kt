@@ -47,7 +47,11 @@ data class LauncherState(val versionCode: Long, val signer: Sha256, val overlayD
 // R0: 2 was referenced and never declared; persisted on every committed choice (ARCHITECTURE 2.2); W8 may add fields, never remove
 data class WizardDraft(val step: Int, val level: Level, val kept: Set<PackageName>, val extraOff: Set<PackageName>,
     val dock: List<PackageName>?, val themeId: String?, val keepDebuggingOn: Boolean, val planId: PlanId?, val updatedAtMs: Long,
-    val curtain: Boolean = true)   // RFC-CURTAIN-1: "Show the progress on the TV" (Custom only; Simple always shows it)
+    val curtain: Boolean = true,   // RFC-CURTAIN-1: "Show the progress on the TV" (Custom only; Simple always shows it)
+    // 0.4.0 (RFC-LOOK-SETUP-1): the look step's apps in a row, only when it differs from the look's
+    // own (4 to 8, null for the look's own), and its picture (HomeChoice.picture: null for the look's
+    // own, "none", "mine", "new" or a gallery id).
+    val columns: Int? = null, val picture: String? = null)
 
 sealed interface ConnectionState {
     data object Idle : ConnectionState

@@ -201,6 +201,7 @@ class AppGraph(context: Context, val appVersion: String = versionOf(context), va
         homeDecisions = homeDecisions,   // 0.3.2 B1
         candidates = tv.cleanyour.core.flows.BundledCandidateLists(profiles, candidateChoices),   // test build
         about = about, connectDetail = { sessions.lastConnectFailure },   // 0.3.6: "Copy error"
+        documents = documents,     // 0.4.0: the person's photo for the look step (OwnPicture)
     )
 
     val manageDeps = ManageDeps(

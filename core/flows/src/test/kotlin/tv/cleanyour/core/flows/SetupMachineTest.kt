@@ -167,9 +167,12 @@ class SetupMachineTest {
         settle()
         val last = h.planner.requests.filterIsInstance<PlanRequest.Setup>().last()
         assertEquals(apps.take(12), last.choices.dock)
-        assertEquals(apps.take(12), h.tvs.tvs.value.single().wizard?.dock)
+        // 0.4.0: the draft keeps the whole list (no repeats, up to 24 apps), so more apps in a row
+        // in the look step brings the last two into view; the plan and the sheet show three rows.
+        assertEquals(apps, h.tvs.tvs.value.single().wizard?.dock)
         assertEquals(apps.take(12), m.extras.value.dock.map { it.pkg })
         assertEquals(4, m.extras.value.dockColumns)
+        assertEquals(2, m.extras.value.waiting)
     }
 
     @Test fun keepingAPackageReplansAndPersistsTheDraft() = runTest(timeout = 30.seconds) {

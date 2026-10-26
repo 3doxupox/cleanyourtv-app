@@ -25,6 +25,7 @@ import tv.cleanyour.core.engine.StartRefusal
 import tv.cleanyour.core.engine.StartResult
 import tv.cleanyour.core.model.AdbError
 import tv.cleanyour.core.model.AdbException
+import tv.cleanyour.core.model.BlobRef
 import tv.cleanyour.core.model.ConnectionState
 import tv.cleanyour.core.model.DebugState
 import tv.cleanyour.core.model.DeviceFacts
@@ -71,11 +72,13 @@ import tv.cleanyour.core.spec.AppNames
 import tv.cleanyour.core.spec.DockLayers
 import tv.cleanyour.core.spec.FactsTable
 import tv.cleanyour.core.spec.Looks
+import tv.cleanyour.core.spec.PictureSource
 import tv.cleanyour.core.spec.ProfileResolution
 import tv.cleanyour.core.spec.ProfileSource
 import tv.cleanyour.core.spec.ThemeSource
 import tv.cleanyour.core.store.BlobStore
 import tv.cleanyour.core.store.Clock
+import tv.cleanyour.core.store.DocumentStore
 import tv.cleanyour.core.store.GatePass
 import tv.cleanyour.core.ops.Transfer
 import tv.cleanyour.core.store.SnapshotStore
@@ -151,6 +154,17 @@ data class SetupExtras(
     // whether the plan on screen is that list (the person chose to try it).
     val candidate: CandidateOffer? = null,
     val candidateTried: Boolean = false,
+    // 0.4.0 (RFC-LOOK-SETUP-1): the look step's Look sheet, the same choices as the Look sheet after
+    // Setup: the draft with its preview, the gallery, the person's photo kept for this TV ("Restore
+    // mine") and a photo just made in this step, with their dims, and how many apps of the draft's
+    // dock wait beyond what this many in a row shows.
+    val look: LookDraft? = null,
+    val pictures: List<PictureOption> = emptyList(),
+    val ownPicture: BlobRef? = null,
+    val ownDim: Int = OwnPicture.DEFAULT_DIM,
+    val newPicture: BlobRef? = null,
+    val newDim: Int = OwnPicture.DEFAULT_DIM,
+    val waiting: Int = 0,
 )
 
 class SetupDeps(
@@ -202,6 +216,11 @@ class SetupDeps(
     // the last socket connect failed (the session's class and errno reason, never an address).
     val about: AppAbout? = null,
     val connectDetail: () -> String? = { null },
+    // 0.4.0 (RFC-LOOK-SETUP-1): where the person's photo for a TV is kept (OwnPicture), so the look
+    // step can show and send it and keep a photo made in Setup once the TV has it; null keeps none.
+    val documents: DocumentStore? = null,
+    // 0.4.0: the pictures any look can show instead of its own (the app's ThemeSource is one).
+    val pictures: PictureSource = themes as? PictureSource ?: PictureSource.NONE,
 )
 
 // The first-run wizard, screens S1 to S5 (PRODUCT-SPEC 4, UX 2 and 4). One machine per wizard run,
@@ -229,7 +248,9 @@ class SetupMachine(
     private var blocked = false         // wrong TV, no shell v2 or a refusal: no retry until the person asks
     private var currentPlanId: PlanId? = null
     private var setupPlan: Plan? = null
-    private var setupHome: Pair<Sha256, HomeChoice>? = null   // the look the current plan pushes, by its digest
+    private var setupHome: SetupHome? = null   // the look the current plan pushes, by its digest
+    private val drafts = LookDrafts(deps.themes, deps.pictures, deps.encoder, deps.clock)
+    private var newPhoto: NewPhoto? = null    // RFC-LOOK-SETUP-1: a photo made in the look step, until Setup sends it
     private var undoRequested = false
     private var askedNotifications = false
     private var lastFinished: RunState.Finished? = null
@@ -287,7 +308,7 @@ class SetupMachine(
         scope.launch { try { awaitCancellation() } finally { heldTv?.let { deps.access.release(it) } } }
         // 0.4.0: a dated look (a festival) is offered up to its last day.
         val today = deps.clock.today()
-        mutableExtras.update { it.copy(themes = deps.themes.bundled().filter { t -> Looks.offered(t.id, today) }.map { t -> ThemeOption(t.id, t.name, t.description) }) }
+        mutableExtras.update { it.copy(themes = drafts.offered(), pictures = drafts.pictureOptions()) }
         when (start) {
             SetupStart.Fresh -> afterTransition(state.value)
             is SetupStart.Continue -> scope.launch { continueDraft(start.tvId) }
@@ -434,8 +455,23 @@ class SetupMachine(
                 if (event.keep) d.copy(kept = d.kept + event.pkg, extraOff = d.extraOff - event.pkg)
                 else if (event.pkg in d.kept) d.copy(kept = d.kept - event.pkg) else d.copy(extraOff = d.extraOff + event.pkg)
             }
-            is SetupIntent.SetDock -> editDraft { it.copy(dock = DockLayers.trim(event.dock, dockColumns(it.themeId))) }
-            is SetupIntent.SetTheme -> editDraft { it.copy(themeId = event.id) }
+            // 0.4.0: the sheet's list, then the draft's apps it never showed (waiting for more apps in a
+            // row), so a new dock never loses them, as on the Dock sheet after Setup.
+            is SetupIntent.SetDock -> editDraft { d ->
+                val tail = d.dock.orEmpty().drop(DockLayers.capacity(columnsOf(d))).filter { it !in event.dock }
+                d.copy(dock = DockLayers.keep(event.dock + tail))
+            }
+            // RFC-LOOK-SETUP-1: a look tap resets apps in a row to that look's own; a picture keeps it.
+            is SetupIntent.SetTheme -> editDraft { it.copy(themeId = event.id, columns = null) }
+            is SetupIntent.SelectColumns -> if (event.count in LookDrafts.OFFERED) editDraft { d -> d.copy(columns = drafts.override(lookOf(d)?.id, event.count)) }
+            is SetupIntent.SelectPicture -> editDraft { it.copy(picture = event.id) }
+            is SetupIntent.SetOwnPicture -> scope.launch {
+                val dim = event.dim.coerceIn(0, 90)
+                attempt { OwnPicture.stage(deps.blobs, event.jpeg) }.onSuccess { ref ->
+                    newPhoto = NewPhoto(ref, event.jpeg, dim)
+                    editDraft { it.copy(picture = LookPicture.NEW_ID) }
+                }.onFailure { deps.log.line("setup: the photo could not be staged") }
+            }
             is SetupIntent.KeepDebuggingOn -> editDraft { it.copy(keepDebuggingOn = event.on) }
             is SetupIntent.ShowOnTv -> editDraft { it.copy(curtain = event.on) }
             SetupIntent.MakeItClean -> if (after is SetupState.Found && !mutableExtras.value.starting) {
@@ -690,8 +726,13 @@ class SetupMachine(
         val host = (s.state.value as? ConnectionState.Connected)?.endpoint ?: existing?.endpoints?.firstOrNull()
         val name = existing?.nickname ?: doorTv?.friendlyName ?: doorTv?.model ?: facts.model
         val profile = (res as? ProfileResolution.Exact)?.profile
+        // RFC-LOOK-SETUP-1: a Setup run again starts from the look this phone saved for the TV (its
+        // look, apps in a row and picture), so it never clears them.
+        val saved = if (existing?.wizard != null) null else deps.homePrefs?.let { p -> attempt { p.load(s.tvId) }.getOrNull() }
+        val lookId = saved?.lookOn(deps.clock.today())
         val draft = existing?.wizard ?: WizardDraft(step = 3, level = existing?.level ?: Level.SIMPLE, kept = emptySet(), extraOff = emptySet(),
-            dock = null, themeId = null, keepDebuggingOn = false, planId = null, updatedAtMs = now)
+            dock = null, themeId = lookId, keepDebuggingOn = false, planId = null, updatedAtMs = now,
+            columns = drafts.override(lookId, saved?.columns), picture = saved?.picture?.takeUnless { Looks.dated(lookId) })
         val tv = Tv(
             id = s.tvId, nickname = name, room = existing?.room, facts = facts,
             endpoints = listOfNotNull(host).ifEmpty { existing?.endpoints.orEmpty() },
@@ -770,10 +811,14 @@ class SetupMachine(
         val draft = withoutRefusedChoices(record, record.wizard ?: return, snap)
         val launcher = deps.launcherPin.bundled()
         val installed = snap.packages[launcher.pkg]
-        // The dock and the rows under it, cut to what the chosen look holds (DockLayers).
-        val theme = draft.themeId?.takeIf { Looks.offered(it, deps.clock.today()) }?.let { id -> deps.themes.bundled().firstOrNull { it.id == id } }
-        val columns = DockLayers.columnsOf(theme?.doc)
+        // The dock and the rows under it, cut to what the chosen look holds at the chosen apps in a
+        // row (DockLayers). The draft keeps its whole list (up to 24 apps), so fewer apps in a row
+        // never drops the rest of the order.
+        val theme = lookOf(draft)
+        val override = drafts.override(theme?.id, draft.columns)
+        val columns = override ?: DockLayers.columnsOf(theme?.doc)
         val dock = DockLayers.trim(draft.dock ?: deps.dock.pick(profile(), snap.packages.keys, snap.hdmi.isNotEmpty(), profile()?.liveTv, deps.locale()), columns)
+        val kept = draft.dock?.let(DockLayers::keep) ?: dock
         val wifi = wizardWifi(s, snap)
         val block = homeBlock(snap, wifi)
         val possible = block == HomeBlock.NONE
@@ -794,10 +839,41 @@ class SetupMachine(
         // said outright by the TV's overlay).
         val saved = deps.homePrefs?.let { attempt { it.load(record.id) }.getOrNull() }
         val cards = Cards.of(saved?.cards, snap.launcherOverlay, Cards.SETUP_DEFAULT)
-        val look = if (!possible) null else attempt { Look.encode(deps.encoder, deps.blobs, theme, dock, cards) }
+        // RFC-LOOK-SETUP-1: the picture as the Look sheet sends it: the person's kept photo with its
+        // saved dim, a photo made in this step (gone when the app was closed since: the look's own),
+        // a gallery picture or none. A dated look keeps its own.
+        val own = deps.documents?.let { docs -> attempt { OwnPicture.ref(docs, deps.blobs, record.id) }.getOrNull() }
+        val mine = own?.let { OwnPicture.mine(it, saved?.dim) }
+        val photo = newPhoto
+        val new = photo?.let { LookPicture.Of(it.ref, it.dim) }
+        val dated = Looks.dated(theme?.id)
+        val pictureId = draft.picture.takeUnless { dated }
+        val lookPicture = when (pictureId) {
+            LookPicture.MINE_ID -> mine
+            LookPicture.NEW_ID -> new
+            else -> LookPicture.of(pictureId, deps.pictures)
+        }
+        val look = if (!possible) null else attempt { Look.encode(deps.encoder, deps.blobs, theme, dock, cards, lookPicture, override) }
             .onFailure { deps.log.line("setup: the look could not be encoded, planned without it") }.getOrNull()
-        setupHome = look?.let { it.digest to HomeChoice(it.doc.dockApps.orEmpty(), theme?.id, cards,
-            HomeChoice.previousFor(saved?.themeId, saved?.previousThemeId, theme?.id)) }
+        // What Manage starts from once the run pushed it, saved as the Look sheet saves it: a dated
+        // look keeps the picture and dim saved for the look before it; a photo made here is kept for
+        // the TV (and saved as "mine") only once the TV has it.
+        val sendsNew = pictureId == LookPicture.NEW_ID && new != null
+        val chosen = when {
+            dated -> saved?.picture
+            sendsNew -> LookPicture.MINE_ID
+            pictureId == LookPicture.NEW_ID -> null
+            else -> pictureId
+        }
+        val dim = when {
+            dated -> saved?.dim
+            sendsNew -> photo!!.dim
+            chosen == LookPicture.MINE_ID -> saved?.dim ?: OwnPicture.DEFAULT_DIM
+            else -> null
+        }
+        setupHome = look?.let { SetupHome(it.digest, HomeChoice(kept, theme?.id, cards,
+            HomeChoice.previousFor(saved?.themeId, saved?.previousThemeId, theme?.id), picture = chosen, dim = dim, columns = override),
+            photo?.takeIf { sendsNew }, saved) }
         // RFC-CURTAIN-1: the TV shows the progress unless Custom switched it off (Simple never shows
         // the switch). An asset that does not match its pin is never offered; the plan goes without it.
         val showOnTv = draft.level == Level.SIMPLE || draft.curtain
@@ -820,10 +896,14 @@ class SetupMachine(
                     deps.log.line("setup: ${decision.line}")
                     deps.homeDecisions?.let { store -> attempt { store.save(record.id, decision) } }
                 }
+                // The look step's draft and preview, from the whole draft dock (its waiting apps too).
+                val lookApps = kept.map { p -> AppChoice(p, label(p)) }
+                val sheet = drafts.draft(theme?.id ?: HomeScreenMachine.DEFAULT_LOOK, draft.picture, override, lookApps, mine, new)
                 mutableExtras.update {
                     it.copy(commands = commandsOf(r.plan), unknownModel = res !is ProfileResolution.Exact, homePossible = possible, homeBlock = block,
                         noScreenLock = !deps.screenLock.available(), draft = draft, dock = dock.map { p -> AppChoice(p, label(p)) }, apps = apps,
-                        dockColumns = columns)
+                        dockColumns = columns, look = sheet, ownPicture = own, ownDim = saved?.dim ?: OwnPicture.DEFAULT_DIM,
+                        newPicture = photo?.ref, newDim = photo?.dim ?: OwnPicture.DEFAULT_DIM, waiting = DockLayers.waiting(kept.size, columns))
                 }
                 send(Ev.PlanReady(record.id, r.plan, draft.level))
             }
@@ -878,8 +958,17 @@ class SetupMachine(
 
     private fun setLevel(level: Level) = editDraft { it.copy(level = level) }
 
-    private fun dockColumns(themeId: String?): Int =
-        DockLayers.columnsOf(themeId?.takeIf { Looks.offered(it, deps.clock.today()) }?.let { id -> deps.themes.bundled().firstOrNull { it.id == id } }?.doc)
+    // The draft's look when it is on offer today (an ended dated look plans as the launcher's own),
+    // and its apps in a row: the draft's own count, else the look's.
+    private fun lookOf(draft: WizardDraft) = draft.themeId?.takeIf { Looks.offered(it, deps.clock.today()) }?.let { drafts.theme(it) }
+
+    private fun columnsOf(draft: WizardDraft): Int = lookOf(draft).let { t -> drafts.override(t?.id, draft.columns) ?: DockLayers.columnsOf(t?.doc) }
+
+    // The look the current plan pushes: its digest, what Manage starts from once it is on the TV, the
+    // photo made in the look step it sends (kept for the TV only then) and the choice saved before.
+    private class SetupHome(val digest: Sha256, val choice: HomeChoice, val photo: NewPhoto?, val saved: HomeChoice?)
+
+    private class NewPhoto(val ref: BlobRef, val jpeg: ByteArray, val dim: Int)
 
     // the run (S3 to S4)
 
@@ -1056,7 +1145,13 @@ class SetupMachine(
         tv = done
         deps.tvs.upsert(done)
         // RFC-CARDS-1: what the run pushed is what Manage starts from (dock, theme, cards).
-        setupHome?.takeIf { (pushedDigest, _) -> pushedDigest == digest }?.let { (_, choice) ->
+        // RFC-LOOK-SETUP-1: a photo made in the look step is kept for the TV now that the TV has it;
+        // when it cannot be kept, the picture stays as it was saved.
+        setupHome?.takeIf { it.digest == digest }?.let { home ->
+            val photo = home.photo
+            val keptPhoto = photo != null && deps.documents?.let { docs -> attempt { OwnPicture.keep(docs, tvId, photo.jpeg) }.isSuccess } == true
+            val choice = if (photo == null || keptPhoto) home.choice else home.choice.copy(picture = home.saved?.picture, dim = home.saved?.dim)
+            if (keptPhoto) newPhoto = null
             deps.homePrefs?.let { prefs -> attempt { prefs.save(tvId, choice) } }
         }
         // Issue #15: nothing switched off, no new home screen and no other change of this run: Done

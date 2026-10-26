@@ -28,6 +28,7 @@ import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.model.PlanId
 import tv.cleanyour.core.model.RunToken
 import tv.cleanyour.core.model.Sha256
+import tv.cleanyour.core.spec.DockLayers
 import tv.cleanyour.core.model.TrustRecord
 import tv.cleanyour.core.model.Tv
 import tv.cleanyour.core.model.TvId
@@ -77,7 +78,7 @@ object TvJson {
             "kept" to JsonArray(w.kept.map { p(it.value) }), "extraOff" to JsonArray(w.extraOff.map { p(it.value) }),
             "dock" to (w.dock?.let { d -> JsonArray(d.map { p(it.value) }) } ?: JsonNull), "themeId" to p(w.themeId),
             "keepDebuggingOn" to p(w.keepDebuggingOn), "planId" to p(w.planId?.value), "updatedAtMs" to p(w.updatedAtMs),
-            "curtain" to p(w.curtain)) } ?: JsonNull),
+            "curtain" to p(w.curtain), "columns" to p(w.columns), "picture" to p(w.picture)) } ?: JsonNull),
         "lastSeenAt" to p(tv.lastSeenAt), "debugging" to p(tv.debugging.name),
     )).encodeToByteArray()
 
@@ -98,7 +99,9 @@ object TvJson {
                 w.strings("kept").map(::PackageName).toSet(), w.strings("extraOff").map(::PackageName).toSet(),
                 if (w["dock"] is JsonArray) w.strings("dock").map(::PackageName) else null, w.str("themeId"),
                 w.bool("keepDebuggingOn") ?: false, w.str("planId")?.let(::PlanId), w.long("updatedAtMs") ?: 0,
-                curtain = w.bool("curtain") ?: true) },   // RFC-CURTAIN-1: a draft written before the switch existed shows the curtain
+                curtain = w.bool("curtain") ?: true,   // RFC-CURTAIN-1: a draft written before the switch existed shows the curtain
+                columns = w.int("columns")?.takeIf { it in DockLayers.MIN_OFFERED_COLUMNS..DockLayers.MAX_OFFERED_COLUMNS },
+                picture = w.str("picture")?.takeIf { it.isNotBlank() }) },
             lastSeenAt = o.long("lastSeenAt") ?: 0, debugging = DebugState.valueOf(o.str("debugging") ?: "UNKNOWN"),
         )
     }
