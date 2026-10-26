@@ -38,6 +38,9 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.min
+import tv.cleanyour.core.flows.PreviewBand
+import tv.cleanyour.core.flows.PreviewButtons
+import tv.cleanyour.core.flows.PreviewGlow
 import tv.cleanyour.ui.design.R
 import tv.cleanyour.ui.design.theme.CytTheme
 import tv.cleanyour.ui.design.theme.Outfit
@@ -76,6 +79,32 @@ data class TvLook(
     val dock: List<String>,
     val clock: String,
     val emptyDockSlots: Boolean = false,
+    // look2, all with defaults (LookPreview's look2 fields, mapped by toTvLook in TvLookFrom.kt):
+    val names: Boolean = false,
+    val glow: PreviewGlow = PreviewGlow.RADIAL,
+    val glowColour: Color = Color(0xFF8A8A8A),
+    val ring: Boolean = false,
+    val band: PreviewBand = PreviewBand.SOLID,
+    val bandOpacity: Int = 100,
+    val evenPadding: Boolean = false,
+    val buttons: PreviewButtons = PreviewButtons.LABELLED,
+    val roundInputs: Boolean = false,
+    val wifiGreen: Boolean = false,
+    val inputs: Boolean = false,
+    val dots: Boolean = true,
+    val scrim: Int = 100,
+    val art: Int = 50,
+    val lift: Boolean = false,
+    val skyMiddle: Color = Color.Unspecified,
+    val sunGlow: Float = 0f,
+    val crop: Boolean = false,
+    val others: List<String> = emptyList(),
+    val date: String = "",
+    val dayGreeting: String = "",
+    // Additive beyond the frozen list: the clock's minute (the day's greeting and AM or PM, from
+    // strings_tvpreview.xml, when `dayGreeting` is empty; -1 draws neither) and the sun's place across.
+    val minuteOfDay: Int = -1,
+    val sunX: Float = 0.5f,
 )
 
 private const val TV_W = 960f
