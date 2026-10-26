@@ -50,12 +50,24 @@ internal object ConfigCodecImpl {
     // Keys with a LauncherConfigDoc field: all of Config.java's keys.
     val MODELLED: Set<String> = KEY_ORDER.toSet()
     // Keys the bundled launcher 2.7 reads (config.xml and Config.load) that have no LauncherConfigDoc
-    // field, which is frozen: an app look sets them, so they are carried in `unknown` as is, with no
-    // warning, since the TV does read them. A TV still on 2.5 or older ignores them. ambient_glow
-    // false keeps the background plain (no glow in the focused app's colour); cinematic_scrim and
-    // cinematic_art (0 to 100) are how much the cinematic shelf's scrim and the app's art cover a
-    // look's picture.
-    val CARRIED_27: Set<String> = setOf("ambient_glow", "cinematic_scrim", "cinematic_art")
+    // field, which is frozen: the looks set them, so they are carried in `unknown` as is, with no
+    // warning, since the TV does read them; LauncherKeys reads them the way Config.java does. A TV
+    // still on 2.5 or older ignores them. ambient_glow false keeps the background plain (no glow in
+    // the focused app's colour); cinematic_scrim and cinematic_art (0 to 100) are how much the
+    // cinematic shelf's scrim and the app's art cover a look's picture. look2 (spec 7.2, 7.3): the
+    // dock band (dock_glass, dock_opacity 30 to 100, read from config.json alone, dock_even_padding),
+    // the glow (app_glow, glow_style), names under every tile (always_show_names), the top bar
+    // (icon_only_buttons, icon_only_inputs, top_menu, wifi_status_color), the focus spring
+    // (focus_overshoot) and the cinematic shelf (cinematic_white_focus, cinematic_dots).
+    val CARRIED_27: Set<String> = setOf(
+        "ambient_glow", "cinematic_scrim", "cinematic_art",
+        "dock_glass", "dock_opacity", "dock_even_padding",
+        "app_glow", "glow_style",
+        "always_show_names",
+        "icon_only_buttons", "icon_only_inputs", "top_menu",
+        "wifi_status_color", "focus_overshoot",
+        "cinematic_white_focus", "cinematic_dots",
+    )
 
     // res/values/config.xml of the launcher at v2.5.0 (the keys of older launchers keep their values).
     // config.xml has no festival, wallpaper rotation, dim or race calendar: those only ever come
