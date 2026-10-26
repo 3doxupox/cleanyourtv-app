@@ -1,4 +1,4 @@
-package tv.cleanyour.ui.design.component
+package tv.cleanyour.feature.launcher
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -12,9 +12,12 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import tv.cleanyour.ui.design.component.OwnPhoto
 
 // 0.4.0 "Your photo": a noisy 12 MP photo (the hardest kind to compress) becomes a 1920 x 1080 JPEG
 // of at most 280 KB, the quality stepping down from 85 and then the size, and the crop is 16:9.
+// OwnPhoto lives in :ui:design; it is tested here, beside the Look sheet, so the 12 MP photo stays
+// out of the design module's screenshot test JVM, which runs beside the others on a small build host.
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [35])
