@@ -114,7 +114,9 @@ import tv.cleanyour.ui.design.component.rememberEmphasis
 import tv.cleanyour.ui.design.component.rememberUndoSnackbarState
 import tv.cleanyour.ui.design.component.LookDoneFooter
 import tv.cleanyour.ui.design.component.LookEditor
+import tv.cleanyour.ui.design.component.LookEditorNav
 import tv.cleanyour.ui.design.component.LookEditorSheet
+import tv.cleanyour.ui.design.component.rememberLookEditorNav
 import tv.cleanyour.ui.design.component.LookEditorState
 import tv.cleanyour.ui.design.component.PhotoPicker
 import tv.cleanyour.ui.design.component.toEditor
@@ -478,14 +480,14 @@ internal fun ThemeSheet(extras: SetupExtras, actions: SetupActions, photos: Phot
 // sheet gives it).
 @Composable
 internal fun ColumnScope.ThemeContent(extras: SetupExtras, actions: SetupActions, photos: PhotoPicker? = null, pictures: Map<String, ImageBitmap>? = null,
-    modifier: Modifier = Modifier) {
+    modifier: Modifier = Modifier, nav: LookEditorNav = rememberLookEditorNav()) {
     val editor = extras.toEditor() ?: return
     LookEditor(
         editor, onEdit = { actions.intent(SetupIntent.Look(it)) },
         onPhoto = { jpeg, dim -> actions.intent(SetupIntent.SetOwnPicture(jpeg, dim)) },
         onClose = { actions.intent(SetupIntent.Open(null)) },
         footer = { LookDoneFooter { actions.intent(SetupIntent.Open(null)) } },
-        photos = photos, pictures = pictures, modifier = modifier, asksBeforeLeaving = false,
+        photos = photos, pictures = pictures, modifier = modifier, nav = nav, asksBeforeLeaving = false,
     )
 }
 

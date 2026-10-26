@@ -6,8 +6,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -36,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -43,6 +43,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -237,7 +238,8 @@ fun LookEditor(
         // In the sheet the page scrolls between the pinned parts; with no bound (a parent that
         // scrolls, as a test may give it) the page is laid out in full and the parent scrolls.
         val bounded = constraints.hasBoundedHeight
-        Column(Modifier.fillMaxWidth().then(if (nav.asking) Modifier.clearAndSetSemantics {} else Modifier)) {
+        // While the leave question is up, the sheet behind it cannot be reached (W12).
+        Column(Modifier.fillMaxWidth().then(if (nav.asking) Modifier.clearAndSetSemantics { hideFromAccessibility() } else Modifier)) {
             LookHeader(nav, pageTitle, onClose = { if (nav.close()) onClose() })
             val collapse = with(density) { (scrolls.getValue(LookPage.MAIN).value / 140.dp.toPx()).coerceIn(0f, 1f) }
             PinnedPreview(
@@ -298,7 +300,8 @@ private fun LookHeader(nav: LookEditorNav, title: String, onClose: () -> Unit) {
 @Composable
 private fun LeaveQuestion(photoOnly: Boolean, onStay: () -> Unit, onLeave: () -> Unit, modifier: Modifier = Modifier) {
     val c = CytTheme.colors
-    Box(modifier.background(c.scrim).clickable(MutableInteractionSource(), indication = null, onClick = onStay).clearAndSetSemantics {})
+    // The scrim: a tap on it is Keep choosing; not a control of its own for TalkBack.
+    Box(modifier.background(c.scrim).pointerInput(Unit) { detectTapGestures { onStay() } })
     Box(modifier, contentAlignment = Alignment.Center) {
         Column(Modifier.padding(horizontal = 8.dp).fillMaxWidth().background(c.surface3, CytTheme.shapes.large).padding(20.dp)) {
             SheetHeader(stringResource(R.string.cyt_look_leave_title))
