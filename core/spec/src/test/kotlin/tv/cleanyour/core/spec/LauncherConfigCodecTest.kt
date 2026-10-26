@@ -177,7 +177,8 @@ class LauncherConfigCodecTest {
         assertEquals("{\n  \"columns\": 5,\n  \"ambient_glow\": false,\n  \"cinematic_art\": 20,\n  \"cinematic_scrim\": 45,\n  \"zz\": 1\n}\n",
             LauncherConfigCodec.encode(r.doc).decodeToString())
         val xml = java.io.File(Fixtures.upstreamDir, "launcher/app/src/main/res/values/config.xml").readText()
-        for (k in ConfigCodecImpl.CARRIED_27) assertTrue(Regex("<(bool|integer) name=\"$k\">").containsMatchIn(xml), k)
+        // dock_opacity is read from config.json alone (Config.load: 30 to 100, else 100).
+        for (k in ConfigCodecImpl.CARRIED_27 - "dock_opacity") assertTrue(Regex("<(bool|integer|string) name=\"$k\"").containsMatchIn(xml), k)
         val reader = java.io.File(Fixtures.upstreamDir, "launcher/app/src/main/java/com/gathin/tvhome/Config.java").readText()
         for (k in ConfigCodecImpl.CARRIED_27) assertTrue("(json, \"$k\"" in reader, "Config.load reads $k from config.json")
     }
