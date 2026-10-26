@@ -5,8 +5,11 @@ import java.time.format.DateTimeParseException
 import tv.cleanyour.core.model.BlobRef
 import tv.cleanyour.core.spec.AppColours
 import tv.cleanyour.core.spec.DecodeResult
+import tv.cleanyour.core.spec.EffectiveConfig
+import tv.cleanyour.core.spec.GlowStyle
 import tv.cleanyour.core.spec.LauncherConfigCodec
 import tv.cleanyour.core.spec.LauncherConfigDoc
+import tv.cleanyour.core.spec.LauncherKeys
 import tv.cleanyour.core.spec.Movement
 
 // 0.4.0: the phone's picture of the TV's home screen for the Look sheet's choice, read back from
@@ -66,8 +69,14 @@ data class LookPreview(
     companion object {
         // 0.4.0, removed after look2 merges: the dock as names only.
         fun of(bytes: ByteArray, wallpaper: BlobRef?, dock: List<String>, today: LocalDate, minuteOfDay: Int): LookPreview {
-            val doc = (LauncherConfigCodec.decode(bytes) as? DecodeResult.Ok)?.doc ?: LauncherConfigDoc()
-            val e = LauncherConfigCodec.effective(doc, LauncherConfigCodec.builtInDefaults)
+            val doc = decode(bytes)
+            return of040(LauncherConfigCodec.effective(doc, LauncherConfigCodec.builtInDefaults), wallpaper, dock, today, minuteOfDay)
+        }
+
+        private fun decode(bytes: ByteArray): LauncherConfigDoc = (LauncherConfigCodec.decode(bytes) as? DecodeResult.Ok)?.doc ?: LauncherConfigDoc()
+
+        // The 0.4.0 fields, from the decoded bytes.
+        private fun of040(e: EffectiveConfig, wallpaper: BlobRef?, dock: List<String>, today: LocalDate, minuteOfDay: Int): LookPreview {
             val festive = e.festival.isNotBlank() && (e.festivalUntil.isBlank() || lastDay(e.festivalUntil)?.let { !today.isAfter(it) } == true)
             val name = e.festival.trim().lowercase()
             return LookPreview(
@@ -88,24 +97,62 @@ data class LookPreview(
             )
         }
 
-        // look2: the dock and the TV's other apps with their packages (the focused app's colour),
-        // and whether the TV shows an Inputs pill. Every other field is read from the bytes.
+        // look2: the dock and the TV's other apps with their packages (for their names and the
+        // focused app's colour), and whether the TV shows an Inputs pill. Every other field is read
+        // from the bytes: the codec's effective config for the modelled keys and LauncherKeys.look
+        // for the carried 2.7 ones, so a key the TV would not get never shows. The dock is the
+        // bytes' dock_apps (the given dock when they have none), named from the given apps; the
+        // others are the rest of the given apps the bytes do not hide, in order.
         fun of(bytes: ByteArray, wallpaper: BlobRef?, dock: List<AppChoice>, others: List<AppChoice>, today: LocalDate,
             minuteOfDay: Int, hasInputs: Boolean): LookPreview {
-            val old = of(bytes, wallpaper, dock.map { it.name }, today, minuteOfDay)
-            val focused = if (old.dockRow) dock.firstOrNull() else (dock + others).firstOrNull()
-            return old.copy(
-                others = others.map { it.name },
-                focusArgb = AppColours.of(focused?.pkg),
-                today = today,
-                band = if (old.dockRow) PreviewBand.SOLID else PreviewBand.NONE,
-                inputs = hasInputs,
-                movement = when (old.motion) {
-                    LookMotion.OFF -> Movement.OFF
-                    LookMotion.CALM -> Movement.QUICK
-                    else -> Movement.LIVELY
+            val doc = decode(bytes)
+            val e = LauncherConfigCodec.effective(doc, LauncherConfigCodec.builtInDefaults)
+            val k = LauncherKeys.look(doc)
+            val apps = (dock + others).distinctBy { it.pkg }
+            val names = apps.associate { it.pkg.value to it.name }
+            val docked = doc.dockApps?.map { it.value } ?: dock.map { it.pkg.value }
+            val hidden = e.hiddenApps.toSet()
+            val rest = apps.filter { it.pkg.value !in docked && it.pkg.value !in hidden }
+            val focused = docked.firstOrNull() ?: rest.firstOrNull()?.pkg?.value
+            val base = of040(e, wallpaper, emptyList(), today, minuteOfDay)
+            return base.copy(
+                dock = docked.map { names[it] ?: it },
+                others = rest.map { it.name },
+                movement = when {
+                    !e.animations -> Movement.OFF
+                    e.reducedMotion -> Movement.QUICK
+                    k.focusOvershoot -> Movement.LIVELY
+                    else -> Movement.SMOOTH
                 },
-                lift = old.motion == LookMotion.CRISP,
+                lift = e.animations && e.advancedEffects,
+                focusArgb = AppColours.of(focused),
+                today = today,
+                names = k.alwaysShowNames,
+                glow = when {
+                    !k.ambientGlow -> PreviewGlow.NONE
+                    k.glowStyle == GlowStyle.HORIZON -> PreviewGlow.HORIZON
+                    else -> PreviewGlow.RADIAL
+                },
+                ring = k.appGlow || e.cinematicHome && !k.cinematicWhiteFocus,
+                band = when {
+                    !e.dockRow -> PreviewBand.NONE
+                    k.dockGlass -> PreviewBand.GLASS
+                    e.cinematicHome || k.dockOpacity < 100 -> PreviewBand.SEE_THROUGH
+                    else -> PreviewBand.SOLID
+                },
+                bandOpacity = k.dockOpacity,
+                evenPadding = k.dockEvenPadding,
+                buttons = when {
+                    k.topMenu -> PreviewButtons.MENU
+                    k.iconOnlyButtons -> PreviewButtons.ROUND
+                    else -> PreviewButtons.LABELLED
+                },
+                roundInputs = k.iconOnlyInputs,
+                wifiGreen = k.wifiStatusColor,
+                inputs = hasInputs,
+                dots = k.cinematicDots,
+                scrim = k.cinematicScrim,
+                art = k.cinematicArt,
             )
         }
 
