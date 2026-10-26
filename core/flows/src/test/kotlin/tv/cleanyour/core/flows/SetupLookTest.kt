@@ -200,6 +200,21 @@ class SetupLookTest {
         assertTrue(m.extras.value.look?.let { it.columns == 6 && it.picture == "glass" } == true)
     }
 
+    // look2: a Setup run again on a TV whose saved choice is in the new form starts from it.
+    @Test fun setupAgainStartsFromASavedLook2Choice() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.tvs.upsert(Samples.tv())
+        HomePrefs(h.documents).save(Samples.miTvId(), HomeChoice(apps, null, cards = false, picture = "neon", columns = 6, style = "glass",
+            movement = "smooth", lift = false, names = true, details = LookDetails(ring = false)))
+        val m = found(h)
+        val look = assertNotNull(m.extras.value.look)
+        assertEquals(listOf<Any?>(StyleId.GLASS, "neon", 6, tv.cleanyour.core.spec.Movement.SMOOTH, true, LookDetails(ring = false)),
+            listOf(look.style, look.picture, look.columns, look.movement, look.names, look.details))
+        assertEquals("glass", m.choice()?.style)
+        assertEquals(6, h.sentDoc().columns)
+        assertEquals("false", h.sentDoc().unknown["app_glow"]?.toString(), "the ring stays off")
+    }
+
     // The draft's look choice survives a restart with the TV record.
     @Test fun theDraftKeepsItsLookChoiceOnDisk() {
         val tv = Samples.tv().copy(wizard = WizardDraft(3, Level.SIMPLE, emptySet(), emptySet(), apps, "console", false, null, 5, columns = 6, picture = "glass"))

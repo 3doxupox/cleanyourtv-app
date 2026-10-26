@@ -408,6 +408,55 @@ class LooksTest {
         assertEquals(60, m.state.value.ownDim)
     }
 
+    // look2 pictures (spec 6.2): every picture of today's looks, with its background colour, and no
+    // new image bytes; the 0.4.0 ids keep working.
+    @Test fun theGalleryHasEveryPictureWithItsColour() {
+        val p = BundledThemeSource().pictures()
+        assertEquals(listOf("diwali", "aurora", "mist", "glass", "ruska", "curtains", "mountains", "lamp", "neon", "cobalt"), p.map { it.id })
+        assertEquals(listOf("Diwali", "Aurora", "Mist", "Navy", "Autumn lake", "Curtains", "Mountains", "Lamp light", "Neon", "Cobalt"), p.map { it.name })
+        assertEquals(listOf(0x120809, 0x070A14, 0x0E1022, 0x090C14, 0x07080D, 0x07060A, 0x000000, 0x141210, 0x0B0614, 0x020611),
+            p.map { it.backgroundArgb and 0xFFFFFF })
+        assertTrue(p.all { it.backgroundArgb ushr 24 == 0xFF })
+        val diwali = p.first()
+        assertEquals(listOf<Any?>(lastDay, "diwali", "#FFB23C"), listOf(diwali.until, diwali.festival, diwali.accentColor))
+        assertEquals(listOf(55), p.filter { it.sky > 0 }.map { it.sky })
+        assertEquals("mountains", p.single { it.sky > 0 }.id)
+        assertTrue(p.drop(1).all { it.until == null && it.festival == null })
+        val themes = BundledThemeSource().bundled().associateBy { it.id }
+        for ((picture, look) in listOf("curtains" to "cinema", "mountains" to "horizon", "lamp" to "library", "neon" to "arcade", "cobalt" to "console",
+            "mist" to "mist", "diwali" to "diwali", "aurora" to "aurora")) {
+            assertEquals(themes.getValue(look).wallpaper?.sha256, p.single { it.id == picture }.wallpaper.sha256, "$picture is $look's picture")
+        }
+    }
+
+    // A dated picture: Diwali keeps the picture before it, is offered up to its last day, and after
+    // it the draft opens on the picture before it and Home names it as ended.
+    @Test fun diwaliIsADatedPictureThatGivesThePictureBackWhenItEnds() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.clock.setWall(ms(lastDay))
+        val apps = pkgs(4)
+        val (m, id) = homeWith(h, apps, HomeChoice(apps, null, cards = false, picture = "mist", columns = 5, style = "classic", movement = "lively", lift = false))
+        assertTrue("diwali" in m.state.value.pictures.map { it.id })
+        assertEquals(lastDay, m.state.value.pictures.single { it.id == "diwali" }.until)
+        m.dispatch(HomeScreenIntent.OpenLook)
+        m.dispatch(HomeScreenIntent.Look(LookEdit.SelectPicture("diwali")))
+        assertEquals(true, m.state.value.look?.rows?.festiveRing)
+        m.dispatch(HomeScreenIntent.UseLook); settle()
+        val sent = h.pushes().last().doc
+        assertEquals(listOf("diwali", "2026-11-10", "#FFB23C"), listOf(sent.festival, sent.festivalUntil, sent.accentColor))
+        assertEquals("diwali" to "mist", HomePrefs(h.documents).load(id)?.let { it.picture to it.previousPicture })
+        assertNull(m.state.value.endedLook)
+        h.clock.setWall(ms(lastDay.plusDays(1)))
+        val later = HomeScreenMachine(h.manageDeps(encoder = ConfigEncoder.Codec, themes = looks), backgroundScope, id)
+        settle()
+        assertTrue("diwali" !in later.state.value.pictures.map { it.id }, "no longer offered")
+        assertEquals("Diwali", later.state.value.endedLook)
+        later.dispatch(HomeScreenIntent.OpenLook); settle()
+        assertEquals("mist", later.state.value.look?.picture, "the picture before it")
+        // The draft opens on it as what is sent next; the ended line on Home is the way to send it.
+        assertEquals(false, later.state.value.look?.changed)
+    }
+
     // 0.4.0 Apps in a row. ---------------------------------------------------------------------
 
     private val looks = BundledThemeSource()
