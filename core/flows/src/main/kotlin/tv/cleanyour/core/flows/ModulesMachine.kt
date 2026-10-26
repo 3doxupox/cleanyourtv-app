@@ -184,6 +184,17 @@ class ModulesMachine(
         if (tv.launcher == null) return null
         val choice = d.homePrefs.load(tvId)
         if (Cards.current(d, tvId, choice, overlay)) return null
+        // look2: a choice in the new form is pushed in its own form, on this TV.
+        if (choice?.isNew == true) {
+            val snap = d.snapshots.latest(tvId)
+            val packages = snap?.packages.orEmpty()
+            val liveTv = d.profileOf(tv)?.liveTv
+            val lookTv = LookTv(packages[Launcher.pkg]?.versionCode, snap?.facts?.ramMb?.takeIf { it > 0 },
+                snap == null || snap.hdmi.isNotEmpty() || liveTv?.let { it in packages } == true)
+            val drafts = LookDrafts(d.themes, d.pictures, d.encoder, d.clock)
+            val (doc, wallpaper) = drafts.docOf(choice, choice.dock, cards = true, OwnPicture.ref(d, tvId), lookTv)
+            return Look.encode(d.encoder, d.blobs, doc, wallpaper) to choice.copy(dock = DockLayers.keep(choice.dock), cards = true)
+        }
         // 0.4.0: once a dated look has ended, the look before it (HomeChoice.lookOn).
         val theme = choice?.lookOn(d.clock.today())?.let { id -> d.themes.bundled().firstOrNull { it.id == id } }
         // 0.4.0: with the person's apps in a row, and the whole saved order kept (DockLayers.keep),
