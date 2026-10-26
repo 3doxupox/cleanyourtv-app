@@ -33,7 +33,7 @@ class CopyTest {
     // and no copy contains an em dash or a double hyphen (house rule).
     @Test fun everyStringResourceIsValidIcuAndFollowsTheHouseRules() {
         val root = File(System.getProperty("cleanyourtv.repoRoot") ?: error("no repo root"))
-        val files = listOf("app", "feature/connect", "feature/setup", "feature/manage", "feature/launcher", "feature/modules", "feature/backup")
+        val files = listOf("app", "ui/design", "feature/connect", "feature/setup", "feature/manage", "feature/launcher", "feature/modules", "feature/backup")
             .map { File(root, "$it/src/main/res/values/strings.xml") }
         val re = Regex("<string name=\"([a-z0-9_]+)\"[^>]*>(.*?)</string>", RegexOption.DOT_MATCHES_ALL)
         var checked = 0

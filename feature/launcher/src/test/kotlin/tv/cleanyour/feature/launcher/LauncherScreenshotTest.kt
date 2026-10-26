@@ -42,6 +42,10 @@ import tv.cleanyour.core.model.Op
 import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.testing.fixtures.Samples
 import tv.cleanyour.ui.design.component.DockEditorState
+import tv.cleanyour.ui.design.component.LookPreviewCard
+import tv.cleanyour.ui.design.component.PhotoCropContent
+import tv.cleanyour.ui.design.component.PhotoPicker
+import tv.cleanyour.ui.design.component.toTvLook
 
 // Every section 4 state of :feature:launcher (PRODUCT-SPEC 4: M2 with the drift banner, the
 // Look and dock sheets and the stock home screen preview), each in dark, light, 200% font and
@@ -135,7 +139,7 @@ private val stockPlan = Samples.plan(
 
 @Composable
 private fun PreviewShot(p: LookPreview, name: String) {
-    Box(Modifier.fillMaxSize().background(CytTheme.colors.bg).padding(16.dp)) { LookPreviewCard(p, name, pictureFiles) }
+    Box(Modifier.fillMaxSize().background(CytTheme.colors.bg).padding(16.dp)) { LookPreviewCard(p.toEditor(), name, pictureFiles) }
 }
 
 object LauncherShots {
@@ -197,7 +201,7 @@ object LauncherShots {
         // "Your photo": the crop frame with the look's clock, buttons and dock over it, and the dim.
         Shot("home_photo_crop", 900.dp) {
             Column(Modifier.fillMaxSize().background(CytTheme.colors.bg).padding(20.dp)) {
-                PhotoCropContent(pictureFiles.getValue(resourcePath(bundledLooks.getValue("mist").wallpaper)!!), preview("console").toTvLook(null), 30, null, { _, _, _, _ -> }, {})
+                PhotoCropContent(pictureFiles.getValue(resourcePath(bundledLooks.getValue("mist").wallpaper)!!), preview("console").toEditor().toTvLook(null), 30, null, { _, _, _, _ -> }, {})
             }
         },
         Shot("look_preview_library", 360.dp) { PreviewShot(preview("library"), "Library") },

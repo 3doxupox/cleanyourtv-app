@@ -181,7 +181,7 @@ fun AppRoot(graph: AppGraph, start: Dest, onExit: () -> Unit) {
     var onPhoto by remember { mutableStateOf<((android.net.Uri) -> Unit)?>(null) }
     val pickPhoto = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri -> if (uri != null) onPhoto?.invoke(uri); onPhoto = null }
     val photoPicker = remember(pickPhoto) {
-        tv.cleanyour.feature.launcher.PhotoPicker { cb ->
+        tv.cleanyour.ui.design.component.PhotoPicker { cb ->
             onPhoto = cb
             pickPhoto.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
         }

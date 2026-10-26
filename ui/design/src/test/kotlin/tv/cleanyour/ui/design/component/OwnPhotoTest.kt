@@ -1,4 +1,4 @@
-package tv.cleanyour.feature.launcher
+package tv.cleanyour.ui.design.component
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory

@@ -86,4 +86,56 @@
     <string name="cyt_dock_gaps">Empty places in the dock stay empty on the TV.</string>
     <string name="cyt_dock_gaps_rows">Empty places in the rows under the dock show your other apps by name.</string>
     <string name="cyt_dock_others">Other apps on the TV</string>
+
+    <!-- 0.4.0 Look editor (RFC-LOOK-SETUP-1): the Look sheet's choices, shared by the Look sheet and
+         Setup's look step. ICU MessageFormat with named arguments, as the screens' copy. -->
+    <string name="cyt_look_title">Look</string>
+    <string name="cyt_look_default">Default</string>
+    <string name="cyt_look_list_title">Looks</string>
+    <string name="cyt_look_preview_cd">Preview of the TV\'s home screen with {look}: {count, plural, one {# app in a row} other {# apps in a row}}, no picture.</string>
+    <string name="cyt_look_preview_cd_picture">Preview of the TV\'s home screen with {look}: {count, plural, one {# app in a row} other {# apps in a row}} over a picture.</string>
+    <string name="cyt_look_fact_motion_off">No movement</string>
+    <string name="cyt_look_fact_motion_calm">Quick movement, for slower TVs</string>
+    <string name="cyt_look_fact_motion_crisp">Lively, with lift and zoom</string>
+    <string name="cyt_look_fact_motion_bouncy">Lively movement</string>
+    <string name="cyt_look_fact_sky">Sky follows the clock</string>
+    <string name="cyt_look_fact_grid">All apps on one page</string>
+    <string name="cyt_look_columns_title">Apps in a row</string>
+    <string name="cyt_look_columns_help">Fewer apps means bigger tiles.</string>
+    <string name="cyt_look_columns_biggest">4 gives the biggest tiles the TV can show.</string>
+    <string name="cyt_look_columns_end_big">Bigger</string>
+    <string name="cyt_look_columns_end_many">More apps</string>
+    <string name="cyt_look_columns_empty">{apps, plural, one {Your dock has # app} other {Your dock has # apps}}, so {free, plural, one {# space stays} other {# spaces stay}} empty. You can add apps in Dock.</string>
+    <string name="cyt_look_columns_waiting">{count, plural, one {# app waits} other {# apps wait}} in the grid until you pick more apps in a row.</string>
+    <string name="cyt_look_columns_seven">At 7, long app names are cut short on the TV.</string>
+    <string name="cyt_look_columns_eight">At 8 the tiles are small and long names are cut short. The TV\'s own settings stop at 7.</string>
+    <string name="cyt_look_columns_cd">{count, plural, one {# app in a row} other {# apps in a row}}</string>
+    <string name="cyt_look_columns_cd_big">{count, plural, one {# app in a row} other {# apps in a row}}, bigger tiles</string>
+    <string name="cyt_look_columns_cd_many">{count, plural, one {# app in a row} other {# apps in a row}}, more apps</string>
+    <string name="cyt_look_picture_title">Picture</string>
+    <string name="cyt_look_picture_own">The look\'s own</string>
+    <string name="cyt_look_picture_none">No picture</string>
+    <string name="cyt_look_picture_own_only">This look keeps its own picture.</string>
+    <string name="cyt_look_picture_choose">Choose a photo</string>
+    <string name="cyt_look_picture_restore_mine">Restore mine</string>
+    <string name="cyt_look_picture_new">New photo</string>
+    <string name="cyt_look_desc_default">A black background with four apps along the bottom.</string>
+    <string name="cyt_look_desc_aurora">A deep blue background with a soft glow behind the apps.</string>
+    <string name="cyt_look_desc_six_columns">Six apps across, so more fit on the screen.</string>
+    <string name="cyt_look_desc_cinema">Velvet curtains around a dark stage, and the focused app\'s name in large type.</string>
+    <string name="cyt_look_desc_console">Seven small tiles, a big app name and deep cobalt light.</string>
+    <string name="cyt_look_desc_horizon">Mountain ridges under a sky that changes with the hour: blue by day, warm at sunrise and sunset, dark at night.</string>
+    <string name="cyt_look_desc_quiet">Pure black, no picture and calm motion. Good for OLED and slower TVs.</string>
+    <string name="cyt_look_desc_diwali">Lamps, a gold rangoli and festive icons, until 10 November.</string>
+    <string name="cyt_look_desc_library">Every app on one calm page like a bookshelf: no dock band, warm lamp light.</string>
+    <string name="cyt_look_desc_arcade">A neon sun over a glowing grid, six tiles a row that bounce when you move.</string>
+    <string name="cyt_look_desc_mist">Soft out of focus light in indigo, teal and peach, calm like a streaming box at night.</string>
+    <string name="cyt_photo_title">Your photo</string>
+    <string name="cyt_photo_body">Pinch and drag to choose what the TV shows. Keep faces clear of the clock and the dock drawn over it.</string>
+    <string name="cyt_photo_frame_cd">Your photo as the TV will show it, with the clock, the buttons and the dock drawn over it.</string>
+    <string name="cyt_photo_dim">Dim: {dim}%</string>
+    <string name="cyt_photo_use">Use this crop</string>
+    <string name="cyt_photo_unreadable">This photo can\'t be read. Try another one.</string>
+    <string name="cyt_photo_too_big">This photo couldn\'t be made small enough for the TV. Try another one.</string>
+    <string name="cyt_cancel">Cancel</string>
 </resources>

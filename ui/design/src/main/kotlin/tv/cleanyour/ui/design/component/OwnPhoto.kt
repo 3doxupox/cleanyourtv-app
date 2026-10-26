@@ -1,10 +1,11 @@
-package tv.cleanyour.feature.launcher
+package tv.cleanyour.ui.design.component
 
 import android.content.ContentResolver
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.graphics.Rect
 import android.net.Uri
+import androidx.compose.runtime.Immutable
 import java.io.ByteArrayOutputStream
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -15,7 +16,8 @@ import kotlin.math.roundToInt
 // camera, time) is left. The TV gets 1920 x 1080 (the launcher samples to the screen, and most TVs
 // draw their interface at 1080p even on a 4K panel), at the best quality from 85 down to 60 that
 // fits MAX_BYTES, else 1600 x 900, else 1280 x 720.
-internal object OwnPhoto {
+@Immutable
+object OwnPhoto {
     const val MAX_BYTES = 280_000
     private const val WORKING_LONG_SIDE = 3200
     val sizes = listOf(1920 to 1080, 1600 to 900, 1280 to 720)

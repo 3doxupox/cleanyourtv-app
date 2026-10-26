@@ -47,6 +47,7 @@ import tv.cleanyour.ui.design.component.Lead
 import tv.cleanyour.ui.design.component.ListDivider
 import tv.cleanyour.ui.design.component.ListGroup
 import tv.cleanyour.ui.design.component.ListRow
+import tv.cleanyour.ui.design.component.PhotoPicker
 import tv.cleanyour.ui.design.component.PrimaryButton
 import tv.cleanyour.ui.design.component.ProgressBar
 import tv.cleanyour.ui.design.component.ScreenScaffold

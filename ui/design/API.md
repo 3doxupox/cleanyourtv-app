@@ -143,6 +143,21 @@ Home, Undo, Restart, Key, Download, Phone, Delete, Share, Edit, Lock, External, 
 | `ThemePicker` | `options, selectedId: String?, onSelect: (ThemeOption) -> Unit, modifier, guardObscured = false` (`guardObscured = true` on Manage, where a tap applies the look to the TV). `themeSwatch(id)` gives the preview colours of the three launcher themes, shared by S3a and M2 |
 | `HighlightColumn` | `count, selectedIndex, modifier, gap = 10.dp, row: @Composable (index, selected) -> Unit` (build other single-choice lists) |
 
+### The Look editor (0.4.0, RFC-LOOK-SETUP-1)
+
+Shared by the Look sheet (M2) and Setup's look step (S3a), so both show the same choices in the
+same order with the same words. Its words are this module's `cyt_look_*` and `cyt_photo_*`
+strings (ICU MessageFormat with named arguments, as the screens' copy).
+
+| Composable or type | Parameters |
+| :- | :- |
+| `ColumnScope.LookEditor` | `state: LookEditorState, onLook: (String) -> Unit, onColumns: (Int) -> Unit, onPicture: (String?) -> Unit, onPhoto: (ByteArray, Int) -> Unit, photos: PhotoPicker? = null, pictures: Map<String, ImageBitmap>? = null` (the sheet header, the preview with what a picture cannot show, Apps in a row with its helper lines in a polite live region, the looks, the Picture row with "Choose a photo" and its crop; a tap only chooses, the caller adds its own button under it) |
+| `LookEditorState(looks, lookId, preview, columns, apps, waiting, picture, ownPictureOnly, pictures, minePath, newPath, photoDim, minColumns, maxColumns)` | `picture` null for the look's own, else `LookEditorState.NONE`, `MINE`, `NEW` or a gallery id |
+| `LookEditorPreview`, `LookEditorMotion`, `LookEditorLook`, `LookEditorPicture` | The flows' LookPreview, looks and gallery in plain values |
+| `LookPreviewCard` | `p: LookEditorPreview, name, pictures?, modifier`; `LookEditorPreview.toTvLook(picture)` gives the `TvPreview` look |
+| `PhotoPicker` | `fun interface` with `pick(onPicked: (Uri) -> Unit)`: the app opens the system photo picker |
+| `PhotoCropDialog`, `PhotoCropContent` | The 16:9 crop with the look drawn over it and the dim; `OwnPhoto` makes the TV's JPEG (1920 x 1080, at most 280 KB, no metadata) |
+
 ### The TV on the phone
 
 | Composable | Parameters |
