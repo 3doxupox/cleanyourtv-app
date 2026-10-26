@@ -9,6 +9,7 @@ import tv.cleanyour.core.spec.DecodeResult
 import tv.cleanyour.core.spec.DockLayers
 import tv.cleanyour.core.spec.LauncherConfigCodec
 import tv.cleanyour.core.spec.LauncherConfigDoc
+import tv.cleanyour.core.spec.LookKeys
 import tv.cleanyour.core.spec.Looks
 import tv.cleanyour.core.spec.PictureSource
 import tv.cleanyour.core.spec.Theme
@@ -30,23 +31,48 @@ import tv.cleanyour.core.store.BlobStore
 // 0.4.0 fill_dock is false in every push: a dock space the person left free stays empty on the TV
 // instead of taking the first app of the grid (launcher DockSlots.empty), so the dock holds only the
 // apps they picked, and the Look sheet's preview draws the space as empty band.
+// look2: a choice in the new form (HomeChoice.style) is built from scratch by LookKeys.build from
+// its resolved LookSpec and PictureKeys (LookRules), spec 7.1; a legacy choice (style null) keeps
+// the frozen 0.4.0 path (LegacyLook) byte for byte until the next send.
 internal class Look(val doc: LauncherConfigDoc, val digest: Sha256, val config: BlobRef, val wallpaper: BlobRef?) {
     companion object {
         suspend fun encode(encoder: ConfigEncoder, blobs: BlobStore, theme: Theme?, dock: List<PackageName>, cards: Boolean, picture: LookPicture? = null,
             columns: Int? = null): Look {
             val (doc, wallpaper) = docOf(theme, dock, cards, picture, columns)
+            return encode(encoder, blobs, doc, wallpaper)
+        }
+
+        // A doc and its wallpaper as the push sends them, encoded and stored.
+        suspend fun encode(encoder: ConfigEncoder, blobs: BlobStore, doc: LauncherConfigDoc, wallpaper: BlobRef?): Look {
             val bytes = encoder.encode(doc)
             return Look(doc, sha256Of(bytes), blobs.putBytes(bytes), wallpaper)
         }
 
-        // The doc and the wallpaper a choice pushes, without storing anything (the preview reads it).
-        fun docOf(theme: Theme?, dock: List<PackageName>, cards: Boolean, picture: LookPicture?, columns: Int? = null): Pair<LauncherConfigDoc, BlobRef?> {
-            val base = DockLayers.applyTo(theme?.doc ?: LauncherConfigDoc(), dock, columns).copy(moduleCards = cards, fillDock = false)
-            return when (val p = picture.takeUnless { Looks.dated(theme?.id) }) {
-                null -> base to theme?.wallpaper
-                LookPicture.None -> base.copy(wallpaper = false, wallpaperRotationMinutes = 0) to null
-                is LookPicture.Of -> base.copy(wallpaper = true, wallpaperRotationMinutes = 0, wallpaperDim = p.dim ?: base.wallpaperDim) to p.ref
-            }
+        // The doc and the wallpaper a 0.4.0 choice pushes, without storing anything (LegacyLook).
+        fun docOf(theme: Theme?, dock: List<PackageName>, cards: Boolean, picture: LookPicture?, columns: Int? = null): Pair<LauncherConfigDoc, BlobRef?> =
+            LegacyLook.docOf(theme, dock, cards, picture, columns)
+
+        // look2: the doc and the wallpaper of a choice in the new form: its rows resolved on this TV,
+        // then LookKeys.build (style keys, details, picture, movement, columns, fill_dock false, the
+        // dock and its rows, module_cards).
+        fun docOf(parts: LookParts, picture: LookPictureInfo, dock: List<PackageName>, cards: Boolean, tv: LookTv): Pair<LauncherConfigDoc, BlobRef?> {
+            val rows = LookRules.rows(parts, picture, DockLayers.trim(dock, parts.columns).size, tv)
+            val doc = LookKeys.build(LookRules.spec(parts, rows), LookRules.pictureKeys(picture, rows), parts.columns, dock, cards)
+            return doc to picture.wallpaper
+        }
+    }
+}
+
+// The 0.4.0 path, frozen: a saved 0.4.0 look sends exactly these bytes until the person sends a
+// new look (spec 8.2, C16), so neither the TV nor the drift check sees a change nobody made. The
+// legacy-looks fixtures (LookMigrationTest) hold it to the bytes 0.4.0 sent.
+internal object LegacyLook {
+    fun docOf(theme: Theme?, dock: List<PackageName>, cards: Boolean, picture: LookPicture?, columns: Int? = null): Pair<LauncherConfigDoc, BlobRef?> {
+        val base = DockLayers.applyTo(theme?.doc ?: LauncherConfigDoc(), dock, columns).copy(moduleCards = cards, fillDock = false)
+        return when (val p = picture.takeUnless { Looks.dated(theme?.id) }) {
+            null -> base to theme?.wallpaper
+            LookPicture.None -> base.copy(wallpaper = false, wallpaperRotationMinutes = 0) to null
+            is LookPicture.Of -> base.copy(wallpaper = true, wallpaperRotationMinutes = 0, wallpaperDim = p.dim ?: base.wallpaperDim) to p.ref
         }
     }
 }
@@ -67,6 +93,7 @@ sealed interface LookPicture {
         const val NONE_ID = "none"
         const val MINE_ID = "mine"     // the person's own photo for this TV (OwnPicture), resolved by HomeScreenMachine
         const val NEW_ID = "new"       // a photo just made in the open Look sheet, not on the TV yet; never saved as a choice
+        const val EARLIER_ID = "earlier"   // look2: the earlier look's photo (EarlierLook), until sent; never saved as a choice
 
         // HomeChoice.picture to the picture: null (the look's own) and an id the gallery no longer
         // has keep the look's own.

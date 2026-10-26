@@ -22,11 +22,18 @@ object Looks {
 
     // Whether the look is offered on `today`: undated looks always are, a dated one up to its last day.
     fun offered(id: String?, today: LocalDate): Boolean = info(id)?.until?.let { !today.isAfter(it) } ?: true
+
+    // look2: a picture is offered always, a dated one (Diwali) up to its last day.
+    fun offered(picture: Picture, today: LocalDate): Boolean = picture.until?.let { !today.isAfter(it) } ?: true
 }
 
 // 0.4.0: a picture any undated look can show instead of its own (the Picture row): wallpaper.jpg
 // for the launcher, a bundled asset like a theme's wallpaper.
-data class Picture(val id: String, val name: String, val wallpaper: BlobRef)
+// look2 (spec 6.2): its background colour (background_color behind the picture), the last day of a
+// dated picture (Diwali, inclusive like festival_until), the festival keys it carries, and its own
+// sky (sky_intensity, 0 for none).
+data class Picture(val id: String, val name: String, val wallpaper: BlobRef, val backgroundArgb: Int = 0xFF000000.toInt(),
+    val until: LocalDate? = null, val festival: String? = null, val accentColor: String? = null, val sky: Int = 0)
 
 interface PictureSource {
     fun pictures(): List<Picture>
