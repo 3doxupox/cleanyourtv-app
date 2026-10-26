@@ -41,6 +41,8 @@ too), how many apps sit in a row, and a preview on the phone before anything rea
   1920 x 1080 copy under 280 KB without the photo's place, camera or time. Once the TV has it, the
   phone keeps that copy for the TV, so "Restore mine" puts it back later; a photo you pick and then
   cancel changes nothing.
+- Setup's Look step now has the same choices as the Look sheet (apps in a row, the picture, your
+  own photo), and running Setup again starts from the look you saved.
 - Diwali is offered until 10 November. After that the phone counts your earlier look as the TV's
   again, with its picture, and Manage offers to put it back on the TV with one tap.
 - The looks use the settings of the home screen app 2.7 that 0.3.7 brought. Quiet black, Horizon and
