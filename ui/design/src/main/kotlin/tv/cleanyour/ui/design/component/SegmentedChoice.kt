@@ -27,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.positionInParent
@@ -36,6 +37,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -61,8 +63,17 @@ internal const val SEGMENT_HIGHLIGHT_TAG = "cyt_segment_highlight"
 // system's reduced motion it moves at once. No tick: the highlight and the selected text in the
 // primary colour show the choice, and TalkBack says "selected". The track mirrors in RTL (the first
 // option at the start edge), as every phone control does. A tap only chooses.
+// look2: `enabled` false keeps the value the TV will use selected but greyed, and each segment
+// reads `disabledReason` as its state (See-through amount without a see-through band).
 @Composable
-fun SegmentedChoice(options: List<SegmentOption>, selectedKey: String?, onSelect: (SegmentOption) -> Unit, modifier: Modifier = Modifier) {
+fun SegmentedChoice(
+    options: List<SegmentOption>,
+    selectedKey: String?,
+    onSelect: (SegmentOption) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    disabledReason: String? = null,
+) {
     val c = CytTheme.colors
     val reduced = CytTheme.reducedMotion
     val selected = options.indexOfFirst { it.key == selectedKey }
@@ -93,18 +104,23 @@ fun SegmentedChoice(options: List<SegmentOption>, selectedKey: String?, onSelect
             Box(
                 Modifier.align(AbsoluteAlignment.TopLeft).absoluteOffset { IntOffset(x.value.roundToInt(), 0) }
                     .size(with(density) { width.value.toDp() }, with(density) { height.toDp() })
-                    .glass(track, CytTheme.highlight).testTag(SEGMENT_HIGHLIGHT_TAG),
+                    .alpha(if (enabled) 1f else 0.5f).glass(track, CytTheme.highlight).testTag(SEGMENT_HIGHLIGHT_TAG),
             )
         }
         Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             options.forEachIndexed { i, o ->
                 val on = i == selected
-                val ink by animateColorAsState(if (on) c.primary else c.textSecondary, tween(if (reduced) 0 else 200), label = "segment")
+                val ink by animateColorAsState(
+                    when { on && enabled -> c.primary; else -> c.textSecondary }, tween(if (reduced) 0 else 200), label = "segment",
+                )
                 Box(
                     Modifier.weight(1f).heightIn(min = 48.dp).clip(track)
                         .onPlaced { bounds[i] = it.positionInParent().x to it.size.width.toFloat(); height = it.size.height }
-                        .selectable(on, role = Role.RadioButton) { onSelect(o) }
-                        .semantics { contentDescription = o.contentDescription }
+                        .selectable(on, enabled = enabled, role = Role.RadioButton) { onSelect(o) }
+                        .semantics {
+                            contentDescription = o.contentDescription
+                            if (!enabled && disabledReason != null) stateDescription = disabledReason
+                        }
                         .padding(horizontal = 4.dp, vertical = 8.dp),
                     contentAlignment = Alignment.Center,
                 ) {
