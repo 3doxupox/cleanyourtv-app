@@ -37,6 +37,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.shape.RoundedCornerShape
 import kotlinx.coroutines.delay
 import tv.cleanyour.ui.design.R
 import tv.cleanyour.ui.design.theme.CytMotion
@@ -121,7 +122,9 @@ fun UndoSnackbarHost(state: UndoSnackbarState, modifier: Modifier = Modifier) {
 fun UndoSnackbar(message: String, onAction: () -> Unit, modifier: Modifier = Modifier, actionLabel: String = stringResource(R.string.cyt_undo),
     showAction: Boolean = true) {
     val c = CytTheme.colors
-    val shape = CytTheme.shapes.pill
+    // A pill at its one-line height (half of 52 dp), and still a rounded box when a long message
+    // wraps at a big font size, so its text is never cut off by the round ends.
+    val shape = RoundedCornerShape(26.dp)
     Row(
         modifier.fillMaxWidth().heightIn(min = 52.dp)
             .shadow(24.dp, shape, ambientColor = Color.Black.copy(alpha = 0.5f), spotColor = Color.Black.copy(alpha = 0.5f))
@@ -133,7 +136,7 @@ fun UndoSnackbar(message: String, onAction: () -> Unit, modifier: Modifier = Mod
         Text(message, Modifier.weight(1f).padding(vertical = 14.dp, horizontal = 0.dp).padding(end = if (showAction) 0.dp else 14.dp), color = c.textPrimary,
             style = CytTheme.type.bodyMedium)
         if (showAction) Box(
-            Modifier.heightIn(min = 48.dp).clip(shape).clickable(role = Role.Button, onClick = onAction).padding(horizontal = 14.dp),
+            Modifier.heightIn(min = 48.dp).clip(CytTheme.shapes.pill).clickable(role = Role.Button, onClick = onAction).padding(horizontal = 14.dp),
             contentAlignment = Alignment.Center,
         ) {
             Text(actionLabel, color = c.accent, style = CytTheme.type.labelMedium)
