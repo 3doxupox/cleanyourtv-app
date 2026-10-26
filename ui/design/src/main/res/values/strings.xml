@@ -123,6 +123,7 @@
     <string name="cyt_look_advanced_cd">Advanced</string>
     <string name="cyt_look_back_look">Back to Look</string>
     <string name="cyt_look_back_more">Back to More options</string>
+    <string name="cyt_look_preview_drawing">Drawing the preview...</string>
     <string name="cyt_look_preview_bigger_cd">Show the preview bigger</string>
     <string name="cyt_look_preview_smaller_cd">Show the preview smaller</string>
     <string name="cyt_look_preview_cd">Preview of the TV\'s home screen: {style}, {picture}, {count, plural, one {# app in a row} other {# apps in a row}}.</string>

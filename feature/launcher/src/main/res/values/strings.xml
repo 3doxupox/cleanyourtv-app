@@ -14,7 +14,7 @@
     <string name="action_done">Done</string>
     <string name="action_undo">Undo</string>
 
-    <!-- Credential prompt (D17), raised by "Restore mine" and "Use the TV's own home screen" -->
+    <!-- Credential prompt (D17), raised by "Send mine again" and "Use the TV's own home screen" -->
     <string name="gate_title">Confirm it\'s you</string>
     <string name="gate_subtitle">Before we change anything on {tv}</string>
     <string name="gate_negative">Cancel</string>
@@ -30,7 +30,7 @@
     <string name="home_row_stock">Use the TV\'s own home screen</string>
     <string name="home_row_stock_note">Brings back the TV\'s own home screen. Ours stays installed, so you can switch again.</string>
     <string name="home_drift_banner">The home screen settings on the TV changed since you set them.</string>
-    <string name="home_drift_restore">Restore mine</string>
+    <string name="home_drift_restore">Send mine again</string>
     <string name="home_applying">Updating the home screen on the TV...</string>
     <string name="home_snackbar_done">Done.</string>
 
@@ -85,7 +85,7 @@
 
     <!-- M2 Look (theme picker) -->
     <string name="theme_default">Default</string>
-    <string name="home_look_ended_banner">{look} has ended. Put your earlier look back on the TV?</string>
+    <string name="home_look_ended_banner">{picture} has ended. Put your earlier picture back on the TV?</string>
     <string name="home_look_ended_restore">Put it back</string>
 
     <!-- S3b Your dock (sheet) -->

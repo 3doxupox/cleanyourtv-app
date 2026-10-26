@@ -66,7 +66,7 @@ import tv.cleanyour.ui.design.component.styleName
 import tv.cleanyour.ui.design.component.toTvLook
 
 // M2 Home screen: Dock (S3b), Look (theme picker), "Use the TV's own home screen" with its preview,
-// and the drift banner with "Restore mine" (D15). Each sheet keeps its body in an internal *Content
+// and the drift banner with "Send mine again" (D15). Each sheet keeps its body in an internal *Content
 // composable, so the screenshot tests can draw it on SheetSurface.
 @Composable
 fun HomeScreen(state: HomeScreenState, onIntent: (HomeScreenIntent) -> Unit, onBack: () -> Unit, modifier: Modifier = Modifier, photos: PhotoPicker? = null) {
@@ -84,7 +84,7 @@ fun HomeScreen(state: HomeScreenState, onIntent: (HomeScreenIntent) -> Unit, onB
         // TV's, and one tap puts it back on the TV (the launcher only drops the festival skin).
         state.endedLook?.let { ended ->
             if (!state.drift) {
-                Banner(msg(R.string.home_look_ended_banner, "look" to ended), BannerTone.INFO, Modifier.padding(top = 16.dp),
+                Banner(msg(R.string.home_look_ended_banner, "picture" to ended), BannerTone.INFO, Modifier.padding(top = 16.dp),
                     actionLabel = stringResource(R.string.home_look_ended_restore), onAction = { onIntent(HomeScreenIntent.RestoreMine) }, guardAction = true)
             }
         }
