@@ -25,3 +25,20 @@ bundled curtain matches its pin: eb21e112c97121a3ed7f4db1c7fbf2169bc172a14bb3f8c
 # unchanged (git diff e42aaf2 tv/curtain build-logic is empty, so no curtain rebuild was needed).
 # Sizes: launcher 540,541 bytes, under upstream's 589,824 byte gate (2.7 was 491,007). The app's
 # checkApkSizeRelease (8 MiB) is checked after the merge into up300.
+
+# scripts/fdroid-check.sh, the same image and fdroidserver 2d1e622 (.github/workflows/fdroid.yml), on a
+# normal clone of up300-launcher at f6bf145 (rebased on up300 after WP0; versionName still 0.4.0 / 15).
+# fdroid build ran the recipe, rebuilt both bundled APKs and the full flavour. No signed 0.4.5 APK
+# exists yet, so there is no compare; the release (section 8) runs it with the signed APK. Filtered.
+==> launcher: assembleRelease in a copy of third_party/cleanyourtv/launcher (unsigned)
+==> android/platform/src/main/assets/bundled/cleanyourtv-launcher.apk: size 540541, sha256 9fcc21c0eb81548c2432b3bf89c1d9c6b6ad17dcf7f7fc2e8d90d7ccbea7d60e
+    matches PinnedLauncher
+==> curtain: :tv:curtain:assembleRelease (unsigned)
+==> android/platform/src/main/assets/bundled/cleanyourtv-curtain.apk: size 65955, sha256 eb21e112c97121a3ed7f4db1c7fbf2169bc172a14bb3f8ca781079de4651662e
+    matches PinnedCurtain
+==> both bundled APKs rebuilt from source and match their pins
+INFO: Successfully built tv.cleanyour.app:15 from f6bf1450dd31156aebcdd0b92548d1f7c2914452
+==> the F-Droid build is app/build/outputs/apk/full/release/app-full-release-unsigned.apk
+3feb93690542664a7b798832ec54a39cbe21f3fed978d1d866692bb048312467  tv.cleanyour.app_15-unsigned.apk
+
+# App size gate on the same tree (:app:checkApkSizeRelease, 8 MiB): full 7,053,415 bytes, play 7,036,815 bytes.
