@@ -2839,7 +2839,10 @@
         "com.tcl.useragreement": { "category": "other", "ask": false },
         "com.tcl.tvhealthcheck": { "category": "tracking", "ask": false },
         "com.tcl.logkit": { "category": "tracking", "ask": false },
-        "com.iflytek.xiri.translate": { "category": "voice", "ask": false }
+        "com.iflytek.xiri.translate": { "category": "voice", "ask": false },
+        "com.tcl.ffeducation": { "category": "preloads", "ask": true },
+        "com.tcl.ffkaraoke": { "category": "preloads", "ask": true },
+        "com.tcl.tclmusic": { "category": "preloads", "ask": true }
       }
     },
     "tcl-beyondtv": {
