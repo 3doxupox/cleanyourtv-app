@@ -113,17 +113,23 @@ class ProfilesTest {
     // (upstream #1807: with both off, system_server crashed in a boot loop), and prismplus-q65-ultra-r10g,
     // whose list switches the wizard off, keeps it on too (setupWraithStaysOn): the home screen switch is
     // skipped for the family (HomeSwitchRisk.BOOT_LOOP), so neither profile switches either one off.
+    // kalley-r10g still names its wizard with the takeover quirk, so a TV that has it off gets it back
+    // only with the TV's own home screen in charge (DefaultPlanner.putBack, PutBackAdvice); both are
+    // never-disable as well.
     @Test fun theR10gProfilesKeepTheStockHomeAndTheWizard() {
         for (id in listOf("kalley-r10g", "prismplus-q65-ultra-r10g")) {
             val pr = profile(id)
             val inGroups = pr.groups.flatMap { g -> g.packages.map { it.name } }
             for (pkg in listOf(KnownLaunchers.LAUNCHERX.pkg, KnownLaunchers.SETUPWRAITH)) assertTrue(pkg !in inGroups, "$id $pkg")
-            assertEquals(null, pr.setupWraith, id)
-            assertTrue(Quirk.HOME_TAKEOVER_SETUPWRAITH !in pr.quirks, id)
             assertTrue(KnownLaunchers.SETUPWRAITH in pr.neverDisable, id)
         }
+        val prism = profile("prismplus-q65-ultra-r10g")
+        assertEquals(null, prism.setupWraith)
+        assertTrue(Quirk.HOME_TAKEOVER_SETUPWRAITH !in prism.quirks)
         val kalley = profile("kalley-r10g")
         assertTrue(KnownLaunchers.LAUNCHERX.pkg in kalley.neverDisable && Quirk.STOCK_LAUNCHER_KEEP_ENABLED in kalley.quirks)
+        assertEquals(KnownLaunchers.SETUPWRAITH, kalley.setupWraith)
+        assertTrue(Quirk.HOME_TAKEOVER_SETUPWRAITH in kalley.quirks)
     }
 
     @Test fun theReferenceTvProfile() {

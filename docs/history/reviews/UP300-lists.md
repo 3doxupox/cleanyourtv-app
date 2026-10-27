@@ -29,7 +29,7 @@ shipped lists) or a new setup wizard, so `ProfileCategories.kt` and `Denylist.kt
 | hisense-smarttv-4k-ffm-android11 | second and third units; their extra rows stay comments | header only |
 | hisense-u75-hengshan | second and third units | header only |
 | insignia-ns55f301na25 | PowerShell Undo line | header only |
-| kalley-r10g | launcherx and setupwraith now kept on (#1807: boot loop with both off on a second set) | both never-disable, no takeover wizard, STOCK_LAUNCHER_KEEP_ENABLED; HomeSwitchRisk skips the switch for the family; ProfilesTest checks it |
+| kalley-r10g | launcherx and setupwraith now kept on (#1807: boot loop with both off on a second set) | both never-disable, STOCK_LAUNCHER_KEEP_ENABLED; the takeover quirk stays so the wizard is only put back with the TV's own home screen in charge; HomeSwitchRisk skips the switch for the family; ProfilesTest checks it |
 | motorola-swtv-24ae-fhd | second unit (Coocaa, SEA) and fusion.android.tv.demo | fusion.android.tv.demo an ask row: it answers the Input key on other MediaTek sets and the header does not test that |
 | ok-ai-pont-ikebukuro | second unit (Nikkei DVB91NK) and batch 5, reboot-checked there | partner setup and the print spooler default-off, the other extras and the USB players ask rows; still under review for the brand sets |
 | philips-50pud7406 | third unit (55PUS7906), one evening; its candidates stay comments | header only |
