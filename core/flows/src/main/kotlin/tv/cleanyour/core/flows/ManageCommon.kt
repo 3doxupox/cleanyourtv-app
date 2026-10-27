@@ -403,6 +403,10 @@ class TvWriter(private val d: ManageDeps) {
             when (val outcome = d.runner.follow(tv, plan)) {
                 is RunOutcome.Finished -> {
                     d.openWrites.clear(tvId)
+                    // 0.4.6: "Keep it" on the took the Home button card: the app the put back
+                    // switched on keeps Home, so the TV record says the new home screen is no longer
+                    // Home, as Use the TV's own home screen does (useStockHome).
+                    if (action == OpenWriteAction.STOP_HERE && OpenWrites.tookHome(paused) != null) d.tv(tvId)?.let { d.tvs.upsert(it.copy(launcher = null)) }
                     afterRun(tv, session, plan, outcome.state)
                     WriteResult.Done(plan, outcome.state)
                 }

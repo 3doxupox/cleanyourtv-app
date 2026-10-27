@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import tv.cleanyour.core.engine.PauseReason
 import tv.cleanyour.core.engine.RunState
+import tv.cleanyour.core.model.AdbError
 import tv.cleanyour.core.model.Op
 import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.model.PlanId
@@ -49,7 +50,9 @@ class OpenWrites {
         // (the SetHome or VerifyHome of the new home screen failed: that app answers Home now).
         fun tookHome(paused: RunState.Paused): PackageName? {
             val plan = paused.plan
-            if (plan.kind != PlanKind.PUT_BACK || paused.reason != PauseReason.STEP_FAILED) return null
+            // Only Home's answer not matching (the verify's GuardFailed): a refused set-home-activity
+            // or a read that failed is the ordinary card.
+            if (plan.kind != PlanKind.PUT_BACK || paused.reason != PauseReason.STEP_FAILED || paused.error !is AdbError.Policy.GuardFailed) return null
             val at = plan.steps.getOrNull(paused.at)?.op
             val ours = (at as? Op.SetHome)?.component ?: (at as? Op.VerifyHome)?.expected ?: return null
             if (ours.pkg != Launcher.pkg) return null

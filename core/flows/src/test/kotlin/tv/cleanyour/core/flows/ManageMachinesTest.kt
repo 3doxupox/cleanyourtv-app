@@ -1055,7 +1055,7 @@ class ManageMachinesTest {
     // the run's own undo; a put back that paused anywhere else is the ordinary card.
     @Test fun aPutBackThatTookTheHomeButtonSaysSoAndItsUndoSwitchesTheAppOffAgain() = runTest(timeout = 30.seconds) {
         val h = Harness()
-        val tv = h.knownTv()
+        val tv = h.knownTv().copy(launcher = LauncherState(1, Samples.zeroHash, Samples.zeroHash, Samples.zeroHash)).also { h.tvs.upsert(it) }
         val stock = Samples.stockLauncher
         h.ranDisable(tv, listOf(stock.pkg))
         h.respond(PlanKind.PUT_BACK, listOf(Op.Enable(stock.pkg), Op.SetHome(Launcher.home), Op.VerifyHome(Launcher.home)))
@@ -1072,6 +1072,13 @@ class ManageMachinesTest {
         assertTrue(h.planner.requests.none { it is PlanRequest.SwitchOff }, "never a new switch-off plan, which would refuse a home screen")
         assertIs<WriteResult.Paused>(result)   // the fake engine never moves on: the card stays, with the reconnect line
         assertEquals(d.nameOf(stock.pkg), assertNotNull(d.openWrites.current.value).tookHome)
+        assertNotNull(h.tvs.tvs.value.single { it.id == tv.id }.launcher, "undo keeps the new home screen in charge")
+        // "Keep it" ends the run there, and the TV record says the new home screen is no longer Home.
+        result = null
+        backgroundScope.launch { result = TvWriter(d).resolveOpen(tv.id, OpenWriteAction.STOP_HERE) }
+        settle()
+        assertEquals(RunStatus.ABANDONED, assertIs<WriteResult.Done>(result).finished.status)
+        assertNull(h.tvs.tvs.value.single { it.id == tv.id }.launcher)
         // Paused at the switch-on itself: the ordinary card.
         val other = Harness()
         val tv2 = other.knownTv()
@@ -1082,6 +1089,16 @@ class ManageMachinesTest {
         val d2 = other.manageDeps()
         assertIs<WriteResult.Paused>(TvWriter(d2).write(tv2.id, PlanRequest.PutBack(stock.pkg)))
         assertNull(assertNotNull(d2.openWrites.current.value).tookHome)
+        // Paused at the Home check for another reason (the TV refused set-home-activity): the ordinary
+        // card too; only Home answering to another app (the verify's GuardFailed) is "took Home".
+        val refused = Harness()
+        val tv3 = refused.knownTv()
+        refused.ranDisable(tv3, listOf(stock.pkg))
+        refused.respond(PlanKind.PUT_BACK, listOf(Op.Enable(stock.pkg), Op.SetHome(Launcher.home), Op.VerifyHome(Launcher.home)))
+        refused.engine.onStart = { p -> if (p.kind == PlanKind.PUT_BACK) emit(p.tvId, RunState.Paused(p, 1, PauseReason.STEP_FAILED, AdbError.NonZeroExit(1, "refused"))) else finish(p, RunStatus.COMPLETED) }
+        val d3 = refused.manageDeps()
+        assertIs<WriteResult.Paused>(TvWriter(d3).write(tv3.id, PlanRequest.PutBack(stock.pkg)))
+        assertNull(assertNotNull(d3.openWrites.current.value).tookHome)
     }
 }
 
