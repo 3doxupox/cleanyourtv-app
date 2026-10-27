@@ -3632,6 +3632,24 @@
         "com.google.android.videos": { "category": "streaming", "ask": true }
       }
     },
+    "xiaomi-mi-box-s-android12": {
+      "match": { "models": ["MIBOX4"], "devices": ["oneday"], "brand": "Xiaomi", "sdkMin": 31, "sdkMax": 31, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": null,
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["mitv.service", "com.google.android.tv.remote.service", "com.xiaomi.android.tvsetup.partnercustomizer", "com.google.android.tungsten.setupwraith"],
+      "suggestedDock": [],
+      "tested": { "by": "Alimango Studio (PR #1523)", "firmware": "STTC.230106.001.4560", "daysLivedWith": 2, "rebootTested": false },
+      "groups": {
+        "Xiaomi telemetry": { "category": "tracking", "ask": false },
+        "PatchWall, content rows, ad-funded channels": { "category": "ads", "ask": false },
+        "Personal choice: Mi casting": { "category": "casting", "ask": true },
+        "Xiaomi screensaver, replaced by the launcher's clock": { "category": "screensaver", "ask": true }
+      },
+      "packages": {}
+    },
     "xiaomi-mi-tv-4a": {
       "match": { "models": ["MiTV-MOOQ1"], "devices": ["tarzan"], "brand": "Xiaomi", "sdkMin": 29, "sdkMax": 29, "fingerprintPrefix": null },
       "platform": "ANDROID_TV",

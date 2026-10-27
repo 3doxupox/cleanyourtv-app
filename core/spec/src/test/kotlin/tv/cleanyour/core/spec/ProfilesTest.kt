@@ -25,7 +25,7 @@ class ProfilesTest {
 
     @Test fun everyConvertedUpstreamExampleParsesWithCuratedMetadata() {
         assertEquals(316, upstream.size)
-        assertEquals(148, examples.size)
+        assertEquals(149, examples.size)
         for (e in examples) {
             val profile = DebloatTxtParser.parse(e.debloatTxt, e.folder)
             assertEquals(e.folder, profile.id)
@@ -62,7 +62,7 @@ class ProfilesTest {
     @Test fun theUnconvertedListIsPinnedToTheSubmodule() {
         val meta = ProfileMeta.decode(File(Fixtures.repoRoot, "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json").readText())
         assertEquals(upstream.map { it.folder }.filter { it !in meta.profiles }.toSet(), unconverted)
-        assertEquals(168, unconverted.size)
+        assertEquals(167, unconverted.size)
         val listed = unconvertedFile.readLines().filter { it.isNotBlank() && !it.startsWith("#") }
         assertEquals(listed.sorted(), listed, "one folder per line, sorted")
         assertTrue('\u2014' !in unconvertedFile.readText() && "-".repeat(2) !in unconvertedFile.readText())
@@ -200,11 +200,16 @@ class ProfilesTest {
 
     // RF-PROFILES-63 P2: the exact profiles that know no stock launcher get the clean-up only (Setup's
     // homePossible); pinned, so a new one is a reviewed decision.
+    // 0.4.5 (second curator): Xiaomi China-market sets whose Home takes only allowlisted apps, so
+    // com.mitv.tvhome stays on and Setup does the clean-up only (no new home screen offered).
+    private val cleanUpOnlyPart2: Set<String> = setOf(
+    )
+
     @Test fun theProfilesWithNoKnownStockLauncher() {
         val none = BundledProfileSource.bundled.profiles.filter { it.stockLaunchers.isEmpty() && it.platform != Platform.FIRE_OS && it.platform != Platform.TCL_CN }
         // xiaomi-mitv-mftr0 (0.3.7): China firmware whose home is com.mitv.tvhome, not a known launcher.
         assertEquals(setOf("challenger-32t22bt", "freebox-player-pop", "google-tv-streamer-4k-kirkwood", "hisense-e5q-pro", "kalley-43g200",
-            "stellamore-t950s", "verizon-stream-tv", "vidda-mt9653", "xiaomi-mitv-ansp0", "xiaomi-mitv-astp1", "xiaomi-mitv-mffu0", "xiaomi-mitv-mftr0"), none.map { it.id }.toSet())
+            "stellamore-t950s", "verizon-stream-tv", "vidda-mt9653", "xiaomi-mitv-ansp0", "xiaomi-mitv-astp1", "xiaomi-mitv-mffu0", "xiaomi-mitv-mftr0") + cleanUpOnlyPart2, none.map { it.id }.toSet())
     }
 
     // RF-PROFILES-63 P8: where two profiles score the same for a TV, the longer fingerprint prefix wins
@@ -295,6 +300,22 @@ class ProfilesTest {
         // The fingerprint prefix settles the BRAVIA_ATV2, BRAVIA_VH2, G05 and G08 pairs (pinned above);
         // tcl-g10-google-tv is the one true duplicate.
         assertEquals(setOf(setOf("tcl-55s470g", "tcl-g10-google-tv")), ties)
+    }
+
+    // 0.4.5 (second curator): each promoted b06ab21 list resolves from a TV report in our issues, and
+    // the near misses (another Android version, another badge on the same board) keep their old path.
+    @Test fun promotedAtB06ab21Part2ResolveFromTheirReports() {
+        val source = BundledProfileSource()
+        fun f(brand: String, maker: String, model: String, device: String, sdk: Int, fingerprint: String) =
+            Fixtures.miTv().facts().copy(brand = brand, manufacturer = maker, model = model, device = device, sdk = sdk, fingerprint = fingerprint)
+        val reports = listOf<Pair<tv.cleanyour.core.model.DeviceFacts, String?>>(
+            f("Xiaomi", "Xiaomi", "MIBOX4", "oneday", 31, "Xiaomi/oneday/oneday:12/STTC.230106.001/4560:user/release-keys") to "xiaomi-mi-box-s-android12",   // #1153
+        )
+        for ((facts, id) in reports) assertEquals(id, (source.resolveNow(facts) as? ProfileResolution.Exact)?.profile?.id, "${facts.model} ${facts.fingerprint}")
+        for (id in cleanUpOnlyPart2) {
+            val pr = BundledProfileSource.bundled.profiles.single { it.id == id }
+            assertTrue(p("com.mitv.tvhome") in pr.neverDisable && pr.stockLaunchers.isEmpty(), id)
+        }
     }
 
     @Test fun malformedFilesFailWithTheLine() {

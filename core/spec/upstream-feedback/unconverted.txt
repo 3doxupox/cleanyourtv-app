@@ -169,7 +169,6 @@ vision-2024vision43stv    # parked: the build fingerprint is spoofed (google/sha
 vu-vibe-tv    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 xgimi-mogo-4    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 xgimi-mogo-4-laser    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
-xiaomi-mi-box-s-android12    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 xiaomi-mitv-afmu1    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 xiaomi-mitv-astp0    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 xiaomi-mitv-astr0    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
