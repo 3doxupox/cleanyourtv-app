@@ -353,9 +353,13 @@ object TvReport {
 object IssueLinks {
     const val REPO = "https://github.com/udhaykumarbala/cleanyourtv-app"
     const val MAX_VALUE = 200
-    // GitHub answers links of about 8 KB and more with an error page; 7,000 keeps a margin for the
-    // browser and for a redirect through the sign-in page, which carries the link as a parameter.
-    const val MAX_URL = 7000
+    // 0.4.6: GitHub answers HTTP 500 once the link and the request headers together pass about
+    // 6,875 bytes (measured 2026-10-27: a bare request with a 6,900 character link works and 6,920
+    // fails; with 1.5 KB of cookies, 5,400 works and 5,600 fails), and a phone signed in to GitHub
+    // sends 1.5 to 2.5 KB of cookies. Signed out, a link over about 6,000 characters loses its
+    // return_to at the sign-in page, so the form never opens. 4,000 leaves room for both. Before
+    // 0.4.6 the cap was 7,000, which failed for most signed-in phones.
+    const val MAX_URL = 4000
 
     // The form fields that hold the report (the ids in .github/ISSUE_TEMPLATE).
     const val TV_REPORT_FIELD = "report"
@@ -396,11 +400,12 @@ object IssueLinks {
     // "(Filled in by the app) Setup: A step didn't work (STEP_FAILED). paused STEP_FAILED at step 72".
     const val FILLED_IN = "(Filled in by the app)"
 
+    // Cut at a word with "..." to stay within MAX_VALUE, so link() never cuts it mid word.
     fun what(c: ReportContext, redact: (String) -> String = { it }): String =
-        "$FILLED_IN ${TvReport.said(c.screen, redact, 60)}: ${TvReport.said(c.card, redact, 120)} (${TvReport.said(c.case, redact, 60)})" +
-            (c.step ?: c.error)?.let { ". ${TvReport.said(it, redact, 160)}" }.orEmpty().let { w ->
-                if (w.length <= MAX_VALUE) w else w.take(MAX_VALUE - 3).substringBeforeLast(' ') + "..."
-            }
+        ("$FILLED_IN ${TvReport.said(c.screen, redact, 60)}: ${TvReport.said(c.card, redact, 120)} (${TvReport.said(c.case, redact, 60)})" +
+            (c.step ?: c.error)?.let { ". ${TvReport.said(it, redact, 160)}" }.orEmpty()).let { w ->
+            if (w.length <= MAX_VALUE) w else w.take(MAX_VALUE - 3).substringBeforeLast(' ') + "..."
+        }
 
     private fun link(template: String, params: List<Pair<String, String>>, reportField: String, report: String?): Link {
         val query = (listOf("template" to template) + params).joinToString("&") { (k, v) -> "$k=${enc(v.take(MAX_VALUE))}" }

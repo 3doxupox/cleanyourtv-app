@@ -59,6 +59,7 @@ class ProblemReportsTest {
             val ctx = if (p.input == null) connectCtx else stepCtx
             val f = ProblemReports.fit(p.about, p.input, p.log, ctx)
             val q = query(f.link.url)
+            println("issue #$n: report ${fixture(n).length} characters, link ${f.link.url.length}, log ${f.logKept} of ${f.logLines} lines, names ${f.namesKept}")
             assertTrue(f.link.reportInLink, "issue #$n: ${f.link.url.length}")
             assertTrue(f.link.url.length <= IssueLinks.MAX_URL, "issue #$n: ${f.link.url.length}")
             assertTrue(f.shortened, "issue #$n")
@@ -84,7 +85,6 @@ class ProblemReportsTest {
             assertEquals("bug_report.yml", q["template"])
             assertTrue(q["what"]!!.startsWith(IssueLinks.FILLED_IN + " ${ctx.screen}: ${ctx.card} (${ctx.case})"), q["what"])
             if (p.input == null) assertEquals("Problem: could not connect (protocol)", q["title"])
-            println("issue #$n: report ${fixture(n).length} characters, link ${f.link.url.length}, log ${f.logKept} of ${f.logLines} lines, names ${f.namesKept}")
         }
     }
 
@@ -171,6 +171,28 @@ class ProblemReportsTest {
         }
         assertTrue("Card: the TV at [address] [redacted by the app], code [code], [address], [host] (STEP_FAILED)" in f.sent, f.sent)
         assertTrue("Problem: could not connect (refused [address])" == query(f.link.url)["title"], query(f.link.url)["title"])
+    }
+
+    // A nickname comes out as a whole word only: a short one ("Mi") leaves "Mirror" and "MiTV" alone,
+    // and a nickname that is just "TV" changes nothing.
+    @Test fun aNicknameIsTakenOutAsAWholeWord() {
+        assertEquals("the TV stopped answering near the Mirror and MiTV", ReportContext.named("Mi stopped answering near the Mirror and MiTV", "Mi"))
+        assertEquals("The TV stopped answering", ReportContext.named("The TV stopped answering", "TV"))
+        assertEquals("the TV and the TV", ReportContext.named("Arun's TV and Arun", "Arun's TV", "Arun"))
+        assertEquals("We were in the middle of setting up the TV.", ReportContext.named("We were in the middle of setting up Living Room (2).", "Living Room (2)"))
+        assertEquals("Unchanged", ReportContext.named("Unchanged", null, "", "x"))
+    }
+
+    // The form's What happened box is cut at a word with "..." when the step is long, within MAX_VALUE.
+    @Test fun theWhatHappenedBoxIsCutAtAWord() {
+        val long = stepCtx.copy(step = (1..60).joinToString(" ") { "word$it" })
+        val w = IssueLinks.what(long)
+        assertTrue(w.length <= IssueLinks.MAX_VALUE, "${w.length}")
+        assertTrue(w.endsWith("..."), w)
+        assertTrue(Regex("word\\d+\\.\\.\\.$").containsMatchIn(w), w)
+        assertEquals(w, query(ProblemReports.fit(parse(fixture(1130)).about, null, "", long).link.url)["what"])
+        // A short one is whole.
+        assertFalse(IssueLinks.what(stepCtx.copy(step = "short")).endsWith("..."))
     }
 
     // The route a card sends, back to the TV and the context, whatever the title holds.

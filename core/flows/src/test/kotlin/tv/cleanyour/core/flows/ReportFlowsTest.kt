@@ -182,6 +182,13 @@ class ReportFlowsTest {
             assertFalse("192.168.1.20" in r.link.url || "192.168.1.20" in r.full)
             assertTrue(r.link.url.contains("&what="), r.link.url)
         }
+        // The TV's nickname in a title comes out, as a whole word.
+        val nick = assertNotNull(m.extras.value.tvName)
+        m.effects.test {
+            m.report("$nick stopped, ${nick}Box"); settle()
+            val named = assertNotNull(IssueRoute.parse(drain().filterIsInstance<SetupEffect.Navigate>().single().key)).second
+            assertEquals("the TV stopped, ${nick}Box", named.card)
+        }
     }
 
     // 0.4.6: a connect that failed has no TV to read: the report has the phone's side, how the TV was

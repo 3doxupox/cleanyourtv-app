@@ -45,9 +45,12 @@ data class ReportContext(
             )
         }
 
-        // A card's title with the TV's own names taken out: a nickname is the person's words.
+        // A card's title with the TV's own names taken out: a nickname is the person's words. Whole
+        // words only, so a short name ("Mi") leaves "Mirror" alone; a name that is just "TV" says nothing.
         fun named(title: String, vararg names: String?): String =
-            names.filterNotNull().filter { it.length >= 2 }.sortedByDescending { it.length }.fold(title) { t, n -> t.replace(n, "the TV") }
+            names.filterNotNull().map { it.trim() }.filter { it.length >= 2 && !it.equals("TV", ignoreCase = true) && !it.equals("the TV", ignoreCase = true) }
+                .distinct().sortedByDescending { it.length }
+                .fold(title) { t, n -> t.replace(Regex("(?<!\\w)" + Regex.escape(n) + "(?!\\w)"), "the TV") }
     }
 }
 
@@ -108,9 +111,9 @@ object RunLines {
 // 3. the log keeps fewer lines, down to none.
 // The header, the TV, its matching, its Home switch and Home screen lines and what happened on the
 // card are never cut. Real reports of 10,500 to 26,400 characters (issues #1006, #1130, #1136) keep
-// 36 to 66 log lines in a link of 6,900 characters (ProblemReportsTest).
+// 12 to 32 log lines in a link under IssueLinks.MAX_URL, 3,860 to 3,970 characters (ProblemReportsTest).
 object ProblemReports {
-    const val MIN_LOG_LINES = 20
+    const val MIN_LOG_LINES = 10
 
     // `full`: the report as the preview shows it and Share and the copy send. `sent`: what the
     // link holds (the same when it fits). `logLines`: the log lines after its first line; `logKept`:
@@ -146,7 +149,8 @@ object ProblemReports {
             }
             return a
         }
-        val floor = minOf(MIN_LOG_LINES, most)
+        // Nothing switched off: no names to count, so the log alone gives way.
+        val floor = if (input?.switchedOffByApp.isNullOrEmpty()) 0 else minOf(MIN_LOG_LINES, most)
         largest(floor, most, names = true)?.let { k -> return Fitted(full, text(k, true), link(k, true), rest.size, k, true) }
         largest(floor, most, names = false)?.let { k -> return Fitted(full, text(k, false), link(k, false), rest.size, k, false) }
         largest(0, floor, names = false)?.let { k -> return Fitted(full, text(k, false), link(k, false), rest.size, k, false) }
