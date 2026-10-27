@@ -74,8 +74,9 @@ data class PictureKeys(
 // The look2 key writer: spec 7.1 end to end, from a resolved LookSpec and PictureKeys to the
 // whole doc a push sends. Every key is written outright (a style's value, the launcher default
 // included), so nothing of the last look stays behind on the TV. The 2.7 keys LauncherConfigDoc
-// has no field for go in `unknown` (ConfigCodecImpl.CARRIED_27); LookDifferentialTest holds the
-// result to launcher 2.7's own Config.java.
+// has no field for go in `unknown` (ConfigCodecImpl.CARRIED_27), and so do the 3.0 extras
+// (CARRIED_30). LookDifferentialTest holds the result to the bundled launcher's own Config.java
+// (3.0, b06ab21) and to 2.7's, for TVs not updated; LookExtrasDifferentialTest holds the extras to 3.0's.
 object LookKeys {
     // Spec 7.2 rows, in table order; every style writes each of them (or removes it when the
     // table says "not written").
