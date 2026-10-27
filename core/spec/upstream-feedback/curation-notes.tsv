@@ -360,6 +360,10 @@ tcl-43s5k	com.google.android.tungsten.setupwraith	the header says it claims Home
 tcl-43s5k	com.tcl.messagebox	carries a ttvs receiver, and tcl-40s5400a and tcl-32s5k keep it to be safe while ttvs is the updater here; ask row
 tcl-43s5k	com.tcl.partnercustomizer	ask row: the header tested the Input key but not the remote's T key (RF-PROFILES-63 P5)
 tcl-43s5k	com.tcl.ttvs	commented out by the list: the header says it is TCL's analytics and also the firmware updater; never-disable
+tcl-50dp660	(header)	the Keep these enabled paragraph is never-disable, with the setup wizard, which the list leaves on (disabling it costs phone Cast pairing)
+tcl-50dp660	(match)	model Percee TV and device tcl_eu from the four reports (issues #1240, #1196, #701, #481), which the header lacked; tcl_eu is a broad TCL name, so the build OTT1.180130.001 is the fingerprint prefix
+tcl-50dp660	com.tcl.ui_mediaCenter	USB media centre and scanning; an ask row, with the TV's own video, audio, picture and recordings players
+tcl-50dp660	com.tcl.xian.StartandroidService	a Software updates ask row: tcl-g03-google-tv at b06ab21 keeps it on because TCL's updater gets the device number from it
 tcl-50ep680	com.tcl.copydatatotv	tcl-beyondtv2 keeps it (boot hooks, role unclear); ask row
 tcl-50ep680	com.tcl.dashboard	other TCL lists keep it; ask row
 tcl-55c715	(match)	model BeyondTV2 on device BeyondTV, Android 9, AP06; the fingerprint prefix is inferred from the header's model, device and build and the product name in tcl-beyondtv2-latin-america's fingerprint, confirm with getprop; a wrong guess fails closed. On AP06 it outranks tcl-beyondtv2-latin-america (tested on AP08) by the longer fingerprint prefix

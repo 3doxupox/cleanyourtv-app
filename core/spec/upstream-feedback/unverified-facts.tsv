@@ -72,6 +72,7 @@ com.sony.dtv.watchtvrecommendation	purpose from the package name
 com.sony.dtv.woprecommendation	purpose from the package name
 com.talents.huanclientauth	purpose from the list's comment only
 com.tcl.interactive	purpose from the list's comment only (TIAS service)
+com.tcl.pvr.pvrplayer	purpose from the package name and the list's group title
 com.twentyfouri.tvbridge.rte	purpose from the list's group comment only (Freeview Play app layer)
 com.vectorunit.purple.googleplay	which Vector Unit game it is (Beach Buggy Racing 2 assumed)
 com.vestel.smartlogger	purpose from the list's comment only

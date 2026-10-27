@@ -2677,6 +2677,43 @@
         "com.google.android.katniss": { "category": "voice", "ask": true }
       }
     },
+    "tcl-50dp660": {
+      "match": { "models": ["Percee TV"], "devices": ["tcl_eu"], "brand": "TCL", "sdkMin": 26, "sdkMax": 26, "fingerprintPrefix": "TCL/tcl_eu/tcl_eu:8.0.0/OTT1.180130.001" },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.tcl.tv",
+      "setupWraith": null,
+      "quirks": ["REENABLED_AT_BOOT"],
+      "neverDisable": ["com.tcl.inputmethod.international", "com.tcl.tv", "com.tcl.tvinput", "com.tcl.tvpassthrough", "com.tcl.sourcemananger", "com.tcl.settings", "com.tcl.autopair", "com.tcl.virtualkey", "com.tcl.factory.view", "com.mediatek.wifi", "com.mediatek.tunerservice", "mtktvapi.agent", "com.google.android.apps.mediashell", "com.google.android.backdrop", "com.google.android.tungsten.setupwraith"],
+      "suggestedDock": [],
+      "tested": { "by": "intrak (PR #642), second unit Muhammad Ali Bukhari (PR #1454)", "firmware": "OTT1.180130.001 (V8-T658T01-LF1V602)", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Stock launcher and its recommendation rows, replaced by launcher/": { "category": "ads", "ask": false },
+        "Google media and voice - this set has no microphone": { "category": "voice", "ask": true },
+        "TCL content, mirroring, updaters and bundled players": { "category": "brand", "ask": true },
+        "ODM leftovers and third-party preloads": { "category": "preloads", "ask": false }
+      },
+      "packages": {
+        "com.google.android.videos": { "category": "streaming", "ask": true },
+        "com.google.android.play.games": { "category": "preloads", "ask": false },
+        "com.tcl.MultiScreenInteraction_TV": { "category": "casting", "ask": true },
+        "com.tcl.partnercustomizer": { "category": "ads", "ask": false },
+        "com.tcl.smartalexa": { "category": "voice", "ask": true },
+        "com.tcl.ui_mediaCenter": { "category": "preloads", "ask": true },
+        "com.tcl.xian.StartandroidService": { "category": "updates", "ask": true },
+        "com.tcl.esticker": { "category": "demo", "ask": false },
+        "com.tcl.m": { "category": "preloads", "ask": false },
+        "com.tcl.eletronicpolicy": { "category": "preloads", "ask": false },
+        "com.tcl.videoplayer": { "category": "preloads", "ask": true },
+        "com.tcl.audioplayer": { "category": "preloads", "ask": true },
+        "com.tcl.imageplayer": { "category": "preloads", "ask": true },
+        "com.tcl.pvr.pvrplayer": { "category": "preloads", "ask": true },
+        "android.autoinstalls.config.tcl.device": { "category": "ads", "ask": false },
+        "com.example.copydatatotv": { "category": "other", "ask": false },
+        "com.example.tvcapture": { "category": "other", "ask": false },
+        "tv.wuaki.apptv": { "category": "streaming", "ask": true }
+      }
+    },
     "tcl-50ep680": {
       "match": { "models": ["BeyondTV"], "devices": ["BeyondTV"], "brand": "TCL", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
       "platform": "ANDROID_TV",

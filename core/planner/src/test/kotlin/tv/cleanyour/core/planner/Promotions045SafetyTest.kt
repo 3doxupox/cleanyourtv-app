@@ -69,4 +69,12 @@ class Promotions045SafetyTest {
         for (s in listOf("com.mediatek.network", "com.mediatek.backgrounddetection", "com.mediatek.airplaydaemon", "com.tcl.dashboard", "com.tcl.browser", "com.tcl.hearaid", "com.google.android.tts"))
             assertTrue(p(s) !in defaultOff("tcl-g08-eu-android12"), s)
     }
+
+    @Test fun tcl50dp660() {
+        defaultsPass("tcl-50dp660")
+        keeps("tcl-50dp660", "com.tcl.inputmethod.international", "com.tcl.tv", "com.tcl.tvinput", "com.tcl.tvpassthrough", "com.tcl.autopair", "com.tcl.virtualkey",
+            "com.google.android.apps.mediashell", "com.google.android.tungsten.setupwraith")
+        // tcl-g03 (b06ab21): TCL's updater needs the start service for the device number.
+        for (s in listOf("com.tcl.xian.StartandroidService", "com.tcl.versionUpdateApp", "com.tcl.ui_mediaCenter")) assertTrue(p(s) !in defaultOff("tcl-50dp660"), s)
+    }
 }

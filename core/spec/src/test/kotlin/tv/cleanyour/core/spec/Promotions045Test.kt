@@ -66,4 +66,10 @@ class Promotions045Test {
         facts("Smart TV", "G08", "TCL", 31, "TCL/G08_4K_GB_NF/G08:12/STT2.221228.001/AS19:user/release-keys") to null, // #406
         facts("Smart TV Pro", "G08", "TCL", 34, "TCL/G08_4K_GB/G08:14/UTT2.250416.001/AU02:user/release-keys") to "tcl-c755-google-tv", // #1062
     )
+
+    // tcl_eu is a broad TCL device name, so the Percee TV build is the fingerprint prefix.
+    @Test fun tcl50dp660() = check(
+        facts("Percee TV", "tcl_eu", "TCL", 26, "TCL/tcl_eu/tcl_eu:8.0.0/OTT1.180130.001/yangkx08252231:user/release-keys") to "tcl-50dp660", // #1240
+        facts("Percee TV", "tcl_eu", "TCL", 26, "TCL/tcl_eu/tcl_eu:8.0.0/OTHER/x") to null,
+    )
 }

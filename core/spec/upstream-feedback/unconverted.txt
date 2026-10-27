@@ -120,7 +120,6 @@ tcl-43p725    # parked at b06ab21 (after v3.0.0): not curated yet; a profile nee
 tcl-43s450f-ca    # parked at v2.7.0: the Fire OS TCL edition of the AFTDEC012E (ginza), same model, device and build as amazon-fire-tv-aftdec012e; the reported ginza sets say brand Amazon, so a TCL list needs a fingerprint key first
 tcl-43s5400a    # parked at v2.7.0: device C06 at SDK 30 already resolves to tcl-40s5400a and hitachi-cdh-le32smart21 (RF-PROFILES-63 P8)
 tcl-50c725k    # parked at v2.7.0: device BeyondTV4 at SDK 30 is shared with tcl-65c725 and tcl-g03-google-tv; needs fingerprint keys
-tcl-50dp660    # parked at v2.7.0: no device codename in the header or README, so a profile could match on a model string only; ask the contributor for getprop (RF-PROFILES-63 P8)
 tcl-50j7000a    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 tcl-50p615    # parked at v2.7.0: device BeyondTV at SDK 30 carries several new lists that tie with each other; needs fingerprint keys
 tcl-50p735    # parked at v2.7.0: no device codename in the header or README, so a profile could match on a model string only; ask the contributor for getprop (RF-PROFILES-63 P8)

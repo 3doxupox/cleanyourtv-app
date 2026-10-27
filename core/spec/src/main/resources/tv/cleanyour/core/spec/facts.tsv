@@ -301,6 +301,8 @@ com.emotn.browser	Emotn browser	Preloaded web browser	preloads
 com.eros.mitv	Eros Now	Streaming app	streaming
 com.espn.gtv	ESPN	Sports streaming app	streaming
 com.espn.score_center	ESPN	Sports streaming app	streaming
+com.example.copydatatotv	Factory copy tool	Factory test app, always running	other
+com.example.tvcapture	Factory capture tool	Factory test app	other
 com.facebook.katana	Facebook	Facebook app preload	preloads
 com.fancode.tv	FanCode	Sports streaming app	streaming
 com.fireos.arcus.proxy	Fire OS Arcus proxy	An Amazon background service	brand
@@ -750,6 +752,7 @@ com.tcl.copydatatotv	TCL copy to TV	Copies phone data to the TV	brand
 com.tcl.cyberui	TCL CyberUI	TCL's home screen on China sets; a content service on others	launcher
 com.tcl.dashboard	TCL Home panel	TCL dashboard and promos; newer TCL Google TVs need it for inputs	ads
 com.tcl.dashboard.service	TCL dashboard service	Dashboard service, needed by the system	system
+com.tcl.eletronicpolicy	TCL e-warranty	Electronic warranty sheet	preloads
 com.tcl.esticker	TCL sticker	Retail demo stickers	demo
 com.tcl.eva	TCL voice layer	TCL voice assistant layer	voice
 com.tcl.exhibit	TCL exhibit mode	Shop display mode	demo
@@ -769,6 +772,7 @@ com.tcl.inputmethod.international	TCL keyboard	On-screen keyboard	system
 com.tcl.interactive	TCL interactive	TCL TIAS background service	brand
 com.tcl.keyhelp	TCL key help	Remote key help overlays; some TCL sets need it for remote keys	brand
 com.tcl.logkit	TCL log kit	Captures and uploads logs	tracking
+com.tcl.m	TCL MenuHelp	Help pages for the menus	preloads
 com.tcl.magiconnectfree	TCL MagiConnect	Mirrors a phone with TCL's app	casting
 com.tcl.messagebox	TCL message box	TCL pushed messages and promos	ads
 com.tcl.micmanager	TCL mic manager	Manages the remote's microphone	voice
@@ -781,6 +785,7 @@ com.tcl.partnercustomizer	TCL home customizer	TCL home rows; on some sets also t
 com.tcl.playskill	TCL tips	Tips app	preloads
 com.tcl.profilemanager	TCL profile manager	Builds an audience profile for TCL	tracking
 com.tcl.providers.config	TCL config provider	Settings provider, needed for Wi-Fi	system
+com.tcl.pvr.pvrplayer	TCL recordings player	Plays recorded TV shows	preloads
 com.tcl.recognize.service	TCL screen recognition	Recognizes what is on screen; can also install apps	tracking
 com.tcl.repairguide	TCL repair guide	Repair help	preloads
 com.tcl.settings	TCL settings	TCL settings app	system
