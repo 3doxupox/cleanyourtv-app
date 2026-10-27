@@ -241,6 +241,33 @@
         "com.amazon.tv.mattercohost": { "category": "other", "ask": true }
       }
     },
+    "aqua-matrixtv-ee-50": {
+      "match": { "models": [], "devices": ["omonia"], "brand": "Haier", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.cltv.hybrid",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH", "EXTRA_HOME_CLAIMERS"],
+      "neverDisable": ["com.cltv.hybrid", "com.cltv.mal", "com.mediatek.tis", "com.mediatek.dtv.tvinput.dvbtuner", "com.mediatek.tv.agent", "com.mediatek.extservice", "com.google.android.tv.inputplayer", "com.haier.appmanager.dispatcher", "com.haier.hkcfac", "com.haier.tv.hmagicboard", "com.mediatek.autopair", "com.haier.bt_pair_tips", "com.google.android.tv.googletvremotepairer", "com.telink.lt", "com.google.android.tv.remote.service"],
+      "suggestedDock": [],
+      "tested": { "by": "Randhi Pratama Putra (PR #1444)", "firmware": "UKN7.260716.049", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Haier content, IoT, cleaner, e-manual": { "category": "brand", "ask": false },
+        "Telemetry, partner rows, retail demo, preloads": { "category": "tracking", "ask": false },
+        "By owner choice: apps the test household did not use": { "category": "streaming", "ask": true },
+        "Google TV home handover. setupwraith's RecoveryActivity claims HOME at priority 1 and takes over once launcherx": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.haier.apps": { "category": "ads", "ask": false },
+        "com.haier.oemtabprovider": { "category": "ads", "ask": false },
+        "com.haier.launcher.haiermatrix": { "category": "ads", "ask": true },
+        "com.mediatek.tv.launcher.partner": { "category": "ads", "ask": false },
+        "com.mediatek.tv.retaildemo": { "category": "demo", "ask": false },
+        "com.google.android.play.games": { "category": "preloads", "ask": false },
+        "com.haier.overseastv.bluetoothspeaker": { "category": "brand", "ask": true },
+        "com.google.android.marvin.talkback": { "category": "accessibility", "ask": true }
+      }
+    },
     "benq-e55-735": {
       "match": { "models": ["AI PONT"], "devices": [], "brand": "BenQ", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
       "platform": "GOOGLE_TV",

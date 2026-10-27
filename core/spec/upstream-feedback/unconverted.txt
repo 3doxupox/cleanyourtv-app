@@ -16,7 +16,6 @@ amazon-fire-tv-afteu014    # parked at v2.7.0: not curated yet and no TV report 
 anker-nebula-d2140    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 anker-nebula-d2426    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 anker-nebula-mars-3-air    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
-aqua-matrixtv-ee-50    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 artel-cvte-mt5863    # refused at v2.7.0: Android 7.0 (SDK 24) is below the launcher's Android 8, network ADB opens only from the CVTE factory menu, and the header gives no device codename to match on
 asus-m1g    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 beko-b43b880b    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review

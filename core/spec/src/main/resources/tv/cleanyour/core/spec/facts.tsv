@@ -365,8 +365,10 @@ com.google.android.youtube.tvunplugged	YouTube TV	Live TV subscription app	strea
 com.graymatrix.did	ZEE5	Streaming app	streaming
 com.haier.apps	Haier Apps	Haier app promo page	ads
 com.haier.emanual	Haier e-manual	On-screen user manual	preloads
+com.haier.emanual9603	Haier e-manual	On-screen user manual	preloads
 com.haier.launcher.haiermatrix	Haier content launcher	Zeasn content screen with promos	ads
 com.haier.oemtabprovider	Haier home tab	Haier tab on the Google TV home	ads
+com.haier.overseastv.bluetoothspeaker	TV as Bluetooth speaker	Plays phone audio through the TV	brand
 com.haier.sharetv.webview	Haier share web view	Web view for Haier's share service	casting
 com.haier.tvhousekeeper	Haier TV housekeeper	Cleaner app	brand
 com.haier.yudee.tv	Haier share	Shares phone media to the TV	casting
@@ -475,6 +477,8 @@ com.mediatek.testpq	Picture test tool	MediaTek picture quality tool	other
 com.mediatek.tv.agent	MediaTek TV agent	Power, HbbTV and keys	system
 com.mediatek.tv.factory	MediaTek factory tools	Factory diagnostics	demo
 com.mediatek.tv.freeviewplay	Freeview Play	UK catch-up and on-demand TV from the guide	streaming
+com.mediatek.tv.launcher.partner	Home screen partner rows	Partner rows on the stock home screen	ads
+com.mediatek.tv.retaildemo	Retail demo	Store demo mode	demo
 com.mediatek.tv.service	MediaTek TV service	Core TV service	system
 com.mediatek.tv.systemupdater	MediaTek system updater	Firmware updates	updates
 com.mediatek.tvinput	MediaTek TV input	HDMI, AV and tuner inputs	system
@@ -813,6 +817,7 @@ com.tcl.wholenetsearch	TCL global search	Searches across TCL content	brand
 com.tcl.xian.StartandroidService	TCL start service	TCL system service, needed	system
 com.teamviewer.quicksupport.market	TeamViewer QuickSupport	Remote support app	preloads
 com.ted.android.tv	TED	TED talks	streaming
+com.tencent.qqlivei18n	WeTV	Asian drama streaming app	streaming
 com.tianci.localmedia	Skyworth USB media player	Plays media from USB	system
 com.tiktok.tv	TikTok	Short video app	streaming
 com.tpv.xmic.ots.cms.client	TPV CMS client	TPV background content and data service	tracking
@@ -946,7 +951,9 @@ fr.m6.m6replay.free	M6+	French TV channel streaming app	streaming
 fr.tf1.mytf1.free	TF1+	French TV channel streaming app	streaming
 fr.tfou.max	TFOU Max	TF1 app for children	preloads
 fusion.android.tv.demo	Retail demo	Retail demo app; on some MediaTek and Vestel TVs also the Input key	demo
+id.visionplus.android.atv	Vision+	Indonesian streaming app	streaming
 in.startv.hotstar	JioHotstar	Streaming app	streaming
+in.startv.hotstar.dplus.tv	Disney+ Hotstar	Streaming app	streaming
 io.tiv.dvtv.tv	DVTV	Czech news video app	streaming
 it.hon.service	Haier hOn	Links Haier home appliances	brand
 it.mediaset.infinitytv	Mediaset Infinity	Italian streaming app	streaming

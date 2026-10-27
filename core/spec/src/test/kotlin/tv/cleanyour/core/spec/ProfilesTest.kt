@@ -25,7 +25,7 @@ class ProfilesTest {
 
     @Test fun everyConvertedUpstreamExampleParsesWithCuratedMetadata() {
         assertEquals(316, upstream.size)
-        assertEquals(155, examples.size)
+        assertEquals(156, examples.size)
         for (e in examples) {
             val profile = DebloatTxtParser.parse(e.debloatTxt, e.folder)
             assertEquals(e.folder, profile.id)
@@ -62,7 +62,7 @@ class ProfilesTest {
     @Test fun theUnconvertedListIsPinnedToTheSubmodule() {
         val meta = ProfileMeta.decode(File(Fixtures.repoRoot, "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json").readText())
         assertEquals(upstream.map { it.folder }.filter { it !in meta.profiles }.toSet(), unconverted)
-        assertEquals(161, unconverted.size)
+        assertEquals(160, unconverted.size)
         val listed = unconvertedFile.readLines().filter { it.isNotBlank() && !it.startsWith("#") }
         assertEquals(listed.sorted(), listed, "one folder per line, sorted")
         assertTrue('\u2014' !in unconvertedFile.readText() && "-".repeat(2) !in unconvertedFile.readText())
@@ -326,6 +326,9 @@ class ProfilesTest {
             f("xiaomi", "xiaomi", "MiTV-MFTP0", "alita", 28, "xiaomi/alita/alita:9/PPR2.180905.006.A1/6318:user/release-keys") to "redmi-mitv-mftp0",   // #670
             f("Xiaomi", "Xiaomi", "MIBOX4", "oneday", 28, "Xiaomi/oneday/oneday:9/PI/3595:user/release-keys") to "xiaomi-mi-box-s",   // #772, older PI firmware
             f("Xiaomi", "Xiaomi", "MIBOX4", "oneday", 28, "Xiaomi/oneday/oneday:9/PI/3933:user/release-keys") to "xiaomi-mi-box-s",   // #187, the tested firmware
+            f("AQUA", "Haier", "AQUA MatrixTV EE", "omonia", 34, "AQUA/AQ9676EU/omonia:14/UKN6.260116.056/15136903:user/release-keys") to "aqua-matrixtv-ee-50",   // #646
+            f("Haier", "Haier", "Haier MatrixTV EE", "omonia", 34, "Haier/HR9676EU/omonia:14/UKN5.251016.114/14643368:user/release-keys") to "aqua-matrixtv-ee-50",   // #822
+            f("Haier", "Haier", "Haier MatrixTV DE", "omonia", 34, "Haier/HR9676EUF/omonia:14/UKN2.241219.053/13043114:user/release-keys") to "aqua-matrixtv-ee-50",   // #926
         )
         for ((facts, id) in reports) assertEquals(id, (source.resolveNow(facts) as? ProfileResolution.Exact)?.profile?.id, "${facts.model} ${facts.fingerprint}")
         for (id in cleanUpOnlyPart2) {
