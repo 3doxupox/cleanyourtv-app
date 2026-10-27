@@ -4,6 +4,7 @@ import tv.cleanyour.core.model.DeviceFacts
 import tv.cleanyour.core.model.EnabledState
 import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.model.Profile
+import tv.cleanyour.core.model.SettingKey
 import tv.cleanyour.core.model.Snapshot
 import tv.cleanyour.core.ops.Denylist
 import tv.cleanyour.core.ops.HomePlaceholder
@@ -145,11 +146,12 @@ object HomeSwitchRisk {
         val tvlauncher = KnownLaunchers.TVLAUNCHER.pkg
         val launcherState = snapshot.packages[tvlauncher]?.enabled
         if (claimants.none { it.pkg == tvlauncher } || launcherState == null || !on(tvlauncher)) return R0Blocker.NO_TVLAUNCHER
-        // What Home answers now must be one of the same: nothing, tvlauncher, ours, a placeholder or
-        // an app the person installed (a TV whose Home answers to another app is not this case).
+        // What Home answers now must be one of the same: nothing, tvlauncher, ours or a placeholder (a
+        // TV whose Home answers to another app is not this case). An app the person installed counts
+        // only among the claimants: one Home already answers to is their choice, which stays.
         val resolved = snapshot.home.resolved
-        if (resolved != null && resolved.pkg != tvlauncher && resolved.pkg != SwitchOffRule.OUR_LAUNCHER && !HomePlaceholder.isPlaceholder(resolved) &&
-            !installedHome(resolved.pkg, snapshot)) return R0Blocker.OTHER_HOME
+        if (resolved != null && resolved.pkg != tvlauncher && resolved.pkg != SwitchOffRule.OUR_LAUNCHER && !HomePlaceholder.isPlaceholder(resolved))
+            return R0Blocker.OTHER_HOME
         val accepted = snapshot.home.claimants.all { claimant ->
             val c = claimant.component
             c.pkg == tvlauncher || c.pkg == SwitchOffRule.OUR_LAUNCHER || HomePlaceholder.isPlaceholder(c) ||
@@ -162,10 +164,13 @@ object HomeSwitchRisk {
     // a system app, not a wizard or a vendor home by name. One the snapshot does not list, or lists
     // as a system app, is not (a vendor home ships as one). The probe falls back to the install path
     // when it could not read a package's flags, and to "not a system app" when it read neither; a
-    // version code of 0 is that case (its details were not read), so it does not count either.
+    // version code of 0 is that case (its details were not read), so it does not count either. Nor
+    // does an app with an accessibility service in the TV's list: it can catch the Home key itself.
     fun installedHome(p: PackageName, snapshot: Snapshot): Boolean {
         val state = snapshot.packages[p] ?: return false
-        return !state.system && state.versionCode > 0 && !isWizard(p) && p.value !in Denylist.vendorHomes && p !in KnownLaunchers.byPackage
+        val accessibility = snapshot.settings[SettingKey.ENABLED_ACCESSIBILITY].orEmpty().split(':').map { it.trim().substringBefore('/') }
+        return !state.system && state.versionCode > 0 && !isWizard(p) && p.value !in Denylist.vendorHomes && p !in KnownLaunchers.byPackage &&
+            p.value !in accessibility
     }
 
     // Any first-run wizard by name: Google's, a vendor's, AOSP's provision, or one named like setupwraith.

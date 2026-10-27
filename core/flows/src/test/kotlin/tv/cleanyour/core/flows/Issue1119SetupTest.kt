@@ -82,6 +82,21 @@ class Issue1119SetupTest {
         }
     }
 
+    // Review of beta3: Home already answering to their app is their choice. It stays: no switch, and
+    // the reason told is the other home screen app.
+    @Test fun homeAnsweringToTheirAppKeepsTheirChoice() = runTest(timeout = 60.seconds) {
+        val (problem, base) = snapshot()
+        val theirs = tv.cleanyour.core.model.Component(PackageName("person.home1"), ".Main")
+        val snap = base.copy(home = base.home.copy(resolved = theirs))
+        releaseRule {
+            var plan: tv.cleanyour.core.planner.Plan? = null
+            val (h, m) = found(problem, snap, SavedWifi(true, 1, setOf("android.uid.system:1000"))) { plan = it }
+            assertEquals(HomeBlock.OTHER_HOME, m.extras.value.homeBlock)
+            assertTrue("setup: home switch blocked OTHER_HOME" in h.logLines, h.logLines.joinToString("\n"))
+            assertTrue(plan!!.sections.isEmpty() && plan!!.steps.none { it.op is Op.SetHome || (it.op is Op.Disable && (it.op as Op.Disable).pkg == theirs.pkg) })
+        }
+    }
+
     @Test fun setupPlansTheSwitchAndLeavesTheirHomeAppAlone() = runTest(timeout = 60.seconds) {
         val (problem, snap) = snapshot()
         releaseRule {

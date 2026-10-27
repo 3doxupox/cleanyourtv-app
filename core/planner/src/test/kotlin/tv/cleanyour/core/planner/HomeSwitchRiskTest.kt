@@ -12,6 +12,7 @@ import tv.cleanyour.core.model.PackageState
 import tv.cleanyour.core.ops.Denylist
 import tv.cleanyour.core.model.Profile
 import tv.cleanyour.core.model.Quirk
+import tv.cleanyour.core.model.SettingKey
 import tv.cleanyour.core.model.Snapshot
 import tv.cleanyour.core.model.TestedInfo
 import tv.cleanyour.core.planner.HomeSwitchRisk.Risk
@@ -404,8 +405,16 @@ class HomeSwitchRiskTest {
             assertTrue(HomeSwitchRisk.installedHome(theirs.pkg, s))
             assertNull(HomeSwitchRisk.of(mitv4i, null, s, w, anyBrand = false), "release, brand set $w")
             assertNull(HomeSwitchRisk.of(mitv4i, candidate, s, w, anyBrand = true), "test build, candidate list $w")
-            // Home answering to their app is the same case for R0 (Setup tells HOME_CHANGED then).
-            assertNull(HomeSwitchRisk.of(mitv4i, null, withTheirs(r0Tv(mitv4i, three, home = theirs)), w, anyBrand = false), "Home is theirs $w")
+            // Home already answering to their app is their choice: it stays, with no switch (OTHER_HOME).
+            assertEquals(Risk.OTHER_HOME, HomeSwitchRisk.of(mitv4i, null, withTheirs(r0Tv(mitv4i, three, home = theirs)), w, anyBrand = false), "Home is theirs $w")
+            // An app with an accessibility service on the TV's list can catch the Home key itself.
+            for (list in listOf("person.home1/.KeyService", "com.other/.A:person.home1/person.home1.KeyService")) {
+                val keys = withTheirs(r0Tv(mitv4i, three)).let { x -> x.copy(settings = x.settings + (SettingKey.ENABLED_ACCESSIBILITY to list)) }
+                assertTrue(!HomeSwitchRisk.installedHome(theirs.pkg, keys), list)
+                assertEquals(Risk.OTHER_HOME, HomeSwitchRisk.of(mitv4i, null, keys, w, anyBrand = false), "$w: $list")
+            }
+            val otherService = withTheirs(r0Tv(mitv4i, three)).let { x -> x.copy(settings = x.settings + (SettingKey.ENABLED_ACCESSIBILITY to "com.other/.A")) }
+            assertNull(HomeSwitchRisk.of(mitv4i, null, otherService, w, anyBrand = false), "$w: another app's service")
             val blocked = if (w == WizardWifi.OWNER) Risk.WIZARD_WIFI else Risk.WIZARD_STAYS_ON
             fun check(snap: Snapshot, why: String) = assertEquals(blocked, HomeSwitchRisk.of(mitv4i, null, snap, w, anyBrand = false), "$w: $why")
             // Still refused: the app is not in the package list, is a system app (a vendor home ships as
