@@ -140,6 +140,7 @@ data class SetupExtras(
     val connectError: ConnectError? = null,      // 0.3.6: the TV's port answered, the connection failed; the door's card and "Copy error"
     val staleNotice: Boolean = false,            // the TV changed under the plan; a new plan is shown
     val finishing: Finishing? = null,            // D7 "Switching debugging off... done."
+    val keepsDebugging: Boolean = false,         // D7: "Keep debugging on" was chosen, so Finish leaves it on and Done says so
     val restartSlow: Boolean = false,            // UX 4.8 at 3 minutes
     val restartReenabled: Int = 0,               // "2 things came back on after the restart; switched off again."
     val doneLines: List<String> = emptyList(),   // refused ops named on Done (UX 4.14)
@@ -1202,7 +1203,8 @@ class SetupMachine(
             planned.all { p -> skipped.any { it.index == p.index } } -> NothingWhy.KEPT_ON
             else -> NothingWhy.STOPPED
         }
-        mutableExtras.update { it.copy(doneLines = skippedNames, doneKept = keptNames, doneNothing = off == 0 && !homeOn && !changed, doneNothingWhy = why) }
+        mutableExtras.update { it.copy(doneLines = skippedNames, doneKept = keptNames, doneNothing = off == 0 && !homeOn && !changed, doneNothingWhy = why,
+            keepsDebugging = keepsDebugging(tvId)) }
         send(Ev.ShowDone(tvId, DoneSummary(off, homeOn, restorePointAt, skippedNames, recommended)))
         session?.let { s -> mutableExtras.update { it.copy(restorePointPushed = deps.restorePoint.write(done, s, p)) } }
     }
@@ -1468,9 +1470,14 @@ class SetupMachine(
         effect(SetupEffect.Share(text))
     }
 
+    // D7: "Keep debugging on" was chosen for this TV (the saved draft, the draft on screen or this
+    // session's choice). Done's line and Finish both read it, so the line says what Finish will do.
+    private fun keepsDebugging(tvId: TvId): Boolean =
+        tv?.wizard?.keepDebuggingOn == true || mutableExtras.value.draft?.keepDebuggingOn == true || deps.sessionEnd.keepsDebuggingOn(tvId)
+
     // D7: Finish switches debugging off unless "Keep debugging on" was chosen, then opens Manage.
     private suspend fun finish(tvId: TvId) {
-        val keep = tv?.wizard?.keepDebuggingOn == true || mutableExtras.value.draft?.keepDebuggingOn == true || deps.sessionEnd.keepsDebuggingOn(tvId)
+        val keep = keepsDebugging(tvId)
         if (!keep) {
             mutableExtras.update { it.copy(finishing = Finishing.SWITCHING) }
             // "done" and the "Debugging off" chip only when a failed probe confirmed it (D7); otherwise

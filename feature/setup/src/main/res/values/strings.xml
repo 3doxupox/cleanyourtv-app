@@ -281,6 +281,7 @@
     <string name="done_body_partial_home_on">{total, plural, other {{done} of # switched off. New home screen on. Everything can be put back.}}</string>
     <string name="done_restore_saved">Restore point saved on this phone ({date})</string>
     <string name="done_debug_note">Debugging on the TV switches off when you tap Finish</string>
+    <string name="done_debug_kept">Debugging on the TV stays on, as you chose</string>
     <string name="done_skipped">{name} wouldn\'t switch off; it\'s harmless.</string>
     <!-- RF-LAUNCHER-250 F1 (owner copy): a switch-off the TV refused because the app runs the TV's inputs, on Done and in Manage -->
     <string name="kept_tv_input">{name}. Kept: it runs the TV\'s HDMI and tuner inputs.</string>
