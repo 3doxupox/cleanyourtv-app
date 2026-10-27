@@ -141,7 +141,8 @@ object ConnectShots {
         // 0.3.6 (issues #98, #270, #325, #468): the port answered, the connection failed; the hint and "Copy error".
         Shot("door_connect_failed") { Connect(door(Families.ATV, DoorPhase.STEPS, 2), waiting.copy(connectError = tv.cleanyour.core.flows.ConnectError("unreachable", "Clean Your TV connection error"))) },
         // 0.4.6: the card itself, with "Report a problem" under "Copy error" (it opens the prefilled GitHub form).
-        Shot("door_connect_failed_report") {
+        // Tall enough that the button shows at 200% font too.
+        Shot("door_connect_failed_report", height = 1000.dp) {
             Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) { ConnectErrorCard(tv.cleanyour.core.flows.ConnectError("protocol", "Clean Your TV connection error"), {}) }
         },
 

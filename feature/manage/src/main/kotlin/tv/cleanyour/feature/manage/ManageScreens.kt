@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -199,7 +201,10 @@ internal fun ColumnScope.DebugStepContent(tvName: String, connecting: Boolean, o
 @Composable
 // 0.4.6: `onReport` gets the card's title, for the prefilled GitHub form (ReportContext).
 fun OpenWriteSheet(open: OpenWrite, onAction: (OpenWriteAction) -> Unit, onOpenSetup: () -> Unit, onDismiss: () -> Unit, onReport: (String) -> Unit = {}) {
-    CytBottomSheet(onDismiss) { OpenWriteContent(open, onAction, onOpenSetup, onDismiss, onReport = onReport) }
+    // 0.4.6: scrolls, so "Report a problem" under the card stays reachable at 200% font.
+    CytBottomSheet(onDismiss) {
+        Column(Modifier.verticalScroll(rememberScrollState())) { OpenWriteContent(open, onAction, onOpenSetup, onDismiss, onReport = onReport) }
+    }
 }
 
 @Composable

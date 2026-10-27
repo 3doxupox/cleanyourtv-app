@@ -174,16 +174,28 @@ fun AppRoot(graph: AppGraph, start: Dest, onExit: () -> Unit) {
     // at once, with the report in the link and the card filled in. The whole report is copied too, as
     // the preview's "Open GitHub" does, in case a sign-in on the way drops the link's fields. The app
     // sends nothing: the browser opens the link, and nothing is public until the person posts.
-    fun openIssue(tvId: TvId?, report: ReportContext) {
+    // A second tap while the report is made does nothing, so one tap gives one tab. With no browser
+    // to open the link, the report preview opens instead: its Share reaches any app that can post it.
+    val openingIssue = remember { java.util.concurrent.atomic.AtomicBoolean(false) }
+    fun openIssue(tvId: TvId?, report: ReportContext, preview: () -> Unit) {
+        if (!openingIssue.compareAndSet(false, true)) return
         scope.launch {
-            val r = withContext(Dispatchers.IO) { ProblemReports.build(graph.manageDeps, tvId, report) }
-            copyText(context, r.full, label = "report")
-            runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(r.link.url))) }
+            try {
+                val r = withContext(Dispatchers.IO) { ProblemReports.build(graph.manageDeps, tvId, report) }
+                copyText(context, r.full, label = "report")
+                val opened = runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(r.link.url))) }.isSuccess
+                if (!opened) preview()
+            } finally {
+                openingIssue.set(false)
+            }
         }
     }
 
     fun go(route: String) {
-        IssueRoute.parse(route)?.let { (tvId, report) -> openIssue(tvId, report); return }
+        IssueRoute.parse(route)?.let { (tvId, report) ->
+            openIssue(tvId, report) { go(tvId?.let { "report/problem/${it.value}" } ?: "report/problem") }
+            return
+        }
         if (!applyRoute(backStack, route, noTvs = graph.tvs.tvs.value.isEmpty(), addOns = graph.store.rules.addOns)) onExit()
     }
 

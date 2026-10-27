@@ -50,7 +50,7 @@ enum class Variant(val dark: Boolean, val fontScale: Float, val rtl: Boolean) {
     RTL(true, 1f, true),
 }
 
-class Shot(val name: String, val content: @Composable () -> Unit) {
+class Shot(val name: String, val height: Dp = 780.dp, val content: @Composable () -> Unit) {
     override fun toString() = name
 }
 
@@ -64,7 +64,7 @@ fun Rendered(shot: Shot, variant: Variant) {
         LocalLayoutDirection provides if (variant.rtl) LayoutDirection.Rtl else LayoutDirection.Ltr,
     ) {
         CytTheme(darkTheme = variant.dark, reducedMotion = true) {
-            Box(Modifier.testTag(SHOT_TAG).size(360.dp, 780.dp).background(CytTheme.colors.bg)) { shot.content() }
+            Box(Modifier.testTag(SHOT_TAG).size(360.dp, shot.height).background(CytTheme.colors.bg)) { shot.content() }
         }
     }
 }
