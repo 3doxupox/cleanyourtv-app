@@ -10,9 +10,8 @@ All notable changes to the app. Versions follow [semantic versioning](https://se
   have no list of their own, whose only home screen is Google's Android TV home and whose setup
   wizard does not answer the Home button. The Mi TV AXSO2 on Android 11 keeps its own home screen
   for now, while we look into a report from one.
-- The new home screen with the setup wizard left on is now refused on TVs whose Home button also
-  answers to a vendor service, after one such TV failed to start a few restarts later. Setup and
-  Home screen say so.
+- The new home screen is now refused on TVs whose Home button also answers to a vendor service,
+  after one such TV failed to start a few restarts later. Setup and Home screen say so.
 - TVs on a test list (one we are still trying) no longer get the new home screen while their setup
   wizard stays on, after one such TV got stuck loading after a restart.
 - Each time you open Manage with the TV connected, the app checks the Home button again. If the
@@ -37,6 +36,10 @@ All notable changes to the app. Versions follow [semantic versioning](https://se
 - On Xiaomi TVs, Mi TV+ and PatchWall's web content now stay on while PatchWall stays on, since
   PatchWall can open at start up and needs them. Switch PatchWall off in Customise and they can go
   off with it.
+- If an earlier version switched Mi TV+ or the web content off while PatchWall stayed on, Setup
+  switches them back on before it changes the home screen, and putting PatchWall back on in Manage
+  puts them back on too. If they were switched off some other way, Setup leaves the home screen
+  alone until PatchWall is off or they are back on.
 
 ### Reporting a problem
 - Every stop, timeout, paused change and connect problem has "Report a problem" on
