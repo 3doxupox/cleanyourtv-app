@@ -27,7 +27,6 @@ class LookExtrasKeysTest {
             assertEquals(LookKeys.build(spec, mist, 5, dock4, cards = false), build(spec), "$style")
             assertEquals(emptyMap(), extraKeys(build(spec)), "$style")
         }
-        assertEquals(LookExtrasKeys.DEFAULTS_30, LookExtrasKeys.look30(null))
         assertEquals(LookExtras.DEFAULT, LookExtrasKeys.shown(null))
     }
 
@@ -114,10 +113,14 @@ class LookExtrasKeysTest {
         assertEquals(768, LookExtrasInputs.all().count())
     }
 
-    @Test fun glassStyleIsReadAsConfigReadsIt() {
-        for ((v, want) in listOf("rim" to "rim", " HALO " to "halo", "Rim" to "rim", "glass" to "glass", "frost" to "glass", "" to "glass", null to "glass")) {
-            assertEquals(want, LookExtrasKeys.glassStyle(v), "$v")
+    // The highlight is glass_style as the one 3.0 reader (LauncherKeys.keys30) reads it.
+    @Test fun theHighlightIsGlassStyleAsConfigReadsIt() {
+        for ((v, want) in listOf("rim" to HighlightChoice.RIM, " HALO " to HighlightChoice.HALO, "Rim" to HighlightChoice.RIM,
+            "glass" to HighlightChoice.GLASS, "frost" to HighlightChoice.GLASS, "" to HighlightChoice.GLASS)) {
+            val doc = LauncherConfigDoc(unknown = mapOf("glass_style" to JsonPrimitive(v)))
+            assertEquals(want, LookExtrasKeys.shown(doc).highlight, v)
         }
+        for (h in HighlightChoice.entries) assertEquals(h, LookExtrasKeys.highlight(LauncherKeys.glassStyle(h.id)))
     }
 }
 

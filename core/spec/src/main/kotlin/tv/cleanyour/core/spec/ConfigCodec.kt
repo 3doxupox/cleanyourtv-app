@@ -366,7 +366,7 @@ internal object ConfigCodecImpl {
         if ("lunar_utc_offset" in o && !on("lunar_date", false)) w += "lunar_utc_offset does nothing without lunar_date: the TV shows no lunar date"
         when (val g = o["glass_style"]) {
             null -> {}
-            is AValue.Str -> if (LookExtrasKeys.glassStyle(g.v) == LookExtrasKeys.GLASS_DEFAULT && !g.v.javaTrim().equals(LookExtrasKeys.GLASS_DEFAULT, ignoreCase = true))
+            is AValue.Str -> if (LauncherKeys.glassStyle(g.v) == GlassStyle.GLASS && !g.v.javaTrim().equals("glass", ignoreCase = true))
                 w += "glass_style is not glass, rim or halo; the launcher uses glass"
             else -> w += "glass_style is not a string; the launcher uses glass"
         }

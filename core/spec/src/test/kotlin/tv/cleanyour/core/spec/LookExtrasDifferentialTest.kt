@@ -18,7 +18,7 @@ import kotlin.test.assertTrue
 // LauncherKeys read it (Agreement.agree, every field and the 25 keys of 3.0), with no codec
 // warning, and the real Config holds exactly what was meant: each switch where it acts
 // (LookExtrasKeys.applying), the launcher's own value elsewhere, and rows_below_dock 0 with one
-// row. LookExtrasKeys' own reader of the nine keys agrees with the real fields too.
+// row. LauncherKeys.keys30, the one 3.0 reader, agrees with the real fields too.
 class LookExtrasDifferentialTest {
     @get:Rule val tmp = TemporaryFolder()
 
@@ -26,11 +26,13 @@ class LookExtrasDifferentialTest {
         .map(::PackageName)
     private val dock15 = dock4 + List(11) { PackageName("com.example.app$it") }
 
-    private fun real(v: UpstreamConfig.V30) = Look30Config(
-        singleRow = v.singleRow, dockBand = v.dockBand, dockBandAll = v.dockBandAll, showGreeting = v.showGreeting,
-        dateBelowClock = v.dateBelowClock, headerWhite = v.headerWhite, wifiStatusWarnings = v.wifiStatusWarnings,
-        uniformTiles = v.uniformTiles, glassStyle = v.glassStyle,
-    )
+    // The nine keys behind LookExtras, from the one 3.0 reader's Keys30 (Config's single_row is
+    // and-ed with dock_row; Agreement and-s ours the same way).
+    private data class Nine(val singleRow: Boolean, val dockBand: Boolean, val dockBandAll: Boolean, val showGreeting: Boolean,
+        val dateBelowClock: Boolean, val headerWhite: Boolean, val wifiStatusWarnings: Boolean, val uniformTiles: Boolean, val glassStyle: GlassStyle)
+    private fun nine(k: Keys30) = Nine(k.singleRow, k.dockBand, k.dockBandAll, k.showGreeting, k.dateBelowClock, k.headerWhite,
+        k.wifiStatusWarnings, k.uniformTiles, k.glassStyle)
+    private fun real(v: UpstreamConfig.V30) = nine(UpstreamLauncher.keys30(v))
 
     @Test fun everyExtrasDocAgreesWithLauncher30() {
         val started = System.nanoTime()
@@ -57,13 +59,14 @@ class LookExtrasDifferentialTest {
             assertEquals(doc, ok.doc, "$label reads back to the doc that was built")
             assertEquals(doc, Agreement.agree(up, bytes, wallpaper = doc.wallpaper == true, label = label, t = t), label)
             val u = assertIs<UpstreamLauncher.Outcome.Loaded>(up.load(bytes, wallpaper = doc.wallpaper == true)).config
-            val want = Look30Config(
+            val want = Nine(
                 singleRow = meant.oneRow, dockBand = !meant.noBand, dockBandAll = meant.bandAll, showGreeting = !meant.hideGreeting,
                 dateBelowClock = meant.dateBelow, headerWhite = meant.brightDate, wifiStatusWarnings = meant.wifiWarnings,
-                uniformTiles = meant.tiles == TilesChoice.ICONS, glassStyle = meant.highlight.id,
+                uniformTiles = meant.tiles == TilesChoice.ICONS, glassStyle = LauncherKeys.glassStyle(meant.highlight.id),
             )
             assertEquals(want, real(u.v30), "$label: the launcher holds what was meant")
-            assertEquals(real(u.v30), LookExtrasKeys.look30(doc), "$label: our reader of the nine keys")
+            assertEquals(real(u.v30), nine(LauncherKeys.keys30(doc)).let { it.copy(singleRow = it.singleRow && doc.dockRow != false) },
+                "$label: the one 3.0 reader")
             assertEquals(meant, LookExtrasKeys.shown(doc), label)
             if (meant.oneRow) {
                 oneRows++
@@ -80,19 +83,18 @@ class LookExtrasDifferentialTest {
         assertTrue(oneRows > 0)
     }
 
-    // LookExtrasKeys.DEFAULTS_30 is config.xml at the pin, and DEFAULT extras write nothing a
-    // launcher 3.0 would read differently from no key.
+    // DEFAULT extras write nothing a launcher 3.0 would read differently from no key: the nine keys
+    // stay at config.xml's (LauncherKeys.DEFAULTS_30, checked against config.xml by LauncherKeysTest).
     @Test fun theDefaultsAreConfigXml30() {
         val up = UpstreamLauncher(Version.V30, tmp.newFolder("none"))
         val u = assertIs<UpstreamLauncher.Outcome.Loaded>(up.load(null, wallpaper = false)).config
-        assertEquals(LookExtrasKeys.DEFAULTS_30, real(u.v30))
-        val d = LauncherKeys.DEFAULTS_30
-        assertEquals(LookExtrasKeys.DEFAULTS_30, Look30Config(d.singleRow, d.dockBand, d.dockBandAll, d.showGreeting, d.dateBelowClock,
-            d.headerWhite, d.wifiStatusWarnings, d.uniformTiles, d.glassStyle.name.lowercase()))
+        val defaults = nine(LauncherKeys.DEFAULTS_30)
+        assertEquals(defaults, real(u.v30))
+        assertEquals(LookExtras.DEFAULT, LookExtrasKeys.shown(null))
         for (style in StyleId.entries) {
             val doc = LookKeys.build(LookKeys.spec(style), LookInputs.pictures[1].second, 5, dock4, cards = false)
             val v = assertIs<UpstreamLauncher.Outcome.Loaded>(up.load(LauncherConfigCodec.encode(doc), wallpaper = true)).config.v30
-            assertEquals(LookExtrasKeys.DEFAULTS_30.copy(singleRow = false), real(v), "$style with DEFAULT extras")
+            assertEquals(defaults, real(v), "$style with DEFAULT extras")
         }
     }
 }
