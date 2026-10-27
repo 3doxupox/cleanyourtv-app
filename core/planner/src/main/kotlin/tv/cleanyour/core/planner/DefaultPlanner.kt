@@ -26,6 +26,7 @@ import kotlinx.coroutines.runBlocking
 import tv.cleanyour.core.ops.ConfigTransport
 import tv.cleanyour.core.ops.Denylist
 import tv.cleanyour.core.ops.FailurePolicy
+import tv.cleanyour.core.ops.HomePlaceholder
 import tv.cleanyour.core.ops.OpRenderer
 import tv.cleanyour.core.ops.RenderRefused
 import tv.cleanyour.core.ops.Rendered
@@ -170,6 +171,16 @@ class DefaultPlanner(
                 is Op.Disable -> null
                 else -> inverse
             }
+        }
+
+        // WP4 (G4): a journal from before 0.4.5 may hold the chooser or another placeholder as the
+        // SetHome prior on a TV whose HOME was undecided. The home screen to go back to is then the
+        // stock home the switch armed its watchdog with, else the TV's stock home claimant, else the
+        // profile's installed stock launcher.
+        fun homeToRestore(recorded: Component?, records: List<ChangeRecord>): Component? {
+            if (recorded == null || !StockHome.isPlaceholder(recorded)) return recorded
+            return HomePlaceholder.stockFromRecords(records) ?: StockHome.of(snapshot, managedStockLaunchers)
+                ?: managedStockLaunchers.firstOrNull { installed(it.pkg) }
         }
 
         // The rule the engine applies again with live facts (SwitchOffRule, 0.3.3 issue #10), outside
@@ -649,10 +660,17 @@ class DefaultPlanner(
         }
 
         // Also the core of UndoEverything and BeforeFactoryReset: the TV's own home screen back.
-        fun useStockHome(stock: Component, wizardFromJournal: PackageName?) {
+        // `records`: change records besides the journals that may name it (Undo everything's own).
+        // WP4 (G4): the stock home the switch armed its watchdog with, and a stock launcher of this
+        // TV's profile that is installed, are home screens this TV had too (a placeholder prior is
+        // mapped to one of them by homeToRestore).
+        fun useStockHome(stock: Component, wizardFromJournal: PackageName?, records: List<ChangeRecord> = emptyList()) {
             if (stock == launcher) { refuse("that is the new home screen, not the TV's own"); return }
+            val all = journals + records
             val known = snapshot.home.claimants.any { it.component == stock } ||
-                journals.any { it.op is Op.SetHome && it.prior?.home == stock }
+                all.any { it.op is Op.SetHome && it.prior?.home == stock } ||
+                all.any { (it.op as? Op.ArmHomeWatchdog)?.stock == stock } ||
+                (stock in managedStockLaunchers && installed(stock.pkg))
             if (!known) { refuse("${stock.flat} is not a home screen this TV had"); return }
             // A package the undo already puts back (Enable, or DefaultState for an original DEFAULT)
             // is not enabled a second time: that would leave it ENABLED instead of DEFAULT (R1 R-10).
@@ -672,7 +690,7 @@ class DefaultPlanner(
         // orders them: package states, settings, the home screen, our apps, our files.
         fun undoEverything(changes: List<ChangeRecord>, removeLauncher: Boolean) {
             val order = UndoOrder.undoOrder(changes)
-            val originalHome: Component? = order.firstOrNull { it.op is Op.SetHome }?.prior?.home
+            val originalHome: Component? = homeToRestore(order.firstOrNull { it.op is Op.SetHome }?.prior?.home, changes + journals)
             val ourApps = order.filter { UndoOrder.target(it.op) is UndoOrder.Target.App && it.prior?.present == false }
                 .mapNotNull { packageOf(it.op) }.toSet()
             var clearedLook = false
@@ -691,9 +709,15 @@ class DefaultPlanner(
                         val current = snapshot.settings[t.key]
                         if (t.key !in snapshot.settings || current == original) continue
                         if (t.key == SettingKey.ADB_ENABLED || t.key == SettingKey.ADB_WIFI_ENABLED) continue   // never switched back on by the app
+                        // WP4 (G4, RF-LAUNCHER-240 F7): nor is accessibility. The helper put back journals
+                        // accessibility_enabled 1 and the service list as priors; after the person switched
+                        // accessibility off, writing them back would switch it on again. So "1" is never
+                        // written, and a non-empty list only while accessibility is on right now.
+                        if (t.key == SettingKey.ACCESSIBILITY_ENABLED && original == "1") continue
+                        if (t.key == SettingKey.ENABLED_ACCESSIBILITY && !original.isNullOrEmpty() && snapshot.settings[SettingKey.ACCESSIBILITY_ENABLED] != "1") continue
                         step(Op.SettingsPut(t.key, original), Prior(settingValue = current), GROUP_UNDO, "Putting back the TV's ${t.key.key.replace('_', ' ')} setting", FailurePolicy.CONTINUE)
                     }
-                    UndoOrder.Target.Home -> if (originalHome != null && originalHome != launcher) useStockHome(originalHome, null)
+                    UndoOrder.Target.Home -> if (originalHome != null && originalHome != launcher) useStockHome(originalHome, null, changes)
                     is UndoOrder.Target.App -> {
                         val pkg = t.pkg
                         if (pkg !in ourApps || !installed(pkg)) continue
@@ -726,7 +750,7 @@ class DefaultPlanner(
         }
 
         fun beforeFactoryReset() {
-            val originalHome = journals.filter { it.op is Op.SetHome }.minByOrNull { it.atMs }?.prior?.home
+            val originalHome = homeToRestore(journals.filter { it.op is Op.SetHome }.minByOrNull { it.atMs }?.prior?.home, journals)
             val wizard = journals.firstOrNull { it.op is Op.Disable && (it.op as Op.Disable).pkg.value in Denylist.setupWizards }?.let { (it.op as Op.Disable).pkg }
             if (originalHome != null && originalHome != launcher) {
                 useStockHome(originalHome, wizard)

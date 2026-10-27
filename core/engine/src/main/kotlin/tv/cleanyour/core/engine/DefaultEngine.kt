@@ -1023,7 +1023,9 @@ internal object JournalStepR {
         val stock = (arm.op as Op.ArmHomeWatchdog).stock
         val disabled = inside.mapNotNull { (it.op as? Op.Disable)?.pkg }.distinct()
         val setHome = inside.firstOrNull { it.op is Op.SetHome }
-        val home: Component = setHome?.prior?.home ?: stock
+        // WP4 (G4): a journal from before 0.4.5 may hold the chooser or another placeholder as the
+        // SetHome prior; step R then hands HOME to the stock home the watchdog was armed with.
+        val home: Component = setHome?.prior?.home?.takeUnless { StockHome.isPlaceholder(it) } ?: stock
         val rollback: List<Op> = listOf(Op.ConfirmHome(section.token), Op.KillWatchdog(section.token)) +
             disabled.map { Op.Enable(it) } + listOf(Op.SetHome(home), Op.VerifyHome(home), Op.PressHome)
         val expected = (setHome?.op as? Op.SetHome)?.component ?: home
@@ -1122,8 +1124,13 @@ internal object Staleness {
                     if (now != prior.settingValue) out += "${op.key.key}: was ${prior.settingValue ?: "unset"}, now ${now ?: "unset"}"
                 }
                 // WP4 (B5): the planner records the stock home as the prior while HOME answers with
-                // the chooser, a placeholder or nothing (StockHome.recorded), so that answer is no change.
-                is Op.SetHome -> prior.home?.let { if (snapshot.home.resolved != it && snapshot.home.resolved?.takeUnless { r -> StockHome.isPlaceholder(r) } != null) out += "home: was ${it.flat}, now ${snapshot.home.resolved?.flat ?: "none"}" }
+                // the chooser, a placeholder or nothing (StockHome.recorded), so that answer is no change,
+                // as long as the recorded home still claims HOME.
+                is Op.SetHome -> prior.home?.let {
+                    val undecided = snapshot.home.resolved.let { r -> r == null || StockHome.isPlaceholder(r) }
+                    val stillClaims = snapshot.home.claimants.any { c -> c.component == it }
+                    if (snapshot.home.resolved != it && !(undecided && stillClaims)) out += "home: was ${it.flat}, now ${snapshot.home.resolved?.flat ?: "none"}"
+                }
                 else -> {}
             }
         }

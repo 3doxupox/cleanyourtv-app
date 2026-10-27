@@ -7,6 +7,7 @@ import tv.cleanyour.core.model.Op
 import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.model.RemoteDir
 import tv.cleanyour.core.model.SettingKey
+import tv.cleanyour.core.ops.HomePlaceholder
 import tv.cleanyour.core.ops.UndoOrder
 
 // What the change records add up to now, replayed oldest first: the packages that are off because
@@ -58,9 +59,13 @@ data class ChangeSummary(
                 }
             }
             val wasOff = setOf(EnabledState.DISABLED, EnabledState.DISABLED_USER)
+            // WP4 (G4): a journal from before 0.4.5 may hold the chooser or another placeholder as the
+            // first SetHome's prior; the home screen before us is then the stock home the switch armed
+            // its watchdog with (null when the records do not name one).
+            val before = homeBefore?.let { h -> if (HomePlaceholder.isPlaceholder(h)) HomePlaceholder.stockFromRecords(changes) else h }
             return ChangeSummary(
                 switchedOff = off.filter { (pkg, isOff) -> isOff && firstPrior[pkg] !in wasOff }.keys.toList(),
-                homeBefore = homeBefore,
+                homeBefore = before,
                 homeNow = homeNow,
                 settings = settingBefore.keys.sortedBy { it.name }.map { SettingChange(it, settingBefore[it], settingNow[it]) },
                 installed = installed.toList(),

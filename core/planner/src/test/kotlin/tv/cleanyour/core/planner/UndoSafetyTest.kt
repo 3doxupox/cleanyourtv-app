@@ -55,4 +55,54 @@ class UndoSafetyTest {
         val plain = listOf(change(0, Op.Disable(feedback), Prior(packageState = EnabledState.DEFAULT)))
         assertEquals(listOf<Op>(Op.DefaultState(feedback)), undo(snapshot().with(feedback, EnabledState.DISABLED_USER), plain).steps.map { it.op })
     }
+
+    // (1) The helper put back journals accessibility_enabled 1 and the service list as priors.
+    // After the person switched accessibility off, Undo everything never writes 1, and writes a
+    // non-empty list only while accessibility is on right now.
+    @Test fun undoNeverSwitchesAccessibilityOn() {
+        val putBack = listOf(
+            change(0, Op.SettingsPut(SettingKey.ENABLED_ACCESSIBILITY, null), Prior(settingValue = helpers)),
+            change(1, Op.SettingsPut(SettingKey.ACCESSIBILITY_ENABLED, "0"), Prior(settingValue = "1")),
+            change(2, Op.SettingsPut(SettingKey.ENABLED_ACCESSIBILITY, helpers), Prior(settingValue = helpers)),
+            change(3, Op.SettingsPut(SettingKey.ACCESSIBILITY_ENABLED, "1"), Prior(settingValue = "1")),
+        )
+        fun tv(enabled: String?, list: String?) = snapshot().withSettings(snapshot().settings + mapOf(SettingKey.ACCESSIBILITY_ENABLED to enabled, SettingKey.ENABLED_ACCESSIBILITY to list))
+        // Switched off by the person, list kept or cleared: nothing is written.
+        for (list in listOf(helpers, null)) {
+            assertTrue(undo(tv("0", list), putBack).steps.none { it.op is Op.SettingsPut }, "accessibility off, list $list")
+        }
+        // On now with the list cleared: the list goes back, accessibility is left as it is.
+        val on = undo(tv("1", null), putBack).steps.map { it.op }
+        assertEquals(listOf<Op>(Op.SettingsPut(SettingKey.ENABLED_ACCESSIBILITY, helpers)), on.filterIsInstance<Op.SettingsPut>())
+        for (s in listOf(tv("0", helpers), tv("0", null), tv("1", null), tv(null, null))) {
+            assertTrue(undo(s, putBack).steps.none { it.op == Op.SettingsPut(SettingKey.ACCESSIBILITY_ENABLED, "1") })
+        }
+    }
+
+    // (3) A journal from before 0.4.5 on a chooser TV holds the chooser as the SetHome prior. Undo
+    // everything and Before a factory reset hand HOME to the stock home the switch armed its
+    // watchdog with (or the profile's stock launcher), never to the chooser.
+    @Test fun aPlaceholderHomePriorGoesBackToTheStockHome() {
+        val token = RunToken("00000000000000aa")
+        val takeover = listOf(
+            change(0, Op.ArmHomeWatchdog(stock, 150, token), null),
+            change(1, Op.Disable(stock.pkg), Prior(packageState = EnabledState.ENABLED)),
+            change(2, Op.SetHome(launcher), Prior(home = chooser)),
+        )
+        // Ours is Home, the stock home is off, so it claims nothing.
+        val ours = snapshot(disabled = setOf(stock.pkg.value), home = launcher, claimants = listOf(launcher), extra = mapOf(installedLauncher()))
+        for (records in listOf(takeover, takeover.drop(1))) {
+            val source = if (records === takeover) null else object : ProfileSource {
+                override suspend fun all() = listOf(PlannerFixtures.profile())
+                override suspend fun resolve(facts: DeviceFacts) = ProfileResolution.Exact(PlannerFixtures.profile())
+            }
+            val planner = PlannerFixtures.planner(profiles = source)
+            val ops = undo(ours, records, planner).steps.map { it.op }
+            assertTrue(Op.SetHome(stock) in ops, "${records.size} records: $ops")
+            assertTrue(ops.none { (it as? Op.SetHome)?.component == chooser })
+            val reset = planner.plan(PlanRequest.BeforeFactoryReset, ours, PlannerFixtures.facts, records)
+            val resetOps = assertIs<PlanResult.Ok>(reset, reset.toString()).plan.steps.map { it.op }
+            assertTrue(Op.SetHome(stock) in resetOps && Op.Enable(stock.pkg) in resetOps, "$resetOps")
+        }
+    }
 }
