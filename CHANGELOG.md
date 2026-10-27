@@ -2,7 +2,7 @@
 
 All notable changes to the app. Versions follow [semantic versioning](https://semver.org/).
 
-## Unreleased
+## 0.4.6 (2026-10-28)
 
 ### Home screen
 - Xiaomi TVs on Android TV (the Mi TV 4i and others), Redmi sets among them, can now get the
@@ -60,6 +60,12 @@ All notable changes to the app. Versions follow [semantic versioning](https://se
   once ("x12") instead of filling the report.
 - The issue's title names the TV, for example "Problem: Xiaomi MiTV-AXSO0 (dangal, Android 9)", or
   "Problem: could not connect (refused)" when no TV was read.
+
+### Fixes
+- Manage and the Restore point page show the same restore point time, and Done names the restore
+  point that "Undo everything" goes back to.
+- Manage no longer stays on "Working" after "Stop and undo".
+- The connect screen reads properly for a TV you added by its address.
 
 ### Under the hood
 - Test builds can offer the switch with the setup wizard left on to other brands' sets that look the
