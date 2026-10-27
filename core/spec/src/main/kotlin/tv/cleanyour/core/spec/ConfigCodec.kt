@@ -94,6 +94,12 @@ internal object ConfigCodecImpl {
         "glass_style",
     )
 
+    // Keys launchers 2.7 (3e34f40) and 3.0 (b06ab21) both read from config.json (Config.load) that no
+    // look sets and LauncherConfigDoc has no field for: carried as is with no warning, since the TV
+    // does read them. key_filter (config.xml true): false keeps the key helpers on but stops them
+    // filtering keys, for firmware that drops key repeat while any service filters.
+    val CARRIED_READ: Set<String> = setOf("key_filter")
+
     // res/values/config.xml of the bundled launcher 3.0 (unchanged for these keys since v2.5.0; the
     // keys of older launchers keep their values).
     // config.xml has no festival, wallpaper rotation, dim or race calendar: those only ever come
@@ -326,7 +332,7 @@ internal object ConfigCodecImpl {
         for ((k, v) in o) {
             if (k in MODELLED) continue
             unknown[k] = v.toJsonElement()
-            if (k !in CARRIED_27 && k !in CARRIED_30) w += "unknown key $k; the launcher ignores it (carried as is)"
+            if (k !in CARRIED_27 && k !in CARRIED_30 && k !in CARRIED_READ) w += "unknown key $k; the launcher ignores it (carried as is)"
         }
         prerequisites30(o, dockRow ?: BUILT_IN.dockRow, appLibrary ?: BUILT_IN.appLibrary, w)
         val doc = LauncherConfigDoc(

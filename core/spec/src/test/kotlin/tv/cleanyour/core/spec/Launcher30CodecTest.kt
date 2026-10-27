@@ -1,10 +1,14 @@
 package tv.cleanyour.core.spec
 
+import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Test
+import tv.cleanyour.testing.fixtures.Fixtures
+import java.io.File
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 // The codec's launcher 3.0 rules (plan WP5 steps 9 and 10): the keys that act only with another key
 // on, glass_style, and the app_keys grammar of RemoteKeys at b06ab21.
@@ -28,10 +32,10 @@ class Launcher30CodecTest {
         assertEquals(listOf("single_row does nothing without dock_row: the launcher keeps its grid",
             "dock_band_all does nothing without single_row: the band stays behind the dock apps"),
             warnings("""{"dock_row": false, "single_row": true, "dock_band_all": true}"""))
-        // key_filter is not carried yet, so it brings its own unknown key line.
-        for (json in listOf("""{"key_filter": false, "consume_volume_keys": true}""", """{"key_filter": false, "home_long_press_home": true}""")) {
-            assertEquals(2, warnings(json).size, json)
-        }
+        assertEquals(listOf("consume_volume_keys does nothing with key_filter false: the key helpers do not see the volume keys"),
+            warnings("""{"key_filter": false, "consume_volume_keys": true}"""))
+        assertEquals(listOf("home_long_press_home does nothing with key_filter false: the key helper does not see the Home key"),
+            warnings("""{"key_filter": false, "home_long_press_home": true}"""))
     }
 
     @Test fun aKeyWithWhatItNeedsOrAtItsDefaultIsNot() {
@@ -46,6 +50,28 @@ class Launcher30CodecTest {
         )) {
             assertEquals(emptyList(), warnings(json), json)
         }
+    }
+
+    // key_filter is read by launcher 2.7 (3e34f40, the frozen v27 copy) and 3.0 (the submodule at the
+    // pin, and its v30 copy), with a config.xml default, so the codec carries it with no "ignores it"
+    // warning, whatever its value.
+    @Test fun keyFilterIsCarriedWithoutAWarning() {
+        for (f in listOf(File(Fixtures.repoRoot, "core/spec/src/test/java/com/gathin/tvhome/v27/Config.java"),
+            File(Fixtures.repoRoot, "core/spec/src/test/java/com/gathin/tvhome/v30/Config.java"),
+            File(Fixtures.upstreamDir, "launcher/app/src/main/java/com/gathin/tvhome/Config.java"))) {
+            for (k in ConfigCodecImpl.CARRIED_READ) assertTrue("bool(json, \"$k\"" in f.readText(), "$f reads $k")
+        }
+        val xml = File(Fixtures.upstreamDir, "launcher/app/src/main/res/values/config.xml").readText()
+        assertTrue("<bool name=\"key_filter\">true</bool>" in xml)
+        for (k in ConfigCodecImpl.CARRIED_READ) assertTrue(k !in ConfigCodecImpl.MODELLED && k !in ConfigCodecImpl.CARRIED_27 && k !in ConfigCodecImpl.CARRIED_30, k)
+        for (v in listOf("true", "false")) {
+            val text = """{"key_filter": $v}"""
+            assertEquals(emptyList(), warnings(text), text)
+            val doc = assertIs<DecodeResult.Ok>(LauncherConfigCodec.decode(text.encodeToByteArray())).doc
+            assertEquals(mapOf("key_filter" to JsonPrimitive(v.toBooleanStrict())), doc.unknown)
+            assertEquals("{\n  \"key_filter\": $v\n}\n", LauncherConfigCodec.encode(doc).decodeToString())
+        }
+        assertEquals(listOf("unknown key zz; the launcher ignores it (carried as is)"), warnings("""{"key_filter": true, "zz": 1}"""))
     }
 
     @Test fun appKeysGrammar() {
