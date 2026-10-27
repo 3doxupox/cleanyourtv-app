@@ -2,6 +2,14 @@
 
 All notable changes to the app. Versions follow [semantic versioning](https://semver.org/).
 
+## Unreleased
+
+### Connecting
+- Phones on Android 9 to 12 can connect to a TV again: the step that hands the TV the phone's key
+  used a part of Java those phones do not have, so the TV never showed Allow and the app said
+  "unreachable" (#98, #325, #468, #783, #837, #965, #991, #1006, #1024, #1089, #1134). Saving a
+  restore file had the same kind of problem on phones below Android 15, fixed too.
+
 ## 0.4.0 (2026-10-26)
 
 A new Look sheet for the TV's home screen: pick a picture, pick one of five styles, pick how many
