@@ -103,8 +103,8 @@ private fun appSettings(update: UpdateCheck = UpdateCheck.Idle, backing: String 
 private fun tvSettings(level: Level = Level.SIMPLE, room: String? = "Living room") = TvSettingsState("Mi TV 4A", room, level, "192.168.1.50", NOW)
 
 private fun openWrite(kind: PlanKind = PlanKind.SWITCH_OFF, reason: PauseReason = PauseReason.CONNECTION_LOST, busy: Boolean = false, notTaken: Boolean = false,
-                      nothingDone: Boolean = false) =
-    OpenWrite(tvId, "Mi TV 4A", PlanId("01JAZ0000000000000000000"), kind, reason, busy, notTaken, nothingDone)
+                      nothingDone: Boolean = false, tookHome: String? = null) =
+    OpenWrite(tvId, "Mi TV 4A", PlanId("01JAZ0000000000000000000"), kind, reason, busy, notTaken, nothingDone, tookHome)
 
 // 0.3.2 B1 and B2: the report preview with the text the report builder makes (TvReportTest has the
 // exact text; this is its shape, shortened). 0.3.3 D1: the TV report in its compact form, as the
@@ -232,6 +232,8 @@ object ManageShots {
         // QA of 0.4.5: the TV changed after we read it (STALE): before any step, and partway through.
         Shot("openwrite_stale_nothing_done") { SheetOver({ ManageScreen(manage(), {}) }) { OpenWriteContent(openWrite(kind = PlanKind.THEME, reason = PauseReason.STALE, nothingDone = true), {}, {}, {}) } },
         Shot("openwrite_stale_partway") { SheetOver({ ManageScreen(manage(), {}) }) { OpenWriteContent(openWrite(kind = PlanKind.THEME, reason = PauseReason.STALE), {}, {}, {}) } },
+        // 0.4.6: the app a put back switched on took the Home button.
+        Shot("openwrite_took_home") { SheetOver({ ManageScreen(manage(), {}) }) { OpenWriteContent(openWrite(kind = PlanKind.PUT_BACK, reason = PauseReason.STEP_FAILED, tookHome = "Android TV Home"), {}, {}, {}) } },
         Shot("openwrite_setup") { SheetOver({ ManageScreen(manage(), {}) }) { OpenWriteContent(openWrite(kind = PlanKind.SETUP), {}, {}, {}) } },
 
         // M4 Switched off

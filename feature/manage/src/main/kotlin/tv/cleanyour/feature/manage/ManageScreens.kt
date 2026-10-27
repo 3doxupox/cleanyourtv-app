@@ -227,6 +227,15 @@ internal fun ColumnScope.OpenWriteContent(
             // 0.3.2 B2: a setup that would not finish is worth a report (issue #2).
             detailsLabel = stringResource(R.string.openwrite_report), onDetails = onReport,
             primaryGuarded = false)   // navigation: it only opens the wizard's resume card
+    } else if (open.tookHome != null) {
+        // 0.4.6: the app this put back switched on took the Home button. The buttons say exactly what
+        // they do, so neither asks first: switch it off again (the run's undo) or keep it (stop here).
+        val app = open.tookHome.orEmpty()
+        StopCard(msg(R.string.openwrite_title_took_home, "app" to app),
+            if (open.notTaken) stringResource(R.string.openwrite_not_taken) else msg(R.string.openwrite_body_took_home, "app" to app),
+            primaryLabel = if (open.busy) null else stringResource(R.string.openwrite_switch_off_again), onPrimary = { onAction(OpenWriteAction.UNDO) },
+            tertiaryLabel = if (open.busy) null else stringResource(R.string.openwrite_keep_it), onTertiary = { onAction(OpenWriteAction.STOP_HERE) },
+            busyText = if (open.busy) stringResource(R.string.openwrite_busy) else null)
     } else {
         // "Undo what we did" and "Stop here" ask first, in this same sheet; the action is sent on yes.
         var asking by rememberSaveable(open.planId.value) { mutableStateOf(initiallyAsking) }

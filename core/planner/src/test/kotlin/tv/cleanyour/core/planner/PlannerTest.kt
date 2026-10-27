@@ -527,4 +527,35 @@ class PlannerTest {
         assertEquals(listOf(DefaultPlanner.REASON_TV_REFUSES_HOME), refused(setup(null), snapshot = snap))
         assertEquals(listOf(DefaultPlanner.REASON_TV_REFUSES_HOME), refused(setup(tcl.copy(platform = tv.cleanyour.core.model.Platform.TCL_CN)), snapshot = snap))
     }
+
+    // 0.4.6: a home screen switched back on under the new one can take the Home button (tvlauncher's
+    // priority 2 beats ours on the maintainer's Mi TV), so the put back makes ours the default again
+    // and checks Home, pausing there when the app kept it. Only while ours is Home, and only for a
+    // package that may answer Home; any other put back is the one switch-on as before.
+    @Test fun aPutBackOfAHomeScreenUnderTheNewOneKeepsOursAsHome() {
+        val ours = snapshot(disabled = setOf(stock.pkg.value), home = launcher, claimants = listOf(launcher), extra = mapOf(installedLauncher()))
+        val p = plan(PlanRequest.PutBack(stock.pkg), ours)
+        assertEquals(listOf(Op.Enable(stock.pkg), Op.SetHome(launcher), Op.VerifyHome(launcher)), ops(p))
+        assertTrue(p.steps.all { it.onFailure == FailurePolicy.STOP_AND_ROLLBACK })
+        assertEquals(launcher, p.steps[1].prior?.home)
+        // Launcherx, a vendor home and the home the switch armed its watchdog with count too.
+        val launcherx = PackageName("com.google.android.apps.tv.launcherx")
+        val withX = snapshot(disabled = setOf(stock.pkg.value), home = launcher, claimants = listOf(launcher),
+            extra = mapOf(installedLauncher(), launcherx to PackageState(EnabledState.DISABLED_USER, true, 1, null, false, false, null, false)))
+        assertEquals(listOf(Op.Enable(launcherx), Op.SetHome(launcher), Op.VerifyHome(launcher)), ops(plan(PlanRequest.PutBack(launcherx), withX)))
+        val vendor = PackageName("com.mitv.tvhome.atv")
+        val armed = listOf(change(1, Op.ArmHomeWatchdog(Component(vendor, ".Home"), 150, tv.cleanyour.core.model.RunToken("00000000000000aa")), null),
+            change(2, Op.Disable(vendor), Prior(packageState = EnabledState.ENABLED)))
+        val vendorOff = snapshot(disabled = setOf(vendor.value), home = launcher, claimants = listOf(launcher), extra = mapOf(installedLauncher()))
+        assertEquals(listOf(Op.Enable(vendor), Op.SetHome(launcher), Op.VerifyHome(launcher)), ops(plan(PlanRequest.PutBack(vendor), vendorOff, armed)))
+        // Any other app: the one switch-on.
+        val videos = PackageName("com.google.android.videos")
+        assertEquals(listOf(Op.Enable(videos)), ops(plan(PlanRequest.PutBack(videos), snapshot(disabled = setOf(videos.value), home = launcher, claimants = listOf(launcher), extra = mapOf(installedLauncher())))))
+        // With the TV's own home screen in charge there is nothing to keep.
+        assertEquals(listOf(Op.Enable(stock.pkg)), ops(plan(PlanRequest.PutBack(stock.pkg), snapshot(disabled = setOf(stock.pkg.value)))))
+        // Use the TV's own home screen and Undo everything hand Home back on purpose: no re-set there.
+        val undo = plan(PlanRequest.UseStockHome(stock), ours, listOf(change(1, Op.Disable(stock.pkg), Prior(packageState = EnabledState.ENABLED)),
+            change(2, Op.SetHome(launcher), Prior(home = stock))))
+        assertTrue(Op.SetHome(launcher) !in ops(undo) && Op.SetHome(stock) in ops(undo))
+    }
 }

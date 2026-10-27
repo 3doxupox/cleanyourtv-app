@@ -79,6 +79,10 @@
     <string name="openwrite_open_setup">Open the setup</string>
     <string name="openwrite_later">Not now</string>
     <string name="openwrite_report">Report a problem</string>
+    <string name="openwrite_title_took_home">{app} took the Home button</string>
+    <string name="openwrite_body_took_home">Once {app} was back on, the TV gave it the Home button, so Home no longer opens the new home screen. Switch {app} off again to get the new one back, or keep it.</string>
+    <string name="openwrite_switch_off_again">Switch it off again</string>
+    <string name="openwrite_keep_it">Keep it</string>
 
     <!-- M4 Switched off -->
     <string name="switchedoff_title">{count, plural, other {Switched off (#)}}</string>

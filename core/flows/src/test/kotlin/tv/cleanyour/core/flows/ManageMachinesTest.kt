@@ -1004,6 +1004,40 @@ class ManageMachinesTest {
         assertNull(HomeScreenMachine(h.manageDeps(), backgroundScope, listed.id).also { settle() }.state.value.notOnTv)
         assertFalse(assertNotNull(ManageMachine(h.manageDeps(), backgroundScope, listed.id).also { settle() }.state.value.current).ownHome)
     }
+
+    // 0.4.6: a put back whose app took the Home button pauses at the Home check after it
+    // (DefaultPlanner.putBack). The open run card names the app, and its "Switch it off again" is
+    // the run's own undo; a put back that paused anywhere else is the ordinary card.
+    @Test fun aPutBackThatTookTheHomeButtonSaysSoAndItsUndoSwitchesTheAppOffAgain() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val tv = h.knownTv()
+        val stock = Samples.stockLauncher
+        h.ranDisable(tv, listOf(stock.pkg))
+        h.respond(PlanKind.PUT_BACK, listOf(Op.Enable(stock.pkg), Op.SetHome(Launcher.home), Op.VerifyHome(Launcher.home)))
+        var at = 1
+        h.engine.onStart = { p -> if (p.kind == PlanKind.PUT_BACK) emit(p.tvId, RunState.Paused(p, at, PauseReason.STEP_FAILED, AdbError.Policy.GuardFailed(-1, "home"))) else finish(p, RunStatus.COMPLETED) }
+        val d = h.manageDeps()
+        assertIs<WriteResult.Paused>(TvWriter(d).write(tv.id, PlanRequest.PutBack(stock.pkg)))
+        val card = assertNotNull(d.openWrites.current.value)
+        assertEquals(d.nameOf(stock.pkg), card.tookHome)
+        var result: WriteResult? = null
+        backgroundScope.launch { result = TvWriter(d).resolveOpen(tv.id, OpenWriteAction.UNDO) }
+        settle(TvWriter.MOVE_WAIT_MS + 100)
+        assertTrue(h.engine.calls.any { it is FakeEngine.Call.UndoRun }, "switch it off again is the run's undo")
+        assertTrue(h.planner.requests.none { it is PlanRequest.SwitchOff }, "never a new switch-off plan, which would refuse a home screen")
+        assertIs<WriteResult.Paused>(result)   // the fake engine never moves on: the card stays, with the reconnect line
+        assertEquals(d.nameOf(stock.pkg), assertNotNull(d.openWrites.current.value).tookHome)
+        // Paused at the switch-on itself: the ordinary card.
+        val other = Harness()
+        val tv2 = other.knownTv()
+        other.ranDisable(tv2, listOf(stock.pkg))
+        other.respond(PlanKind.PUT_BACK, listOf(Op.Enable(stock.pkg), Op.SetHome(Launcher.home), Op.VerifyHome(Launcher.home)))
+        at = 0
+        other.engine.onStart = h.engine.onStart
+        val d2 = other.manageDeps()
+        assertIs<WriteResult.Paused>(TvWriter(d2).write(tv2.id, PlanRequest.PutBack(stock.pkg)))
+        assertNull(assertNotNull(d2.openWrites.current.value).tookHome)
+    }
 }
 
 private fun kotlinx.coroutines.CoroutineScope.launchAccess(h: Harness, tv: Tv, done: (AccessResult) -> Unit) =

@@ -369,7 +369,7 @@ class TvWriter(private val d: ManageDeps) {
     // paused STALE before its first step says nothing was changed, never "we stopped partway".
     suspend fun publish(tv: Tv, p: RunState.Paused) {
         val nothingDone = attempt { d.ledger.progress(p.plan.id).doneSteps == 0 }.getOrDefault(false)
-        d.openWrites.show(tv, p, nothingDone)
+        d.openWrites.show(tv, p, nothingDone, OpenWrites.tookHome(p)?.let { d.nameOf(it, attempt { d.snapshots.latest(tv.id) }.getOrNull()?.packages?.get(it)?.label) })
     }
 
     // The card's buttons (O2): carry on, undo what we did, or stop here, for the open run on this
