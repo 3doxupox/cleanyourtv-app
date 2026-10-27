@@ -8,15 +8,17 @@ import kotlinx.serialization.json.JsonPrimitive
 import tv.cleanyour.core.model.PackageName
 
 // The body of LauncherConfigCodec: the launcher's Config.java read path, key by key. The pinned
-// reader is launcher 2.7 (v2.7.0, 3e34f40, versionCode 8), the launcher this app bundles;
-// its reading of the modelled keys is unchanged since v2.5.0 (9071ec8). 1bbf0c9 added input_action
-// and module_cards (RFC-W4-1); v2.4.0 added seventeen more keys (RFC-W4-2) and v2.5.0 nine more
-// (RFC-W4-3), which a TV still on an older launcher ignores; 2.7's look keys have no field and are
-// carried (CARRIED_27, read by LauncherKeys). Decoding answers "what will the TV show for these
-// bytes"; a key the launcher would ignore is left null in the doc with a warning, so effective() of
-// the decoded doc equals what Config.load computes. ConfigDifferentialTest holds this to the real
-// Config.java of launchers 2.7, 2.5 and 2.0 on the theme fixtures and on generated files, and
-// LookDifferentialTest to 2.7's on every look LookKeys builds.
+// reader is launcher 3.0 (the submodule at b06ab21, upstream main after v3.0.0, versionCode 9), the
+// launcher this app bundles (RFC-UP300-1); its reading of the modelled keys is unchanged since
+// v2.5.0 (9071ec8). 1bbf0c9 added input_action and module_cards (RFC-W4-1); v2.4.0 added seventeen
+// more keys (RFC-W4-2) and v2.5.0 nine more (RFC-W4-3), which a TV still on an older launcher
+// ignores; 2.7's look keys and 3.0's 25 keys have no field and are carried (CARRIED_27 and
+// CARRIED_30, read by LauncherKeys). Decoding answers "what will the TV show for these bytes"; a
+// key the launcher would ignore is left null in the doc with a warning, so effective() of the
+// decoded doc equals what Config.load computes (but for top_bar_apps, which 3.0 also adds to the
+// hidden apps). ConfigDifferentialTest holds this to the real Config.java of launchers 3.0, 2.7,
+// 2.5 and 2.0 on the theme fixtures and on generated files, and LookDifferentialTest to 3.0's and
+// 2.7's on every look LookKeys builds.
 //
 // Not modelled, because the phone cannot read it: the choices made on the TV in Launcher settings
 // (columns 4 to 7, rows below the dock 0 to 3, animations, advanced effects, a wallpaper pick),
@@ -92,8 +94,8 @@ internal object ConfigCodecImpl {
         "glass_style",
     )
 
-    // res/values/config.xml of launcher 2.7 (unchanged for these keys since v2.5.0; the keys of older
-    // launchers keep their values).
+    // res/values/config.xml of the bundled launcher 3.0 (unchanged for these keys since v2.5.0; the
+    // keys of older launchers keep their values).
     // config.xml has no festival, wallpaper rotation, dim or race calendar: those only ever come
     // from config.json.
     val BUILT_IN = EffectiveConfig(

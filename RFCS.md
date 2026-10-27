@@ -73,3 +73,33 @@ Look sheet gives it "Put it on the TV" with the way back under it, and Setup's l
 Done (and no leave question, as closing keeps the choice). System Back, the predictive gesture,
 swipe and the scrim all go through the modal sheet's `confirmValueChange` into `LookEditorNav`, so
 no activity-compose dependency is added. No module, layer or dependency changes.
+
+## RFC-UP300-1: the codec and the looks are checked against launcher 3.0's reader
+
+The app bundles launcher 3.0 (upstream main b06ab21 after v3.0.0, versionCode 9). The 2.7 reader
+is frozen with digests; the 3.0 reader from the pin is vendored in `com.gathin.tvhome.v30` and is
+the reader the codec and the look are checked against; the codec carries the 25 keys of 3.0
+without a warning; no frozen type changes.
+
+- `core/spec/src/test/java/com/gathin/tvhome/v30`: Config.java and the seven helpers it calls
+  (Festival, WallpaperRotation, RaceWeekend, WallpaperMood, Sun, ThemeFiles, WallpaperCaptions),
+  the submodule's files with only the package line changed; the `Cards` stub (cleanLabel,
+  unchanged); an `R` stub with 2.7's ids plus the 24 config.xml ids 3.0 added; `V30ConfigBridge`.
+  Config.java at the pin calls no class outside that set and no new Android API, so no other stub
+  was needed. `LookDifferentialTest.vendoredLauncher30ClassesAreTheSubmodules` compares the copies
+  with the submodule.
+- `ConfigCodecImpl.CARRIED_30`: input_sources, lunar_date, lunar_utc_offset, open_on_start_choice,
+  show_library_pill, library_ok_opens, uniform_tiles, consume_volume_keys, power_on_home,
+  home_long_press_home, power_on_home_always, dock_band, wifi_status_warnings, date_below_clock,
+  vpn_pill, locale, top_bar_apps, show_greeting, header_white, clock_wallpaper,
+  clock_wallpaper_dim, clock_glow, single_row, dock_band_all and glass_style. They are carried in
+  `unknown` as is; `BUILT_IN` and `LauncherConfigDoc` are unchanged, since every 2.7 default stays.
+  A test holds the set to what 3.0's Config.load reads beyond 2.7's.
+- `LauncherKeys.keys30` reads them with Config's helpers (bool, integer, string, stringList,
+  glassStyle) into a new `Keys30`, with `DEFAULTS_30` from config.xml at the pin. Config keeps
+  single_row and-ed with dock_row and adds top_bar_apps to the hidden list; `effective()` does not
+  model the second (the app never writes top_bar_apps), and the differential applies both.
+- `UpstreamLauncher.Version.V30` is the bundled one; V27, V25 and V20 stay for TVs not updated.
+  On 3.0: the 288,000 build look cross product (43,050 distinct docs, 0 codec warnings), the
+  10,000 file fuzz with the 25 keys in valid and out of range values, the theme fixtures (retro
+  and nature-calm included), the encoded docs and the TV choices; the 2.7 runs stay beside them.

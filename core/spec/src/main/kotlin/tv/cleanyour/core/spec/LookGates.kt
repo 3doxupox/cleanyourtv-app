@@ -3,13 +3,14 @@ package tv.cleanyour.core.spec
 import kotlin.math.roundToInt
 
 // What the Look editor offers on a given TV: by the home screen's version (launcher 2.7 is
-// versionCode 8, the first to read the look2 keys) and by its memory (spec 6.5, 8.1).
+// versionCode 8, the first to read the look2 keys; the bundled launcher is 3.0, versionCode 9) and
+// by its memory (spec 6.5, 8.1).
 object LookGates {
     const val FIRST_27_VERSION_CODE = 8L
     const val LOW_RAM_MB = 1536
     const val LIFT_MIN_RAM_MB = 2048
 
-    // Styles offered: below versionCode 8 only CLASSIC; 8 and up, or not known (the bundled 2.7), all five.
+    // Styles offered: below versionCode 8 only CLASSIC; 8 and up, or not known (the bundled launcher), all five.
     fun styles(versionCode: Long?): List<StyleId> = if (reads27(versionCode)) StyleId.entries.toList() else listOf(StyleId.CLASSIC)
 
     // The TV's home screen reads the 2.7 keys (names and the 2.7 rows of More options).
