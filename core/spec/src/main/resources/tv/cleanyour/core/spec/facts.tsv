@@ -109,6 +109,7 @@ com.amazon.media.recommendations	Amazon recommendations	Content recommendations 
 com.amazon.metrics.api	Amazon metrics	Sends usage metrics to Amazon	tracking
 com.amazon.minerva.client.api	Amazon Minerva	Amazon usage metrics client	tracking
 com.amazon.minitv.android.app	Amazon miniTV	Amazon's free video app	preloads
+com.amazon.music.tv	Amazon Music	Amazon's music streaming app	streaming
 com.amazon.naatyam	Amazon Naatyam	Preloaded Amazon content app	preloads
 com.amazon.neo.minerva	Amazon Neo Minerva	Amazon usage metrics service	tracking
 com.amazon.neo.minerva.logcat	Amazon Neo log collector	Collects logs for Amazon metrics	tracking
@@ -184,6 +185,7 @@ com.amlogic.voicesubtitle	Voice subtitles	Amlogic voice subtitle overlay	accessi
 com.analiti.fastest.android	analiti speed test	Network speed test app	preloads
 com.android.adservices.api	Android ad services	On-device advertising framework	tracking
 com.android.backupconfirm	Backup confirmation	Confirms a backup started from a computer	preloads
+com.android.bips	Default print service	Android's built-in printing service	preloads
 com.android.bluetoothmidiservice	Bluetooth MIDI	Connects Bluetooth music keyboards	other
 com.android.browser	Android browser	Old built-in web browser	preloads
 com.android.camera2	Camera	Camera app for phones	preloads
@@ -308,6 +310,7 @@ com.fox.foxone	Fox One	Streaming app	streaming
 com.fox.fts.android	FOX	FOX network app	streaming
 com.foxsports.videogo	FOX Sports	Sports streaming app	streaming
 com.fubo.firetv.screen	Fubo	Live TV streaming service	streaming
+com.gaana.fire_tv	Gaana	Indian music streaming app	streaming
 com.gameloft.android.HEP.GloftANHP	Gameloft game	Preloaded Gameloft game	preloads
 com.gitvdemo.video	GITV demo reel	Promotional demo video app	ads
 com.glance.tv	Glance	Adverts on the lock screen	ads
@@ -457,6 +460,7 @@ com.king.candycrushsaga	Candy Crush Saga	Preloaded game	preloads
 com.limelight	Moonlight	Game streaming from a PC	streaming
 com.mautilus.tvgames.portal.androidtv	TV games portal	Preloaded game portal	preloads
 com.mediatek.AirplayAPK	AirPlay (MediaTek)	Receives AirPlay from Apple devices	casting
+com.mediatek.MtkDemo	MediaTek demo	MediaTek's store demo app	demo
 com.mediatek.airplaydaemon	AirPlay service	Background service for AirPlay	casting
 com.mediatek.android.leanbacklauncher.partnercustomizer	Home screen partner config	Partner rows; some MediaTek TVs need it for the TV service at boot	system
 com.mediatek.androidbox	Screen sharing	Miracast receiver (Wi-Fi Display)	casting
@@ -656,6 +660,7 @@ com.sony.dtv.homekit	Apple HomeKit	Lets the Apple Home app control the TV	brand
 com.sony.dtv.imanual	Sony i-Manual	On-screen manual	preloads
 com.sony.dtv.indiametarecommendation	Sony content picks	Content recommendation feed	ads
 com.sony.dtv.irbrecommendation	Sony IR recommendations	Recommendation feed for cable boxes	ads
+com.sony.dtv.lastaccess	Sony usage agent	Sony agent that records recent use	tracking
 com.sony.dtv.launcherxcustomizer	Sony home tweaks	Sony settings for the Google TV home	ads
 com.sony.dtv.livingfit	Living Decor	Sony ambient mode and default screensaver	screensaver
 com.sony.dtv.multiscreendemo	Sony multi-screen demo	Shop demo of multiple screens	demo

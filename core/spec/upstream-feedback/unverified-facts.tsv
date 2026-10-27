@@ -6,6 +6,7 @@ android.autoinstalls.config.sei	purpose from the package name and the list's com
 com.FDGEntertainment.redball4.gp	name from the package name
 com.amazon.device.telemetry.emitter	purpose from the package name; the header says it has no components of its own
 com.amazon.livedeviceservice	purpose not documented upstream
+com.amazon.music.tv	name from the package name; the Sony list gives no comment
 com.amazon.privacypassservice	purpose not documented upstream
 com.amazon.tv.earlyaccess	purpose from the list's comment only (a preview programme stub)
 com.apps.esticker	purpose from the package name and the group title (demo utilities)
@@ -57,6 +58,7 @@ com.sony.dtv.b2b.noderuntimeextension.bpk	what the extension does; from the pack
 com.sony.dtv.b2b.prosettings	purpose from the package name
 com.sony.dtv.calibrationmonitor	purpose from the package name
 com.sony.dtv.irbrecommendation	purpose from the package name (the irb packages run the IR blaster)
+com.sony.dtv.lastaccess	purpose from the list's comment only ("usage agent")
 com.sony.dtv.networkrecommendation	purpose from the package name
 com.sony.dtv.osat.music.toast	purpose from the package name
 com.sony.dtv.recommendationservice	purpose from the package name
