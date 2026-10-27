@@ -589,4 +589,62 @@ class SectionTest {
         assertTrue(h.clock.nowMs() < armed.deadlineWallMs, "the phone's step R ran before the watchdog would fire")
         h.assertStockHomeIsBack(plan.sections.single().token.value)
     }
+
+    // 0.4.6: the maintainer's Mi TV starts on its last input (Live TV), so in the first minute after
+    // it is switched on a TV app can come up in front of the new home screen, and a later Home press
+    // lands on ours. With Home still answering to ours and no Home claimant in front, the check presses
+    // Home again (a few tries, the first minute only) instead of leaving the person looking at Live TV.
+    private val liveTv = Component(PackageName("com.android.tv"), ".MainActivity")
+
+    @Test fun aTvAppInFrontDuringTheCheckGetsAnotherHomePress() = runTest(timeout = TEST_TIMEOUT) {
+        val h = Harness(this)
+        val engine = h.engine()
+        val plan = h.setupPlan()
+        openCheckScreen(h, engine, plan)
+        h.tv.onHomeKey = { h.tv.focus = h.launcher }
+        h.tv.focus = liveTv
+        advanceTimeBy(2_500); runCurrent()
+        assertEquals(1, h.tv.execs("input keyevent 3"))
+        advanceTimeBy(2_500); runCurrent()
+        assertEquals(true, assertIs<RunState.AwaitingConfirm>(engine.runState(h.tv.tvId).value).homeCheck, "ours is in front again")
+        assertEquals(1, h.tv.execs("input keyevent 3"), "no press while ours is in front")
+        engine.confirmHome(h.tv.tvId)
+        h.settle(engine)
+        assertEquals(RunStatus.COMPLETED, assertIs<RunState.Finished>(engine.runState(h.tv.tvId).value).status)
+        assertEquals(h.launcher, h.tv.home)
+        assertTrue(ChangeRecords.fromJournal(h.journal.read(plan.id)).none { it.op == Op.PressHome }, "a press is no change")
+    }
+
+    @Test fun thePressesAreFewSpreadOverTheFirstMinuteAndTheWindowStaysAsItWas() = runTest(timeout = TEST_TIMEOUT) {
+        val h = Harness(this)
+        val engine = h.engine()
+        val plan = h.setupPlan()
+        val s = openCheckScreen(h, engine, plan)
+        h.tv.focus = liveTv   // Live TV comes back every time
+        val presses = mutableListOf<Long>()
+        h.tv.onHomeKey = { presses += h.clock.monotonicMs() }
+        advanceTimeBy(s.deadlineMs - h.clock.nowMs() - 1_000); runCurrent()
+        assertIs<RunState.AwaitingConfirm>(engine.runState(h.tv.tvId).value, "the window is the same")
+        assertEquals(DefaultEngine.PATIENT_PRESSES, presses.size, presses.toString())
+        assertTrue(presses.zipWithNext().all { (a, b) -> b - a >= DefaultEngine.PATIENT_GAP_MS }, presses.toString())
+        advanceTimeBy(5_000); runCurrent(); h.settle(engine)
+        assertEquals(HomeOutcome.TIMED_OUT, assertIs<RunState.Finished>(engine.runState(h.tv.tvId).value).home)
+    }
+
+    @Test fun noPressWhenHomeAnswersToAnotherHomeScreenOrAClaimantIsInFront() = runTest(timeout = TEST_TIMEOUT) {
+        val h = Harness(this)
+        val engine = h.engine()
+        val plan = h.setupPlan()
+        openCheckScreen(h, engine, plan)
+        h.tv.home = h.stock   // Home no longer answers to ours
+        h.tv.focus = liveTv
+        advanceTimeBy(10_000); runCurrent()
+        assertEquals(0, h.tv.execs("input keyevent 3"))
+        // A home screen of the TV's own in front still rolls back at once, with no press first.
+        h.tv.home = h.launcher
+        h.tv.focus = h.stock
+        advanceTimeBy(2_500); runCurrent(); h.settle(engine)
+        assertEquals(HomeOutcome.WRONG_FOCUS, assertIs<RunState.Finished>(engine.runState(h.tv.tvId).value).home)
+    }
 }
+
