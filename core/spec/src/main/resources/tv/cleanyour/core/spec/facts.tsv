@@ -13,6 +13,7 @@ android.autoinstalls.config.hisense.xiaoyushan	Hisense partner installs	Installs
 android.autoinstalls.config.hkc	HKC partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.homwee	Homwee partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.nvidia	NVIDIA partner installs	Installs partner apps without asking	ads
+android.autoinstalls.config.rplus.device	Partner app installs	Installs partner apps without asking	ads
 android.autoinstalls.config.scbc.device	SCBC partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.sdmc	SDMC partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.sei	SEI partner installs	Installs partner apps without asking	ads
@@ -589,6 +590,7 @@ com.poovarasan.tv.tamiltv	Tamil TV	Streaming app	streaming
 com.popoko.tictactoe	Tic Tac Toe	Preloaded game	preloads
 com.qjy.browser	Preloaded browser	Web browser	preloads
 com.qterics.da.product	Qterics device agent	Remote support and device data	tracking
+com.realsil.ota	Remote updater	Firmware updates for Bluetooth remotes	updates
 com.realtek.dtmb	DTMB tuner	Chinese digital TV tuner input	other
 com.realtek.dtv	Realtek digital TV	Digital tuner input	system
 com.realtek.factorytools	Realtek factory tools	Factory tools, needed by the system	system
@@ -596,10 +598,13 @@ com.realtek.kara	Karaoke	Karaoke app	preloads
 com.realtek.karaoke.userguide	Karaoke guide	User guide for the karaoke app	preloads
 com.realtek.keyinterceptserver	Realtek key service	Remote key handling	system
 com.realtek.leanbacklauncher.partnercustomizer	Realtek home customizer	Partner rows; on some sets also the stock home's Inputs button	ads
+com.realtek.retailmode	Retail mode	Store demo mode	demo
 com.realtek.tv.atsc	ATSC tuner	North American TV tuner input	other
 com.realtek.tv.isdb	ISDB tuner	Japanese and South American tuner input	other
+com.recisio.kfandroid	KaraFun	Karaoke app	streaming
 com.rkgames.basisgame	RK Games game	Preloaded game	preloads
 com.rtk.engmenu	Realtek engineering menu	Factory menu, needed by the system	system
+com.rtk.mediabrowser	Media Player	Plays videos and photos from USB	preloads
 com.sbs.ondemand.tv	SBS On Demand	SBS catch-up TV (Australia)	streaming
 com.sdmc.facTest	SDMC factory test	Factory test menu	demo
 com.sdmc.hwinfo	SDMC hardware info	Hardware info and diagnostics	brand

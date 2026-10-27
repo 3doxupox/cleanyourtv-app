@@ -3370,6 +3370,36 @@
         "com.google.android.speech.pumpkin": { "category": "voice", "ask": true }
       }
     },
+    "thomson-43rt1055": {
+      "match": { "models": ["SPPL 2K ANDROID TV"], "devices": ["sauve"], "brand": "Thomson", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.realtek.tv",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.realtek.tv", "com.realtek.tv.passthrough", "com.realtek.dtv", "com.realtek.tv.atv", "com.realtek.menu", "com.realtek.globalkeyhandler", "com.realtek.systemservice", "com.realtek.connecteddevices", "com.google.android.tv.googletvremotepairer", "com.google.android.tv.remote.service"],
+      "suggestedDock": [],
+      "tested": { "by": "Manu Sharma (PR #634)", "firmware": "UKRE.260524.055", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Telemetry and ad services": { "category": "tracking", "ask": false },
+        "Content, promos and partner installs": { "category": "ads", "ask": false },
+        "Background services": { "category": "other", "ask": false },
+        "Off by choice on this unit (comment out what you use)": { "category": "streaming", "ask": true },
+        "Stock launcher and its partner rows. Do this LAST, after launcher/ is installed and set as Home.": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.android.adservices.api": { "category": "ads", "ask": false },
+        "com.android.ondevicepersonalization.services": { "category": "ads", "ask": false },
+        "com.vewd.core.service": { "category": "other", "ask": true },
+        "com.realtek.retailmode": { "category": "demo", "ask": false },
+        "com.rtk.mediabrowser": { "category": "preloads", "ask": true },
+        "com.cltv.fast": { "category": "ads", "ask": true },
+        "com.google.android.apps.mediashell": { "category": "casting", "ask": true },
+        "com.google.android.tv.dfuservice": { "category": "other", "ask": true },
+        "com.google.android.backdrop": { "category": "screensaver", "ask": true },
+        "com.google.android.play.games": { "category": "preloads", "ask": true }
+      }
+    },
     "thomson-t32rtl6000": {
       "match": { "models": ["ATV R1"], "devices": ["R1"], "brand": "Thomson", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": "THOMSON/THOMSON/R1:9/PTT1.210114.001/" },
       "platform": "ANDROID_TV",
