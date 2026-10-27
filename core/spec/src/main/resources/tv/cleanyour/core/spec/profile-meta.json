@@ -1668,6 +1668,32 @@
         "com.google.android.tts": { "category": "accessibility", "ask": true }
       }
     },
+    "philips-google-tv-ta7": {
+      "match": { "models": [], "devices": ["PH3M_AL_T32"], "brand": "Philips", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.mediatek.wwtv.tvcenter",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": ["org.droidtv", "org.droidtv.icp", "org.droidtv.ambisvc", "org.droidtv.eum", "com.mediatek.tv.service", "com.mediatek.tvinput", "com.mediatek.wwtv.tvcenter", "com.mediatek.wwtv.setupwizard", "com.mediatek.wwtv.mediaplayer", "com.mediatek.autopair", "com.mediatek.tv.factory", "mediatek.factorymenu.ui", "com.mediatek.android.leanbacklauncher.partnercustomizer", "com.android.tv.ota", "com.easy.oad", "com.google.android.katniss"],
+      "suggestedDock": [],
+      "tested": { "by": "Wesley Prado (PR #518), second set amachador (PR #1778)", "firmware": "UTT1.250308.001", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Batch 1: telemetry and attribution": { "category": "tracking", "ask": false },
+        "Batch 2: manufacturer content and popups": { "category": "ads", "ask": false },
+        "Batch 3: background extras": { "category": "preloads", "ask": false },
+        "Batch 4: by owner's choice (not used)": { "category": "streaming", "ask": true },
+        "Batch 5: stock home. Disable only after the new launcher is installed (build-and-install.sh with STOCK_LAUNCHER does this).": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "android.autoinstalls.config.tpv.device": { "category": "ads", "ask": false },
+        "com.mediatek.opapp": { "category": "other", "ask": true },
+        "com.mstar.android.tv.disclaimercustomization": { "category": "other", "ask": true },
+        "com.google.android.onetimeinitializer": { "category": "other", "ask": false },
+        "com.google.android.syncadapters.calendar": { "category": "other", "ask": false },
+        "com.google.android.apps.mediashell": { "category": "casting", "ask": true }
+      }
+    },
     "philips-r8g-google-tv": {
       "match": { "models": ["R8G"], "devices": ["whitefield"], "brand": "Philips", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
       "platform": "GOOGLE_TV",

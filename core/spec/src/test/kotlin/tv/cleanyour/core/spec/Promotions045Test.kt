@@ -52,4 +52,8 @@ class Promotions045Test {
         facts("Philips Google TV TA5", "PH1M_WW_9972", "Philips", 34, "Philips/PH1M_WW_9972_20/PH1M_WW_9972:14/UKN2.241117.001/3000669:user/release-keys", manufacturer = "TPV") to "philips-google-tv-ta1", // #1095
         facts("Philips Google TV TA1", "PH1M_WW_9972", "Philips", 31, "Philips/PH1M_WW_9972/PH1M_WW_9972:12/STT2.230831.001/20826:user/release-keys", manufacturer = "TPV") to null, // #1231
     )
+
+    @Test fun philipsGoogleTvTa7() = check(
+        facts("Philips Google TV TA7", "PH3M_AL_T32", "Philips", 34, "Philips/PH3M_LT_T32/PH3M_AL_T32:14/UTT1.250308.001/101000072000:user/release-keys", manufacturer = "TPV") to "philips-google-tv-ta7", // #1213
+    )
 }

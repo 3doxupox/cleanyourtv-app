@@ -119,6 +119,7 @@ object SureSetGenerator {
     // way: with them NVIDIA and OnePlus would get full sets and the Sony, Philips and TCL sets would move.
     val PROMOTED_045: Set<String> = setOf(
         "philips-google-tv-ta1",
+        "philips-google-tv-ta7",
         "sony-bravia-vu1",
     )
 

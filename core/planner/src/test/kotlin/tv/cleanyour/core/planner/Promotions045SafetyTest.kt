@@ -53,4 +53,10 @@ class Promotions045SafetyTest {
         for (s in listOf("com.netflix.ninja", "com.amazon.amazonvideo.livingroom", "org.droidtv.hbbtvopapp", "com.mediatek.airplaydaemon", "org.droidtv.control4app"))
             assertTrue(p(s) !in defaultOff("philips-google-tv-ta1"), s)
     }
+
+    @Test fun philipsGoogleTvTa7() {
+        defaultsPass("philips-google-tv-ta7")
+        keeps("philips-google-tv-ta7", "com.mediatek.wwtv.tvcenter", "com.mediatek.tvinput", "com.mediatek.autopair", "com.mediatek.tv.service")
+        for (s in listOf("com.google.android.apps.mediashell", "com.mediatek.opapp", "com.netflix.ninja")) assertTrue(p(s) !in defaultOff("philips-google-tv-ta7"), s)
+    }
 }

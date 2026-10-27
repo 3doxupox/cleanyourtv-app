@@ -277,6 +277,9 @@ philips-google-tv-ta1	(header)	HDMI and Live TV were not exercised on the test u
 philips-google-tv-ta1	(match)	device PH1M_WW_9972 at SDK 34 and no model key, so the TA5 sets (product PH1M_WW_9972_20, the same UKN2.241117.001 build) resolve too (issues #1095, #1045); the Android 12 TA1 (#1231) stays on the Philips set
 philips-google-tv-ta1	org.droidtv.control4app	Control4 smart home integration (four packages), the owner's choice: an ask row
 philips-google-tv-ta1	org.droidtv.hbbtvopapp	HbbTV for broadcast TV; an ask row, as Live TV was not exercised with it off
+philips-google-tv-ta7	(launcher)	after the home screen switch the remote's gear button (KEYCODE_SETTINGS) opens nothing unless the launcher's key helper is on, and the app never switches one on; the launcher's Settings pill opens the same settings
+philips-google-tv-ta7	com.mediatek.opapp	European satellite operator apps (Canal Digitaal, HD+), unused on the Brazilian test set but used by subscribers elsewhere: an ask row
+philips-google-tv-ta7	com.mstar.android.tv.disclaimercustomization	the hisense-hg9 list keeps it (first-boot legal text); ask row, as on oneplus-tv-y1
 philips-r8g-google-tv	(match)	ro.product.brand is PHILIPS and the manufacturer MOKA; brands match without case
 philips-r8g-google-tv	com.google.android.tungsten.setupwraith	the header reports it deleted the Wi-Fi saved at setup; the takeover's Wi-Fi guard skips it when it owns the network
 polytron-2k-hayward	(header)	the Kept on purpose names (Live TV, the USB media player, the contacts provider) are in the curated never-disable list

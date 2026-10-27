@@ -469,6 +469,7 @@ com.mediatek.dialservice	DIAL service	Lets phone apps find the TV to cast	castin
 com.mediatek.dtv.tvinput.atsctuner	ATSC tuner input	Antenna TV tuner (North America)	other
 com.mediatek.hotkey.dispatcher	MediaTek hotkeys	Remote hotkeys including Source	system
 com.mediatek.network	MediaTek network monitor	Network monitor, needed by the system	system
+com.mediatek.opapp	Operator apps	Satellite operator apps for Europe	other
 com.mediatek.partner.airplay_sys	AirPlay system part	System part of AirPlay	casting
 com.mediatek.testpq	Picture test tool	MediaTek picture quality tool	other
 com.mediatek.tv.agent	MediaTek TV agent	Power, HbbTV and keys	system
@@ -957,6 +958,7 @@ org.chromium.webview_shell	WebView test browser	AOSP test browser for the web vi
 org.droidtv.amazonalexa	Philips Alexa	Alexa bridge for the TV	voice
 org.droidtv.android.fitness	Fitness Buddy	Fitness app	preloads
 org.droidtv.candeebug	Philips DAC analytics	Uploads viewing and device data	tracking
+org.droidtv.consentcmpapp	Philips ad consent	Ad consent screen	ads
 org.droidtv.control4UcService	Control4 service	Control4 smart home service	brand
 org.droidtv.control4adapterservice	Control4 adapter	Control4 smart home adapter	brand
 org.droidtv.control4app	Control4	Control4 smart home integration	brand
