@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "upstreamCommit": "3e34f40",
+  "upstreamCommit": "b06ab21",
   "profiles": {
     "aipro2k": {
       "match": { "models": [], "devices": ["dongnae"], "brand": "Expressluck", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
@@ -91,7 +91,8 @@
         "Ads, shopping, retail demo, tutorials": { "category": "ads", "ask": false },
         "Amazon apps (owner's choice)": { "category": "preloads", "ask": true },
         "Alexa extras (Alexa core kept)": { "category": "voice", "ask": true },
-        "Screensaver (screensaver_enabled was already 0; idle screen comes from these)": { "category": "screensaver", "ask": true }
+        "Screensaver (screensaver_enabled was already 0; idle screen comes from these)": { "category": "screensaver", "ask": true },
+        "Added from the 75\" Omni unit (ads, telemetry, notices; tested there, see the header)": { "category": "tracking", "ask": true }
       },
       "packages": {
         "com.amazon.hybridadidservice": { "category": "ads", "ask": false },
@@ -113,13 +114,7 @@
       "tested": { "by": "IdentityDC (PR #195)", "firmware": "Fire OS 6.7.1.1 (NS6711/5908)", "daysLivedWith": null, "rebootTested": true },
       "groups": {
         "Amazon telemetry, metrics, logs, crash and usage reporting": { "category": "tracking", "ask": false },
-        "com.amazon.device.metrics                 # protected by Fire OS": { "category": "tracking", "ask": false },
-        "com.amazon.minerva.client.api            # protected by Fire OS": { "category": "tracking", "ask": false },
-        "com.amazon.device.logmanager              # protected by Fire OS": { "category": "tracking", "ask": false },
-        "com.amazon.diode                        # on-device analysis / diagnostics uploader (protected by Fire OS)": { "category": "tracking", "ask": false },
-        "com.fireos.usagestats.proxy             # reports app usage to Amazon (protected by Fire OS)": { "category": "brand", "ask": false },
         "Ads, sponsored rows, recommendations, promos": { "category": "ads", "ask": false },
-        "com.amazon.ftvads.deeplinking           # ad deep links (protected by Fire OS)": { "category": "ads", "ask": false },
         "Preloaded Amazon apps and services not used": { "category": "preloads", "ask": false },
         "Alexa extras (voice search itself stays on)": { "category": "voice", "ask": true },
         "Streaming apps not used (kept: Netflix, Prime Video, Disney+, Apple TV, DirecTV, Crunchyroll, YouTube)": { "category": "streaming", "ask": true },
@@ -141,7 +136,8 @@
         "com.amazon.privacypassservice": { "category": "tracking", "ask": false },
         "com.amazon.providers.contentsupport": { "category": "ads", "ask": false },
         "com.amazon.tv.releasenotes": { "category": "other", "ask": false },
-        "com.amazon.tv.easyupgrade": { "category": "updates", "ask": true }
+        "com.amazon.tv.easyupgrade": { "category": "updates", "ask": true },
+        "com.amazon.wifilocker": { "category": "brand", "ask": false }
       }
     },
     "amazon-fire-tv-stick-4k-2023": {
@@ -156,14 +152,8 @@
       "tested": { "by": "Mateus Lecchi (PR #466)", "firmware": "Fire OS 8.1.8.5 (RS8185.3891N)", "daysLivedWith": null, "rebootTested": true },
       "groups": {
         "Amazon telemetry, metrics, logs, usage and location reporting": { "category": "tracking", "ask": false },
-        "com.amazon.device.metrics                # protected by Fire OS": { "category": "tracking", "ask": false },
-        "com.amazon.device.logmanager             # protected by Fire OS": { "category": "tracking", "ask": false },
-        "com.amazon.diode                         # protected by Fire OS": { "category": "tracking", "ask": false },
-        "com.fireos.usagestats.proxy              # protected by Fire OS": { "category": "tracking", "ask": false },
         "Ads, sponsored rows, recommendations, promos, shopping": { "category": "ads", "ask": false },
-        "com.amazon.ftvads.deeplinking            # protected by Fire OS": { "category": "ads", "ask": false },
         "Preloaded Amazon apps and setup helpers (owner's choice)": { "category": "preloads", "ask": true },
-        "com.amazon.tv.csapp                      # protected by Fire OS (customer support / help app)": { "category": "preloads", "ask": true },
         "Alexa extras (voice search on the remote mic stays: vizzini, aria, cardinal, tcomm, ivona TTS, alexa.datastore,": { "category": "voice", "ask": true }
       },
       "packages": {
@@ -229,10 +219,6 @@
       "tested": { "by": "kushc451 (PR #351)", "firmware": "Fire OS 7.7.1.7 (PS7717.5741N)", "daysLivedWith": null, "rebootTested": true },
       "groups": {
         "Amazon telemetry, metrics, logs, usage reporting": { "category": "tracking", "ask": false },
-        "com.amazon.minerva.client.api            # protected by Fire OS": { "category": "tracking", "ask": false },
-        "com.amazon.device.logmanager             # protected by Fire OS": { "category": "tracking", "ask": false },
-        "com.amazon.diode                         # protected by Fire OS": { "category": "tracking", "ask": false },
-        "com.fireos.usagestats.proxy              # protected by Fire OS": { "category": "tracking", "ask": false },
         "Ads, sponsored rows, recommendations, promos, shopping": { "category": "ads", "ask": false },
         "Preloaded Amazon apps and setup helpers (personal choice)": { "category": "preloads", "ask": true },
         "Alexa extras (voice search on the remote mic keeps working with all of these off)": { "category": "voice", "ask": true }
@@ -447,7 +433,6 @@
       "groups": {
         "SCBC / Google telemetry and feedback": { "category": "tracking", "ask": false },
         "Content rows, promos and auto-installs": { "category": "ads", "ask": false },
-        "com.realtek.leanbacklauncher.partnercustomizer  # KEEP: supplies the Inputs button on the stock Home": { "category": "ads", "ask": false },
         "Background services and duplicates": { "category": "brand", "ask": false },
         "Preloaded apps and casting (personal choice: comment out any you use)": { "category": "preloads", "ask": false }
       },
@@ -1086,7 +1071,7 @@
       "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
       "liveTv": null,
       "setupWraith": "com.google.android.tungsten.setupwraith",
-      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH", "STOCK_LAUNCHER_KEEP_ENABLED"],
       "neverDisable": ["com.realtek.dtv", "com.realtek.tv.atv", "com.realtek.tv", "com.apps.ota", "com.apps.authota", "com.realsil.ota"],
       "suggestedDock": [],
       "tested": { "by": "Keneth Lallemand (PR #266)", "firmware": "UKR1.260612.001", "daysLivedWith": null, "rebootTested": false },
@@ -1094,8 +1079,7 @@
         "Google partner setup and store plumbing": { "category": "tracking", "ask": false },
         "Preloaded services": { "category": "other", "ask": true },
         "Karaoke": { "category": "preloads", "ask": true },
-        "Preloaded apps not used on this set; comment out anything you use": { "category": "streaming", "ask": true },
-        "Stock home and the Google TV setup wizard. Disable only after the new launcher is installed and": { "category": "home", "ask": false }
+        "Preloaded apps not used on this set; comment out anything you use": { "category": "streaming", "ask": true }
       },
       "packages": {
         "com.google.android.videos": { "category": "streaming", "ask": true },
@@ -1273,7 +1257,8 @@
         "Batch 1: telemetry, ads and recommendation rows": { "category": "tracking", "ask": false },
         "Batch 2: vendor and preloaded apps": { "category": "preloads", "ask": false },
         "Batch 3: personal choice, not used on this set: comment out what you use": { "category": "casting", "ask": true },
-        "Batch 4: personal choice, preloaded streaming apps not used on this set (kept: Netflix, YouTube, Prime Video,": { "category": "streaming", "ask": true }
+        "Batch 4: personal choice, preloaded streaming apps not used on this set (kept: Netflix, YouTube, Prime Video,": { "category": "streaming", "ask": true },
+        "Batch 5: also disabled on the Nikkei DVB91NK (second unit): Google setup leftovers and Android extras nobody": { "category": "other", "ask": true }
       },
       "packages": {
         "com.homwee.aipont": { "category": "ads", "ask": false },
@@ -1397,9 +1382,7 @@
         "Skyworth content, ads and telemetry": { "category": "ads", "ask": false },
         "Google telemetry, recommendations and setup leftovers": { "category": "tracking", "ask": false },
         "Background services nobody needs on a TV": { "category": "preloads", "ask": false },
-        "Not used (by choice, per the owner)": { "category": "preloads", "ask": true },
-        "com.furnaghan.android.photoscreensaver      # third-party photo screensaver; may be one you installed:": { "category": "preloads", "ask": false },
-        "com.liskovsoft.leankeyboard                 # LeanKey keyboard (Gboard is the active one); may be one you": { "category": "preloads", "ask": true }
+        "Not used (by choice, per the owner)": { "category": "preloads", "ask": true }
       },
       "packages": {
         "android.autoinstalls.config.SW": { "category": "ads", "ask": false },
@@ -1421,7 +1404,11 @@
         "com.google.android.videos": { "category": "streaming", "ask": true },
         "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": true },
         "com.disney.disneyplus": { "category": "streaming", "ask": true },
-        "com.tianci.localmedia": { "category": "other", "ask": true }
+        "com.tianci.localmedia": { "category": "other", "ask": true },
+        "com.FDGEntertainment.redball4.gp": { "category": "preloads", "ask": false },
+        "com.joxdev.orbia": { "category": "preloads", "ask": false },
+        "com.pomelogames.MarsGame": { "category": "preloads", "ask": false },
+        "com.rkgames.basisgame": { "category": "preloads", "ask": false }
       }
     },
     "panasonic-4ktv-jup": {
@@ -1496,9 +1483,7 @@
         "Philips content, store and demo": { "category": "ads", "ask": false },
         "Google recommendations, ambient mode and casting": { "category": "ads", "ask": false },
         "Google apps this owner does not use": { "category": "preloads", "ask": true },
-        "Preinstalled streaming apps, off by the owner's choice": { "category": "streaming", "ask": true },
-        "org.droidtv.nettvregistration               # Smart TV registration (OilProvider/StateProvider); kept on the 50PUS8517 for firmware updates -- re-enable if an update check fails": { "category": "ads", "ask": false },
-        "org.droidtv.eum                             # e-manual; on this board there is no xtv binding to it and no retry loop at idle (checked), but the Source key is untested": { "category": "ads", "ask": false }
+        "Preinstalled streaming apps, off by the owner's choice": { "category": "streaming", "ask": true }
       },
       "packages": {
         "org.droidtv.android.fitness": { "category": "preloads", "ask": false },
@@ -1567,7 +1552,6 @@
         "TP Vision telemetry, as in 50PUS8517. Disable candeebug and gel together.": { "category": "tracking", "ask": false },
         "Philips content promos and the app gallery": { "category": "ads", "ask": false },
         "Philips features this owner does not use. Check each against your own setup.": { "category": "brand", "ask": true },
-        "com.phorus.playfi.tv                    # Play-Fi multi-room audio; re-enables itself at every boot, see note 2": { "category": "brand", "ask": true },
         "Google telemetry and first-setup leftovers": { "category": "tracking", "ask": false },
         "Google apps this owner does not use": { "category": "preloads", "ask": false },
         "Preinstalled streaming apps, all in /data/app": { "category": "streaming", "ask": true },
@@ -1744,7 +1728,8 @@
         "Broadcast tuner apps not used here (DTMB, ISDB, ATSC)": { "category": "other", "ask": true },
         "Karaoke": { "category": "preloads", "ask": true },
         "Preloaded apps": { "category": "preloads", "ask": true },
-        "Stock home. Disable only after the new launcher is installed and running, or Home lands on a factory test app.": { "category": "home", "ask": false }
+        "Stock home. Disable only after the new launcher is installed and running, or Home lands on a factory test app.": { "category": "home", "ask": false },
+        "Privacy Sandbox and on-device personalization": { "category": "ads", "ask": true }
       },
       "packages": {
         "com.google.android.partnersetup": { "category": "tracking", "ask": false },
@@ -2103,7 +2088,9 @@
         "demo / shop mode": { "category": "demo", "ask": false },
         "preloaded apps": { "category": "preloads", "ask": false },
         "Google TV setup wizard: claims HOME and takes over once the stock launcher is disabled": { "category": "home", "ask": false },
-        "Sony promo and IoT apps: already off at the factory on the EU unit, shipped enabled on the UC one": { "category": "ads", "ask": false }
+        "Sony promo and IoT apps: already off at the factory on the EU unit, shipped enabled on the UC one": { "category": "ads", "ask": false },
+        "Asia-Pacific unit: Sony agents and promo surfaces not covered above": { "category": "ads", "ask": true },
+        "Asia-Pacific unit: preloaded apps, off by the owner's choice": { "category": "streaming", "ask": true }
       },
       "packages": {
         "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": true },
@@ -2734,7 +2721,7 @@
         "Batch 3: retail demo, hotel mode, preloads": { "category": "demo", "ask": false },
         "Batch 4: background services (off by choice: voice, Chromecast)": { "category": "other", "ask": true },
         "Batch 5: preloaded apps (off by choice)": { "category": "streaming", "ask": true },
-        "Needed for the custom launcher. Disable only AFTER launcher/ is installed (see README Troubleshooting).": { "category": "home", "ask": false }
+        "Needed for the custom launcher. Disable only AFTER launcher/ is installed": { "category": "home", "ask": false }
       },
       "packages": {
         "com.tcl.usercenter": { "category": "other", "ask": true },
@@ -2881,7 +2868,6 @@
         "1. Telemetry and analytics": { "category": "tracking", "ask": false },
         "2. Content, recommendation rows and promos": { "category": "ads", "ask": false },
         "3. Preloads and background extras": { "category": "preloads", "ask": false },
-        "com.eros.now                              # Eros Now: refused (\"Shell cannot change component state\"), no tile anyway": { "category": "brand", "ask": true },
         "4. Off by choice on this unit": { "category": "casting", "ask": true },
         "5. After the launcher is installed": { "category": "brand", "ask": true },
         "6. Voice, off by choice. voice_ap and katniss:interactor used ~45% of one core all day.": { "category": "voice", "ask": true }
@@ -2892,7 +2878,8 @@
         "com.tcl.ui_mediaCenter": { "category": "preloads", "ask": true },
         "com.tcl.useragreement": { "category": "other", "ask": true },
         "com.tcl.android.webview": { "category": "other", "ask": true },
-        "com.tcl.versionUpdateApp": { "category": "updates", "ask": true }
+        "com.tcl.versionUpdateApp": { "category": "updates", "ask": true },
+        "com.tcl.keyhelp": { "category": "brand", "ask": true }
       }
     },
     "tcl-beyondtv2-latin-america": {
@@ -2965,7 +2952,7 @@
         "4. Off by choice: streaming apps and TCL extras (comment out what you use)": { "category": "streaming", "ask": true },
         "5. Off by choice: voice, casting, mirroring (comment out what you use)": { "category": "voice", "ask": true },
         "6. Google TV first-run wizard: claims HOME once launcherx is off (read the Wi-Fi note above)": { "category": "home", "ask": false },
-        "7. Google ambient screensaver (promos)": { "category": "screensaver", "ask": true }
+        "7. Google ambient screensaver (promos); also hosts the Google Home panel (see header)": { "category": "screensaver", "ask": true }
       },
       "packages": {
         "com.tcl.xian.StartandroidService": { "category": "other", "ask": true },
@@ -3235,8 +3222,7 @@
       "tested": { "by": "Andrea Manzini (PR #430)", "firmware": "20231013 (user/release-keys)", "daysLivedWith": null, "rebootTested": false },
       "groups": {
         "SDMC vendor bloat and diagnostics": { "category": "brand", "ask": false },
-        "Google TV / Android TV bloat": { "category": "preloads", "ask": false },
-        "com.google.android.tvlauncher        # Stock launcher: the installer disables it once the new Home is in": { "category": "preloads", "ask": false }
+        "Google TV / Android TV bloat": { "category": "preloads", "ask": false }
       },
       "packages": {
         "com.sdmc.facTest": { "category": "demo", "ask": true },
@@ -3609,7 +3595,7 @@
       "groups": {
         "Xiaomi + Google telemetry and ad tracking": { "category": "tracking", "ask": false },
         "PatchWall, content rows, promos, auto-installs": { "category": "ads", "ask": false },
-        "Xiaomi background services": { "category": "brand", "ask": false },
+        "Xiaomi background services. Before PatchWall: the updater enables PatchWall again (see header)": { "category": "brand", "ask": false },
         "Personal choice: voice assistant (the mic button stops working)": { "category": "voice", "ask": true },
         "Personal choice: casting, mirroring and the phone remote": { "category": "casting", "ask": true },
         "Preloaded apps": { "category": "preloads", "ask": false },
@@ -3694,8 +3680,8 @@
         "Google TV plumbing this stick does not need (second set)": { "category": "other", "ask": true },
         "(com.android.providers.tv, the TV content provider, stays enabled: the repo never disables it)": { "category": "other", "ask": true },
         "Accounts, backup and printing plumbing (second set; nothing on a TV uses these)": { "category": "other", "ask": true },
-        "com.android.companiondevicemanager        # kept: Bluetooth companion pairing, no list on main disables it": { "category": "other", "ask": true },
-        "Screensavers (second set; that stick runs always-on with its own home screen)": { "category": "screensaver", "ask": true }
+        "Screensavers (second set; that stick runs always-on with its own home screen)": { "category": "screensaver", "ask": true },
+        "Xiaomi extras (third set)": { "category": "brand", "ask": true }
       },
       "packages": {
         "tv.alphonso.alphonso_eula": { "category": "ads", "ask": false },
@@ -4062,7 +4048,13 @@
       "groups": {
         "Xiaomi telemetry": { "category": "tracking", "ask": false },
         "PatchWall and Xiaomi content add-ons": { "category": "ads", "ask": false },
-        "Stock-home recommendation feeds": { "category": "ads", "ask": false }
+        "Stock-home recommendation feeds": { "category": "ads", "ask": false },
+        "Error-report and feedback uploaders (pure telemetry, nothing user-facing)": { "category": "tracking", "ask": true },
+        "Partner auto-installer: pushes sponsored apps through Play on fresh accounts": { "category": "ads", "ask": true },
+        "Heavy screensavers. REASSIGN THE SCREENSAVER FIRST (e.g. the launcher's ClockDream via": { "category": "screensaver", "ask": true },
+        "Xiaomi \"TV Manager\" rocket-cleaner app": { "category": "brand", "ask": true },
+        "Preinstalled Google apps that reinstall freely from Play whenever wanted": { "category": "preloads", "ask": true },
+        "Xiaomi media leftovers and accessibility suite. The gallery doubles as the photo screensaver,": { "category": "preloads", "ask": true }
       },
       "packages": {
         "com.xiaomi.floatingframe": { "category": "brand", "ask": false }

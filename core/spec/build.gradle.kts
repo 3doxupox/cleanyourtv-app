@@ -11,7 +11,7 @@ dependencies {
 
 // The upstream launcher repository, pinned by W1 (DECISIONS-W1.md, D-W1-8).
 val upstream = rootProject.layout.projectDirectory.dir("third_party/cleanyourtv")
-val upstreamCommit = "3e34f40"
+val upstreamCommit = "b06ab21"
 
 // D28: profiles are converted at build time from the pinned upstream examples and shipped as
 // data (profiles.json, with the D26 sure sets). The converter is this module's own code, run
@@ -59,7 +59,7 @@ sourceSets.main {
 }
 
 // Differential test (F8): the real readers run on the JVM from the test sources, vendored with only
-// the package line changed. Launcher 2.7 (the submodule at 3e34f40, the pinned reader) in
-// src/test/java/com/gathin/tvhome/v27, checked against the submodule by LookDifferentialTest, with
+// the package line changed. Launcher 2.7 (v2.7.0, 3e34f40, the pinned reader) in
+// src/test/java/com/gathin/tvhome/v27, frozen by digest in LookDifferentialTest, with
 // stubs for the Android types it calls; launcher 2.5 (v2.5.0, 9071ec8) in .../pinned (RFC-UP037-1)
 // and 2.0 (1bbf0c9) in .../previous, kept for the keys they read. Nothing is generated here.

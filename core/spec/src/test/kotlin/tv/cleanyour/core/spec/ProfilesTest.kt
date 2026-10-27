@@ -24,7 +24,7 @@ class ProfilesTest {
     private fun profile(folder: String) = DebloatTxtParser.parse(examples.first { it.folder == folder }.debloatTxt, folder)
 
     @Test fun everyConvertedUpstreamExampleParsesWithCuratedMetadata() {
-        assertEquals(248, upstream.size)
+        assertEquals(316, upstream.size)
         assertEquals(148, examples.size)
         for (e in examples) {
             val profile = DebloatTxtParser.parse(e.debloatTxt, e.folder)
@@ -50,7 +50,7 @@ class ProfilesTest {
         val (bundle, problems) = ProfileConverter.convert(
             File(Fixtures.upstreamDir, "examples"),
             File(Fixtures.repoRoot, "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json"),
-            "3e34f40",
+            "b06ab21",
             unconverted,
         )
         assertEquals(emptyList(), problems)
@@ -62,7 +62,7 @@ class ProfilesTest {
     @Test fun theUnconvertedListIsPinnedToTheSubmodule() {
         val meta = ProfileMeta.decode(File(Fixtures.repoRoot, "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json").readText())
         assertEquals(upstream.map { it.folder }.filter { it !in meta.profiles }.toSet(), unconverted)
-        assertEquals(100, unconverted.size)
+        assertEquals(168, unconverted.size)
         val listed = unconvertedFile.readLines().filter { it.isNotBlank() && !it.startsWith("#") }
         assertEquals(listed.sorted(), listed, "one folder per line, sorted")
         assertTrue('\u2014' !in unconvertedFile.readText() && "-".repeat(2) !in unconvertedFile.readText())
@@ -162,6 +162,7 @@ class ProfilesTest {
     }
 
     // D22, widened in 0.3.7: the updaters upstream v2.7.0 lists name are Software updates rows by name.
+    // The b06ab21 lists name no new updater.
     @Test fun theUpdaterRuleKnowsTheV270Updaters() {
         for (name in listOf("com.cvte.tv.systemupgrade", "com.tcl.versionUpdateApp", "ru.sberdevices.rcfupdater", "com.amazon.tv.easyupgrade",
             "com.tcl.UpdatePeripheral", "com.sony.dtv.sensingcamera.fwupdate", "com.xiaomi.mitv.updateservice")) {
@@ -328,10 +329,37 @@ class ProfilesTest {
         assertTrue(p("com.h.header") in DebloatTxt.keepListIn(listOf("# Keep:") + two.header))
     }
 
+    // The real lists that split a group at a kept line before the fix, and every upstream folder:
+    // no group title is a package line. tcl-g09-google-tv opens two groups with a prose note that
+    // starts with a package name; both are curated ask groups and stay as they are.
+    @Test fun noGroupTitleIsAPackageLine() {
+        val titleStartsWithPackage = Regex("^[a-z][a-z0-9_]*(\\.[A-Za-z0-9_]+)+\\b")
+        val proseNotes = setOf(
+            "tcl-g09-google-tv: com.mirakulo.astrotv.service is Ginga, the ISDB-Tb broadcast interactive-TV engine (AstroTVService,",
+            "tcl-g09-google-tv: com.google.android.tv.remote.service pairs phone remote apps (_androidtvremote2._tcp, 6466 pairing,",
+        )
+        val found = upstream.flatMap { e -> DebloatTxt.scan(e.debloatTxt, e.folder).groups.map { "${e.folder}: ${it.title}" } }
+            .filter { titleStartsWithPackage.containsMatchIn(it.substringAfter(": ")) }
+        assertEquals(proseNotes, found.toSet())
+        fun scan(folder: String) = DebloatTxt.scan(upstream.first { it.folder == folder }.debloatTxt, folder)
+        val g03 = scan("tcl-g03-google-tv")
+        assertEquals(listOf("com.tcl.bi", "com.tcl.logkit", "com.google.android.feedback"),
+            g03.groups.single { it.title == "1. TCL and Google telemetry" }.entries.map { it.pkg.value })
+        assertTrue(p("com.tcl.xian.StartandroidService") in g03.kept)
+        assertTrue(p("com.tcl.versionUpdateApp") in scan("tcl-ak30a5").kept)
+        assertTrue(p("com.google.android.tv.remote.service") in scan("tcl-g10-google-tv").kept)
+        val r10g = scan("kalley-r10g")
+        assertTrue(p("com.google.android.apps.tv.launcherx") in r10g.kept && KnownLaunchers.SETUPWRAITH in r10g.kept)
+        for (s in listOf(g03, r10g, scan("tcl-ak30a5"), scan("tcl-g10-google-tv"))) {
+            val active = s.groups.flatMap { g -> g.entries.map { it.pkg } }.toSet()
+            assertTrue(s.kept.keys.none { it in active })
+        }
+    }
+
     @Test fun bundledProfilesEqualAFreshParse() {
         // Test build: the candidate lists (CandidatesTest) come after the upstream profiles.
         val bundle = BundledProfileSource.bundled.let { b -> b.copy(profiles = b.profiles.filter { !it.isCandidate }) }
-        assertEquals("3e34f40", bundle.upstreamCommit)
+        assertEquals("b06ab21", bundle.upstreamCommit)
         assertEquals(examples.map { it.folder }, bundle.profiles.map { it.id })
         for (e in examples) assertEquals(DebloatTxtParser.parse(e.debloatTxt, e.folder), bundle.profiles.first { it.id == e.folder }, e.folder)
         assertEquals(SureSetGenerator.generate(bundle.profiles, BundledFactsTable.bundled), bundle.sureSets)
@@ -400,19 +428,23 @@ class ProfilesTest {
         assertEquals(six, SureSetGenerator.CAREFUL_PACKAGES)
         val union = careful.flatMap { s -> s.groups.flatMap { g -> g.packages.map { it.name } } }.toSet()
         assertTrue(six.containsAll(union), "careful sets hold only the reviewed packages: ${union - six}")
-        assertEquals(six, union, "every reviewed package is in some careful set")
+        // b06ab21: the other five are asked first somewhere (com.android.printspooler in
+        // amazon-fire-tv-afttiff43's Omni rows; com.android.tv.feedbackconsent and the three Privacy
+        // Sandbox packages in prismplus-q65-ultra-r10g), so rule 2 leaves them out of every careful set
+        // until those rows are reviewed. docs/history/reviews/UP300-sure-sets.txt has the per brand diff.
+        assertEquals(setOf(p("com.google.android.feedback")), union, "the reviewed packages no list asks for first")
         assertEquals(careful.map { it.brand.lowercase() }.sorted(), careful.map { it.brand.lowercase() })
         fun pkgs(vararg names: String) = names.map(::p).toSet()
         // The brands of the reported TVs the change is for (docs/lists-0.3.5, the per-brand table).
         val reported = mapOf(
-            "Skyworth" to pkgs("com.google.android.feedback", "com.android.tv.feedbackconsent"),
-            "SHARP" to pkgs("com.google.android.feedback", "com.android.tv.feedbackconsent"),
+            "Skyworth" to pkgs("com.google.android.feedback"),
+            "SHARP" to pkgs("com.google.android.feedback"),
             "OnePlus" to pkgs("com.google.android.feedback"),
-            "onn" to pkgs("com.google.android.feedback", "com.android.tv.feedbackconsent", "com.android.printspooler"),
+            "onn" to pkgs("com.google.android.feedback"),
             "Haier" to pkgs("com.google.android.feedback"),
-            "google" to pkgs("com.google.android.feedback", "com.android.tv.feedbackconsent"),
-            "Expressluck" to six - p("com.android.printspooler"),
-            "SkyworthDigital" to six,
+            "google" to pkgs("com.google.android.feedback"),
+            "Expressluck" to pkgs("com.google.android.feedback"),
+            "SkyworthDigital" to pkgs("com.google.android.feedback"),
         )
         for ((brand, want) in reported) assertEquals(want, careful.single { it.brand == brand }.groups.flatMap { g -> g.packages.map { it.name } }.toSet(), brand)
         val askedSomewhere = profiles.flatMap { pr -> pr.groups.filter { it.default != GroupDefault.DISABLE }.flatMap { g -> g.packages.map { it.name } } }.toSet()
@@ -444,7 +476,7 @@ class ProfilesTest {
         val sharp = source.resolve(mi.copy(brand = "SHARP", manufacturer = "SHARP", model = "AQUOS_TVE19A", device = "sindang", sdk = 30))
         assertTrue(sharp is ProfileResolution.BrandSureSet && sharp.brand == "SHARP", sharp.toString())
         assertEquals(KnownLaunchers.generic, sharp.stockLaunchers)
-        assertEquals(setOf(p("com.google.android.feedback"), p("com.android.tv.feedbackconsent")), sharp.sureSet.flatMap { g -> g.packages.map { it.name } }.toSet())
+        assertEquals(setOf(p("com.google.android.feedback")), sharp.sureSet.flatMap { g -> g.packages.map { it.name } }.toSet())
         // A brand with a full set keeps it when its maker also has a careful set.
         val sonyBySkyworth = source.resolve(mi.copy(brand = "Sony", manufacturer = "Skyworth", model = "X1", device = "x1"))
         assertTrue(sonyBySkyworth is ProfileResolution.BrandSureSet && sonyBySkyworth.brand == "Sony", sonyBySkyworth.toString())
@@ -495,7 +527,8 @@ class ProfilesTest {
         fun askRow(id: String, pkg: String) = all.getValue(id).groups.single { g -> g.packages.any { it.name == p(pkg) } }.default
         for (id in listOf("google-chromecast-gtv-4k", "tcl-g05-google-tv", "tcl-g10-google-tv", "xiaomi-mi-box-s", "google-tv-streamer-4k-kirkwood"))
             assertEquals(GroupDefault.ASK, askRow(id, "com.google.android.marvin.talkback"), id)
-        assertEquals(GroupDefault.ASK, askRow("tcl-g10-google-tv", "com.google.android.tv.remote.service"))
+        // At b06ab21 the tcl-g10 list keeps the phone remote service on (the remote mic's bridge, #1441).
+        assertTrue(all.getValue("tcl-g10-google-tv").groups.none { g -> g.packages.any { it.name == p("com.google.android.tv.remote.service") } })
         for (id in listOf("google-chromecast-gtv-4k", "google-tv-streamer-4k-kirkwood"))
             assertEquals(GroupDefault.ASK, askRow(id, "com.google.android.tv.remotecontrol.logging"), id)
     }

@@ -22,9 +22,12 @@ class LookGatesTest {
             assertEquals(reads, LookGates.reads27(vc), "versionCode $vc")
         }
         assertEquals(8L, LookGates.FIRST_27_VERSION_CODE)
-        // The bundled launcher is that versionCode.
+        // The submodule's launcher (3.0, versionCode 9 at b06ab21) still reads the 2.7 keys. The bundled
+        // APK's own versionCode is pinned in core/trust (Pins.kt, LauncherPinTest).
         val gradle = File(Fixtures.upstreamDir, "launcher/app/build.gradle").readText()
-        assertEquals(true, Regex("versionCode\\s+8\\b").containsMatchIn(gradle) && Regex("versionName\\s+'2\\.7'").containsMatchIn(gradle))
+        val vc = Regex("versionCode\\s+(\\d+)\\b").find(gradle)!!.groupValues[1].toLong()
+        assertEquals(9L, vc)
+        assertEquals(true, LookGates.reads27(vc))
     }
 
     // Movement: Quick at 1.5 GB or less, else Lively; Lift and zoom shown from 2 GB, when the
