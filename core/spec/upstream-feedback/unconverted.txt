@@ -173,5 +173,4 @@ xiaomi-mitv-afmu1    # parked at v2.7.0: not curated yet and no TV report needs 
 xiaomi-mitv-astp0    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 xiaomi-mitv-astr0    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 xiaomi-mitv-axfr0    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
-xiaomi-mitv-ayfr0    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 xiaomi-mitv-mteq0    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review; China build that switches off the vendor setup wizard com.xiaomi.setupwizard, which this app keeps on

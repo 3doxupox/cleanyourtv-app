@@ -3863,6 +3863,30 @@
         "com.android.dreams.basic": { "category": "screensaver", "ask": true }
       }
     },
+    "xiaomi-mitv-ayfr0": {
+      "match": { "models": ["MiTV-AYFR0"], "devices": ["soul"], "brand": "Xiaomi", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": null,
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["mitv.service", "com.mi.bluetooth", "com.xiaomi.tvqs.overseas", "com.xiaomi.android.tvsetup.partnercustomizer", "com.google.android.tv.remote.service", "com.google.android.tungsten.setupwraith"],
+      "suggestedDock": [],
+      "tested": { "by": "steepenergy (PR #740)", "firmware": "UKG3.250107.001 (V816.0.26.6.10)", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "Xiaomi + Google telemetry and attribution": { "category": "tracking", "ask": false },
+        "PatchWall, content rows, promos, auto-installs": { "category": "ads", "ask": false },
+        "Xiaomi update service (re-enable to check for firmware updates)": { "category": "updates", "ask": true },
+        "Preloaded apps": { "category": "preloads", "ask": false }
+      },
+      "packages": {
+        "com.netflix.ninja": { "category": "streaming", "ask": true },
+        "com.amazon.amazonvideo.livingroom": { "category": "streaming", "ask": true },
+        "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": true },
+        "com.google.android.marvin.talkback": { "category": "accessibility", "ask": true },
+        "com.mitv.videoplayer": { "category": "preloads", "ask": true }
+      }
+    },
     "xiaomi-mitv-mffu0": {
       "match": { "models": ["MiTV-MFFU0"], "devices": ["finch"], "brand": "Xiaomi", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
       "platform": "ANDROID_TV",

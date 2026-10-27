@@ -512,6 +512,12 @@ xiaomi-mitv-astp1	com.xiaomi.mitv.smartpanel	ask row: xiaomi-mitv-mffu0 (v2.5.0)
 xiaomi-mitv-axfr1	com.android.tv	never-disable: the Live TV app also owns the input picker on this firmware
 xiaomi-mitv-axso2	com.google.android.marvin.talkback	listed under Android extras; accessibility is never default-off, so it is an ask row
 xiaomi-mitv-axso2	com.google.android.tvrecommendations	default-off as listed; the header notes the Google sign-in notice then has nowhere to show
+xiaomi-mitv-ayfr0	(match)	Android 14 only (UKG3.250107.001, the tested build); the Android 11 sticks (RTT0.211222.001) keep the Xiaomi brand set until a list is tested there
+xiaomi-mitv-ayfr0	com.amazon.amazonvideo.livingroom	a streaming app the owner did not use; ask row
+xiaomi-mitv-ayfr0	com.google.android.marvin.talkback	accessibility: ask row (safety rule 8)
+xiaomi-mitv-ayfr0	com.google.android.youtube.tvmusic	a streaming app the owner did not use; ask row
+xiaomi-mitv-ayfr0	com.mitv.videoplayer	Mi cast plays through it (xiaomi-mi-box-s); ask row
+xiaomi-mitv-ayfr0	com.netflix.ninja	a streaming app the owner did not use; ask row
 xiaomi-mitv-mffu0	(header)	the header's not-touched list (TV player, settings, Menu-button panel, Bluetooth remote, the only keyboard, account, media browser, updater, TV inputs) is in the curated never-disable list
 xiaomi-mitv-mffu0	(header)	rebooted with the list applied except com.xiaomi.tv.gallery, which was added last
 xiaomi-mitv-mffu0	(launcher)	the stock home is the HyperOS PatchWall (com.mitv.tvhome); the header says no sideloaded launcher can become Home on this firmware, so Setup gives the clean-up only and PatchWall stays never-disable
