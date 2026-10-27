@@ -350,8 +350,8 @@ class HomeSwitchRiskTest {
                 assertEquals(blocked, HomeSwitchRisk.of(f, null, r0Tv(f, two + HomeClaimant(Component(PackageName("com.vendor.launcher"), ".Home"), 0)), w, anyBrand = false),
                     "$brand $w, release: R0 is not for this brand, so the wizard is the reason")
                 val candidate = PlannerFixtures.profile().copy(tested = TestedInfo("candidate", null, null, rebootTested = false, candidate = true))
-                // A candidate list gets R0 in the test build (aCandidateListGetsR0OnlyInTheWidenedTestBuild), never in a release.
-                assertNull(HomeSwitchRisk.of(f, candidate, r0Tv(f), w, anyBrand = true), "$brand $w, test build: a candidate list")
+                // beta4: a candidate list never gets R0, in the test build either (aCandidateListNeverGetsR0).
+                assertEquals(blocked, HomeSwitchRisk.of(f, candidate, r0Tv(f), w, anyBrand = true), "$brand $w, test build: a candidate list")
                 assertEquals(blocked, HomeSwitchRisk.of(f, candidate, r0Tv(f), w, anyBrand = false), "$brand $w, release: a candidate list")
             }
         }
@@ -362,20 +362,23 @@ class HomeSwitchRiskTest {
         assertEquals(Risk.CASTING, HomeSwitchRisk.of(boreal, null, r0Tv(boreal), WizardWifi.NOT_OWNER, anyBrand = true))
     }
 
-    // 0.4.6: in a test build with R0 widened to every brand, a candidate list gets R0 too, since the
-    // volunteers who try one are the ones checking it. Issue #258: a OnePlus C00 (Cebu) on Android 11
-    // with the candidate list oneplus-tv-c00-cebu, claimants tvlauncher (priority 2) and FallbackHome,
-    // setupwraith on and no claimant, was blocked WIZARD_WIFI. A release keeps the rule as it was,
-    // and a candidate whose wizard claims Home stays blocked either way.
-    @Test fun aCandidateListGetsR0OnlyInTheWidenedTestBuild() {
+    // beta3 gave a candidate list R0 in the test build with R0 widened to every brand (issue #258: a
+    // OnePlus C00, Cebu, on Android 11 with the candidate list oneplus-tv-c00-cebu, claimants tvlauncher
+    // (2) and FallbackHome, setupwraith on and no claimant). beta4, after the incident of 0.4.6-beta2
+    // (a Xiaomi MiTV-AXSO2 on Android 11 on its candidate list stopped starting, issues #945, #1570):
+    // no candidate list gets R0 in any build. It keeps the wizard's rule, as a release always did, and
+    // a candidate whose wizard claims Home stays blocked either way.
+    @Test fun aCandidateListNeverGetsR0() {
         val cebu = axso1.copy(brand = "OnePlus", manufacturer = "OnePlus", model = "OnePlus TV C00", device = "cebu", sdk = 30, release = "11",
             fingerprint = "OnePlus/cebu/cebu:11/x:user/release-keys")
         val candidate = PlannerFixtures.profile().copy(id = "oneplus-tv-c00-cebu", tested = TestedInfo("candidate, issue #258", null, null, rebootTested = false, candidate = true))
         val s = r0Tv(cebu)
         for (w in WizardWifi.entries) {
             val blocked = if (w == WizardWifi.OWNER) Risk.WIZARD_WIFI else Risk.WIZARD_STAYS_ON
-            assertNull(HomeSwitchRisk.of(cebu, candidate, s, w, anyBrand = true), "test build $w")
+            assertEquals(blocked, HomeSwitchRisk.of(cebu, candidate, s, w, anyBrand = true), "test build $w")
             assertEquals(blocked, HomeSwitchRisk.of(cebu, candidate, s, w, anyBrand = false), "release $w")
+            // The same TV with no list at all still gets R0 in the test build.
+            assertNull(HomeSwitchRisk.of(cebu, null, s, w, anyBrand = true), "test build, no list $w")
             val claims = r0Tv(cebu, listOf(HomeClaimant(tvlauncher, 2), HomeClaimant(recovery, 0), HomeClaimant(fallback, -1000)))
             assertEquals(blocked, HomeSwitchRisk.of(cebu, candidate, claims, w, anyBrand = true), "test build, the wizard claims Home, $w")
             assertEquals(blocked, HomeSwitchRisk.of(cebu, candidate, claims, w, anyBrand = false), "release, the wizard claims Home, $w")
@@ -384,8 +387,9 @@ class HomeSwitchRiskTest {
             val exact = PlannerFixtures.profile(quirks = setOf(Quirk.HOME_TAKEOVER_SETUPWRAITH), setupWraith = wizard)
             assertEquals(HomeSwitchRisk.of(cebu, exact, s, w, anyBrand = false), HomeSwitchRisk.of(cebu, exact, s, w, anyBrand = true), "exact $w")
         }
-        // On a Xiaomi a release still never gives a candidate R0.
-        for (w in WizardWifi.entries) assertTrue(HomeSwitchRisk.of(axso1, candidate, r0Tv(axso1), w, anyBrand = false) != null, "xiaomi release $w")
+        // Nor on a Xiaomi, in either build.
+        for (w in WizardWifi.entries) for (anyBrand in listOf(false, true))
+            assertTrue(HomeSwitchRisk.of(axso1, candidate, r0Tv(axso1), w, anyBrand = anyBrand) != null, "xiaomi anyBrand=$anyBrand $w")
     }
 
     // beta3, issue #1119 (kjntl007, Xiaomi MiTV4I magnolia, Android 9): claimants tvlauncher (2), a
@@ -405,7 +409,8 @@ class HomeSwitchRiskTest {
             val s = withTheirs(r0Tv(mitv4i, three))
             assertTrue(HomeSwitchRisk.installedHome(theirs.pkg, s))
             assertNull(HomeSwitchRisk.of(mitv4i, null, s, w, anyBrand = false), "release, brand set $w")
-            assertNull(HomeSwitchRisk.of(mitv4i, candidate, s, w, anyBrand = true), "test build, candidate list $w")
+            // beta4: not on its candidate list, in the test build either.
+            assertEquals(if (w == WizardWifi.OWNER) Risk.WIZARD_WIFI else Risk.WIZARD_STAYS_ON, HomeSwitchRisk.of(mitv4i, candidate, s, w, anyBrand = true), "test build, candidate list $w")
             // Home already answering to their app is their choice: it stays, with no switch (OTHER_HOME).
             assertEquals(Risk.OTHER_HOME, HomeSwitchRisk.of(mitv4i, null, withTheirs(r0Tv(mitv4i, three, home = theirs)), w, anyBrand = false), "Home is theirs $w")
             // An app with an accessibility service on the TV's list can catch the Home key itself.

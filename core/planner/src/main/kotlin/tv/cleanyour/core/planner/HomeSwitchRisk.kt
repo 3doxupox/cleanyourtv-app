@@ -96,16 +96,16 @@ object HomeSwitchRisk {
         isGoogleHardware(facts) || profile?.id in CASTING_PROFILES -> Risk.CASTING
         profile?.id in REMOTE_BUTTON_PROFILES -> Risk.REMOTE_BUTTONS
         // Test build: a candidate list was never tried with the switch, so for the setup wizard it
-        // counts as no profile at all (a wizard that is on stays on, so no switch). 0.4.6: in a
-        // release R0 is for a TV no list knows at all. In a test build with R0 widened to every brand
-        // (anyBrand) it applies to a candidate list too, since the volunteers who try one are the
-        // ones checking R0 on their brand (issue #258, a OnePlus C00 on its candidate list, was
-        // blocked WIZARD_WIFI there); every other R0 condition holds, and an exact list keeps its own rule.
+        // counts as no profile at all (a wizard that is on stays on, so no switch). 0.4.6: R0 is for a
+        // TV no list knows at all. beta4 (incident of 0.4.6-beta2, issues #945 and #1570): not for a
+        // candidate list either, in any build. beta3's test build gave one R0 (issue #258), and a
+        // Xiaomi MiTV-AXSO2 on Android 11 on its candidate list stopped starting after the switch.
+        // A candidate keeps the wizard's rule until each has been checked over several restarts.
         // beta3: where R0 applies and only another home screen app stands in its way (one the person
         // installed that R0 cannot take, or a vendor home next to tvlauncher), that is the reason,
         // not the wizard's (OTHER_HOME): without that app the wizard could stay on.
         else -> {
-            val r0Applies = profile == null || (anyBrand && profile.isCandidate)
+            val r0Applies = profile == null
             val blocker = if (r0Applies) r0Blocker(facts, snapshot, anyBrand) else R0Blocker.NOT_THIS_PATH
             val risk = wizardWifiRisk(profile?.takeUnless { it.isCandidate }, snapshot, wizardWifi, r0 = blocker == null)
             when {
