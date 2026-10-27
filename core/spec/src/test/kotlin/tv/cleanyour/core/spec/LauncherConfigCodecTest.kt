@@ -223,9 +223,12 @@ class LauncherConfigCodecTest {
             "locale" to JsonPrimitive("pt-BR"),
             "glass_style" to JsonPrimitive("rim"),
         )
-        val all = LauncherConfigDoc(dockRow = true, unknown = ConfigCodecImpl.CARRIED_30.associateWith { k -> values[k] ?: JsonPrimitive(true) })
+        // app_library and wifi_status_color on, as library_ok_opens and wifi_status_warnings need them
+        // (Launcher30CodecTest has the warnings without them).
+        val all = LauncherConfigDoc(dockRow = true, appLibrary = true,
+            unknown = ConfigCodecImpl.CARRIED_30.associateWith { k -> values[k] ?: JsonPrimitive(true) } + ("wifi_status_color" to JsonPrimitive(true)))
         val text = LauncherConfigCodec.encode(all).decodeToString()
-        assertEquals(listOf("dock_row") + ConfigCodecImpl.CARRIED_30.sorted(), Regex("^  \"([a-z_0-9]+)\":", RegexOption.MULTILINE).findAll(text).map { it.groupValues[1] }.toList())
+        assertEquals(listOf("dock_row", "app_library") + (ConfigCodecImpl.CARRIED_30 + "wifi_status_color").sorted(), Regex("^  \"([a-z_0-9]+)\":", RegexOption.MULTILINE).findAll(text).map { it.groupValues[1] }.toList())
         assertEquals(emptyList(), ok(text).warnings)
         assertEquals(all, ok(text).doc)
         // Next to an unknown key, only that one warns.

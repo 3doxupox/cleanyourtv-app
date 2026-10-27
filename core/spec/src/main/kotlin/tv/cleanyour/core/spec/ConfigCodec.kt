@@ -232,10 +232,10 @@ internal object ConfigCodecImpl {
         val navigationApps = ArrayList<Int>()
         fun appKey(i: Int, t: String) {
             when (val k = appKeyEntry(t)) {
-                null -> w += "app_keys[$i] is not keycode:package (190:com.google.android.youtube.tv); the launcher skips it"
+                null -> w += "app_keys[$i] is not keycode:target (190:com.google.android.youtube.tv) or scan:code:target; the launcher skips it"
                 else -> {
-                    if (!isPackageName(k.second)) w += "app_keys[$i] names ${k.second}, which is not a package name; that button would do nothing"
-                    if (k.first in NAVIGATION_KEYCODES) navigationApps += k.first
+                    if (!appKeyTarget(k.target)) w += "app_keys[$i] names ${k.target}, which is not an app, an input or a remote action the launcher knows; that button would do nothing"
+                    k.keycode?.takeIf { it in NAVIGATION_KEYCODES }?.let { navigationApps += it }
                 }
             }
         }
@@ -328,6 +328,7 @@ internal object ConfigCodecImpl {
             unknown[k] = v.toJsonElement()
             if (k !in CARRIED_27 && k !in CARRIED_30) w += "unknown key $k; the launcher ignores it (carried as is)"
         }
+        prerequisites30(o, dockRow ?: BUILT_IN.dockRow, appLibrary ?: BUILT_IN.appLibrary, w)
         val doc = LauncherConfigDoc(
             dockApps = dock, hiddenApps = hidden, liveTvPackage = liveTv, liveTvAction = liveTvAction,
             sourcePanelService = panelService, sourcePanelAction = panelAction, columns = columns, rowsBelowDock = rows,
@@ -344,6 +345,33 @@ internal object ConfigCodecImpl {
         return DecodeResult.Ok(doc, w)
     }
 
+    // Launcher 3.0 keys that only act with another key on (config.xml at b06ab21 says which): a value
+    // set away from its default whose other key is off does nothing on the TV, so the file says
+    // something the TV will not show. Only a value that differs from config.xml's is checked, so a
+    // file that writes a default out is not warned about. The other key is read as the launcher
+    // reads it (config.json, else config.xml). glass_style: anything but glass, rim or halo (any
+    // case, trimmed) is glass on the TV.
+    private fun prerequisites30(o: Map<String, AValue>, dockRow: Boolean, appLibrary: Boolean, w: MutableList<String>) {
+        fun on(key: String, default: Boolean): Boolean = (o[key] as? AValue.Bool)?.v ?: default
+        fun set(key: String, away: Boolean): Boolean = (o[key] as? AValue.Bool)?.v == away
+        val singleRow = on("single_row", false)
+        if (set("single_row", true) && !dockRow) w += "single_row does nothing without dock_row: the launcher keeps its grid"
+        if (set("dock_band_all", true) && !(singleRow && dockRow)) w += "dock_band_all does nothing without single_row: the band stays behind the dock apps"
+        if (set("show_library_pill", false) && !appLibrary) w += "show_library_pill does nothing without app_library: there is no App library to show"
+        if (set("library_ok_opens", true) && !appLibrary) w += "library_ok_opens does nothing without app_library: there is no App library to open apps from"
+        if (set("wifi_status_warnings", true) && !on("wifi_status_color", false)) w += "wifi_status_warnings does nothing without wifi_status_color: the Wi-Fi icon stays white"
+        val keyFilter = on("key_filter", true)
+        if (set("consume_volume_keys", true) && !keyFilter) w += "consume_volume_keys does nothing with key_filter false: the key helpers do not see the volume keys"
+        if (set("home_long_press_home", true) && !keyFilter) w += "home_long_press_home does nothing with key_filter false: the key helper does not see the Home key"
+        if ("lunar_utc_offset" in o && !on("lunar_date", false)) w += "lunar_utc_offset does nothing without lunar_date: the TV shows no lunar date"
+        when (val g = o["glass_style"]) {
+            null -> {}
+            is AValue.Str -> if (LookExtrasKeys.glassStyle(g.v) == LookExtrasKeys.GLASS_DEFAULT && !g.v.javaTrim().equals(LookExtrasKeys.GLASS_DEFAULT, ignoreCase = true))
+                w += "glass_style is not glass, rim or halo; the launcher uses glass"
+            else -> w += "glass_style is not a string; the launcher uses glass"
+        }
+    }
+
     // Config.packageMap's reading of one entry: "package=value", both halves trimmed and non-empty,
     // the first '=' after at least one character; null when the launcher skips the entry.
     fun packageMapEntry(entry: String): Pair<String, String>? {
@@ -354,11 +382,26 @@ internal object ConfigCodecImpl {
         return if (pkg.isEmpty() || value.isEmpty()) null else pkg to value
     }
 
-    // RemoteKeys.parseAppKeys for one entry: "keycode:package" with a keycode of one to six digits
-    // or a KEYCODE_ name; null when the launcher skips it. A name is resolved only for the
-    // navigation buttons (Android knows the rest); another name gives keycode -1 here.
-    fun appKeyEntry(entry: String): Pair<Int, String>? {
-        val parts = entry.split(":", limit = 2)
+    // One app_keys entry as launcher 3.0's RemoteKeys reads it (b06ab21): an optional "hold:" (the
+    // button held) or "front:" (while the button's own app is in front) prefix, then "keycode:target"
+    // with a keycode of one to six digits or a KEYCODE_ name (parseAppKeys), or "scan:code:target"
+    // with a scancode of one to six digits (parseAppScancodes). `keycode` is null for a scancode; a
+    // name is resolved only for the navigation buttons (Android knows the rest), another name gives
+    // -1 here. null when every parser skips the entry. The target is checked by appKeyTarget.
+    data class AppKey(val prefix: String?, val keycode: Int?, val scancode: Int?, val target: String)
+
+    fun appKeyEntry(entry: String): AppKey? {
+        var text = entry.javaTrim()
+        val prefix = APP_KEY_PREFIXES.firstOrNull { text.startsWith(it) }
+        if (prefix != null) text = text.substring(prefix.length).javaTrim()
+        val scan = text.split(":", limit = 3)
+        if (scan.size == 3 && scan[0].javaTrim() == "scan") {
+            val code = scan[1].javaTrim()
+            val target = scan[2].javaTrim()
+            if (!DIGITS.matches(code) || target.isEmpty()) return null
+            return code.toInt().takeIf { it > 0 }?.let { AppKey(prefix, null, it, target) }
+        }
+        val parts = text.split(":", limit = 2)
         if (parts.size != 2 || parts[1].javaTrim().isEmpty()) return null
         val key = parts[0].javaTrim()
         val code = when {
@@ -366,8 +409,26 @@ internal object ConfigCodecImpl {
             KEY_NAME.matches(key) -> NAVIGATION_KEY_NAMES[key] ?: -1
             else -> return null
         }
-        return code to parts[1].javaTrim()
+        return AppKey(prefix, code, null, parts[1].javaTrim())
     }
+
+    // A target the launcher acts on (RemoteKeys and the key services at b06ab21): a package, an
+    // activity as package/.Activity or package/full.Activity, "input:<id>" (a TV input), "inputs"
+    // (the input switcher), an action word, or "guide:<package>".
+    fun appKeyTarget(target: String): Boolean {
+        val t = target.javaTrim()
+        return when {
+            t == "inputs" || t in APP_KEY_ACTIONS -> true
+            t.startsWith("input:") -> t.substring("input:".length).javaTrim().isNotEmpty()
+            t.startsWith("guide:") -> isPackageName(t.substring("guide:".length).javaTrim())
+            '/' in t -> isPackageName(t.substringBefore('/')) && ACTIVITY.matches(t.substringAfter('/'))
+            else -> isPackageName(t)
+        }
+    }
+    val APP_KEY_PREFIXES: List<String> = listOf("hold:", "front:")
+    // RemoteKeys.isAction.
+    val APP_KEY_ACTIONS: Set<String> = setOf("back", "home", "recents", "mute", "sleep", "screensaver", "settings", "wifi")
+    private val ACTIVITY = Regex("\\.?[A-Za-z_$][A-Za-z0-9_$]*(\\.[A-Za-z_$][A-Za-z0-9_$]*)*")
     private val DIGITS = Regex("[0-9]{1,6}")
     private val KEY_NAME = Regex("KEYCODE_[A-Z0-9_]+")
 
