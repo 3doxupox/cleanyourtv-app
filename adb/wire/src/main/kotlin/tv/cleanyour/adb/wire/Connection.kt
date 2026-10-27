@@ -286,7 +286,9 @@ internal class ConnectionCore private constructor(
             throw e
         } catch (e: AdbException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
+            // Throwable, not Exception: a Java API the phone lacks throws a LinkageError here
+            // (BigInteger.TWO on Android 9 to 12 was NoSuchFieldError), and it is named the same way.
             throw signerFailed(e)
         }
 

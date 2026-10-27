@@ -211,8 +211,9 @@ class AdbTvSession internal constructor(
             )
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             // Issues #325, #620: typed, so the reconnect loop and the engine see an AdbException (R0: 7).
+            // Throwable, so an Error such as NoSuchFieldError is typed and named as well.
             link.onHandshakeFailure(e)
             throw HandshakeFailure.typed(e)
         }
@@ -223,7 +224,7 @@ class AdbTvSession internal constructor(
             conn
         } catch (t: Throwable) {
             conn.close()
-            if (t is CancellationException || t !is Exception) throw t
+            if (t is CancellationException) throw t
             link.onHandshakeFailure(t)
             throw HandshakeFailure.typed(t)
         }

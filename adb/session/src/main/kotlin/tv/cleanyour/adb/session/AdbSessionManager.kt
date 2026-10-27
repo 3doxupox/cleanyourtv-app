@@ -104,9 +104,10 @@ class AdbSessionManager(
             )
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             // Before, only an AdbException was caught here: anything else left open() and the flows
             // turned it into "unreachable" (issues #325, #620). The socket is closed by open() itself.
+            // Throwable, so an Error such as NoSuchFieldError (a Java API the phone lacks) is named too.
             noteHandshakeFailure(e)
             return@withLock failed(expected, HandshakeFailure.typed(e).error)
         }
@@ -128,7 +129,7 @@ class AdbSessionManager(
         } catch (e: CancellationException) {
             conn.close()
             throw e
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             // An identity read that fails with anything else closes the connection too (it was left
             // open before) and is typed for the flows (R0: 7).
             conn.close()

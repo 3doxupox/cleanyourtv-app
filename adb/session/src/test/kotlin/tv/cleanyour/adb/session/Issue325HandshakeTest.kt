@@ -82,6 +82,40 @@ class Issue325HandshakeTest {
         assertEquals("session: handshake failed: IllegalStateException", lines.last())
     }
 
+    // The Android 9 to 12 connect failure (#98, #325 and nine more): the TV asks for the public key
+    // and building its line throws NoSuchFieldError, an Error (BigInteger.TWO, API 33). The token is
+    // signed, the TV never shows Allow, and it must still be named, never "unreachable".
+    private object KeyLineLinkageError : AdbSigner {
+        override val publicKeyLine: String get() = throw NoSuchFieldError("TWO")
+        override val fingerprint: String get() = Keys.signer.fingerprint
+        override val backing: KeyBacking get() = KeyBacking.TEE
+        override suspend fun sign(token: AuthToken): ByteArray = Keys.signer.sign(token)
+        override suspend fun reset() {}
+    }
+
+    @Test fun aLinkageErrorWhileSendingThePublicKeyIsNamedToo() = runTest {
+        val adbd = FakeAdbd(Personas.miTv(), scope = backgroundScope)
+        val lines = mutableListOf<String>()
+        val manager = AdbSessionManager(FakeAdbdSocketFactory(mapOf(HOST to adbd)), KeyLineLinkageError, null, TestClock(this), backgroundScope, EmptyCoroutineContext, log = { lines += it })
+        val r = assertIs<OpenResult.Failed>(manager.open(tv.cleanyour.core.model.Endpoint.PlainTcp(HOST), null) {})
+        assertEquals(AdbError.Transport.Protocol(SIGNER_FAILED), r.error)
+        assertEquals("the phone's key could not sign: NoSuchFieldError", manager.lastConnectFailure)
+        assertEquals(listOf("session: the phone's key could not sign: NoSuchFieldError"), lines)
+        assertEquals(0, adbd.prompts.get())
+        settle()
+        assertTrue(adbd.connections.isEmpty(), "the socket is closed")
+    }
+
+    // An Error that is not the key's, here from the Allow callback, is typed too.
+    @Test fun anErrorOutsideTheKeyIsTypedAsUnexpected() = runTest {
+        val adbd = FakeAdbd(Personas.miTv(), scope = backgroundScope)
+        val lines = mutableListOf<String>()
+        val manager = AdbSessionManager(FakeAdbdSocketFactory(mapOf(HOST to adbd)), Keys.signer, null, TestClock(this), backgroundScope, EmptyCoroutineContext, log = { lines += it })
+        val e = assertIs<OpenResult.Failed>(manager.open(tv.cleanyour.core.model.Endpoint.PlainTcp(HOST), null) { throw NoSuchMethodError("x") }).error
+        assertEquals(AdbError.Transport.Protocol(HandshakeFailure.UNEXPECTED), e)
+        assertEquals("session: handshake failed: NoSuchMethodError", lines.last())
+    }
+
     // The TV answers as it should (here: it refuses the shell): no handshake line, the kind says it.
     @Test fun aPlainAnswerOfTheTvAddsNoLine() = runTest {
         val rig = Rig(this, faults = tv.cleanyour.testing.fakeadbd.Faults().apply { refuseOpens = true })
