@@ -164,7 +164,8 @@ object LookKeys {
     // (LookExtrasKeys.applying: one row and no band need the dock row, the band behind every app
     // needs one row, the internet warnings need Green Wi-Fi and the pill on screen). DEFAULT adds
     // nothing, so every look keeps its 0.4.0 bytes (Look2BytesTest). The rules give DEFAULT to a TV
-    // below 3.0, so a 2.7 TV never gets a 3.0 key.
+    // below 3.0, so a 2.7 TV never gets a 3.0 key. One row also writes rows_below_dock 0 (see below);
+    // without it the rows are the dock's again, as DockLayers cuts them.
     fun build(spec: LookSpec, picture: PictureKeys, columns: Int, dock: List<PackageName>, cards: Boolean,
         extras: LookExtras = LookExtras.DEFAULT): LauncherConfigDoc {
         val style = spec.style
@@ -254,6 +255,12 @@ object LookKeys {
         if (extras == LookExtras.DEFAULT) return built
         val applied = LookExtrasKeys.applying(extras, dockRow = built.dockRow == true,
             wifiStatusColor = k["wifi_status_color"] == true, topMenu = k["top_menu"] == true)
-        return built.copy(unknown = LinkedHashMap(built.unknown).apply { putAll(LookExtrasKeys.keys(applied)) })
+        val withKeys = built.copy(unknown = LinkedHashMap(built.unknown).apply { putAll(LookExtrasKeys.keys(applied)) })
+        // One row: every app is in the dock's row and nothing is under it, but the launcher still
+        // sizes the tiles and lifts the row by rows_below_dock (MainActivity.java:608-628 and
+        // AppAdapter.tileWidthPx at b06ab21), so it goes to 0, and the big name the three-row rule
+        // took away (DockLayers) comes back: the row has the room, and its title names the app.
+        if (!applied.oneRow) return withKeys
+        return withKeys.copy(rowsBelowDock = withKeys.rowsBelowDock?.let { 0 }, dockTitle = k["dock_title"] as Boolean)
     }
 }

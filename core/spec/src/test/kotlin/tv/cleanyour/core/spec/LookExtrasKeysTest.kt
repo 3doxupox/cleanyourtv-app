@@ -50,7 +50,7 @@ class LookExtrasKeysTest {
             val d = build(spec, extras)
             assertEquals(want, extraKeys(d), "$extras")
             assertEquals(build(spec).unknown + want, d.unknown, "$extras changes nothing else")
-            assertEquals(build(spec).copy(unknown = d.unknown), d, "$extras changes no modelled key")
+            assertEquals(build(spec).copy(unknown = d.unknown), d, "$extras changes no modelled key (4 apps at 5: no rows below)")
         }
     }
 
@@ -68,6 +68,27 @@ class LookExtrasKeysTest {
         val spot = LookKeys.spec(StyleId.SPOTLIGHT)
         assertEquals(setOf("single_row", "dock_band_all"), extraKeys(build(spot, LookExtras(oneRow = true, bandAll = true))).keys)
         assertEquals(setOf("dock_band"), extraKeys(build(spot, LookExtras(noBand = true))).keys)
+    }
+
+    // One row has nothing under the dock, but the launcher sizes its tiles by rows_below_dock, so one
+    // row writes 0 there and keeps the big name the three-row rule would take; without one row the
+    // rows are the dock's again.
+    @Test fun oneRowHasNoRowsBelow() {
+        val fifteen = (dock4 + List(11) { PackageName("com.example.app$it") })
+        for (style in listOf(StyleId.CLASSIC, StyleId.GLASS, StyleId.CALM)) for (columns in 4..8) {
+            val spec = LookKeys.spec(style)
+            val plain = LookKeys.build(spec, mist, columns, fifteen, cards = false)
+            val one = LookKeys.build(spec, mist, columns, fifteen, cards = false, extras = LookExtras(oneRow = true))
+            assertEquals(0, one.rowsBelowDock, "$style at $columns")
+            assertEquals(LookKeys.styleKeys(style, true)["dock_title"], one.dockTitle, "$style at $columns: the big name as the style has it")
+            assertEquals(plain.copy(rowsBelowDock = 0, dockTitle = one.dockTitle, unknown = plain.unknown + ("single_row" to JsonPrimitive(true))), one)
+            assertEquals(plain, LookKeys.build(spec, mist, columns, fifteen, cards = false, extras = LookExtras(oneRow = false, bandAll = true)),
+                "$style at $columns: no one row, the dock's rows")
+        }
+        val spot = LookKeys.build(LookKeys.spec(StyleId.SPOTLIGHT), mist, 4, fifteen, cards = false, extras = LookExtras(oneRow = true))
+        assertEquals(0 to true, spot.rowsBelowDock to spot.dockTitle)
+        val noDock = build(LookKeys.spec(StyleId.CLASSIC), LookExtras(oneRow = true), dock = emptyList())
+        assertEquals(null, noDock.rowsBelowDock, "no dock: nothing written, the launcher's own 0")
     }
 
     // Every combination on every style, with and without Green Wi-Fi and with one menu button: the
