@@ -197,14 +197,15 @@ internal fun ColumnScope.DebugStepContent(tvName: String, connecting: Boolean, o
 // refused, so the app lays this card over whatever screen asked. A setup run opens the wizard's
 // resume card instead, which owns the home screen check.
 @Composable
-fun OpenWriteSheet(open: OpenWrite, onAction: (OpenWriteAction) -> Unit, onOpenSetup: () -> Unit, onDismiss: () -> Unit, onReport: () -> Unit = {}) {
+// 0.4.6: `onReport` gets the card's title, for the prefilled GitHub form (ReportContext).
+fun OpenWriteSheet(open: OpenWrite, onAction: (OpenWriteAction) -> Unit, onOpenSetup: () -> Unit, onDismiss: () -> Unit, onReport: (String) -> Unit = {}) {
     CytBottomSheet(onDismiss) { OpenWriteContent(open, onAction, onOpenSetup, onDismiss, onReport = onReport) }
 }
 
 @Composable
 internal fun ColumnScope.OpenWriteContent(
     open: OpenWrite, onAction: (OpenWriteAction) -> Unit, onOpenSetup: () -> Unit, onDismiss: () -> Unit,
-    initiallyAsking: OpenWriteAction? = null, onReport: () -> Unit = {},
+    initiallyAsking: OpenWriteAction? = null, onReport: (String) -> Unit = {},
 ) {
     val setup = open.kind == PlanKind.SETUP
     // QA of 0.4.5: a run paused STALE (the TV changed after we read it) is checked again, never
@@ -225,7 +226,7 @@ internal fun ColumnScope.OpenWriteContent(
             primaryLabel = stringResource(R.string.openwrite_open_setup), onPrimary = onOpenSetup,
             tertiaryLabel = stringResource(R.string.openwrite_later), onTertiary = onDismiss,
             // 0.3.2 B2: a setup that would not finish is worth a report (issue #2).
-            detailsLabel = stringResource(R.string.openwrite_report), onDetails = onReport,
+            detailsLabel = stringResource(R.string.openwrite_report), onDetails = { onReport(title) },
             primaryGuarded = false)   // navigation: it only opens the wizard's resume card
     } else {
         // "Undo what we did" and "Stop here" ask first, in this same sheet; the action is sent on yes.
@@ -241,6 +242,8 @@ internal fun ColumnScope.OpenWriteContent(
             primaryLabel = if (open.busy) null else stringResource(if (stale) R.string.openwrite_check_again else R.string.openwrite_carry_on), onPrimary = { act(OpenWriteAction.CARRY_ON) },
             secondaryLabel = if (open.busy || (stale && open.nothingDone)) null else stringResource(R.string.openwrite_undo), onSecondary = { act(OpenWriteAction.UNDO) },
             tertiaryLabel = if (open.busy) null else stringResource(R.string.openwrite_stop), onTertiary = { act(OpenWriteAction.STOP_HERE) },
+            // 0.4.6: a paused change is worth a report too, with the card and the step it paused at.
+            detailsLabel = if (open.busy) null else stringResource(R.string.openwrite_report), onDetails = { onReport(title) },
             busyText = if (open.busy) stringResource(R.string.openwrite_busy) else null)
     }
 }
