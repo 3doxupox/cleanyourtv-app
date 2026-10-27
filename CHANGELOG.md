@@ -2,6 +2,48 @@
 
 All notable changes to the app. Versions follow [semantic versioning](https://semver.org/).
 
+## Unreleased
+
+### Connecting
+- Phones on Android 9 to 12 can connect to a TV again: the step that hands the TV the phone's key
+  used a part of Java those phones do not have, so the TV never showed Allow and the app said
+  "unreachable" (#98, #325, #468, #783, #837, #965, #991, #1006, #1024, #1089, #1134). Saving a
+  restore file had the same kind of problem on phones below Android 15, fixed too.
+- A TV that drops off the Wi-Fi in the middle of a step no longer leaves the setup hanging on the
+  Working screen: the step now times out and the run pauses, so you can carry on or undo. After a
+  step times out the app also checks once whether the TV still answers; if not, it shows the TV as
+  away and opens a fresh connection when it is back, instead of carrying on over the dead one (#616).
+- When the TV's port answers and the connection then fails inside the app, the log and Copy error
+  now say why, for example that the phone's key could not sign the TV's request, instead of
+  "unreachable" with no reason, and the connection is closed (#325, #620).
+- The computer steps for a TV that needs a pairing code end with
+  `adb -s ADDRESS:CONNECT_PORT tcpip 5555`: after `adb pair` and `adb connect` the computer lists
+  the TV twice, and a plain `adb tcpip 5555` stopped with "more than one device". They also say to
+  run the last two commands again after the TV restarts, with no new pairing (#655, #643, #768).
+
+### Setting up
+- A run that stopped before its first step (the TV went away while the restore point was saved,
+  or the app was closed) saves its restore point when you carry on, and checks every step against
+  the TV again, as a new run does (#616).
+- When the home screen check puts the old home screen back because a Settings page was open on the
+  TV (the new home screen's network or Settings button, or the remote's Settings button), the card
+  now says so: nothing is wrong with the TV, try again and press only Home. The check screen also
+  asks you to press only Home and not open anything else (#629).
+- When reading the TV fails, the log line now says what the app found, for example "getprop has
+  no ro.product.model", instead of only the step that failed (#788, #1112).
+
+### TV lists
+- A TV that shows Google TV's home screen no longer gets a list written for the Android TV version
+  of the same model; it is set up like any TV no list knows, with its brand set. This fixes
+  the TCL Smart TV Pro (BeyondTV4) on its Google TV build AR11, which got the TCL 65C725 Android TV
+  list and lost the remote's virtual keys helper (#114, #390).
+- PatchWall on Xiaomi TVs is now your choice, kept on unless you switch it off in Customise: with
+  it off, the remote's PatchWall button stops working while the TV's own home screen is in use.
+  This covers the Xiaomi brand set, every Xiaomi list and the Mi TV 4i test list (#111).
+- The Motorola MotorolaTV matches a tested list now (#446). When a TV's start-up
+  fallback screen (such as the TCL Percee TV's FallbackHomeCustomizer) also answers Home, the card
+  no longer names it as another home screen app (#481).
+
 ## 0.4.0 (2026-10-26)
 
 A new Look sheet for the TV's home screen: pick a picture, pick one of five styles, pick how many

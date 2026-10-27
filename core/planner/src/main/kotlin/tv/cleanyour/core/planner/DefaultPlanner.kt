@@ -37,6 +37,7 @@ import tv.cleanyour.core.spec.FactsTable
 import tv.cleanyour.core.spec.ProfileCategory
 import tv.cleanyour.core.spec.ProfileResolution
 import tv.cleanyour.core.spec.ProfileSource
+import tv.cleanyour.core.spec.resolveFor
 import tv.cleanyour.core.store.Clock
 import tv.cleanyour.core.store.IdGen
 
@@ -123,9 +124,10 @@ class DefaultPlanner(
 
         fun summary() = PlanSummary(groups.toList(), keepNames, dockNames, homeScreenPossible, replacesLauncher)
 
-        // This TV's resolution for the Manage requests (R1 R-3). The bundled source answers without
-        // suspending, so the blocking call returns at once; the planner stays a plain function.
-        val resolution: ProfileResolution? by lazy { profiles?.let { src -> runBlocking { src.resolve(snapshot.facts) } } }
+        // This TV's resolution for the Manage requests (R1 R-3), with the snapshot's Home (issue #114).
+        // The bundled source answers without suspending, so the blocking call returns at once; the
+        // planner stays a plain function.
+        val resolution: ProfileResolution? by lazy { profiles?.let { src -> runBlocking { src.resolveFor(snapshot) } } }
         val managedProfile: Profile? get() = (resolution as? ProfileResolution.Exact)?.profile
         val managedStockLaunchers: List<Component> get() = when (val r = resolution) {
             is ProfileResolution.Exact -> r.profile.stockLaunchers
@@ -135,7 +137,12 @@ class DefaultPlanner(
         }
 
         fun name(pkg: PackageName): String = AppNames.of(pkg, facts, snapshot.packages[pkg]?.label)
-        fun description(pkg: PackageName): String = facts.lookup(pkg)?.description ?: ""
+        // Issue #111: an owner's-choice row says what switching it off costs.
+        fun description(pkg: PackageName): String {
+            val what = facts.lookup(pkg)?.description ?: ""
+            val cost = ProfileCategory.OWNERS_CHOICE[pkg] ?: return what
+            return if (what.isEmpty()) cost else "$what. $cost"
+        }
         // An uninstall's line on the progress screen. Our launcher is "the new home screen" there as
         // everywhere else in the app: the TV reads no label for it, so AppNames would make its name
         // from the package ("Gathin Home", QA 0.4.5-beta1).
