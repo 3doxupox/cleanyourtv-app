@@ -120,6 +120,7 @@ object SureSetGenerator {
     private val PROMOTED_B06AB21_PART2: Set<String> = setOf(
         "xiaomi-mi-box-s-android12",
         "xiaomi-mitv-mssp2",
+        "xiaomi-mitv-mssp0",
     )
 
     // The upstream v2.7.0 lists promoted in 0.3.7. They ship as exact profiles but do not feed the

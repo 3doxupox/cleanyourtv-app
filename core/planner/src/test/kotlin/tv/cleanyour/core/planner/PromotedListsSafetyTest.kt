@@ -21,6 +21,7 @@ class PromotedListsSafetyTest {
     private val promoted = listOf<String>(
         "xiaomi-mi-box-s-android12",
         "xiaomi-mitv-mssp2",
+        "xiaomi-mitv-mssp0",
     )
     // Xiaomi China-market sets whose Home takes only allowlisted apps: no known stock launcher, so a
     // home screen switch asked for anyway is refused and the clean-up alone is planned.

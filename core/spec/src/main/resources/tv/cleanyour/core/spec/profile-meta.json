@@ -4053,6 +4053,27 @@
         "fusion.android.tv.demo": { "category": "demo", "ask": true }
       }
     },
+    "xiaomi-mitv-mssp0": {
+      "match": { "models": ["MiTV-MSSP0"], "devices": ["amelie"], "brand": "Xiaomi", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.mediatek.wwtv.tvcenter",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.mediatek.wwtv.tvcenter", "com.mediatek.tvinput", "mitv.service", "com.mediatek.hotkey.dispatcher", "com.xiaomi.android.tvsetup.partnercustomizer", "com.google.android.tv.remote.service", "com.xiaomi.mitv.updateservice"],
+      "suggestedDock": [],
+      "tested": { "by": "Roman Linev (PR #661)", "firmware": "PI.5926", "daysLivedWith": 2, "rebootTested": true },
+      "groups": {
+        "Xiaomi telemetry and Google TV bug-report uploader": { "category": "tracking", "ask": false },
+        "Promotional content and stock-home recommendation feeds": { "category": "ads", "ask": false },
+        "Assistant - off by owner choice": { "category": "voice", "ask": true },
+        "Unused preloaded apps - off by owner choice": { "category": "preloads", "ask": true },
+        "Original photo screensaver, replaced by the launcher's Clock (see above)": { "category": "screensaver", "ask": true }
+      },
+      "packages": {
+        "com.xiaomi.floatingframe": { "category": "brand", "ask": false }
+      }
+    },
     "xiaomi-mitv-mssp1": {
       "match": { "models": ["MiTV-MSSP1"], "devices": ["nino"], "brand": "Xiaomi", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": null },
       "platform": "ANDROID_TV",
