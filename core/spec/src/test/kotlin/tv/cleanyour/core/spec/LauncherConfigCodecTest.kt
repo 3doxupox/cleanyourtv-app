@@ -184,6 +184,37 @@ class LauncherConfigCodecTest {
         for (k in ConfigCodecImpl.CARRIED_27) assertTrue("(json, \"$k\"" in reader, "Config.load reads $k from config.json")
     }
 
+    // Drift check (0.4.5): every key a vendored launcher reader takes from config.json (launcher 2.7
+    // at 3e34f40 and 3.0 at b06ab21, the copies the vendored tests hold to the submodule) is modelled
+    // or carried, so no key the TV reads is ever called ignored, and a new upstream key fails here.
+    // Keys are found as Config.load reads them: a helper on the parsed file, bool(json, "k") and the
+    // like, or json.optJSONObject("k") and its kin. CARRIED_READ holds only keys both versions read,
+    // CARRIED_30 only keys 2.7 does not read, and every carried key is one a reader takes.
+    @Test fun everyKeyALauncherReadsIsKnown() {
+        fun keys(version: String): Set<String> {
+            val text = java.io.File(Fixtures.repoRoot, "core/spec/src/test/java/com/gathin/tvhome/$version/Config.java").readText()
+            return (Regex("\\((?:json|o), \"([a-z_0-9]+)\"").findAll(text) +
+                Regex("\\b(?:json|o)\\.(?:opt\\w*|get\\w*|has|isNull)\\(\"([a-z_0-9]+)\"").findAll(text)).map { it.groupValues[1] }.toSet()
+        }
+        val v27 = keys("v27")
+        val v30 = keys("v30")
+        assertTrue(v27.size > 70 && v30.size > 95, "the readers were found: ${v27.size} and ${v30.size} keys")
+        val known = ConfigCodecImpl.MODELLED + ConfigCodecImpl.CARRIED_27 + ConfigCodecImpl.CARRIED_30 + ConfigCodecImpl.CARRIED_READ
+        assertEquals(emptySet(), v27 - known, "keys launcher 2.7 reads that the codec would call ignored")
+        assertEquals(emptySet(), v30 - known, "keys launcher 3.0 reads that the codec would call ignored")
+        assertEquals(emptySet(), known - v27 - v30, "known keys no launcher reads")
+        assertEquals(emptySet(), ConfigCodecImpl.CARRIED_READ - (v27 intersect v30), "CARRIED_READ keys not read by both")
+        assertEquals(emptySet(), ConfigCodecImpl.CARRIED_30 intersect v27, "CARRIED_30 keys 2.7 reads too")
+        assertEquals(emptySet(), v27 - v30, "keys 2.7 reads that 3.0 dropped")
+        val sets = listOf(ConfigCodecImpl.MODELLED, ConfigCodecImpl.CARRIED_27, ConfigCodecImpl.CARRIED_30, ConfigCodecImpl.CARRIED_READ)
+        assertEquals(sets.sumOf { it.size }, known.size, "the sets do not overlap")
+        // A file with every read key, each as a boolean, never says one is ignored.
+        val all = LauncherConfigDoc(unknown = (v30 - ConfigCodecImpl.MODELLED).associateWith { JsonPrimitive(true) })
+        val decoded = ok(LauncherConfigCodec.encode(all).decodeToString())
+        assertEquals(emptyList(), decoded.warnings.filter { "ignores it" in it })
+        assertEquals(all.unknown, decoded.doc.unknown)
+    }
+
     // Every carried key round trips with no warning, in every value LookKeys writes.
     @Test fun everyCarriedKeyRoundTripsWithoutAWarning() {
         assertEquals(16, ConfigCodecImpl.CARRIED_27.size)

@@ -94,11 +94,26 @@ internal object ConfigCodecImpl {
         "glass_style",
     )
 
-    // Keys launchers 2.7 (3e34f40) and 3.0 (b06ab21) both read from config.json (Config.load) that no
-    // look sets and LauncherConfigDoc has no field for: carried as is with no warning, since the TV
-    // does read them. key_filter (config.xml true): false keeps the key helpers on but stops them
-    // filtering keys, for firmware that drops key repeat while any service filters.
-    val CARRIED_READ: Set<String> = setOf("key_filter")
+    // The rest of what launchers 2.7 (3e34f40) and 3.0 (b06ab21) both read from config.json
+    // (Config.load) that no look sets and LauncherConfigDoc has no field for: carried as is with no
+    // warning, since the TV does read them; the phone neither writes nor previews them. Each is read
+    // by both versions, so they are right on a TV left on 2.7 too; the keys only 3.0 reads are
+    // CARRIED_30, and 2.7 reads none that 3.0 dropped. They are the home screen's own switches a theme
+    // may set: the library (app_library_selection, library_apps, library_button), the live TV input
+    // (boot_to_live_tv, live_tv_input_id, stock_home_redirect), the input switcher (coocaa_sources,
+    // input_uri_scheme, source_panel_extra, show_inputs_pill, handle_view_inputs), the key helpers
+    // (key_filter, restore_key_services, gamepad_passthrough), the top bar (launcher_settings_button,
+    // show_network_pill, wifi_label_width), the grid (fade_rows, tile_menu), the idle clock
+    // (home_idle_clock_minutes) and the wallpapers (wallpaper_captions, wallpaper_moods,
+    // wallpaper_order, wallpaper_true_color). LauncherConfigCodecTest.everyKeyALauncherReadsIsKnown
+    // derives the keys from both vendored readers, so a new upstream key cannot go unnoticed.
+    val CARRIED_READ: Set<String> = setOf(
+        "app_library_selection", "boot_to_live_tv", "coocaa_sources", "fade_rows", "gamepad_passthrough",
+        "handle_view_inputs", "home_idle_clock_minutes", "input_uri_scheme", "key_filter", "launcher_settings_button",
+        "library_apps", "library_button", "live_tv_input_id", "restore_key_services", "show_inputs_pill",
+        "show_network_pill", "source_panel_extra", "stock_home_redirect", "tile_menu", "wallpaper_captions",
+        "wallpaper_moods", "wallpaper_order", "wallpaper_true_color", "wifi_label_width",
+    )
 
     // res/values/config.xml of the bundled launcher 3.0 (unchanged for these keys since v2.5.0; the
     // keys of older launchers keep their values).
