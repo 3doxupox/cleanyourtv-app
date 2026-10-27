@@ -204,6 +204,7 @@ motorola-swtv-24ae-fhd	(launcher)	the remote's Settings button sends KEYCODE_NOT
 motorola-swtv-24ae-fhd	(match)	brand inferred, confirm with getprop: Motorola (the header calls it a Skyworth OEM build, so the manufacturer may be Skyworth); a wrong guess fails closed (the profile never matches)
 motorola-swtv-24ae-fhd	com.google.android.tungsten.setupwraith	the header warns it owns the Wi-Fi saved at setup and deleting it drops the TV off the network; the takeover's Wi-Fi guard skips it then
 motorola-swtv-24ae-fhd	com.smartdevice.leanbacklauncher.customizer	configures the stock home; the header reports no test with it off, so it is an ask row (RF-PROFILES-63 P16)
+motorola-swtv-24ae-fhd	fusion.android.tv.demo	b06ab21 adds it for the Coocaa unit as store demo mode; on other MediaTek sets (beko, benq, eko, grundig, hitachi, jvc) it answers the remote's Input key (TV_INPUT_BUTTON), and this header says nothing about the Input key with it off, so it is an ask row
 mtc-uk-2k-android-tv	(header)	dumpsys is disabled on this firmware (Service dumps disabled due to hung system process); the app reads the TV with dumpsys, so it may stop with a read failure here before changing anything
 mtc-uk-2k-android-tv	(launcher)	the header names no Live TV app; liveTv is left unset
 mtc-uk-2k-android-tv	(match)	the header gives the codename tabata but no brand string; an MTC build of the JVC UK firmware family
@@ -342,6 +343,7 @@ sony-kd-65x80j	com.sony.dtv.sensingcamera.fwupdate	a firmware updater for the ca
 sony-xbr-65x900f	(header)	the header's already-off paragraph names tv.samba.ssm and com.sony.dtv.promos; the keep-list reader now stops at it, so they stay default-off as listed
 tcl-40s5400a	(match)	device C06 alone: the model Smart TV names a family, so it is no match key (RF-PROFILES-63 P8)
 tcl-40s5400a	com.google.android.tungsten.setupwraith	listed as a Google extra; the header does not say it takes Home, so the meta names no wizard, but the converter still moves a listed wizard into the home screen switch (R5-W4 O3), where the Wi-Fi guard applies
+tcl-40s5400a	com.google.android.tv.remote.service	an ask row; upstream main after b06ab21 notes that it is also the Bluetooth remote's mic bridge on the AP unit (voice needs it with katniss), and the denylist never switches it off anyway
 tcl-40s5400a	com.tcl.usercenter	the TCL account; ask row as on tcl-q10g-pro
 tcl-43ep660	(match)	same model and device as tcl-beyondtv (India) and tcl-beyondtv-rt2851; the AP04 fingerprint keeps this list to its own firmware
 tcl-43ep660	com.google.android.tungsten.setupwraith	the header keeps it: it owns the Wi-Fi saved at setup (never-disable from the header)
@@ -351,6 +353,7 @@ tcl-43ep660	com.tcl.tvweishi	carries a package installer service (tcl-beyondtv-r
 tcl-43s5k	(launcher)	Live TV and HDMI are MediaTek's com.mediatek.wwtv.tvcenter here, not com.tcl.tv; the header also says the remote's gear button (keycode 83) only worked with launcherx, so it needs the launcher's settings_key_keycodes after the switch
 tcl-43s5k	(match)	device G13 alone: the model Smart TV names a family; no other profile uses G13
 tcl-43s5k	com.google.android.tungsten.setupwraith	the header says it claims Home once launcherx is off and owned the Wi-Fi saved at setup on this unit; it goes with the home screen switch, where the Wi-Fi guard skips it while it owns the network
+tcl-43s5k	com.mediatek.MtkDemo	b06ab21: MediaTek's store demo app, switched off and reboot-checked on the AU13 unit; a default-off row as upstream has it
 tcl-43s5k	com.tcl.messagebox	carries a ttvs receiver, and tcl-40s5400a and tcl-32s5k keep it to be safe while ttvs is the updater here; ask row
 tcl-43s5k	com.tcl.partnercustomizer	ask row: the header tested the Input key but not the remote's T key (RF-PROFILES-63 P5)
 tcl-43s5k	com.tcl.ttvs	commented out by the list: the header says it is TCL's analytics and also the firmware updater; never-disable
@@ -421,6 +424,7 @@ tcl-g09-google-tv	com.google.android.videos	the Google TV app holds purchased fi
 tcl-g09-google-tv	com.tcl.UpdatePeripheral	soundbar firmware updater; Software updates
 tcl-g09-google-tv	com.tcl.channelplus	TCL Live registers a TV input (the note says it also removes the channels from Live TV); ask row
 tcl-g09-google-tv	com.tcl.gamebar	console game mode overlay; ask row as on tcl-55s470g and tcl-c755
+tcl-g09-google-tv	com.tcl.magiconnectfree	b06ab21 adds it in the content group for the 55V6C unit; MagiConnect is TCL's phone remote and mirroring app, an ask row (casting) as on tcl-c755-google-tv
 tcl-g09-google-tv	com.tcl.partnercustomizer	ask row: the header tested the Input button but not the remote's T key (RF-PROFILES-63 P5)
 tcl-g09-google-tv	com.tcl.ttvs	the header says updates come through Play Services on this set, but tcl-55s470g on the same G10 firmware family says ttvs hosts the updater; tracking ask row as on tcl-c755
 tcl-g09-google-tv	com.tcl.usercenter	the TCL account; ask row as on the other TCL lists
@@ -443,6 +447,7 @@ thomson-32he5800	(match)	a TCL-built UnionTV sold as Thomson; if the TV reports 
 thomson-32he5800	(match)	brand inferred, confirm with getprop: Thomson; a wrong guess fails closed (the profile never matches)
 thomson-32he5800	com.tcl.appmarket2	TCL's app store, carries a package installer service; ask row
 thomson-32he5800	com.tcl.tvweishi	the header says it has its own installer; ask row
+thomson-32he5800	com.tcl.waterfall.overseas	b06ab21: a TCL content app with Google Mobile Ads and Firebase, switched off on the second unit and checked with the real remote after a reboot; a default-off ads row as upstream has it
 thomson-t32rtl6000	(header)	the kept remote, key and tuner packages and the FastCast Miracast receiver are in the curated never-disable list, with names as on sanyo-atv-r2
 thomson-t32rtl6000	(match)	SCBC Realtek platform reporting model ATV R1 and device R1; brand THOMSON and the build prefix from the fingerprint keep it to this firmware; thomson-32he5800 is a TCL UnionTV build with another device
 thomson-t32rtl6000	com.apps.authota	the updater's companion; updaters stay Software updates
@@ -501,6 +506,7 @@ xgimi-mogo-3-pro	com.xgimi.gimiplayer	the local video and photo player; USB medi
 xgimi-mogo-3-pro	fusion.android.tv.demo	ask row: on MediaTek builds this retail display app also handles the Input key and remote pairing (hitachi-65qledsm20), and this header did not check either with it off (RF-PROFILES-63 P6)
 xiaomi-mi-box-s	com.google.android.marvin.talkback	accessibility helpers are ask rows (safety rule 8; the accessibility category asks already, the row now says so)
 xiaomi-mi-box-s-2nd-gen	com.xiaomi.tvqs.overseas	never-disable here: the header says it is the box's quick settings panel (the MOSR4 and MOOR2 lists call it Firebase analytics), which also keeps it out of the Xiaomi sure set
+xiaomi-mitv-aesp0	com.xiaomo.tv.milegal	b06ab21, third set: Xiaomi's privacy-policy screen, neither ads nor telemetry, so an ask row (2.7 bump rule)
 xiaomi-mitv-afmu0	com.google.android.marvin.talkback	listed under preloaded apps; accessibility is never default-off, so it is an ask row
 xiaomi-mitv-afmu0	com.mitv.videoplayer	listed under preloaded apps; it is the USB video player, so it is an ask row
 xiaomi-mitv-afmu0	com.xiaomi.mitv.mediaexplorer	listed under preloaded apps; it is the USB media browser, so it is an ask row (the Mi Box S 2nd gen list keeps it on purpose)

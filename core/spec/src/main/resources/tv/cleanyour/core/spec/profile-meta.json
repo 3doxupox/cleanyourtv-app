@@ -1167,7 +1167,8 @@
         "com.android.adservices.api": { "category": "ads", "ask": false },
         "com.smartdevice.leanbacklauncher.customizer": { "category": "ads", "ask": true },
         "com.smartdevice.dailymanage": { "category": "brand", "ask": false },
-        "com.smartdevice.myapp": { "category": "brand", "ask": false }
+        "com.smartdevice.myapp": { "category": "brand", "ask": false },
+        "fusion.android.tv.demo": { "category": "demo", "ask": true }
       }
     },
     "mtc-uk-2k-android-tv": {
@@ -3099,7 +3100,8 @@
         "com.google.android.apps.tv.dreamx": { "category": "screensaver", "ask": true },
         "com.tcl.ui_mediaCenter": { "category": "preloads", "ask": true },
         "com.tcl.smartalexa": { "category": "voice", "ask": true },
-        "com.tcl.initsetup": { "category": "brand", "ask": true }
+        "com.tcl.initsetup": { "category": "brand", "ask": true },
+        "com.tcl.magiconnectfree": { "category": "casting", "ask": true }
       }
     },
     "tcl-g10-google-tv": {
