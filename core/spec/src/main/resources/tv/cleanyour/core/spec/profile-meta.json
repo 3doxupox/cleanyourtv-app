@@ -1102,7 +1102,7 @@
       "liveTv": "com.mediatek.wwtv.tvcenter",
       "setupWraith": null,
       "quirks": [],
-      "neverDisable": ["com.mediatek.wwtv.tvcenter", "com.mediatek.tvinput", "fusion.android.tv.demo", "com.google.android.leanbacklauncher.partnercustomizer", "com.airoha.btd", "com.mediatek.tv.factorykey", "com.google.android.tv.remote.service"],
+      "neverDisable": ["com.mediatek.wwtv.tvcenter", "com.mediatek.tvinput", "fusion.android.tv.demo", "com.google.android.leanbacklauncher.partnercustomizer", "com.airoha.btd", "com.mediatek.tv.factorykey", "com.google.android.tv.remote.service", "mediatek.factorymenu.ui"],
       "suggestedDock": [],
       "tested": { "by": "loopbackbr (PR #1469)", "firmware": "RTO8.250904.001", "daysLivedWith": 4, "rebootTested": true },
       "groups": {

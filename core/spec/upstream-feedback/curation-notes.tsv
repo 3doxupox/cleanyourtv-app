@@ -189,6 +189,7 @@ jvc-android-tv-menlo	com.google.android.tvrecommendations	default-off as listed;
 jvc-android-tv-menlo	com.google.android.tvrecommendations	ask row: the header says switching it off is only safe once the new launcher owns Home, and without it the Play Store cannot show a Google sign-in notice (RF-PROFILES-63 P14)
 jvc-android-tv-menlo	com.google.android.videos	the Google TV app holds purchased films; ask row (streaming)
 jvc-android-tv-menlo	com.mstar.android.tv.disclaimercustomization	the hisense-hg9 list keeps it (first-boot legal text); ask row
+jvc-lt55mb508	(header)	the KEEP block names mediatek.factorymenu.ui (factory menu, retail-mode listener) and fusion.android.tv.demo, which the header keep parser skips for their prefix, so both are in the curated never-disable list
 kalley-43g200	(header)	the KEEP block at the end of the file (updaters, key handlers, remote, Realtek TV stack) is in the curated never-disable list
 kalley-43g200	(launcher)	launcherx must never be switched off on this set: the firmware turns the setup wizard back on at every boot and its RecoveryActivity then boot-loops the TV (a USB reflash was needed once), so stockLaunchers is empty and Setup gives the clean-up only; both stay never-disable; 0.2.0 also skips the switch up front for the whole family by device and maker (RF-SAFETY-250), so S3 names the boot loop
 kalley-43g200	(match)	the header names the maker MOKA and the device R3_GTV but not the Kalley brand string, so the profile matches on the maker; kalley-r10g is a different device (R10G)
