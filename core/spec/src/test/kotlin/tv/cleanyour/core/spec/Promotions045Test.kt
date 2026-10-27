@@ -97,4 +97,11 @@ class Promotions045Test {
         facts("SaluteTV", "m5621", "SaluteTV", 28, "MediaTek/m5621/m5621:9/PPR2.180905.006.A1/tuz_starosfw_jenkins06181401:user/release-keys") to null, // #1052
         facts("SBDV-00006", "sberbox_y4", "SberDevices", 33, "SberDevices/sberbox_y4/sberbox_y4:13/TQ3A.230901.001.C3/x", manufacturer = "HiMedia") to null, // #213
     )
+
+    // Device khardi only: the model LUMIO VISION is also a templeton set, another KTC board.
+    @Test fun lumioVision7() = check(
+        facts("LUMIO VISION", "khardi", "LUMIO", 34, "LUMIO/KTC_LUMIO_4K_EU_23GV1/khardi:14/UKRA.251202.032/14760087:user/release-keys", manufacturer = "KTC") to "lumio-vision-7", // #1109
+        facts("LUMIO VISION", "khardi", "LUMIO", 34, "LUMIO/KTC_LUMIO_4K_EU_23GV1/khardi:14/UKRA.251202.026/14713808:user/release-keys", manufacturer = "KTC") to "lumio-vision-7", // #958
+        facts("LUMIO VISION", "templeton", "LUMIO", 34, "LUMIO/KTC_LUMIO_4K_EU_25GV2/templeton:14/UKN6.260116.151/15819936:user/release-keys", manufacturer = "KTC") to null, // #1107
+    )
 }

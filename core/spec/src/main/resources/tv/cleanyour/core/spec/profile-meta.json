@@ -1137,6 +1137,34 @@
         "com.google.android.marvin.talkback": { "category": "accessibility", "ask": true }
       }
     },
+    "lumio-vision-7": {
+      "match": { "models": [], "devices": ["khardi"], "brand": "LUMIO", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": "LUMIO/KTC_LUMIO_4K_EU_23GV1/khardi:14/" },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.realtek.tv",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": ["com.realtek.tv", "com.realtek.tv.passthrough", "com.realtek.systemservice", "com.kgzn.tvfactory", "com.google.android.apps.mediashell"],
+      "suggestedDock": [],
+      "tested": { "by": "Subramanya GB (PR #988)", "firmware": "UKRA.251202.032", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Ad tracking / Privacy Sandbox": { "category": "tracking", "ask": false },
+        "Retail demo + regional / unused preloads": { "category": "preloads", "ask": false },
+        "Google telemetry / bloat": { "category": "tracking", "ask": false },
+        "Voice assistant (optional): ~100 MB RAM in the background. Comment out to keep voice search / the mic button.": { "category": "voice", "ask": true },
+        "Required for a third-party launcher to hold Home on this build (see header: check the Wi-Fi owner first)": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.android.adservices.api": { "category": "ads", "ask": false },
+        "com.android.ondevicepersonalization.services": { "category": "ads", "ask": false },
+        "com.realtek.storemode": { "category": "demo", "ask": false },
+        "com.hk.gingaplayer.huangs": { "category": "other", "ask": true },
+        "com.google.android.syncadapters.calendar": { "category": "other", "ask": false },
+        "com.google.android.apps.tv.dreamx": { "category": "screensaver", "ask": true },
+        "com.google.android.play.games": { "category": "preloads", "ask": false },
+        "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": true }
+      }
+    },
     "motorola-swtv-24ae-fhd": {
       "match": { "models": [], "devices": ["beomil"], "brand": "Motorola", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
       "platform": "GOOGLE_TV",

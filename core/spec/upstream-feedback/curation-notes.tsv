@@ -197,6 +197,10 @@ kogan-gtvu65kg	(header)	the KEEP list (AirPlay receiver, Chromecast, updaters, r
 kogan-gtvu65kg	(header)	no Live TV app named: com.mediatek.wwtv.tvcenter.plus is disabled from the factory on this set
 kogan-gtvu65kg	(match)	ro.product.brand Kogan from the header (vendor brand CHiQ, manufacturer Changhong); same board and device dangni as chiq-gtvu65, which needs the brand CHiQ, so the two never meet
 kogan-gtvu65kg	com.google.android.tungsten.setupwraith	not listed (debloat only); the header points to chiq-gtvu65 for the launcher half, so the wizard and quirk follow that profile and the Wi-Fi guard applies
+lumio-vision-7	(launcher)	after the home screen switch the remote's YouTube, Netflix, Prime Video and TL;DR buttons need the launcher's key helper, which the app never switches on; the dock opens the same apps
+lumio-vision-7	(match)	device khardi only: the model LUMIO VISION is also a templeton set (issue #1107), another KTC board
+lumio-vision-7	com.google.android.tungsten.setupwraith	it takes Home back once launcherx is off, so it goes with the home screen switch and the Wi-Fi guard; the header notes it can cost Chromecast
+lumio-vision-7	com.hk.gingaplayer.huangs	interactive TV for ISDB-T broadcasts, inert on this DVB set; an ask row, as tcl-g09 keeps its Ginga engine
 motorola-swtv-24ae-fhd	(launcher)	the remote's Settings button sends KEYCODE_NOTIFICATION, which needs the launcher's HomeKeyService after the switch (RF-PROFILES-63 P15)
 motorola-swtv-24ae-fhd	(match)	brand inferred, confirm with getprop: Motorola (the header calls it a Skyworth OEM build, so the manufacturer may be Skyworth); a wrong guess fails closed (the profile never matches)
 motorola-swtv-24ae-fhd	com.google.android.tungsten.setupwraith	the header warns it owns the Wi-Fi saved at setup and deleting it drops the TV off the network; the takeover's Wi-Fi guard skips it then

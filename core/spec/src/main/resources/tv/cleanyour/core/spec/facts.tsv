@@ -433,6 +433,7 @@ com.hisense.tv.videoconference	Hisense video conference	Video conferencing app	p
 com.hisense.tv.weather	Hisense weather	Weather card on the home screen	preloads
 com.hisense.usbupgrade	Hisense USB updater	Installs firmware updates from a USB stick	updates
 com.hisense.widget.pro	Hisense home widget rows	Operator content rows on the home screen	ads
+com.hk.gingaplayer.huangs	Ginga player	Interactive TV for ISDB-T broadcasts	other
 com.homwee.aipont	AI PONT portal	Changhong's brand portal	brand
 com.homwee.alexacontrol	Homwee Alexa	Alexa integration	voice
 com.homwee.chinstallapk	Homwee silent installer	Installs apps without asking	ads
@@ -611,6 +612,7 @@ com.realtek.kara	Karaoke	Karaoke app	preloads
 com.realtek.karaoke.userguide	Karaoke guide	User guide for the karaoke app	preloads
 com.realtek.keyinterceptserver	Realtek key service	Remote key handling	system
 com.realtek.leanbacklauncher.partnercustomizer	Realtek home customizer	Partner rows; on some sets also the stock home's Inputs button	ads
+com.realtek.storemode	Store mode	In-store demo mode	demo
 com.realtek.tv.atsc	ATSC tuner	North American TV tuner input	other
 com.realtek.tv.isdb	ISDB tuner	Japanese and South American tuner input	other
 com.rkgames.basisgame	RK Games game	Preloaded game	preloads

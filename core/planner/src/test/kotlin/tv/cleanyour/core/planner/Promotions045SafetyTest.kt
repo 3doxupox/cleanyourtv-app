@@ -107,4 +107,11 @@ class Promotions045SafetyTest {
         keeps("sber-salute-tv-at30a6", "ru.sberdevices.starlauncher", "ru.sberdevices.services", "ru.sberdevices.tvinputs", "ru.sberdevices.app.starkeyboard", "ru.sberdevices.updater")
         for (s in listOf("ru.sberdevices.starmarket", "ru.sberdevices.parentcontrol", "ru.sberdevices.rcfupdater", "ru.sberdevices.starlivetv")) assertTrue(p(s) !in defaultOff("sber-salute-tv-at30a6"), s)
     }
+
+    @Test fun lumioVision7() {
+        val pr = defaultsPass("lumio-vision-7")
+        assertEquals(KnownLaunchers.SETUPWRAITH, pr.setupWraith)
+        keeps("lumio-vision-7", "com.realtek.tv", "com.realtek.tv.passthrough", "com.google.android.apps.mediashell")
+        for (s in listOf("com.google.android.katniss", "com.hk.gingaplayer.huangs")) assertTrue(p(s) !in defaultOff("lumio-vision-7"), s)
+    }
 }

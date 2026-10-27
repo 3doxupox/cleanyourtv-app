@@ -49,7 +49,6 @@ jvc-uk-4k-sadang    # parked at b06ab21 (after v3.0.0): not curated yet; a profi
 kogan-g7    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 ktc-4k-smart-tv-hongkong    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 liberton-ltv-24h01at    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
-lumio-vision-7    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 magcubic-hy300-pro    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 master-g-mga3200    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 motorola-mt4310    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
