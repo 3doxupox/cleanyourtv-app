@@ -1727,6 +1727,7 @@
       "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
       "liveTv": null,
       "setupWraith": null,
+      "setupWraithStaysOn": true,
       "quirks": [],
       "neverDisable": ["com.realtek.dtv", "com.realtek.tv.atv", "com.realtek.dtmb", "com.realtek.tv.atsc", "com.realtek.tv.isdb"],
       "suggestedDock": [],
@@ -1738,7 +1739,7 @@
         "Karaoke": { "category": "preloads", "ask": true },
         "Preloaded apps": { "category": "preloads", "ask": true },
         "Stock home. Disable only after the new launcher is installed and running, or Home lands on a factory test app.": { "category": "home", "ask": false },
-        "Privacy Sandbox and on-device personalization": { "category": "ads", "ask": true }
+        "Privacy Sandbox and on-device personalization": { "category": "ads", "ask": false }
       },
       "packages": {
         "com.google.android.partnersetup": { "category": "tracking", "ask": false },
@@ -1746,7 +1747,9 @@
         "com.apps.scast": { "category": "casting", "ask": true },
         "com.apps.esticker3": { "category": "demo", "ask": false },
         "com.android.printspooler": { "category": "preloads", "ask": false },
-        "com.wbd.stream": { "category": "streaming", "ask": true }
+        "com.wbd.stream": { "category": "streaming", "ask": true },
+        "com.android.tv.feedbackconsent": { "category": "tracking", "ask": false },
+        "com.android.federatedcompute.services": { "category": "tracking", "ask": false }
       }
     },
     "rca-ai-pont": {
