@@ -136,6 +136,10 @@ class DefaultPlanner(
 
         fun name(pkg: PackageName): String = AppNames.of(pkg, facts, snapshot.packages[pkg]?.label)
         fun description(pkg: PackageName): String = facts.lookup(pkg)?.description ?: ""
+        // An uninstall's line on the progress screen. Our launcher is "the new home screen" there as
+        // everywhere else in the app: the TV reads no label for it, so AppNames would make its name
+        // from the package ("Gathin Home", QA 0.4.5-beta1).
+        fun removing(pkg: PackageName): String = if (pkg == launcher.pkg) NARRATION_REMOVE_LAUNCHER else "Removing ${name(pkg)} from the TV"
         fun state(pkg: PackageName): PackageState? = snapshot.packages[pkg]
         fun isOff(pkg: PackageName): Boolean = state(pkg)?.enabled.let { it == EnabledState.DISABLED_USER || it == EnabledState.DISABLED }
         fun installed(pkg: PackageName): Boolean = pkg in snapshot.packages
@@ -662,7 +666,7 @@ class DefaultPlanner(
             val ours = current.installedByUs || journals.any { (it.op as? Op.Install)?.pkg == pkg || (it.op as? Op.InstallStream)?.pkg == pkg }
             if (!ours) { refuse("${name(pkg)} was not installed by this app"); return }
             if (pkg == launcher.pkg && snapshot.home.resolved == launcher) { refuse("use the TV's own home screen first, then remove the new one"); return }
-            step(Op.Uninstall(pkg), Prior(present = true), GROUP_MODULE, "Removing ${name(pkg)} from the TV", FailurePolicy.STOP_AND_ROLLBACK)
+            step(Op.Uninstall(pkg), Prior(present = true), GROUP_MODULE, removing(pkg), FailurePolicy.STOP_AND_ROLLBACK)
         }
 
         // Also the core of UndoEverything and BeforeFactoryReset: the TV's own home screen back.
@@ -732,7 +736,7 @@ class DefaultPlanner(
                         if (pkg == launcher.pkg && snapshot.home.resolved == launcher && (originalHome == null || originalHome == launcher)) {
                             refuse("the new home screen is still in charge; the TV's own home screen must come back first"); continue
                         }
-                        val removed = step(Op.Uninstall(pkg), Prior(present = true), GROUP_UNDO, "Removing ${name(pkg)} from the TV", FailurePolicy.CONTINUE)
+                        val removed = step(Op.Uninstall(pkg), Prior(present = true), GROUP_UNDO, removing(pkg), FailurePolicy.CONTINUE)
                         if (pkg == launcher.pkg && removed >= 0) tidyWatchdogFiles(changes + journals)
                     }
                     is UndoOrder.Target.File -> {
@@ -875,6 +879,7 @@ class DefaultPlanner(
         const val REASON_WIZARD_SECTION_ONLY = "the first-run setup wizard is only switched off as part of the home screen switch"
         const val NARRATION_WIZARD = "Switch off the first-run setup wizard so the new home screen can take over"
         // Launcher v2.4.0 plan, finding 4: the uninstall erases everything the other launcher kept.
+        const val NARRATION_REMOVE_LAUNCHER = "Removing the new home screen from the TV"
         const val NARRATION_REPLACE_LAUNCHER = "Replace the home screen app (its look, order, app list, settings and card answers on the TV are reset)"
         // UX 2, the preview sheet's "Needed for the new home screen" group.
         const val TITLE_HOME = "Needed for the new home screen"
