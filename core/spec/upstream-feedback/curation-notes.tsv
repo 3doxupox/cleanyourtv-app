@@ -358,6 +358,9 @@ sony-bravia-vu1	(match)	device BRAVIA_VU1 with the US product BRAVIA_VU1_UC as t
 sony-bravia-vu1	com.android.providers.calendar	calendar storage for apps is an ask row, as on oneplus-tv-y1
 sony-bravia-vu1	com.google.android.tungsten.setupwraith	goes with the home screen switch and the Wi-Fi guard, as the header's hand-over says; the header notes that phone casting stops after a reboot without it
 sony-bravia-vu1	com.google.android.tvrecommendations	in the hand-over group, whose rows stay on as the home group; an ask row instead, since its note says a phone remote stops without it (that note is the SHIELD's; on this set the phone remote is com.google.android.tv.remote.service, never-disable)
+sony-bravia-vu3	(launcher)	the clean-up only (HomeSwitchRisk REMOTE_BUTTONS): with launcherx off the remote's Netflix, YouTube, Prime Video and YouTube Music buttons do nothing, and upstream's own install keeps launcherx with a key helper this app never switches on (PR #1757)
+sony-bravia-vu3	com.google.android.apps.tv.launcherx	stays on: the remote's app buttons go through it
+sony-bravia-vu3	com.google.android.tungsten.setupwraith	only the home screen switch would switch it off, and the switch is refused here, so phone casting (which reads its credentials from it) keeps working
 sony-bravia-vu31	com.google.android.marvin.talkback	in the owner's off by choice group; accessibility is an ask row
 sony-kd-55x8509c	(launcher)	Android 7.0 (SDK 24): the clean-up applies, but the launcher needs SDK 26 and will not install here
 sony-kd-55x8509c	com.google.android.inputmethod.japanese	ask row: keyboards are never default-off, as on sony-kd-65x9300d and sony-xbr-65x900f (RF-PROFILES-63 P7)

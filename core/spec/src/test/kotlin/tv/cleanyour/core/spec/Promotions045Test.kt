@@ -108,4 +108,9 @@ class Promotions045Test {
     @Test fun epsonLs800() = check(
         facts("HA90", "sti6202d101", "Epson", 34, "Epson/sti6202d101/sti6202d101:14/UKG3.250826.001/20260615:user/release-keys", manufacturer = "Askey") to "epson-ls800", // #836
     )
+
+    @Test fun sonyBraviaVu3() = check(
+        facts("BRAVIA VU3", "BRAVIA_VU3_4K", "Sony", 34, "Sony/BRAVIA_VU3/BRAVIA_VU3_4K:14/UKR1.240726.001/386-60842:user/release-keys") to "sony-bravia-vu3", // #696
+        facts("unknown", "BRAVIA_VU31_4K", "Sony", 34) to "sony-bravia-vu31",
+    )
 }

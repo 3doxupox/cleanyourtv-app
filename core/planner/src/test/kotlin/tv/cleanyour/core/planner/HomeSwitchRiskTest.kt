@@ -23,6 +23,7 @@ import tv.cleanyour.core.store.SnapshotCodec
 import tv.cleanyour.testing.fixtures.Issue036
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -87,6 +88,23 @@ class HomeSwitchRiskTest {
         // Not by the maker alone (an emulator image says Google too), nor by the device name alone.
         assertNull(HomeSwitchRisk.of(facts("generic_x86", "google", "Google"), null, noWizard, WizardWifi.NOT_OWNER))
         assertNull(HomeSwitchRisk.of(facts("sabrina", "Acme"), null, noWizard, WizardWifi.NOT_OWNER))
+    }
+
+    // (b2) 0.4.5: the BRAVIA VU3, whose remote's app buttons go through launcherx (upstream PR #1757), gets
+    // no switch whoever saved the Wi-Fi; the clean-up alone is planned and leaves launcherx and the setup
+    // wizard (casting) as they are. The VU31, a sibling board that ships with the switch, is not held back here.
+    @Test fun theRemoteButtonSetGetsNoSwitch() {
+        val f = facts("BRAVIA_VU3_4K", "Sony").copy(model = "BRAVIA VU3", fingerprint = "Sony/BRAVIA_VU3/BRAVIA_VU3_4K:14/UKR1.240726.001/386-60842:user/release-keys")
+        val vu3 = assertNotNull(exact(f))
+        assertEquals("sony-bravia-vu3", vu3.id)
+        for (w in WizardWifi.entries) assertEquals(Risk.REMOTE_BUTTONS, HomeSwitchRisk.of(f, vu3, withFacts(f), w), "$w")
+        assertEquals(listOf(Risk.REMOTE_BUTTONS.reason), refused(setup(profile = vu3, choices = choices(wizardWifi = WizardWifi.NOT_OWNER)), snapshot = withFacts(f)))
+        val cleanUp = plan(setup(profile = vu3, choices = choices(installLauncher = false, takeover = false, wizardWifi = WizardWifi.NOT_OWNER)), snapshot = withFacts(f))
+        val off = cleanUp.steps.map { it.op }.filterIsInstance<Op.Disable>().map { it.pkg.value }
+        assertTrue("com.google.android.apps.tv.launcherx" !in off && wizard.value !in off, off.toString())
+        val vu31 = facts("BRAVIA_VU31_4K", "Sony")
+        assertEquals("sony-bravia-vu31", exact(vu31)?.id)
+        assertTrue(HomeSwitchRisk.of(vu31, exact(vu31), withFacts(vu31), WizardWifi.NOT_OWNER) != Risk.REMOTE_BUTTONS)
     }
 
     // (c) The MOKA family: the wizard comes back at boot and the set can boot-loop. The three shipped

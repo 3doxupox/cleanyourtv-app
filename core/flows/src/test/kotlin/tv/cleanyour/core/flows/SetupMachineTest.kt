@@ -1126,6 +1126,8 @@ class SetupMachineTest {
             add(Case("kalley-r10g", "kalley-r10g", facts("R10G", "Kalley"), others, HomeBlock.BOOT_LOOP))
             add(Case("prismplus-q65-ultra-r10g", "prismplus-q65-ultra-r10g", facts("R10G", "PRISMPLUS", "MOKA"), others, HomeBlock.BOOT_LOOP))
             add(Case("R10G on Android 15, no profile", null, facts("R10G", "PRISMPLUS", "MOKA", sdk = 35), others, HomeBlock.BOOT_LOOP))
+            // 0.4.5: the remote's app buttons need launcherx on the BRAVIA VU3.
+            add(Case("sony-bravia-vu3", "sony-bravia-vu3", facts("BRAVIA_VU3_4K", "Sony"), others, HomeBlock.REMOTE_BUTTONS))
             add(Case("unknown TV, wizard owns the Wi-Fi", null, base, owns, HomeBlock.WIZARD_WIFI))
             // RF-SAFETY-250: with no profile the switch never switches the wizard off, so a wizard
             // that is on means no switch, whatever the Wi-Fi answer; without one the switch goes ahead.

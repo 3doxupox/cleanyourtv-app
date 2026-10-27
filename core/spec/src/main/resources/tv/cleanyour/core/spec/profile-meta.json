@@ -2496,6 +2496,36 @@
         "com.google.android.tvrecommendations": { "category": "ads", "ask": true }
       }
     },
+    "sony-bravia-vu3": {
+      "match": { "models": [], "devices": ["BRAVIA_VU3_4K"], "brand": "Sony", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": "Sony/BRAVIA_VU3/" },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.android.tv",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH", "WIRELESS_DEBUG_PAIRING_REQUIRED"],
+      "neverDisable": ["com.android.tv", "com.realtek.dtv", "com.realtek.tv.atv", "com.realtek.tv.passthrough", "com.sony.dtv.smartui", "com.realtek.advancesetting"],
+      "suggestedDock": [],
+      "tested": { "by": "CMehta-sudo (PR #1433), second unit dhruvkumar1805 (PR #1634)", "firmware": "UKR1.240726.001 (386-60842)", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Sony promos, demo content and help": { "category": "ads", "ask": false },
+        "Android ad/personalization services": { "category": "ads", "ask": false },
+        "Google reporting, setup leftovers and unused preloads": { "category": "preloads", "ask": false },
+        "Google TV Ambient screensaver": { "category": "screensaver", "ask": true },
+        "Google TV Home handover: setup wizard first, then stock launcher after custom Home was confirmed": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.sony.dtv.multiscreendemo": { "category": "demo", "ask": false },
+        "com.sony.dtv.smarthelp": { "category": "preloads", "ask": false },
+        "com.sony.dtv.helpguidecontents": { "category": "preloads", "ask": false },
+        "com.sonypicturescore": { "category": "streaming", "ask": true },
+        "com.android.federatedcompute.services": { "category": "tracking", "ask": false },
+        "com.google.android.feedback": { "category": "tracking", "ask": false },
+        "com.google.android.partnersetup": { "category": "tracking", "ask": false },
+        "com.google.android.onetimeinitializer": { "category": "other", "ask": false },
+        "com.google.android.syncadapters.calendar": { "category": "other", "ask": false },
+        "android.autoinstalls.config.google.gtvpai": { "category": "ads", "ask": false }
+      }
+    },
     "sony-bravia-vu31": {
       "match": { "models": [], "devices": ["BRAVIA_VU31_4K"], "brand": "Sony", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
       "platform": "GOOGLE_TV",
