@@ -116,6 +116,19 @@ class Issue325HandshakeTest {
         assertEquals("session: handshake failed: NoSuchMethodError", lines.last())
     }
 
+    // Out of memory is not a handshake failure to name: it goes up as it came, and the socket closes.
+    @Test fun aVirtualMachineErrorIsNotTyped() = runTest {
+        val adbd = FakeAdbd(Personas.miTv(), scope = backgroundScope)
+        val lines = mutableListOf<String>()
+        val manager = AdbSessionManager(FakeAdbdSocketFactory(mapOf(HOST to adbd)), FlakyKey(true) { RuntimeException() }.let { k ->
+            object : AdbSigner by k { override suspend fun sign(token: AuthToken): ByteArray = throw OutOfMemoryError("test") }
+        }, null, TestClock(this), backgroundScope, EmptyCoroutineContext, log = { lines += it })
+        assertFailsWith<OutOfMemoryError> { manager.open(tv.cleanyour.core.model.Endpoint.PlainTcp(HOST), null) {} }
+        assertEquals(emptyList(), lines)
+        settle()
+        assertTrue(adbd.connections.isEmpty(), "the socket is closed")
+    }
+
     // The TV answers as it should (here: it refuses the shell): no handshake line, the kind says it.
     @Test fun aPlainAnswerOfTheTvAddsNoLine() = runTest {
         val rig = Rig(this, faults = tv.cleanyour.testing.fakeadbd.Faults().apply { refuseOpens = true })

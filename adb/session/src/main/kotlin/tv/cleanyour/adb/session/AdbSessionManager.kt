@@ -104,6 +104,8 @@ class AdbSessionManager(
             )
         } catch (e: CancellationException) {
             throw e
+        } catch (e: VirtualMachineError) {
+            throw e
         } catch (e: Throwable) {
             // Before, only an AdbException was caught here: anything else left open() and the flows
             // turned it into "unreachable" (issues #325, #620). The socket is closed by open() itself.
@@ -127,6 +129,9 @@ class AdbSessionManager(
             publish(identity.tvId, session.state.value)
             OpenResult.Ok(session)
         } catch (e: CancellationException) {
+            conn.close()
+            throw e
+        } catch (e: VirtualMachineError) {
             conn.close()
             throw e
         } catch (e: Throwable) {

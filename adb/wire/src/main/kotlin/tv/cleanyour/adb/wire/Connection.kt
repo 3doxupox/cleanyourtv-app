@@ -284,6 +284,9 @@ internal class ConnectionCore private constructor(
             block()
         } catch (e: CancellationException) {
             throw e
+        } catch (e: VirtualMachineError) {
+            // Out of memory or stack: not the key's fault, and nothing to name.
+            throw e
         } catch (e: AdbException) {
             throw e
         } catch (e: Throwable) {
