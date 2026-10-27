@@ -518,6 +518,7 @@ xgimi-mogo-3-pro	fusion.android.tv.demo	ask row: on MediaTek builds this retail 
 xiaomi-mi-box-s	com.google.android.marvin.talkback	accessibility helpers are ask rows (safety rule 8; the accessibility category asks already, the row now says so)
 xiaomi-mi-box-s	(match)	fingerprint prefix widened to the PI line: the PI/3595 firmware (issues #772, #60) has the same packages as PI.3933
 xiaomi-mi-box-s-2nd-gen	com.xiaomi.tvqs.overseas	never-disable here: the header says it is the box's quick settings panel (the MOSR4 and MOOR2 lists call it Firebase analytics), which also keeps it out of the Xiaomi sure set
+xiaomi-mi-box-s-android12	(header)	the updater stays on as upstream prefers; on the Android 9 box its LifeKeeper reinstalls PatchWall a few minutes after it is switched off (xiaomi-mi-box-s header), so PatchWall may come back here too; cosmetic, the launcher stays Home
 xiaomi-mitv-afmu0	com.google.android.marvin.talkback	listed under preloaded apps; accessibility is never default-off, so it is an ask row
 xiaomi-mitv-afmu0	com.mitv.videoplayer	listed under preloaded apps; it is the USB video player, so it is an ask row
 xiaomi-mitv-afmu0	com.xiaomi.mitv.mediaexplorer	listed under preloaded apps; it is the USB media browser, so it is an ask row (the Mi Box S 2nd gen list keeps it on purpose)
