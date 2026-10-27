@@ -159,6 +159,19 @@ class DefaultPlanner(
         fun planned(op: Op): Boolean = steps.any { it.op == op }
         fun putBackPlanned(pkg: PackageName): Boolean = planned(Op.Enable(pkg)) || planned(Op.DefaultState(pkg))
 
+        // WP4 (C6, G4): a package the static denylist protects now (an earlier build switched it off,
+        // like TCL G10's remote mic service) only ever takes the write towards on. The renderer
+        // refuses a DefaultState for it, so one that is off goes back on with Enable, and one that is
+        // on needs nothing; an inverse that would switch it off is never planned. Null: no step.
+        fun protectedInverse(pkg: PackageName, inverse: Op): Op? {
+            if (Denylist.staticReason(pkg.value) == null) return inverse
+            return when (inverse) {
+                is Op.DefaultState -> if (isOff(pkg)) Op.Enable(pkg) else null
+                is Op.Disable -> null
+                else -> inverse
+            }
+        }
+
         // The rule the engine applies again with live facts (SwitchOffRule, 0.3.3 issue #10), outside
         // the home screen switch, plus this build's own choice: keepUpdatesOn keeps the updaters.
         fun protectedReason(pkg: PackageName, profile: Profile?, stockLaunchers: List<Component>, groups: List<PackageGroup> = profile?.groups.orEmpty()): String? {
@@ -517,10 +530,7 @@ class DefaultPlanner(
             }
             val change = journals.filter { it.op is Op.Disable && (it.op as Op.Disable).pkg == pkg }.maxByOrNull { it.atMs }
             val inverse = change?.let { renderer.inverse(it.op, it.prior ?: Prior()) } ?: Op.Enable(pkg)
-            // WP4 (C6): a package the static denylist now protects (an earlier build switched it off,
-            // like TCL G10's remote mic service) only takes the write towards on: DefaultState is a
-            // write the renderer refuses for it, so it goes back on with Enable instead.
-            val op = if (inverse is Op.DefaultState && Denylist.staticReason(pkg.value) != null) Op.Enable(pkg) else inverse
+            val op = protectedInverse(pkg, inverse) ?: return
             step(op, Prior(packageState = state(pkg)?.enabled), GROUP_PUT_BACK, "Switching ${name(pkg)} back on", FailurePolicy.STOP_AND_ROLLBACK)
         }
 
@@ -673,7 +683,7 @@ class DefaultPlanner(
                         val prior = c.prior ?: continue
                         val original = prior.packageState ?: continue
                         if (current.enabled == original) continue
-                        val inverse = renderer.inverse(c.op, prior) ?: continue
+                        val inverse = renderer.inverse(c.op, prior)?.let { protectedInverse(t.pkg, it) } ?: continue
                         step(inverse, Prior(packageState = current.enabled), GROUP_UNDO, undoNarration(inverse, t.pkg), FailurePolicy.CONTINUE)
                     }
                     is UndoOrder.Target.Setting -> {
