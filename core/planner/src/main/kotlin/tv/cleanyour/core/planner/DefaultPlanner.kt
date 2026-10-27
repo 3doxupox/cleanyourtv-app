@@ -748,11 +748,17 @@ class DefaultPlanner(
             if (snapshot.facts.installRefusal) { refuse("this TV refuses app installs"); return }
             installApk(artifact.blob, artifact.sha256, artifact.pkg, artifact.versionCode, artifact.signer,
                 present = true, group = GROUP_LAUNCHER, narration = "Updating the home screen to version ${artifact.versionName}")
-            // The update stops the old version; when it is the TV's home screen, start the new one at
-            // once and check that it comes up.
+            // The update stops the old version; when it is the TV's home screen, restart the new one at
+            // once (upstream #1101: a TCL G03 restarted it mid-update and kept the old picture on
+            // screen, so a plain start is not enough). Then the remote button helpers: the update
+            // stops the launcher and drops its accessibility services as a force-stop does, so they
+            // are put back exactly as the TV had them, whether or not it is
+            // Home. restoreAccessibility adds nothing unless the TV had one of ours on, and it never
+            // switches one on (RF-LAUNCHER-240 F7).
             if (snapshot.home.resolved == launcher) {
-                step(Op.StartActivity(launcher, wait = true), null, GROUP_LAUNCHER, "Starting the updated home screen", FailurePolicy.CONTINUE)
+                step(Op.RestartHome(launcher), null, GROUP_LAUNCHER, NARRATION_RESTART_UPDATED, FailurePolicy.CONTINUE)
             }
+            restoreAccessibility(GROUP_LAUNCHER)
         }
 
         // RFC-W8-5: the D24 restart test as a plan, so the reboot is journaled like any other write.
@@ -781,6 +787,7 @@ class DefaultPlanner(
         const val GROUP_SESSION_END = "session_end"
         const val GROUP_RESTORE = "restore"
         const val GROUP_REBOOT = "reboot"
+        const val NARRATION_RESTART_UPDATED = "Restarting the updated home screen"
         // RFC-CURTAIN-1
         const val GROUP_CURTAIN = "curtain"
         const val CURTAIN_PACKAGE = "tv.cleanyour.curtain"

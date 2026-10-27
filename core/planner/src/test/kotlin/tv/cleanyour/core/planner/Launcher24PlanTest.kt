@@ -95,10 +95,11 @@ class Launcher24PlanTest {
         val older = snapshot(home = launcher, claimants = listOf(launcher, stock), extra = mapOf(installedLauncher(signer = ours.signer, versionCode = 2)))
         val p = plan(PlanRequest.UpdateLauncher(newer()), snapshot = older)
         assertEquals(PlanKind.UPDATE_LAUNCHER, p.kind)
-        assertEquals(listOf("InstallStream", "StartActivity"), ops(p).map { it::class.simpleName })
+        // WP4 (upstream #1101): Home is restarted after the in-place update (UpdatePathTest has the rest).
+        assertEquals(listOf("InstallStream", "RestartHome"), ops(p).map { it::class.simpleName })
         assertEquals("Updating the home screen to version 2.4", p.steps[0].narration)
         assertEquals(true, p.steps[0].prior?.present, "an update: the undo never uninstalls it")
-        assertEquals(Op.StartActivity(launcher, wait = true), p.steps[1].op)
+        assertEquals(Op.RestartHome(launcher), p.steps[1].op)
         assertTrue(p.sections.isEmpty())
         // Nothing touches the look, the home screen setting or any package state.
         assertTrue(ops(p).none { it is Op.PushAsset || it is Op.RemoveFile || it is Op.SetHome || it is Op.Disable || it is Op.Uninstall })
