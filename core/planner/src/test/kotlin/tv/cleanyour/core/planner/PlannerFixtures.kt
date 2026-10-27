@@ -105,6 +105,14 @@ object PlannerFixtures {
     // TV no profile knows is tested on the same TV under another maker.
     fun otherMaker(s: Snapshot): Snapshot = s.copy(facts = s.facts.copy(brand = "Acme", manufacturer = "Acme")).let { it.copy(contentHash = SnapshotCodec.hash(it)) }
 
+    // 0.4.6: a test written for the release rule (R0 on Xiaomi only) runs with it in a test build
+    // too (-Pcyt.wizardStaysAnyBrand=true, which widens R0 to every brand).
+    inline fun releaseRule(block: () -> Unit) {
+        val before = HomeSwitchRisk.anyBrandForTests
+        HomeSwitchRisk.anyBrandForTests = false
+        try { block() } finally { HomeSwitchRisk.anyBrandForTests = before }
+    }
+
     fun change(step: Int, op: Op, prior: Prior?, atMs: Long = Samples.NOW_MS + step) = ChangeRecord(tv.cleanyour.core.model.PlanId("01FAKEPLAN0000000000000001"), step, op, prior, atMs)
 }
 

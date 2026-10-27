@@ -73,10 +73,16 @@ object HomeSwitchRisk {
     const val ANY_BRAND_RESOURCE = "/tv/cleanyour/core/planner/wizard-stays-any-brand"
     val ANY_BRAND_BUILD: Boolean by lazy { HomeSwitchRisk::class.java.getResource(ANY_BRAND_RESOURCE) != null }
 
+    // Tests only: the rule a test is written for, whatever this build bundles (null: the build's).
+    // A test of the release rule sets false (PlannerFixtures.releaseRule), so the suite passes in a
+    // test build too.
+    @Volatile var anyBrandForTests: Boolean? = null
+    private val anyBrandNow: Boolean get() = anyBrandForTests ?: ANY_BRAND_BUILD
+
     // The first risk that applies, or null when the switch may be planned. `profile` is the exact
     // profile (null on a brand sure set or the generic path); `wizardWifi` the D3 answer.
     // `anyBrand`: R0 for every brand (the test build's switch, ANY_BRAND_BUILD); tests pass it.
-    fun of(facts: DeviceFacts, profile: Profile?, snapshot: Snapshot, wizardWifi: WizardWifi, anyBrand: Boolean = ANY_BRAND_BUILD): Risk? = when {
+    fun of(facts: DeviceFacts, profile: Profile?, snapshot: Snapshot, wizardWifi: WizardWifi, anyBrand: Boolean = anyBrandNow): Risk? = when {
         isMokaFamily(facts) || profile?.id in MOKA_PROFILES -> Risk.BOOT_LOOP
         isGoogleHardware(facts) || profile?.id in CASTING_PROFILES -> Risk.CASTING
         profile?.id in REMOTE_BUTTON_PROFILES -> Risk.REMOTE_BUTTONS
@@ -96,13 +102,14 @@ object HomeSwitchRisk {
     // Home stayed ours across reboots since 2026-10-20 and the wizard never became a claimant
     // (upstream notes say the same of AYFR0, AXFR0/1, MOOQ2 and Mi Box S). So, all of: a Xiaomi by
     // brand or maker; no setup wizard among the claimants (homeWizards, and no vendor wizard or
-    // com.android.provision either) that is on; Google's Android TV home among them and on; and every
-    // other claimant a placeholder (the chooser, a FallbackHome) or our own home screen. Google TV
+    // com.android.provision either) that is on; Google's Android TV home among them and on; every
+    // other claimant a placeholder (the chooser, a FallbackHome) or our own home screen; and Home
+    // answering to one of those, or to nothing. Google TV
     // builds (launcherx), China PatchWall (com.mitv.tvhome) and any vendor home fail the last test.
     // The wizard is never switched off on this path and the Wi-Fi is never touched, so the Wi-Fi
     // answer does not matter. Manage checks the claimants again on every connect (WizardHome).
     // `anyBrand` (a test build, ANY_BRAND_BUILD) drops the brand test and keeps every other one.
-    fun wizardStaysOnSafely(facts: DeviceFacts, snapshot: Snapshot, anyBrand: Boolean = ANY_BRAND_BUILD): Boolean {
+    fun wizardStaysOnSafely(facts: DeviceFacts, snapshot: Snapshot, anyBrand: Boolean = anyBrandNow): Boolean {
         if (!anyBrand && !isXiaomi(facts)) return false
         if (homeWizards(null, snapshot).isNotEmpty()) return false
         val claimants = snapshot.home.claimants.map { it.component }
@@ -110,6 +117,10 @@ object HomeSwitchRisk {
         val tvlauncher = KnownLaunchers.TVLAUNCHER.pkg
         val launcherState = snapshot.packages[tvlauncher]?.enabled
         if (claimants.none { it.pkg == tvlauncher } || launcherState == null || !on(tvlauncher)) return false
+        // What Home answers now must be one of the same: nothing, tvlauncher, ours or a placeholder
+        // (a TV whose Home answers to another app the claimants do not list is not this case).
+        val resolved = snapshot.home.resolved
+        if (resolved != null && resolved.pkg != tvlauncher && resolved.pkg != SwitchOffRule.OUR_LAUNCHER && !HomePlaceholder.isPlaceholder(resolved)) return false
         return claimants.all { c ->
             c.pkg == tvlauncher || c.pkg == SwitchOffRule.OUR_LAUNCHER || (HomePlaceholder.isPlaceholder(c) && !(isWizard(c.pkg) && on(c.pkg)))
         }

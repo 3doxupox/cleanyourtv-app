@@ -3,6 +3,7 @@ package tv.cleanyour.core.planner
 import tv.cleanyour.core.model.Level
 import tv.cleanyour.core.model.Op
 import tv.cleanyour.core.ops.Denylist
+import tv.cleanyour.core.planner.PlannerFixtures.releaseRule
 import tv.cleanyour.core.planner.PlannerFixtures.artifact
 import tv.cleanyour.core.planner.PlannerFixtures.choices
 import tv.cleanyour.core.planner.PlannerFixtures.plan
@@ -48,7 +49,7 @@ class CarefulSetSafetyTest {
         assertEquals(emptyList(), refusedRows)
     }
 
-    @Test fun aCarefulSetGetsTheHomeScreenDecisionOfNoSet() {
+    @Test fun aCarefulSetGetsTheHomeScreenDecisionOfNoSet() = releaseRule {
         for (s in careful) {
             assertEquals(KnownLaunchers.generic, s.stockLaunchers, s.brand)
             // With the setup wizard on, the switch is refused for the same reason as without a set.

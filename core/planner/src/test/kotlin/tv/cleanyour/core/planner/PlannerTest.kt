@@ -20,6 +20,7 @@ import tv.cleanyour.core.ops.Denylist
 import tv.cleanyour.core.ops.FailurePolicy
 import tv.cleanyour.core.ops.Privilege
 import tv.cleanyour.core.ops.ShellRenderer
+import tv.cleanyour.core.planner.PlannerFixtures.releaseRule
 import tv.cleanyour.core.planner.PlannerFixtures.artifact
 import tv.cleanyour.core.planner.PlannerFixtures.change
 import tv.cleanyour.core.planner.PlannerFixtures.choices
@@ -203,7 +204,7 @@ class PlannerTest {
         assertTrue(Op.SetHome(stock) in s.rollback && Op.Enable(stock.pkg) in s.rollback)
     }
 
-    @Test fun takeoverRefusals() {
+    @Test fun takeoverRefusals() = releaseRule {
         val unknownHome = Component(PackageName("com.projectivy.launcher"), ".Main")
         assertTrue(refused(setup(), snapshot = snapshot(home = unknownHome, claimants = listOf(unknownHome))).any { it.contains("#85") })
         assertTrue(refused(setup(choices = choices(installLauncher = false))).any { it.contains("not installed") })

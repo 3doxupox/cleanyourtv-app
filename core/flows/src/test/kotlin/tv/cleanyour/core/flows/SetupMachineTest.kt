@@ -1227,7 +1227,7 @@ class SetupMachineTest {
     // line. The Google TV sets whose wizard the switch would switch off, when the TV says the wizard
     // saved the Wi-Fi (and only then); Google's own hardware (casting); the MOKA family (the boot
     // loop), also when no profile matches; and an unknown TV whose wizard saved the Wi-Fi.
-    @Test fun theSwitchIsSkippedUpFrontWhereItIsUnsafe() = runTest(timeout = 60.seconds) {
+    @Test fun theSwitchIsSkippedUpFrontWhereItIsUnsafe() = runTest(timeout = 60.seconds) { releaseRule {
         val wizard = PackageName("com.google.android.tungsten.setupwraith")
         val shipped = tv.cleanyour.core.spec.BundledProfileSource.bundled.profiles.associateBy { it.id }
         val owns = SavedWifi(true, 1, setOf("${wizard.value}:10031"))
@@ -1289,6 +1289,7 @@ class SetupMachineTest {
             assertEquals(c.block == HomeBlock.NONE, setup.choices.installLauncher, c.name)
             if (c.block != HomeBlock.NONE) assertNull(setup.config, "${c.name}: no look without the new home screen")
         }
+    }
     }
 
     // 0.4.6 (R0): a reported global Xiaomi (MiTV-AXSO1) resolves to the Xiaomi brand set, whose stock

@@ -4,6 +4,7 @@ import tv.cleanyour.core.model.GroupDefault
 import tv.cleanyour.core.model.Op
 import tv.cleanyour.core.model.TestedInfo
 import tv.cleanyour.core.planner.HomeSwitchRisk.Risk
+import tv.cleanyour.core.planner.PlannerFixtures.releaseRule
 import tv.cleanyour.core.planner.PlannerFixtures.choices
 import tv.cleanyour.core.planner.PlannerFixtures.plan
 import tv.cleanyour.core.planner.PlannerFixtures.refused
@@ -28,7 +29,7 @@ class CandidateSafetyTest {
     private val tested = PlannerFixtures.profile()
     private val candidate = tested.copy(tested = TestedInfo("candidate, issue #57", null, null, rebootTested = false, candidate = true))
 
-    @Test fun aCandidateGetsTheWizardRuleOfATvWithNoProfile() {
+    @Test fun aCandidateGetsTheWizardRuleOfATvWithNoProfile() = releaseRule {
         // A tested list that never names the wizard is not held back (HomeSwitchRiskTest); a candidate is.
         assertNull(HomeSwitchRisk.of(tv.facts, tested, tv, WizardWifi.OWNER))
         assertEquals(Risk.WIZARD_WIFI, HomeSwitchRisk.of(tv.facts, candidate, tv, WizardWifi.OWNER))

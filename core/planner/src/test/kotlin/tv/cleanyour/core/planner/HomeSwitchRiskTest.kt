@@ -15,6 +15,7 @@ import tv.cleanyour.core.model.TestedInfo
 import tv.cleanyour.core.planner.HomeSwitchRisk.Risk
 import tv.cleanyour.core.planner.PlannerFixtures.choices
 import tv.cleanyour.core.planner.PlannerFixtures.otherMaker
+import tv.cleanyour.core.planner.PlannerFixtures.releaseRule
 import tv.cleanyour.core.planner.PlannerFixtures.plan
 import tv.cleanyour.core.planner.PlannerFixtures.refused
 import tv.cleanyour.core.planner.PlannerFixtures.setup
@@ -67,7 +68,7 @@ class HomeSwitchRiskTest {
     // while the TV's own home screen goes off: no switch, whatever the Wi-Fi answer (the Wi-Fi line
     // when the TV says the wizard saved it). Without a wizard, or with it off, the switch goes ahead.
     // 0.4.6: on the reference TV under another maker, since the Xiaomi itself now meets R0 (below).
-    @Test fun anUnknownTvWithItsSetupWizardOnGetsNoSwitch() {
+    @Test fun anUnknownTvWithItsSetupWizardOnGetsNoSwitch() = releaseRule {
         val acme = otherMaker(tv)
         assertEquals(Risk.WIZARD_WIFI, HomeSwitchRisk.of(acme.facts, null, acme, WizardWifi.OWNER))
         assertEquals(Risk.WIZARD_STAYS_ON, HomeSwitchRisk.of(acme.facts, null, acme, WizardWifi.UNKNOWN))
@@ -265,6 +266,9 @@ class HomeSwitchRiskTest {
         // does the case of the maker's name (xiaomi in some reports).
         val ours = r0Tv(axso1, listOf(HomeClaimant(tvlauncher, 2), HomeClaimant(PlannerFixtures.launcher, 0), HomeClaimant(fallback, -1000)))
         assertNull(HomeSwitchRisk.of(axso1, null, ours, WizardWifi.OWNER))
+        // Home answering to a placeholder (FallbackHome) or to nothing is the same case.
+        assertNull(HomeSwitchRisk.of(axso1, null, r0Tv(axso1, home = fallback), WizardWifi.OWNER))
+        assertNull(HomeSwitchRisk.of(axso1, null, r0Tv(axso1, home = null), WizardWifi.OWNER))
         val lower = axso1.copy(brand = "xiaomi", manufacturer = "xiaomi")
         assertNull(HomeSwitchRisk.of(lower, null, r0Tv(lower), WizardWifi.OWNER))
         // A Redmi by its brand alone counts as Xiaomi's own.
@@ -292,9 +296,15 @@ class HomeSwitchRiskTest {
             // tvlauncher not a claimant, or switched off.
             check(r0Tv(f, listOf(HomeClaimant(fallback, -1000)), home = fallback), "no tvlauncher")
             check(r0Tv(f, disabled = setOf(tvlauncher.pkg.value)), "tvlauncher switched off")
+            // Home answers to an app the claimants do not list (PatchWall resolved while only tvlauncher
+            // and FallbackHome are listed), no claimants at all, or tvlauncher with no package entry.
+            check(r0Tv(f, home = patchWall), "Home answers to PatchWall")
+            check(r0Tv(f, emptyList(), home = null), "no claimants")
+            check(r0Tv(f).let { s -> s.copy(packages = s.packages - tvlauncher.pkg).let { it.copy(contentHash = SnapshotCodec.hash(it)) } }, "tvlauncher not in the package list")
+            check(r0Tv(f, two + HomeClaimant(Component(PackageName("com.unlisted.home"), ".Home"), 0)), "a claimant with no package entry")
             // The same TV under another maker.
             val acme = f.copy(brand = "Acme", manufacturer = "Acme")
-            check(r0Tv(acme), "not a Xiaomi", facts = acme)
+            releaseRule { check(r0Tv(acme), "not a Xiaomi", facts = acme) }
             // An exact profile keeps its own rule: one whose switch switches the wizard off while the
             // wizard saved the Wi-Fi, and a test build's candidate list (never tried with the switch).
             val quirk = PlannerFixtures.profile(quirks = setOf(Quirk.HOME_TAKEOVER_SETUPWRAITH), setupWraith = wizard)
