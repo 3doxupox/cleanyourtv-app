@@ -294,6 +294,7 @@ com.disneyplus.mea	Disney+ (Middle East)	Disney's streaming app for the Middle E
 com.disneyplus.ph	Disney+	Disney streaming app (Philippines)	streaming
 com.dolby.android.audio.service	Dolby audio service	Dolby audio processing	system
 com.droidlogic.readlog	Amlogic log dumper	Copies system logs to USB storage	other
+com.duokan.airkan.tvbox	AirKan	Xiaomi DLNA casting receiver	casting
 com.duokan.factorytest	Xiaomi factory test	Factory test app that also claims Home	other
 com.duokan.videodaily	Video Daily	Daily promoted video picks	ads
 com.ecloud.emedia	eMedia (DLNA)	DLNA receiver for media from phones	casting
@@ -487,6 +488,7 @@ com.megogo.application	MEGOGO	Streaming app	streaming
 com.mercadolibre.android.mplay_tv	Mercado Play	Mercado Libre's free streaming app	streaming
 com.mgmedia.androidApp	CHILI	Film rental and streaming app	streaming
 com.mi.bluetooth	Mi Bluetooth	Remote and Bluetooth pairing	system
+com.mipay.wallet.tv	Mi Pay wallet	Xiaomi payment wallet (China)	brand
 com.mirakulo.astrotv.service	Ginga	Broadcasters' interactive apps (ISDB-Tb)	brand
 com.mitv.ABUpdateStatus	Update status	Shows the progress of a firmware update	updates
 com.mitv.alarmcenter	Xiaomi alarms	Reminders and alarms, also those set by XiaoAI voice	preloads
@@ -496,6 +498,7 @@ com.mitv.dream	Mi screensaver	Xiaomi MiDream screensaver	screensaver
 com.mitv.gallery	Mi Gallery	Xiaomi photo gallery	preloads
 com.mitv.livetv	Mi Live TV	Live TV and input switching	system
 com.mitv.milinkservice	Mi Cast (MiLink)	Cast from Xiaomi phones	casting
+com.mitv.mivideoplayer	Mi Video	Xiaomi video streaming app (China)	streaming
 com.mitv.overseaservice	Mi overseas service	Netflix key and remote handling	system
 com.mitv.screensaver	Xiaomi screensaver	Xiaomi's stock screensaver	screensaver
 com.mitv.setup	Mi TV setup	Xiaomi setup service	system
@@ -870,8 +873,10 @@ com.xiaomi.eetv.litehome	Xiaomi office mode	A second home screen for office use	
 com.xiaomi.floatingframe	Xiaomi floating frame	Floating promo overlay	ads
 com.xiaomi.gamecenter.sdk.service.mibox	Xiaomi game service	Sign-in and payments for Xiaomi store games	brand
 com.xiaomi.mi_connect_service	Mi Connect	Links the TV with Xiaomi phones and devices	casting
+com.xiaomi.mibox.lockscreen	Child lock	Child mode and privacy lock screen	other
 com.xiaomi.mico.mqtt.service.application.tv	Xiao Ai speaker link	Lets a Xiao Ai speaker control the TV	voice
 com.xiaomi.mimusic2	Mi Music	Xiaomi music app	preloads
+com.xiaomi.miplay	MiPlay	Casting from Xiaomi phones	casting
 com.xiaomi.mitv.calendar	Mi Calendar	Xiaomi calendar app	preloads
 com.xiaomi.mitv.csi	Xiaomi after-sales assistant	Uploads satisfaction surveys to Xiaomi	tracking
 com.xiaomi.mitv.handbook	Mi handbook	On-screen user manual	preloads
@@ -879,9 +884,13 @@ com.xiaomi.mitv.health	MiHealth	Xiaomi health app	preloads
 com.xiaomi.mitv.healthdiagnosis	Xiaomi health check	Xiaomi health app add-on	preloads
 com.xiaomi.mitv.hyper.screensaver	HyperOS screensaver	Xiaomi screensaver with adverts	screensaver
 com.xiaomi.mitv.karaoke.service	Xiaomi karaoke	Karaoke service	preloads
+com.xiaomi.mitv.legal.webview	Terms viewer	Shows the terms and privacy policy	other
 com.xiaomi.mitv.light	Xiaomi light effects	Light effect app	preloads
 com.xiaomi.mitv.manualhelp	Mi manual	On-screen user manual	preloads
 com.xiaomi.mitv.mediaexplorer	Mi Media Player	Plays videos, music and photos from USB	preloads
+com.xiaomi.mitv.pay	Xiaomi Pay	Xiaomi payment service (China)	brand
+com.xiaomi.mitv.payment	Xiaomi payment	Xiaomi payment service (China)	brand
+com.xiaomi.mitv.remotecontroller.service	Phone remote relay	Xiaomi phone remote and air mouse service	brand
 com.xiaomi.mitv.res	Mi TV resources	Framework resources, needed	system
 com.xiaomi.mitv.scenemode	Mi scene mode	Game mode and picture modes	system
 com.xiaomi.mitv.shop	Xiaomi shop	Xiaomi shopping app	ads

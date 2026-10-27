@@ -25,7 +25,7 @@ class ProfilesTest {
 
     @Test fun everyConvertedUpstreamExampleParsesWithCuratedMetadata() {
         assertEquals(316, upstream.size)
-        assertEquals(152, examples.size)
+        assertEquals(153, examples.size)
         for (e in examples) {
             val profile = DebloatTxtParser.parse(e.debloatTxt, e.folder)
             assertEquals(e.folder, profile.id)
@@ -62,7 +62,7 @@ class ProfilesTest {
     @Test fun theUnconvertedListIsPinnedToTheSubmodule() {
         val meta = ProfileMeta.decode(File(Fixtures.repoRoot, "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json").readText())
         assertEquals(upstream.map { it.folder }.filter { it !in meta.profiles }.toSet(), unconverted)
-        assertEquals(164, unconverted.size)
+        assertEquals(163, unconverted.size)
         val listed = unconvertedFile.readLines().filter { it.isNotBlank() && !it.startsWith("#") }
         assertEquals(listed.sorted(), listed, "one folder per line, sorted")
         assertTrue('\u2014' !in unconvertedFile.readText() && "-".repeat(2) !in unconvertedFile.readText())
@@ -203,6 +203,7 @@ class ProfilesTest {
     // 0.4.5 (second curator): Xiaomi China-market sets whose Home takes only allowlisted apps, so
     // com.mitv.tvhome stays on and Setup does the clean-up only (no new home screen offered).
     private val cleanUpOnlyPart2: Set<String> = setOf(
+        "xiaomi-mitv-astp0",
     )
 
     @Test fun theProfilesWithNoKnownStockLauncher() {
@@ -317,6 +318,8 @@ class ProfilesTest {
             f("SaluteTV", "SaluteTV", "SaluteTV", "m5621", 28, "MediaTek/m5621/m5621:9/PPR2.180905.006.A1/tuz_starosfw_jenkins06181401:user/release-keys") to null,   // #1052, the board name
             f("Xiaomi", "Xiaomi", "MiTV-AYFR0", "soul", 34, "Xiaomi/soul/soul:14/UKG3.250107.001/V816.0.26.6.10.UZFAATK:user/release-keys") to "xiaomi-mitv-ayfr0",   // #1173
             f("Xiaomi", "Xiaomi", "MiTV-AYFR0", "soul", 30, "Xiaomi/soul/soul:11/RTT0.211222.001/1546:user/release-keys") to null,   // #1180, Android 11
+            f("Xiaomi", "xiaomi", "MiTV-ASTP0", "mulan", 28, "Xiaomi/mulan/mulan:9/PPR1.180610.011/3982:user/release-keys") to "xiaomi-mitv-astp0",   // #882
+            f("Xiaomi", "xiaomi", "MiTV-ASTP0", "mulan", 28, "Xiaomi/mulan/mulan:9/PPR1.180610.011/OS3.0.101.0.PSTAATV:user/release-keys") to "xiaomi-mitv-astp0",   // #340
         )
         for ((facts, id) in reports) assertEquals(id, (source.resolveNow(facts) as? ProfileResolution.Exact)?.profile?.id, "${facts.model} ${facts.fingerprint}")
         for (id in cleanUpOnlyPart2) {

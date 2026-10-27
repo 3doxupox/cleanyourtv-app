@@ -505,6 +505,14 @@ xiaomi-mitv-ansp0	com.mitv.gallery	default-off as listed: the header checked tha
 xiaomi-mitv-ansp0	com.mitv.screensaver	screensaver ask row; the header says switch it off only after another screensaver is set, which the clean-up alone does not do
 xiaomi-mitv-ansp0	com.xiaomi.gamecenter.sdk.service.mibox	Xiaomi store games may need it for sign-in, so it is an ask row as on xiaomi-mitv-astp1
 xiaomi-mitv-ansp0	com.xiaomi.mitv.tvmanager	listed as a cleaner, but the MFFU0 header found XiaoAI's open-app command runs through its provider; ask row
+xiaomi-mitv-astp0	(home)	clean-up only: com.mitv.tvhome stays on (never-disable) and is not a known launcher, so Setup offers no home screen switch; with it off the TV starts to a black FallbackHome (upstream #1905)
+xiaomi-mitv-astp0	com.mitv.screensaver	the stock screensaver; ask row
+xiaomi-mitv-astp0	com.xiaomi.gamecenter.sdk.service.mibox	Xiaomi store games may need it for sign-in, so it is an ask row as on xiaomi-mitv-astp1
+xiaomi-mitv-astp0	com.xiaomi.mibox.lockscreen	child lock and privacy lock; ask row
+xiaomi-mitv-astp0	com.xiaomi.mitv.remotecontroller.service	phone remote relay: the header says it loops at 100-190% CPU, but it is a remote service, so ask row (safety rule 8)
+xiaomi-mitv-astp0	com.xiaomi.mitv.smartpanel	the Menu-button panel on this family (MiTV-MFFU0); ask row as on xiaomi-mitv-astp1
+xiaomi-mitv-astp0	com.xiaomi.mitv.tvmanager	XiaoAI "open app" can need it (MiTV-MFFU0, MiTV-MFTR0); ask row
+xiaomi-mitv-astp0	com.xiaomi.wakeupservice	the voice assistant wake word goes with it; voice ask row
 xiaomi-mitv-astp1	com.mitv.tvhome	the stock home (PatchWall) on this China build; not a known launcher to the app, so it is never-disable and the home screen switch leaves it alone
 xiaomi-mitv-astp1	com.xiaomi.gamecenter.sdk.service.mibox	listed under background services; Xiaomi store games may need it for sign-in, so it is an ask row
 xiaomi-mitv-astp1	com.xiaomi.mitv.settings	never-disable: the header says it is the only settings app on this firmware

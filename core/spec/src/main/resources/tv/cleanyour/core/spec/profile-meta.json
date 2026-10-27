@@ -3768,6 +3768,39 @@
         "com.mitv.alarmcenter": { "category": "other", "ask": true }
       }
     },
+    "xiaomi-mitv-astp0": {
+      "match": { "models": ["MiTV-ASTP0"], "devices": ["mulan"], "brand": "Xiaomi", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.mitv.tvhome"],
+      "liveTv": "com.xiaomi.mitv.tvplayer",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.mitv.tvhome", "mitv.service", "com.xiaomi.mitv.settings", "com.xiaomi.mitv.tvplayer", "com.droidlogic.tvinput", "com.xiaomi.mitv.systemui", "com.xiaomi.mitv.smartshare", "com.mitv.videoplayer", "com.xiaomi.mitv.mediaexplorer", "com.xiaomi.mitv.appstore"],
+      "suggestedDock": [],
+      "tested": { "by": "Kien (PR #628)", "firmware": "22.12.2.1630", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "Xiaomi telemetry / push / cloud control": { "category": "tracking", "ask": false },
+        "Ads / promoted content / shopping": { "category": "ads", "ask": false },
+        "Xiaomi background services": { "category": "brand", "ask": false },
+        "Preloaded apps not used": { "category": "preloads", "ask": false },
+        "Casting except AirPlay (com.xiaomi.mitv.smartshare keeps .mairplay.AirPlayService on port 47000)": { "category": "casting", "ask": true },
+        "Phone remote, air mouse and the TV assistant relay. It reconnects to relay01.c.assistant.tv.mi.com,": { "category": "brand", "ask": true },
+        "Chinese voice assistant (owner's choice)": { "category": "voice", "ask": true },
+        "Chinese payment (owner's choice)": { "category": "brand", "ask": true },
+        "Content (owner's choice)": { "category": "streaming", "ask": true },
+        "Keyboard: Gboard for Android TV 16.1.02 (com.google.android.inputmethod.latin, tv_release armeabi-v7a,": { "category": "other", "ask": true }
+      },
+      "packages": {
+        "com.android.smspush": { "category": "preloads", "ask": false },
+        "com.xiaomi.mitv.tvmanager": { "category": "brand", "ask": true },
+        "com.xiaomi.gamecenter.sdk.service.mibox": { "category": "brand", "ask": true },
+        "com.xiaomi.wakeupservice": { "category": "voice", "ask": true },
+        "com.xiaomi.mitv.smartpanel": { "category": "brand", "ask": true },
+        "com.mitv.screensaver": { "category": "screensaver", "ask": true },
+        "com.xiaomi.mibox.lockscreen": { "category": "other", "ask": true },
+        "com.xiaomi.smarthome.tv": { "category": "brand", "ask": true }
+      }
+    },
     "xiaomi-mitv-astp1": {
       "match": { "models": ["MiTV-ASTP1"], "devices": ["maverick"], "brand": "Xiaomi", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": null },
       "platform": "ANDROID_TV",

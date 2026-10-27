@@ -42,6 +42,7 @@ com.mediatek.tv.factory	purpose from the list's comment only
 com.mediatek.tv.freeviewplay	purpose from the lists' comments only
 com.mediatek.wwtv.tvrecommendation	purpose from the package name
 com.meetingroom	purpose from the package name
+com.mipay.wallet.tv	purpose from the package name and the group title (Chinese payment)
 com.mitv.ABUpdateStatus	purpose from the package name; the list files it under firmware updates
 com.mitv.toolhouse	purpose from the package name
 com.mk.tv.meeting.service	purpose from the package name
@@ -81,6 +82,9 @@ com.xiaomi.mitv.calendar	purpose from the list's comment only
 com.xiaomi.mitv.health	purpose from the list's comment only
 com.xiaomi.mitv.karaoke.service	purpose from the list's comment only
 com.xiaomi.mitv.light	purpose from the list's comment only
+com.xiaomi.mitv.pay	purpose from the package name and the group title (Chinese payment)
+com.xiaomi.mitv.payment	purpose from the package name and the group title (Chinese payment)
+com.xiaomi.mitv.remotecontroller.service	purpose from the list's group comment (phone remote, air mouse and assistant relay)
 com.xiaomi.mitv.shop	purpose from the list's comment only; not the app store, which the MFFU0 header keeps separately
 com.xiaomi.tvqs.overseas	contested: the Mi Box S 2nd gen header calls it the quick settings panel, the MOSR4 and MOOR2 lists call it Firebase analytics
 com.xiaomi.tweather	purpose from the list's comment only; the MFFU0 header ties it to the Hyper screensaver

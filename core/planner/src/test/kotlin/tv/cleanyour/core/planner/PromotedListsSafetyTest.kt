@@ -23,10 +23,12 @@ class PromotedListsSafetyTest {
         "xiaomi-mitv-mssp2",
         "xiaomi-mitv-mssp0",
         "xiaomi-mitv-ayfr0",
+        "xiaomi-mitv-astp0",
     )
     // Xiaomi China-market sets whose Home takes only allowlisted apps: no known stock launcher, so a
     // home screen switch asked for anyway is refused and the clean-up alone is planned.
     private val cleanUpOnly = listOf<String>(
+        "xiaomi-mitv-astp0",
     )
     private val all = BundledProfileSource.bundled.profiles.associateBy { it.id }
     // The reference TV without its setup wizard, so no wizard rule refuses the switch first.
