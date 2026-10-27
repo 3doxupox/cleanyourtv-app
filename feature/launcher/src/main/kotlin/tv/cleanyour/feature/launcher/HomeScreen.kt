@@ -183,6 +183,7 @@ internal fun NotOnTvScreen(tvName: String, n: NotOnTv, onIntent: (HomeScreenInte
             HomeBlock.WIZARD_STAYS_ON -> stringResource(R.string.home_not_on_tv_wizard_stays_on)
             HomeBlock.HOME_CHANGED -> stringResource(R.string.home_not_on_tv_home_changed)
             HomeBlock.OTHER_HOME -> stringResource(R.string.home_not_on_tv_other_home)
+            HomeBlock.VENDOR_HOME -> stringResource(R.string.home_not_on_tv_vendor_home)
             HomeBlock.NONE, null -> stringResource(R.string.home_not_on_tv_none)
         }
         Banner(why, BannerTone.INFO, Modifier.padding(top = 16.dp), icon = CytIcons.Info)

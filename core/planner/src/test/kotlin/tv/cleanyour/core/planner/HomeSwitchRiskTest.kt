@@ -10,6 +10,7 @@ import tv.cleanyour.core.model.Op
 import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.model.PackageState
 import tv.cleanyour.core.ops.Denylist
+import tv.cleanyour.core.ops.HomePlaceholder
 import tv.cleanyour.core.model.Profile
 import tv.cleanyour.core.model.Quirk
 import tv.cleanyour.core.model.SettingKey
@@ -443,5 +444,76 @@ class HomeSwitchRiskTest {
         assertTrue(ops.none { (it is Op.Disable && it.pkg == theirs.pkg) || (it is Op.Uninstall && it.pkg == theirs.pkg) }, "their app stays installed and on")
         val section = p.sections.single()
         assertTrue(theirs.pkg in section.rollbackIfFocus && PackageName("android") in section.rollbackIfFocus && fallback.pkg in section.rollbackIfFocus, "${section.rollbackIfFocus}")
+    }
+
+    // beta4, incident of 0.4.6-beta2 (issue #825): a Thomson SPPL 2K (sauve, Android 11, Realtek) on
+    // its brand set, claimants tvlauncher (2), Realtek's key service FallbackHome (-999) and Settings'
+    // FallbackHome (-1000), took R0 in the test build and failed to start after a few restarts. For R0
+    // a FallbackHome is harmless only when it is Android's own or in a package of the evidence list
+    // (a Nokia R4, TCL, upstream's Thomson on Android 14); any other blocks R0 with its own reason.
+    private val keyintercept = Component(PackageName("com.realtek.keyintercept"), ".fallbackhome.FallbackHome")
+    private val thomson = reported("SPPL 2K ANDROID TV", "sauve", 30, "THOMSON/SPPL_2K_RT41/sauve:11/RTK4.241026.026/12861515:user/release-keys",
+        brand = "THOMSON", manufacturer = "SPPL")
+    private val issue825 = listOf(HomeClaimant(tvlauncher, 2), HomeClaimant(keyintercept, -999), HomeClaimant(fallback, -1000))
+
+    @Test fun issue825AVendorServicesFallbackHomeBlocksR0InBothRules() {
+        for (w in WizardWifi.entries) {
+            val blocked = if (w == WizardWifi.OWNER) Risk.WIZARD_WIFI else Risk.WIZARD_STAYS_ON
+            val s = r0Tv(thomson, issue825)
+            assertEquals(HomeSwitchRisk.R0Blocker.VENDOR_PLACEHOLDER, HomeSwitchRisk.r0Blocker(thomson, s, anyBrand = true))
+            assertEquals(Risk.VENDOR_HOME, HomeSwitchRisk.of(thomson, null, s, w, anyBrand = true), "test build $w")
+            assertEquals(blocked, HomeSwitchRisk.of(thomson, null, s, w, anyBrand = false), "release $w: not a Xiaomi, the wizard is the reason")
+            // The same claimants on a Xiaomi with the release rule, and Home answering to that placeholder.
+            for (f in r0Tvs) {
+                assertEquals(Risk.VENDOR_HOME, HomeSwitchRisk.of(f, null, r0Tv(f, issue825), w, anyBrand = false), "${f.model} release $w")
+                assertEquals(Risk.VENDOR_HOME, HomeSwitchRisk.of(f, null, r0Tv(f, issue825), w, anyBrand = true), "${f.model} test build $w")
+                assertEquals(Risk.VENDOR_HOME, HomeSwitchRisk.of(f, null, r0Tv(f, issue825, home = keyintercept), w, anyBrand = false), "${f.model} Home on it $w")
+            }
+            // Other vendor FallbackHomes, Settings' packages with a class of their own, and one next to
+            // another home screen app (the vendor placeholder is the reason told).
+            for (c in listOf(Component(PackageName("com.realtek.menu"), ".FallbackHome"), Component(PackageName("com.vstv.fallbackhome"), ".FallbackHome"),
+                Component(PackageName("com.android.tv.settings"), ".vendor.FallbackHome"), Component(PackageName("com.android.settings"), ".tv.FallbackHome"))) {
+                val claims = listOf(HomeClaimant(tvlauncher, 2), HomeClaimant(c, -999), HomeClaimant(fallback, -1000))
+                assertEquals(Risk.VENDOR_HOME, HomeSwitchRisk.of(thomson, null, r0Tv(thomson, claims), w, anyBrand = true), "${c.flat} $w")
+                assertEquals(Risk.VENDOR_HOME, HomeSwitchRisk.of(axso1, null, r0Tv(axso1, claims), w, anyBrand = false), "${c.flat} Xiaomi $w")
+            }
+            val withVendorHome = issue825 + HomeClaimant(Component(PackageName("com.vendor.launcher"), ".Home"), 0)
+            assertEquals(Risk.VENDOR_HOME, HomeSwitchRisk.of(axso1, null, r0Tv(axso1, withVendorHome), w, anyBrand = false), "and a vendor home $w")
+            // The wizard claiming Home keeps the wizard's reason.
+            assertEquals(blocked, HomeSwitchRisk.of(axso1, null, r0Tv(axso1, issue825 + HomeClaimant(recovery, 0)), w, anyBrand = false), "the wizard claims Home $w")
+        }
+        // The planner refuses a switch asked for anyway, with that reason.
+        releaseRule {
+            val s = r0Tv(axso1, issue825)
+            assertEquals(listOf(Risk.VENDOR_HOME.reason), refused(setup(profile = null), snapshot = s))
+        }
+        // Every other caller keeps the wider placeholder test: Settings' card, Done and the check after
+        // the switch only ask whether a HOME answer is a home screen.
+        assertTrue(HomePlaceholder.isPlaceholder(keyintercept))
+        assertTrue(!HomeSwitchRisk.r0Placeholder(keyintercept))
+    }
+
+    // What R0 still takes: Android's own FallbackHome (TV Settings' or Settings', its class written
+    // short or in full), and the evidence list, at the priorities the reports give.
+    @Test fun r0StillTakesAndroidsOwnPlaceholdersAndTheEvidenceList() {
+        val nokia = reported("R4", "R4", 30, "NOKIA/R4/R4:11/RTT7.210923.001/x:user/release-keys", brand = "NOKIA", manufacturer = "NOKIA")
+        for (w in WizardWifi.entries) {
+            for ((c, priority) in listOf(
+                Component(PackageName("com.apps.tvsettings"), ".ui.FallbackHome") to -999,   // the Nokia R4 (issue #512)
+                Component(PackageName("com.apps.tvsettings"), ".FallbackHome") to -999,      // as its report writes it
+                Component(PackageName("com.android.boot.fallbackhome"), ".FallbackHomeCustomizer") to 0,   // TCL (#481), Hisense (#1388)
+                Component(PackageName("com.realtek.systemservice"), ".fallbackhome.FallbackHome") to -999,  // upstream's Thomson on Android 14
+                Component(PackageName("com.android.settings"), ".FallbackHome") to -1000,
+                Component(PackageName("com.android.tv.settings"), "com.android.tv.settings.system.FallbackHome") to -1000,
+            )) {
+                val claims = listOf(HomeClaimant(tvlauncher, 2), HomeClaimant(c, priority), HomeClaimant(fallback, -1000))
+                assertNull(HomeSwitchRisk.of(nokia, null, r0Tv(nokia, claims), w, anyBrand = true), "${c.flat} test build $w")
+                assertNull(HomeSwitchRisk.of(axso1, null, r0Tv(axso1, claims), w, anyBrand = false), "${c.flat} Xiaomi release $w")
+                assertTrue(HomeSwitchRisk.r0Placeholder(c), c.flat)
+            }
+            // The chooser answering Home is still a placeholder.
+            val chooser = Component(PackageName("android"), "com.android.internal.app.ResolverActivity")
+            assertNull(HomeSwitchRisk.of(axso1, null, r0Tv(axso1, home = chooser), w, anyBrand = false), "the chooser $w")
+        }
     }
 }

@@ -1,5 +1,6 @@
 package tv.cleanyour.core.planner
 
+import tv.cleanyour.core.model.Component
 import tv.cleanyour.core.model.DeviceFacts
 import tv.cleanyour.core.model.EnabledState
 import tv.cleanyour.core.model.PackageName
@@ -39,6 +40,10 @@ object HomeSwitchRisk {
         // beta3: R0 would let the switch go ahead with the wizard left on, but another home screen app
         // claims Home (one the person installed that R0 cannot take, or a vendor home), so it does not.
         OTHER_HOME("another home screen app claims the Home button on this TV, so the switch is left alone while its setup wizard stays on"),
+        // beta4 (issue #825): R0 would let the switch go ahead with the wizard left on, but a vendor
+        // service holds a Home placeholder of its own (Realtek's key service on a Thomson that failed
+        // to start after a few restarts), so it does not. Nothing the person can remove.
+        VENDOR_HOME("a system service on this TV also answers the Home button, so the switch is left alone while its setup wizard stays on"),
     }
 
     // Google's own Google TV hardware, by maker and device: Chromecast with Google TV 4K (sabrina)
@@ -103,12 +108,49 @@ object HomeSwitchRisk {
             val r0Applies = profile == null || (anyBrand && profile.isCandidate)
             val blocker = if (r0Applies) r0Blocker(facts, snapshot, anyBrand) else R0Blocker.NOT_THIS_PATH
             val risk = wizardWifiRisk(profile?.takeUnless { it.isCandidate }, snapshot, wizardWifi, r0 = blocker == null)
-            if (risk != null && blocker == R0Blocker.OTHER_HOME) Risk.OTHER_HOME else risk
+            when {
+                risk != null && blocker == R0Blocker.OTHER_HOME -> Risk.OTHER_HOME
+                risk != null && blocker == R0Blocker.VENDOR_PLACEHOLDER -> Risk.VENDOR_HOME
+                else -> risk
+            }
         }
     }
 
     // beta3: what keeps a TV from R0, the first that applies (null: R0 lets it switch).
-    enum class R0Blocker { NOT_THIS_PATH, BRAND, WIZARD_CLAIMS_HOME, NO_TVLAUNCHER, OTHER_HOME }
+    // beta4: VENDOR_PLACEHOLDER, a FallbackHome claimant R0 does not take (r0Placeholder).
+    enum class R0Blocker { NOT_THIS_PATH, BRAND, WIZARD_CLAIMS_HOME, NO_TVLAUNCHER, VENDOR_PLACEHOLDER, OTHER_HOME }
+
+    // beta4, incident of 0.4.6-beta2 (issue #825): a Thomson SPPL 2K (sauve, Android 11, Realtek) with
+    // claimants tvlauncher (2), com.realtek.keyintercept/.fallbackhome.FallbackHome (-999) and Settings'
+    // FallbackHome (-1000) took R0 in the test build, ran fine, then after a few restarts reset its
+    // settings and offered a factory reset. That FallbackHome lives in Realtek's key service, a family
+    // upstream has seen crash on every key press once the app it is wired to is off. So for R0 a
+    // FallbackHome counts as harmless only when it is Android's own (TV Settings' or Settings') or in a
+    // package a TV that held under R0 or upstream's checked set had: com.apps.tvsettings (a Nokia R4,
+    // issue #512), com.android.boot.fallbackhome (TCL, issue #481, and a Hisense, #1388),
+    // com.realtek.systemservice (upstream's Thomson sauve on Android 14). Any other (keyintercept,
+    // com.realtek.menu, a vendor's own) blocks R0. HomePlaceholder.isPlaceholder stays as it is for
+    // its other callers (Setup's card, Done, the check after the switch), which only ask whether a
+    // HOME answer is a home screen.
+    val AOSP_FALLBACK_HOMES: Set<Component> = setOf(
+        Component(PackageName("com.android.tv.settings"), ".system.FallbackHome"),
+        Component(PackageName("com.android.settings"), ".FallbackHome"),
+    )
+    val VENDOR_PLACEHOLDERS: Set<PackageName> =
+        setOf("com.apps.tvsettings", "com.android.boot.fallbackhome", "com.realtek.systemservice").map { PackageName(it) }.toSet()
+
+    // A Home claimant R0 takes as a placeholder: the chooser, a setup wizard (one that is on was
+    // refused before this is asked), Android's own FallbackHome, or one in a package of the list
+    // above. A class written out in full (the package's name in front) is the same class.
+    fun r0Placeholder(c: Component): Boolean {
+        if (!HomePlaceholder.isPlaceholder(c)) return false
+        if ("FallbackHome" !in c.cls) return true
+        val short = if (c.cls.startsWith(c.pkg.value + ".")) c.cls.removePrefix(c.pkg.value) else c.cls
+        return Component(c.pkg, short) in AOSP_FALLBACK_HOMES || c.pkg in VENDOR_PLACEHOLDERS
+    }
+
+    // A FallbackHome R0 does not take: the reason it gives (VENDOR_PLACEHOLDER, Risk.VENDOR_HOME).
+    private fun vendorPlaceholder(c: Component): Boolean = HomePlaceholder.isPlaceholder(c) && "FallbackHome" in c.cls && !r0Placeholder(c)
 
     fun isXiaomi(f: DeviceFacts): Boolean = XIAOMI_MAKERS.any { it.equals(f.brand, ignoreCase = true) || it.equals(f.manufacturer, ignoreCase = true) }
 
@@ -121,7 +163,7 @@ object HomeSwitchRisk {
     // (upstream notes say the same of AYFR0, AXFR0/1, MOOQ2 and Mi Box S). So, all of: a Xiaomi by
     // brand or maker; no setup wizard among the claimants (homeWizards, and no vendor wizard or
     // com.android.provision either) that is on; Google's Android TV home among them and on; every
-    // other claimant a placeholder (the chooser, a FallbackHome) or our own home screen; and Home
+    // other claimant a placeholder (the chooser, a FallbackHome R0 takes, r0Placeholder) or our own home screen; and Home
     // answering to one of those, or to nothing. Google TV
     // builds (launcherx), China PatchWall (com.mitv.tvhome) and any vendor home fail the last test.
     // The wizard is never switched off on this path and the Wi-Fi is never touched, so the Wi-Fi
@@ -149,12 +191,15 @@ object HomeSwitchRisk {
         // What Home answers now must be one of the same: nothing, tvlauncher, ours or a placeholder (a
         // TV whose Home answers to another app is not this case). An app the person installed counts
         // only among the claimants: one Home already answers to is their choice, which stays.
+        // beta4: a FallbackHome R0 does not take (r0Placeholder), among the claimants or answering Home,
+        // is its own reason, before any other home screen app.
         val resolved = snapshot.home.resolved
-        if (resolved != null && resolved.pkg != tvlauncher && resolved.pkg != SwitchOffRule.OUR_LAUNCHER && !HomePlaceholder.isPlaceholder(resolved))
+        if (claimants.any { vendorPlaceholder(it) } || (resolved != null && vendorPlaceholder(resolved))) return R0Blocker.VENDOR_PLACEHOLDER
+        if (resolved != null && resolved.pkg != tvlauncher && resolved.pkg != SwitchOffRule.OUR_LAUNCHER && !r0Placeholder(resolved))
             return R0Blocker.OTHER_HOME
         val accepted = snapshot.home.claimants.all { claimant ->
             val c = claimant.component
-            c.pkg == tvlauncher || c.pkg == SwitchOffRule.OUR_LAUNCHER || HomePlaceholder.isPlaceholder(c) ||
+            c.pkg == tvlauncher || c.pkg == SwitchOffRule.OUR_LAUNCHER || r0Placeholder(c) ||
                 (installedHome(c.pkg, snapshot) && claimant.priority <= 0)
         }
         return if (accepted) null else R0Blocker.OTHER_HOME

@@ -386,6 +386,8 @@ object SetupShots {
         Shot("found_home_changed") { Setup(found(noHomePlan), connected.copy(tvName = "TCL Smart TV", homePossible = false, homeBlock = HomeBlock.HOME_CHANGED)) },
         // beta3 (issue #1119): another home screen app claims Home where the switch could go ahead.
         Shot("found_home_other_home") { Setup(found(noHomePlan), connected.copy(tvName = "Xiaomi MiTV4I", homePossible = false, homeBlock = HomeBlock.OTHER_HOME)) },
+        // beta4 (issue #825): a system service's FallbackHome claims Home where the switch could go ahead.
+        Shot("found_home_vendor_home") { Setup(found(noHomePlan), connected.copy(tvName = "THOMSON SPPL 2K ANDROID TV", homePossible = false, homeBlock = HomeBlock.VENDOR_HOME)) },
         Shot("found_starting") { Setup(found(), connected.copy(starting = true)) },
         // D36 (RF-LAUNCHER-240 F1): the plan replaces a home screen app signed with another key.
         Shot("found_replaces_launcher") { Setup(found(fullPlan.copy(summary = fullPlan.summary.copy(replacesLauncher = true)))) },
