@@ -135,6 +135,9 @@ class ZipRestoreBundleWriter(
                 // depend on the device's time zone setting. ZipEntry.time stores the default zone's
                 // local time, so hand it the instant whose default-zone time is the writer's local
                 // time (ZipEntry.timeLocal says this directly but Android has it only from API 35).
+                // One exception: a writer's local time inside a spring-forward gap of the device's
+                // zone does not exist there, so it moves on by the gap (usually an hour) and those
+                // bytes differ from another zone's.
                 val local = LocalDateTime.ofInstant(Instant.ofEpochMilli(now), zone)
                 z.putNextEntry(ZipEntry(name).apply { time = local.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() })
                 z.write(bytes)
