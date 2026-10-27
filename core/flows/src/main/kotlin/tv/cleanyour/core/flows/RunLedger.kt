@@ -163,6 +163,19 @@ class RunLedger(private val store: DocumentStore, private val journal: Journal) 
     }
 
     // The packages this app switched off and has not put back since, in the order they went off.
+    // QA of 0.4.5: the packages a run switched off and left off: the last op done at each step is a
+    // switch-off (step R and undo journal their op under the step they undo).
+    suspend fun disabledBy(planId: PlanId): Set<PackageName> {
+        val begins = HashMap<Int, Op>()
+        val doneOps = HashMap<Int, Op?>()
+        for (r in journal.read(planId)) when (r) {
+            is JournalRecord.Begin -> begins[r.i] = r.op
+            is JournalRecord.Done -> doneOps[r.i] = begins[r.i]
+            else -> {}
+        }
+        return doneOps.values.mapNotNull { (it as? Op.Disable)?.pkg }.toSet()
+    }
+
     suspend fun switchedOffByUs(tvId: TvId): List<PackageName> {
         val off = LinkedHashSet<PackageName>()
         for (c in changes(tvId)) when (val op = c.op) {
