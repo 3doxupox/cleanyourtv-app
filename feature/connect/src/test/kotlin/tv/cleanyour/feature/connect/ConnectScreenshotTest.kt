@@ -85,7 +85,9 @@ fun SheetFrame(behind: @Composable () -> Unit, maxHeight: Dp = 690.dp, content: 
 // test on any ERROR. Record with recordRoborazziDebug, compare with verifyRoborazziDebug.
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [35], qualifiers = "w360dp-h780dp-xhdpi")
+// 0.4.6: the window is taller than a shot so a taller shot (Shot.height) is drawn whole; every
+// other shot keeps its 360 x 780 dp box.
+@Config(sdk = [35], qualifiers = "w360dp-h1000dp-xhdpi")
 class ConnectScreenshotTest(private val shot: Shot, private val variant: Variant) {
 
     @get:Rule
