@@ -177,5 +177,6 @@ reviewed and tested the app, and every change went through automated tests and r
 - The ADB protocol code started from [dadb](https://github.com/mobile-dev-inc/dadb) by mobile.dev
   (Apache 2.0, see [adb/wire/NOTICE](adb/wire/NOTICE)).
 - The [Outfit](https://github.com/Outfitio/Outfit-Fonts) typeface (SIL Open Font License 1.1).
+- The people who tested the app on their own TVs and told us how it went: [Testers](https://udhaykumarbala.github.io/cleanyourtv-app/testers/).
 
 Full list: [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES). Licence: [MIT](LICENSE), like Clean Your TV.
