@@ -40,7 +40,7 @@ All notable changes to the app. Versions follow [semantic versioning](https://se
 - PatchWall on Xiaomi TVs is now your choice, kept on unless you switch it off in Customise: with
   it off, the remote's PatchWall button stops working while the TV's own home screen is in use.
   This covers the Xiaomi brand set, every Xiaomi list and the Mi TV 4i test list (#111).
-- The Motorola MotorolaTV on hayward matches a tested list now (#446). When a TV's start-up
+- The Motorola MotorolaTV matches a tested list now (#446). When a TV's start-up
   fallback screen (such as the TCL Percee TV's FallbackHomeCustomizer) also answers Home, the card
   no longer names it as another home screen app (#481).
 
