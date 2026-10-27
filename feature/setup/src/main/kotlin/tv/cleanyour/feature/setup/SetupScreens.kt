@@ -681,8 +681,13 @@ fun DoneScreen(state: SetupState.Done, extras: SetupExtras, actions: SetupAction
         Lead(lead, Modifier.padding(top = 8.dp))
         Column(Modifier.padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             CheckLine(msg(R.string.done_restore_saved, "date" to dateTime(s.restorePointAtMs, locale)))
+            // D7: with "Keep debugging on" chosen, Finish leaves debugging on, and the line says so.
             CheckLine(
-                stringResource(if (finishing == Finishing.DONE) R.string.done_finished else R.string.done_debug_note),
+                stringResource(when {
+                    finishing == Finishing.DONE -> R.string.done_finished
+                    extras.keepsDebugging -> R.string.done_debug_kept
+                    else -> R.string.done_debug_note
+                }),
                 state = if (finishing == Finishing.SWITCHING) CheckState.PENDING else CheckState.DONE,
             )
         }
