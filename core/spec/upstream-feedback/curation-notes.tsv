@@ -320,6 +320,10 @@ sony-bravia-ae2	com.sony.dtv.tvinput.atsc3tuner.drmlicenseinstaller	part of the 
 sony-bravia-bf1	(match)	device BRAVIA_BF1 with the fingerprint prefix Sony/BRAVIA_BF1_4K (0.4.5): every reported BF1 says device BRAVIA_BF1, and the BRAVIA_BF1_4K_A the header calls the device is the product (BRAVIA_BF1_4K_A and BRAVIA_BF1_4K_M_A, issues #1088 and #700), so no BF1 matched before
 sony-bravia-tl2	(match)	the TPV device codename OD0M_EA_T32 may be shared with Philips sets; the Sony brand and the BRAVIA_TL2 fingerprint keep them apart
 sony-bravia-tl2	fusion.android.tv.demo	ask row: on MediaTek MTC builds this retail display app also handles the Input key and remote pairing (hitachi-65qledsm20), and this header did not check either with it off (RF-PROFILES-63 P6)
+sony-bravia-vu1	(match)	device BRAVIA_VU1 with the US product BRAVIA_VU1_UC as the fingerprint prefix: the only product tested and the only one reported (issues #1155, #1113, #757, #230, #156); the VU2 (device BRAVIA_VU1_2K) has no list
+sony-bravia-vu1	com.android.providers.calendar	calendar storage for apps is an ask row, as on oneplus-tv-y1
+sony-bravia-vu1	com.google.android.tungsten.setupwraith	goes with the home screen switch and the Wi-Fi guard, as the header's hand-over says; the header notes that phone casting stops after a reboot without it
+sony-bravia-vu1	com.google.android.tvrecommendations	in the hand-over group, whose rows stay on as the home group; an ask row instead, since its note says a phone remote stops without it (that note is the SHIELD's; on this set the phone remote is com.google.android.tv.remote.service, never-disable)
 sony-bravia-vu31	com.google.android.marvin.talkback	in the owner's off by choice group; accessibility is an ask row
 sony-kd-55x8509c	(launcher)	Android 7.0 (SDK 24): the clean-up applies, but the launcher needs SDK 26 and will not install here
 sony-kd-55x8509c	com.google.android.inputmethod.japanese	ask row: keyboards are never default-off, as on sony-kd-65x9300d and sony-xbr-65x900f (RF-PROFILES-63 P7)

@@ -39,4 +39,10 @@ class Promotions045Test {
         facts("SWTV-22AE-FHD", "umeda", "skyworth", 34, "skyworth/SW7_TG/umeda:14/UKNV.260211.001/14872057:user/release-keys") to "skyworth-swtv-22ae-fhd", // #526
         facts("SWTV-22AE-FHD", "umeda", "skyworth", 29) to null,
     )
+
+    // The VU1 list was made on the US product BRAVIA_VU1_UC, the only one reported; the VU2 (another device) stays out.
+    @Test fun sonyBraviaVu1() = check(
+        facts("BRAVIA VU1", "BRAVIA_VU1", "Sony", 30, "Sony/BRAVIA_VU1_UC/BRAVIA_VU1:11/RTT7.210105.001/366.60436:user/release-keys") to "sony-bravia-vu1", // #1155
+        facts("BRAVIA VU2", "BRAVIA_VU1_2K", "Sony", 30, "Sony/BRAVIA_VU2/BRAVIA_VU1_2K:11/RTT7.210923.001/146-60522:user/release-keys") to null, // #1005
+    )
 }

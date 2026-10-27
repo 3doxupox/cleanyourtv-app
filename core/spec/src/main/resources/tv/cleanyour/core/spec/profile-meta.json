@@ -2222,6 +2222,36 @@
         "fusion.android.tv.demo": { "category": "demo", "ask": true }
       }
     },
+    "sony-bravia-vu1": {
+      "match": { "models": [], "devices": ["BRAVIA_VU1"], "brand": "Sony", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": "Sony/BRAVIA_VU1_UC/" },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.android.tv",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH", "SETTLE_BEFORE_REBOOT"],
+      "neverDisable": ["com.android.tv", "com.realtek.dtv", "com.realtek.tv.atv", "com.sony.dtv.sonysystemservice", "com.sony.dtv.smartui", "com.sony.dtv.ipcontrol", "com.sony.dtv.remotecontrolsettings", "com.sony.dtv.timers", "com.google.android.apps.mediashell", "com.google.android.tv.remote.service"],
+      "suggestedDock": [],
+      "tested": { "by": "karangupta8 (PR #1532)", "firmware": "RTT7.210105.001 (366.60436)", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Sony demo and help": { "category": "demo", "ask": false },
+        "Google leftovers a TV never needs": { "category": "preloads", "ask": false },
+        "Off by choice (owner does not use them)": { "category": "streaming", "ask": true },
+        "Launcher handover: install the replacement launcher first and confirm Home, then disable these": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.sony.dtv.smarthelp": { "category": "preloads", "ask": false },
+        "com.sony.dtv.helpguidecontents": { "category": "preloads", "ask": false },
+        "com.google.android.feedback": { "category": "tracking", "ask": false },
+        "com.google.android.partnersetup": { "category": "tracking", "ask": false },
+        "com.google.android.onetimeinitializer": { "category": "other", "ask": false },
+        "com.google.android.syncadapters.calendar": { "category": "other", "ask": false },
+        "com.android.providers.calendar": { "category": "other", "ask": true },
+        "com.google.android.tts": { "category": "accessibility", "ask": true },
+        "com.google.android.backdrop": { "category": "screensaver", "ask": true },
+        "com.google.android.katniss": { "category": "voice", "ask": true },
+        "com.google.android.tvrecommendations": { "category": "ads", "ask": true }
+      }
+    },
     "sony-bravia-vu31": {
       "match": { "models": [], "devices": ["BRAVIA_VU31_4K"], "brand": "Sony", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
       "platform": "GOOGLE_TV",

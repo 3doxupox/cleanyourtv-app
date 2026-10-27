@@ -648,6 +648,7 @@ com.sony.dtv.broadcastsettings	Broadcast settings	Settings for antenna TV channe
 com.sony.dtv.calibrationmonitor	Calibration monitor	Picture calibration helper	brand
 com.sony.dtv.customersupport	Sony Help	Help tile	preloads
 com.sony.dtv.da.service	Sony device agent	Remote support and device data	tracking
+com.sony.dtv.demo	Sony demo mode	Retail demo mode	demo
 com.sony.dtv.demomode	Sony demo mode	Shop demo mode	demo
 com.sony.dtv.demosupport	Sony demo support	Shop demo support service	demo
 com.sony.dtv.demosystemsupport	Sony demo system support	Shop demo system service	demo
