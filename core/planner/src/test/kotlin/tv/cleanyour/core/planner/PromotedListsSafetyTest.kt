@@ -27,6 +27,7 @@ class PromotedListsSafetyTest {
         "xiaomi-mitv-mteq0",
         "redmi-mitv-mftp0",
         "aqua-matrixtv-ee-50",
+        "jvc-lt55mb508",
     )
     // Xiaomi China-market sets whose Home takes only allowlisted apps: no known stock launcher, so a
     // home screen switch asked for anyway is refused and the clean-up alone is planned.

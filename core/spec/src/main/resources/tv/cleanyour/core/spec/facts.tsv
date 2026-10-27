@@ -33,6 +33,7 @@ android.autoinstalls.config.xioami.mibox3	Mi Box partner installs	Installs partn
 au.com.ninenow.ctv	9Now	Channel 9 catch-up TV (Australia)	streaming
 au.com.stan.and	Stan	Australian streaming service	streaming
 au.net.abc.iview	ABC iview	ABC catch-up TV (Australia)	streaming
+br.tv.horizonte.android.premierefc	Premiere FC	Brazilian football streaming app	streaming
 ca.cbc.mobile.android.cbcnewsandroidwebview	CBC News	Canadian news app	streaming
 cm.aptoidetv.pt	Aptoide TV	Third-party app store	preloads
 cm.aptoidetv.pt.cvt_platform7	Aptoide TV	Third-party app store	preloads
@@ -309,6 +310,7 @@ com.fireos.usagestats.proxy	Fire OS usage stats	Passes app usage data to Amazon	
 com.formulaone.production	F1 TV	Formula 1 streaming app	streaming
 com.fox.foxone	Fox One	Streaming app	streaming
 com.fox.fts.android	FOX	FOX network app	streaming
+com.foxnews.android	Fox News	News app; adds a live channel input	streaming
 com.foxsports.videogo	FOX Sports	Sports streaming app	streaming
 com.fubo.firetv.screen	Fubo	Live TV streaming service	streaming
 com.gaana.fire_tv	Gaana	Indian music streaming app	streaming

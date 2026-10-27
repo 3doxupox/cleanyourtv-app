@@ -126,6 +126,7 @@ object SureSetGenerator {
         "xiaomi-mitv-mteq0",
         "redmi-mitv-mftp0",
         "aqua-matrixtv-ee-50",
+        "jvc-lt55mb508",
     )
 
     // The upstream v2.7.0 lists promoted in 0.3.7. They ship as exact profiles but do not feed the
