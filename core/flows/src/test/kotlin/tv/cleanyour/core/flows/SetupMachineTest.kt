@@ -307,17 +307,86 @@ class SetupMachineTest {
         assertTrue(h.prober.calls.count { it == "snapshot ${SnapshotReason.MANUAL}" } >= 1)
     }
 
-    @Test fun timeoutGivesTheTimedOutCardAndOkLeavesTheOldHomeScreen() = runTest(timeout = 30.seconds) {
+    // QA of 0.4.5 (bug-040-retry): a Setup whose home check ran out of time. The run is journaled as
+    // DefaultEngine journals it: the clean-up switch-off done, the section armed, the TV's own home
+    // screen switched off and Home set, then the timer ran out and step R (what the TV's watchdog
+    // does too) switched the old home screen back on and gave it Home again. The TV then reads with
+    // its own home screen in charge.
+    private fun timedOutTakeover(h: Harness, id: String): tv.cleanyour.core.planner.Plan {
+        val token = RunToken("00000000000000aa")
+        val ops = listOf(Op.Disable(adPkg), Op.ArmHomeWatchdog(Samples.stockLauncher, 150, token), Op.Disable(Samples.stockLauncher.pkg),
+            Op.SetHome(Launcher.home), Op.VerifyHome(Launcher.home))
+        val section = tv.cleanyour.core.planner.GuardedSection("home_takeover", 1, 4, token, 90_000, Launcher.home, setOf(Samples.stockLauncher.pkg),
+            listOf(Op.Enable(Samples.stockLauncher.pkg), Op.SetHome(Samples.stockLauncher)))
+        return Samples.plan(ops, id = tv.cleanyour.core.model.PlanId(id), sections = listOf(section))
+    }
+
+    private suspend fun FakeEngine.runAndTimeOut(h: Harness, p: tv.cleanyour.core.planner.Plan) {
+        val j = h.journal
+        j.append(JournalRecord.PlanStart(p.id, p.tvId, p.baseSnapshot, p.steps.size, p.hash, "test", Samples.NOW_MS))
+        for (step in p.steps) {
+            if (step.index == 1) j.append(JournalRecord.Section(p.id, "home_takeover", RunToken("00000000000000aa"), SectionState.ARMED, Samples.NOW_MS + 150_000))
+            j.append(JournalRecord.Begin(p.id, step.index, step.op, emptyList(), null, Samples.NOW_MS))
+            j.append(JournalRecord.Done(p.id, step.index, 0, true, 1))
+        }
+        j.append(JournalRecord.Rollback(p.id, 1))
+        j.append(JournalRecord.Begin(p.id, 2, Op.Enable(Samples.stockLauncher.pkg), emptyList(), null, Samples.NOW_MS))
+        j.append(JournalRecord.Done(p.id, 2, 0, true, 1))
+        j.append(JournalRecord.Begin(p.id, 3, Op.SetHome(Samples.stockLauncher), emptyList(), null, Samples.NOW_MS))
+        j.append(JournalRecord.Done(p.id, 3, 0, true, 1))
+        j.append(JournalRecord.Section(p.id, "home_takeover", RunToken("00000000000000aa"), SectionState.ROLLED_BACK, Samples.NOW_MS))
+        j.append(JournalRecord.End(p.id, RunStatus.COMPLETED_WITH_SKIPS))
+        h.prober.snapshotFor = { r -> Samples.miTvSnapshot(reason = r) }   // the TV's own home screen is Home again
+        finish(p, RunStatus.COMPLETED_WITH_SKIPS, HomeOutcome.TIMED_OUT)
+    }
+
+    // "Try again" (the card's second button) reads the TV again, plans the switch afresh and runs it;
+    // it never goes to Done with the old home screen on the TV. Before, it was "OK"'s action.
+    @Test fun timedOutTryAgainReadsTheTvAndRunsTheSwitchAgain() = runTest(timeout = 30.seconds) {
         val h = Harness()
         h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
-        h.setupPlan = h.plan(listOf(Op.Disable(adPkg)), takeover = true)
-        h.engine.onStart = { p -> finish(p, RunStatus.COMPLETED_WITH_SKIPS, HomeOutcome.TIMED_OUT) }
+        val plans = mutableListOf(timedOutTakeover(h, "01FAKEPLAN0000000000000001"), timedOutTakeover(h, "01FAKEPLAN0000000000000002"))
+        var current = plans.first()
+        h.planner.respond = { request, _ ->
+            when (request) {
+                is PlanRequest.Setup -> PlanResult.Ok(current)
+                else -> PlanResult.Ok(h.plan(emptyList(), kind = PlanKind.WRITE_RESTORE_POINT, id = "01FAKEKIND0000000000000099"))
+            }
+        }
+        h.engine.onStart = { p -> if (p.id == plans[0].id) runAndTimeOut(h, p) else finish(p, RunStatus.COMPLETED, HomeOutcome.CONFIRMED) }
+        val m = h.setup(backgroundScope)
+        toFound(h, m)
+        m.dispatch(SetupIntent.MakeItClean); settle()
+        val card = assertIs<SetupState.Stopped>(m.state.value).card
+        assertEquals(StopCase.HOME_TIMED_OUT, card.case)
+        assertTrue(assertNotNull(card.secondary).startsWith("STOP_HOME_TIMED_OUT_SECONDARY"), "the second button is Try again")
+        current = plans[1]
+        val reads = h.prober.calls.count { it == "snapshot ${SnapshotReason.MANUAL}" }
+        m.dispatch(SetupIntent.StopAction(StopAction.SECONDARY)); settle()
+        assertTrue(h.prober.calls.count { it == "snapshot ${SnapshotReason.MANUAL}" } > reads, "the TV is read again")
+        val starts = h.engine.calls.filterIsInstance<FakeEngine.Call.Start>().filter { it.plan.kind == PlanKind.SETUP }
+        assertEquals(listOf(plans[0].id, plans[1].id), starts.map { it.plan.id }, "a new plan, never the one that ran")
+        assertTrue(assertIs<SetupState.Done>(m.state.value).summary.homeScreenOn)
+    }
+
+    // "OK" keeps the old home screen: Done counts only what stayed switched off (not the TV's own
+    // home screen, which step R switched back on), says the home screen is unchanged and why.
+    @Test fun timedOutOkEndsOnAnHonestDone() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+        h.setupPlan = timedOutTakeover(h, "01FAKEPLAN0000000000000001")
+        h.engine.onStart = { p -> if (p.kind == PlanKind.SETUP) runAndTimeOut(h, p) else finish(p, RunStatus.COMPLETED) }
         val m = h.setup(backgroundScope)
         toFound(h, m)
         m.dispatch(SetupIntent.MakeItClean); settle()
         assertEquals(StopCase.HOME_TIMED_OUT, assertIs<SetupState.Stopped>(m.state.value).card.case)
-        m.dispatch(SetupIntent.StopAction(StopAction.SECONDARY)); settle()
-        assertFalse(assertIs<SetupState.Done>(m.state.value).summary.homeScreenOn)
+        m.dispatch(SetupIntent.StopAction(StopAction.PRIMARY)); settle()
+        assertEquals(1, h.engine.calls.count { it is FakeEngine.Call.Start && it.plan.kind == PlanKind.SETUP }, "OK never starts the switch again")
+        val done = assertIs<SetupState.Done>(m.state.value).summary
+        assertFalse(done.homeScreenOn)
+        assertEquals(1, done.switchedOff, "the TV's own home screen is on again, so it is not counted")
+        assertEquals(HomeOutcome.TIMED_OUT, m.extras.value.doneHomeKept)
+        assertEquals(1, h.ledger.progress(h.setupPlan.id).doneDisables)
     }
 
     @Test fun connectionLostShowsCountsThenCarryOnContinuesWithThePass() = runTest(timeout = 30.seconds) {

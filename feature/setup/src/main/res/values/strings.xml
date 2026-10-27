@@ -281,6 +281,9 @@
     <string name="done_body_no_home">{count, plural, one {# thing switched off. Everything can be put back.} other {# things switched off. Everything can be put back.}}</string>
     <string name="done_body_partial">{total, plural, other {{done} of # switched off; the home screen is unchanged. Everything can be put back.}}</string>
     <string name="done_body_partial_home_on">{total, plural, other {{done} of # switched off. New home screen on. Everything can be put back.}}</string>
+    <string name="done_home_kept_timed_out">The home screen is unchanged: the check on the TV ran out of time, so the old home screen is back. You can try again from Manage.</string>
+    <string name="done_home_kept_said_no">The home screen is unchanged: you said the new one didn\'t look right, so the old home screen is back.</string>
+    <string name="done_home_kept">The home screen is unchanged: the new one didn\'t take over, so the old home screen is back.</string>
     <string name="done_restore_saved">Restore point saved on this phone ({date})</string>
     <string name="done_debug_note">Debugging on the TV switches off when you tap Finish</string>
     <string name="done_debug_kept">Debugging on the TV stays on, as you chose</string>

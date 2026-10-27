@@ -149,6 +149,7 @@ data class SetupExtras(
     val doneKept: List<String> = emptyList(),    // RF-LAUNCHER-250 F1: switch-offs kept because they run the TV's inputs
     val doneNothing: Boolean = false,            // 0.3.3 (issue #15): the run changed nothing on the TV, so Done says so
     val doneNothingWhy: NothingWhy = NothingWhy.NOTHING_PLANNED,   // which "nothing was changed" body Done shows
+    val doneHomeKept: HomeOutcome? = null,       // QA of 0.4.5: the switch was tried and the old home screen is back, why (Done's line)
     val restorePointPushed: Boolean = false,     // D44
     val dock: List<AppChoice> = emptyList(),     // D4 row and the dock sheet (S3b): the dock, then Row 2 and Row 3
     val apps: List<AppChoice> = emptyList(),     // installed apps for the dock sheet
@@ -1216,8 +1217,12 @@ class SetupMachine(
             planned.all { p -> skipped.any { it.index == p.index } } -> NothingWhy.KEPT_ON
             else -> NothingWhy.STOPPED
         }
+        // QA of 0.4.5: the switch was in the plan and the old home screen is back (the check ran out
+        // of time, the person said no, the new one did not take over): Done says the home screen is
+        // unchanged and why, never only "Your TV is ready".
+        val homeKept = f?.home?.takeIf { !homeOn && it != HomeOutcome.CONFIRMED && plan?.sections?.isNotEmpty() == true }
         mutableExtras.update { it.copy(doneLines = skippedNames, doneKept = keptNames, doneNothing = off == 0 && !homeOn && !changed, doneNothingWhy = why,
-            keepsDebugging = keepsDebugging(tvId)) }
+            keepsDebugging = keepsDebugging(tvId), doneHomeKept = homeKept) }
         send(Ev.ShowDone(tvId, DoneSummary(off, homeOn, restorePointAt, skippedNames, recommended)))
         session?.let { s -> mutableExtras.update { it.copy(restorePointPushed = deps.restorePoint.write(done, s, p)) } }
     }
@@ -1289,10 +1294,15 @@ class SetupMachine(
     }
 
     // Plans again from a fresh snapshot (the debloat part is already done) and starts at once.
+    // QA of 0.4.5: only a plan made now from that read is started. When none could be made (the TV
+    // went away, the plan was refused) the plan of the run that just ended is never started again;
+    // the card the replan showed stays, or the run's own card when there is none.
     private suspend fun retakeover(record: Tv) {
         val s = session ?: return
+        val before = setupPlan
+        setupPlan = null
         replan(record.copy(wizard = record.wizard ?: draftFor(record)), fresh = true)
-        val plan = setupPlan ?: return
+        val plan = setupPlan ?: run { setupPlan = before; return }
         val pass = if (GateKeeper.needsPass(plan)) deps.gate.pass(record.id, record.nickname) ?: return else null
         startPlan(record, s, plan, pass)
     }
@@ -1317,7 +1327,10 @@ class SetupMachine(
             StopCase.HOME_OTHER_LAUNCHER -> if (action == StopAction.PRIMARY) scope.launch { tv?.let { retakeover(it) } } else send(SetupIntent.LeaveOldHome)
             StopCase.HOME_UNKNOWN -> if (action == StopAction.PRIMARY) shareDiagnostics() else send(SetupIntent.LeaveOldHome)
             StopCase.HOME_USER_SAID_NO -> if (action == StopAction.PRIMARY) scope.launch { tv?.let { retakeover(it) } } else shareDiagnostics()
-            StopCase.HOME_TIMED_OUT -> if (action == StopAction.PRIMARY) scope.launch { tv?.let { retakeover(it) } } else send(SetupIntent.LeaveOldHome)
+            // QA of 0.4.5: the card's primary is "OK" and its secondary "Try again" (stopKeys); the
+            // two were the wrong way round, so "Try again" went straight to Done with the old home
+            // screen on the TV, and "OK" started the switch again.
+            StopCase.HOME_TIMED_OUT -> if (action == StopAction.SECONDARY) scope.launch { tv?.let { retakeover(it) } } else send(SetupIntent.LeaveOldHome)
             StopCase.HOME_SETTINGS_OPEN -> if (action == StopAction.PRIMARY) scope.launch { tv?.let { retakeover(it) } } else send(SetupIntent.LeaveOldHome)
             StopCase.CONNECTION_LOST, StopCase.STEP_FAILED -> when (action) {
                 StopAction.PRIMARY -> send(SetupIntent.CarryOn)
