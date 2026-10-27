@@ -166,11 +166,12 @@ object ProblemReports {
     suspend fun input(d: ManageDeps, tvId: TvId?): TvReportInput? {
         val tv = tvId?.let { d.tv(it) } ?: return null
         val snap = attempt { d.snapshots.latest(tv.id) }.getOrNull() ?: return null
+        val profile = attempt { d.profiles.resolveFor(snap) }.getOrNull()
+        val home = attempt { d.homeDecisions.load(tv.id) }.getOrNull()
         return TvReportInput(
-            about = d.about, snapshot = snap,
-            profile = attempt { d.profiles.resolveFor(snap) }.getOrNull(),
-            home = attempt { d.homeDecisions.load(tv.id) }.getOrNull(),
+            about = d.about, snapshot = snap, profile = profile, home = home,
             switchedOffByApp = attempt { d.ledger.switchedOffByUs(tv.id).toSet() }.getOrDefault(emptySet()),
+            homeEarlier = home?.earlier(d.about.version, profile, tv.profileId) == true,
         )
     }
 

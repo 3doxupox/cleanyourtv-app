@@ -42,6 +42,7 @@ import tv.cleanyour.core.registry.FetchFailure
 import tv.cleanyour.core.spec.DecodeResult
 import tv.cleanyour.core.spec.LauncherConfigCodec
 import tv.cleanyour.core.spec.LauncherConfigDoc
+import tv.cleanyour.core.spec.ProfileResolution
 import tv.cleanyour.testing.fixtures.FakeThemeSource
 import tv.cleanyour.core.spec.Theme
 import tv.cleanyour.core.registry.IndexState
@@ -918,6 +919,7 @@ class ManageMachinesTest {
     @Test fun withoutTheNewHomeScreenTheScreenSaysWhyAndSendsNothing() = runTest(timeout = 30.seconds) {
         val h = Harness()
         val tv = h.knownTv().copy(profileId = null).also { h.tvs.upsert(it) }   // the miTv snapshot has no com.gathin.tvhome
+        h.profiles.resolver = { _, _ -> ProfileResolution.None(emptyList()) }   // still no list for it
         HomeDecisions(h.documents).save(tv.id, HomeDecision(false, "WIZARD_STAYS_ON"))
         val previous = h.planner.respond
         h.planner.respond = { r, snap -> if (r is PlanRequest.ApplyTheme) PlanResult.Refused(listOf("the new home screen is not installed")) else previous(r, snap) }
@@ -973,6 +975,8 @@ class ManageMachinesTest {
         val listed = h.knownTv()   // exact profile xiaomi-mitv-axso0
         suspend fun notOnTv(decision: HomeDecision?, profileId: String? = listed.profileId): NotOnTv? {
             h.tvs.upsert(listed.copy(profileId = profileId))
+            // The list the TV resolves to now is the one the record kept (an earlier decision: below).
+            h.profiles.resolver = { _, all -> all.firstOrNull { it.id == profileId }?.let { ProfileResolution.Exact(it) } ?: ProfileResolution.None(emptyList()) }
             if (decision != null) HomeDecisions(h.documents).save(listed.id, decision) else h.documents.delete("tvs/${listed.id.value}/decision.txt")
             return HomeScreenMachine(h.manageDeps(), backgroundScope, listed.id).also { settle() }.state.value.notOnTv
         }

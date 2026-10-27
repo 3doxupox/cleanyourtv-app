@@ -919,7 +919,8 @@ class SetupMachine(
                     "level ${draft.level}, dock ${dock.size}, ${apps.size} dock candidates")
                 // 0.3.2 B3: why the home screen switch is or is not in the plan, once per change, and
                 // kept for the TV report (B1) that Manage makes without the TV.
-                val decision = HomeDecision.of(block, r.plan.sections.isNotEmpty(), snap.home.resolved?.pkg == launcher.pkg)
+                val decision = HomeDecision.of(block, r.plan.sections.isNotEmpty(), snap.home.resolved?.pkg == launcher.pkg,
+                    app = deps.about?.version, profile = LogCodes.profile(res))
                 if (decision != lastDecision) {
                     lastDecision = decision
                     deps.log.line("setup: ${decision.line}")
