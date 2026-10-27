@@ -563,3 +563,4 @@ xiaomi-mitv-mteq0	com.xiaomi.mitv.smartpanel	the long-press Menu panel; ask row
 xiaomi-mitv-mteq0	com.xiaomi.mitv.tvpush.tvpushservice	on this family it also fetches the installer allowlist (redmi-mitv-mftp0 header); ask row
 xiaomi-mitv-mteq0	com.xiaomi.setupwizard	vendor first-run wizard, protected by the denylist; ask row (the planner keeps it on in any case)
 xiaomi-mitv-mteq0	fusion.android.tv.demo	ask row: on MediaTek builds this retail display app can also handle the Input key and remote pairing (hitachi-65qledsm20, xiaomi-mitv-mosr4)
+xiaomi-mitv-mteq0	com.xiaomi.mitv.tvmanager	XiaoAI "open app" runs through it (MiTV-MFFU0 header), and voice stays on by default here; ask row as on xiaomi-mitv-astp0

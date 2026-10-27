@@ -4410,7 +4410,8 @@
         "fusion.android.tv.demo": { "category": "demo", "ask": true },
         "com.xiaomi.gamecenter.sdk.service.mibox": { "category": "brand", "ask": true },
         "com.xiaomi.mitv.smartpanel": { "category": "brand", "ask": true },
-        "com.xiaomi.setupwizard": { "category": "other", "ask": true }
+        "com.xiaomi.setupwizard": { "category": "other", "ask": true },
+        "com.xiaomi.mitv.tvmanager": { "category": "brand", "ask": true }
       }
     },
     "xiaomi-tv-a-pro-2026": {
