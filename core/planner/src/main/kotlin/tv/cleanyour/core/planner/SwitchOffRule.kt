@@ -56,8 +56,15 @@ object SwitchOffRule {
 
     // The TV's current HOME, whatever it is (R5-W4 O5: PatchWall on an unknown Xiaomi), or any HOME
     // claimant (PLAN 6.5: the current HOME resolver is protected).
-    fun isHomeScreen(pkg: PackageName, snapshot: Snapshot): Boolean =
-        snapshot.home.resolved?.pkg == pkg || snapshot.home.claimants.any { it.component.pkg == pkg }
+    //
+    // WP4 (B5): when HOME answers with the system chooser, a placeholder or nothing at all, the TV
+    // has not said which home screen it uses, so every known TV home screen (KnownLaunchers) counts
+    // as one too, claimant or not.
+    fun isHomeScreen(pkg: PackageName, snapshot: Snapshot): Boolean {
+        val resolved = snapshot.home.resolved
+        if (resolved?.pkg == pkg || snapshot.home.claimants.any { it.component.pkg == pkg }) return true
+        return (resolved == null || StockHome.isPlaceholder(resolved)) && pkg in KnownLaunchers.byPackage
+    }
 
     // A home screen app the person installed (issue #8: Projectivy, Wolf and the like): HOME or a
     // HOME claimant, not a system package, not our own new home screen, and not put there by this
