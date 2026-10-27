@@ -456,6 +456,7 @@ thomson-32he5800	(match)	brand inferred, confirm with getprop: Thomson; a wrong 
 thomson-32he5800	com.tcl.appmarket2	TCL's app store, carries a package installer service; ask row
 thomson-32he5800	com.tcl.tvweishi	the header says it has its own installer; ask row
 thomson-43rt1055	com.vewd.core.service	the HbbTV engine: India has no HbbTV, but a set of this device sold where HbbTV runs would lose it; ask row
+thomson-43rt1055	(match)	device sauve with brand Thomson and the Android 14 fingerprint prefix THOMSON/SPPL_2K_RT41/sauve:14/ (issues #558, #565); the model string SPPL 2K ANDROID TV is the maker's product line, not a match key
 thomson-t32rtl6000	(header)	the kept remote, key and tuner packages and the FastCast Miracast receiver are in the curated never-disable list, with names as on sanyo-atv-r2
 thomson-t32rtl6000	(match)	SCBC Realtek platform reporting model ATV R1 and device R1; brand THOMSON and the build prefix from the fingerprint keep it to this firmware; thomson-32he5800 is a TCL UnionTV build with another device
 thomson-t32rtl6000	com.apps.authota	the updater's companion; updaters stay Software updates

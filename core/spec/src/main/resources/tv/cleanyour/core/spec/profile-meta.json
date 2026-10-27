@@ -3396,7 +3396,7 @@
       }
     },
     "thomson-43rt1055": {
-      "match": { "models": ["SPPL 2K ANDROID TV"], "devices": ["sauve"], "brand": "Thomson", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
+      "match": { "models": [], "devices": ["sauve"], "brand": "Thomson", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": "THOMSON/SPPL_2K_RT41/sauve:14/" },
       "platform": "ANDROID_TV",
       "stockLaunchers": ["com.google.android.tvlauncher"],
       "liveTv": "com.realtek.tv",
