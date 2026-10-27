@@ -16,6 +16,10 @@ All notable changes to the app. Versions follow [semantic versioning](https://se
 - When the TV's port answers and the connection then fails inside the app, the log and Copy error
   now say why, for example that the phone's key could not sign the TV's request, instead of
   "unreachable" with no reason, and the connection is closed (#325, #620).
+- The computer steps for a TV that needs a pairing code end with
+  `adb -s ADDRESS:CONNECT_PORT tcpip 5555`: after `adb pair` and `adb connect` the computer lists
+  the TV twice, and a plain `adb tcpip 5555` stopped with "more than one device". They also say to
+  run the last two commands again after the TV restarts, with no new pairing (#655, #643, #768).
 
 ### Setting up
 - A run that stopped before its first step (the TV went away while the restore point was saved,
