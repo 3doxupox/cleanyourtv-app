@@ -25,7 +25,7 @@ class ProfilesTest {
 
     @Test fun everyConvertedUpstreamExampleParsesWithCuratedMetadata() {
         assertEquals(316, upstream.size)
-        assertEquals(154, examples.size)
+        assertEquals(155, examples.size)
         for (e in examples) {
             val profile = DebloatTxtParser.parse(e.debloatTxt, e.folder)
             assertEquals(e.folder, profile.id)
@@ -62,7 +62,7 @@ class ProfilesTest {
     @Test fun theUnconvertedListIsPinnedToTheSubmodule() {
         val meta = ProfileMeta.decode(File(Fixtures.repoRoot, "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json").readText())
         assertEquals(upstream.map { it.folder }.filter { it !in meta.profiles }.toSet(), unconverted)
-        assertEquals(162, unconverted.size)
+        assertEquals(161, unconverted.size)
         val listed = unconvertedFile.readLines().filter { it.isNotBlank() && !it.startsWith("#") }
         assertEquals(listed.sorted(), listed, "one folder per line, sorted")
         assertTrue('\u2014' !in unconvertedFile.readText() && "-".repeat(2) !in unconvertedFile.readText())
@@ -205,6 +205,7 @@ class ProfilesTest {
     private val cleanUpOnlyPart2: Set<String> = setOf(
         "xiaomi-mitv-astp0",
         "xiaomi-mitv-mteq0",
+        "redmi-mitv-mftp0",
     )
 
     @Test fun theProfilesWithNoKnownStockLauncher() {
@@ -322,6 +323,7 @@ class ProfilesTest {
             f("Xiaomi", "xiaomi", "MiTV-ASTP0", "mulan", 28, "Xiaomi/mulan/mulan:9/PPR1.180610.011/3982:user/release-keys") to "xiaomi-mitv-astp0",   // #882
             f("Xiaomi", "xiaomi", "MiTV-ASTP0", "mulan", 28, "Xiaomi/mulan/mulan:9/PPR1.180610.011/OS3.0.101.0.PSTAATV:user/release-keys") to "xiaomi-mitv-astp0",   // #340
             f("xiaomi", "xiaomi", "MiTV-MTEQ0", "baymax", 29, "xiaomi/baymax/baymax:10/QQ2A.200305.004.A1/2446:user/release-keys") to "xiaomi-mitv-mteq0",   // #1079
+            f("xiaomi", "xiaomi", "MiTV-MFTP0", "alita", 28, "xiaomi/alita/alita:9/PPR2.180905.006.A1/6318:user/release-keys") to "redmi-mitv-mftp0",   // #670
         )
         for ((facts, id) in reports) assertEquals(id, (source.resolveNow(facts) as? ProfileResolution.Exact)?.profile?.id, "${facts.model} ${facts.fingerprint}")
         for (id in cleanUpOnlyPart2) {

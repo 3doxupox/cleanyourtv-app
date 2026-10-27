@@ -124,6 +124,7 @@ object SureSetGenerator {
         "xiaomi-mitv-ayfr0",
         "xiaomi-mitv-astp0",
         "xiaomi-mitv-mteq0",
+        "redmi-mitv-mftp0",
     )
 
     // The upstream v2.7.0 lists promoted in 0.3.7. They ship as exact profiles but do not feed the

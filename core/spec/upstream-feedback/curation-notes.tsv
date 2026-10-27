@@ -288,6 +288,9 @@ prismplus-q65-ultra-r10g	(match)	the header names the maker MOKA but not the PRI
 prismplus-q65-ultra-r10g	com.apps.wifihotspot	a Wi-Fi hotspot service; network setup is never default-off
 prismplus-q65-ultra-r10g	com.mk.tv.meeting.service	purpose not documented; ask row
 prismplus-q65-ultra-r10g	com.realtek.dtmb	the unused broadcast tuners are TV input drivers, so with com.realtek.tv.isdb and com.realtek.tv.atsc they are in the curated never-disable list (they stay ask rows in the file; RF-LAUNCHER-250 F1)
+redmi-mitv-mftp0	(home)	clean-up only: the header says keep com.mitv.tvhome enabled (Home is a package allowlist); never-disable and not a known launcher
+redmi-mitv-mftp0	(match)	the TV reports brand and maker xiaomi (issue #670), not Redmi
+redmi-mitv-mftp0	com.xiaomi.gamecenter.sdk.service.mibox	Xiaomi store games may need it for sign-in; ask row as on xiaomi-mitv-astp1
 sanyo-atv-r2	com.realtek.leanbacklauncher.partnercustomizer	ask row: compac-atv-r2 (the same SCBC build, v2.5.0) found it supplies the Inputs button on the stock home
 sharp-aquos-tve21f	(header)	the Kept on purpose list (TV inputs, Live TV, channel scan, USB media, Freeview Play, remote hot keys, picture and brightness services, the disclaimer, TTS) is in the curated never-disable list, since the keep-list reader only reacts to keep wording
 sharp-aquos-tve21f	(launcher)	the stock tvlauncher was already disabled when the list was applied

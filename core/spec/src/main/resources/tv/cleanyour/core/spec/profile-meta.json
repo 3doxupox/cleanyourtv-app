@@ -1774,6 +1774,26 @@
         "com.google.android.tv.remote.service": { "category": "casting", "ask": true }
       }
     },
+    "redmi-mitv-mftp0": {
+      "match": { "models": ["MiTV-MFTP0"], "devices": ["alita"], "brand": "Xiaomi", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.mitv.tvhome"],
+      "liveTv": "com.xiaomi.mitv.tvplayer",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.mitv.tvhome", "mitv.service", "com.xiaomi.mitv.tvplayer", "com.xiaomi.mitv.settings", "com.xiaomi.mitv.systemui", "com.mediatek.tvinput", "com.sohu.inputmethod.sogou.tv", "com.xiaomi.mitv.tvpush.tvpushservice", "com.xiaomi.mitv.smartpanel"],
+      "suggestedDock": [],
+      "tested": { "by": "shaoxyz (PR #631)", "firmware": "23.2.10.6129", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "Xiaomi telemetry / quality reports / cloud control": { "category": "tracking", "ask": false },
+        "Ads / promoted content / shopping": { "category": "ads", "ask": false },
+        "Xiaomi background services and preloaded apps (most are in Settings.System can_be_deleted)": { "category": "preloads", "ask": false },
+        "Off by choice: re-enable if an external Xiao Ai speaker should control the TV (see MiTV-ANSP0)": { "category": "brand", "ask": true }
+      },
+      "packages": {
+        "com.xiaomi.gamecenter.sdk.service.mibox": { "category": "brand", "ask": true }
+      }
+    },
     "sanyo-atv-r2": {
       "match": { "models": [], "devices": ["R2"], "brand": "SANYO", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": "SANYO/SANYO/R2:9/PTT1.201001.001/200" },
       "platform": "ANDROID_TV",

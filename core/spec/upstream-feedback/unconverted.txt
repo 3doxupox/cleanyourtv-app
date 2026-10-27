@@ -77,7 +77,6 @@ portronics-beem-470    # refused: the firmware reports the generic Allwinner ADT
 rca-2k-android-tv-lasalle    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 rca-rc50a21s-4ksm    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 redmi-mitv-antl0    # refused: Android 5.1.1 (SDK 22). The launcher needs Android 8 (SDK 26), and this firmware refuses pm disable for the shell, the only way the app switches an app off (the list works with pm hide instead); v2.5.0 adds notes for newer firmware (upstream #403), where the list was not re-tested
-redmi-mitv-mftp0    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 rocktek-gb1    # parked at v2.7.0: no device codename in the header or README, so a profile could match on a model string only; ask the contributor for getprop (RF-PROFILES-63 P8)
 rocktek-gx1    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 sankey-smart-tv-hi3751v350    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
