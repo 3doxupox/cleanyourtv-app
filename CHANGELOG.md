@@ -18,8 +18,8 @@ All notable changes to the app. Versions follow [semantic versioning](https://se
   screen (some TVs start on the last input they showed), the check presses Home again for you.
 - "Use the TV's own home screen" in Manage now also works on TVs with no list of their own.
 - A Xiaomi TV with a home screen app you installed next to Google's Android TV home can get the
-  new home screen too. Your app stays installed; if it takes the Home button anyway, the app puts
-  the TV's own home screen back.
+  new home screen too. Your app stays installed; if it takes the Home button during the switch, the
+  app puts the TV's own home screen back.
 - When another home screen app is the reason the app left the home screen alone, Setup and Home
   screen now say so, instead of naming the setup wizard.
 - If Setup left the home screen alone with an earlier version of the app (for example before your
