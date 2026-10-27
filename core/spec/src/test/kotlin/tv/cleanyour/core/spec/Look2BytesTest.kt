@@ -16,19 +16,29 @@ class Look2BytesTest {
     private fun dock(n: Int) = (dock4 + List(20) { PackageName("com.example.app$it") }).take(n)
 
     // The same inputs as everyLookDocAgreesWithLauncher27, in the same order, with no extras passed.
+    // Also hashes every input's bytes in input order, so a change that only swaps two docs between
+    // inputs shows too (look2-bytes-0.4.0-in-order.sha256, taken on e42aaf2 like the other).
+    private var inOrder = ""
     private fun distinctBytes(): Pair<Int, List<String>> {
         val texts = HashSet<String>()
+        val ordered = MessageDigest.getInstance("SHA-256")
+        fun add(bytes: ByteArray) {
+            ordered.update(byteArrayOf((bytes.size ushr 24).toByte(), (bytes.size ushr 16).toByte(), (bytes.size ushr 8).toByte(), bytes.size.toByte()))
+            ordered.update(bytes)
+            texts += bytes.decodeToString()
+        }
         var built = 0
         for ((_, picture) in LookInputs.pictures) {
             for (spec in LookInputs.cross()) {
-                texts += LauncherConfigCodec.encode(LookKeys.build(spec, picture, columns = 5, dock = dock4, cards = false)).decodeToString()
+                add(LauncherConfigCodec.encode(LookKeys.build(spec, picture, columns = 5, dock = dock4, cards = false)))
                 built++
             }
             for (style in StyleId.entries) for (columns in 4..8) for (n in listOf(0, 4, 15, 24)) {
-                texts += LauncherConfigCodec.encode(LookKeys.build(LookKeys.spec(style), picture, columns, dock(n), cards = true)).decodeToString()
+                add(LauncherConfigCodec.encode(LookKeys.build(LookKeys.spec(style), picture, columns, dock(n), cards = true)))
                 built++
             }
         }
+        inOrder = ordered.digest().joinToString("") { "%02x".format(it) }
         return built to texts.sorted()
     }
 
@@ -49,7 +59,10 @@ class Look2BytesTest {
         val got = digest(docs)
         val file = javaClass.getResource("/look2-bytes-0.4.0.sha256")?.readText()
         val want = file?.lineSequence()?.first { it.isNotBlank() && !it.startsWith("#") }?.substringBefore(' ')
-        println("look2 bytes: $built builds, ${docs.size} distinct docs, sha256 $got")
+        println("look2 bytes: $built builds, ${docs.size} distinct docs, sha256 $got, in input order $inOrder")
         assertEquals(want, got, "the look2 bytes moved from 0.4.0 ($built builds, ${docs.size} distinct docs)")
+        val ordered = javaClass.getResource("/look2-bytes-0.4.0-in-order.sha256")?.readText()
+            ?.lineSequence()?.first { it.isNotBlank() && !it.startsWith("#") }?.substringBefore(' ')
+        assertEquals(ordered, inOrder, "the look2 bytes moved from 0.4.0 for some input, in input order")
     }
 }
