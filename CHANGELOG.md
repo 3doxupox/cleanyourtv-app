@@ -2,7 +2,71 @@
 
 All notable changes to the app. Versions follow [semantic versioning](https://semver.org/).
 
-## Unreleased
+## 0.4.5 (2026-10-27)
+
+The home screen app from Gathin's Clean Your TV goes to 3.0, with more choices in the Look sheet, 25
+more TV lists and a "Better back on" offer for apps an earlier list switched off.
+
+### Home screen
+- Home screen 3.0 is in the app. A TV that has 2.7 sees "Update the home screen" in Manage, and
+  nothing changes until you tap it. The update keeps your look, your dock and your remote buttons.
+- New in the Look sheet on home screen 3.0:
+  - Every app in one row: your dock apps first, then all the others, in a row that slides sideways.
+  - A dock with no band, so the apps sit right on your picture.
+  - The greeting above the clock, on or off.
+  - The date under the clock, and a brighter date.
+  - A warning on the Wi-Fi icon: orange when the Wi-Fi works but the internet doesn't, red when the
+    TV is offline.
+  - App tiles: each app's own art, or its icon on a card in its own colour.
+  - The highlight on the app you are on: glass, a thin rim or a halo.
+  Rows only appear when the TV's home screen is 3.0 or newer, and the preview shows them.
+- Looks you already sent stay exactly as they are, byte for byte, until you send a new one.
+
+### TV lists
+- Lists from Clean Your TV up to 26 October: 173 TV lists in the app, 25 more than 0.4.0. New:
+  Aqua Matrix TV EE 50, Epson LS800, Hisense Fire TV (AFTCIBFBD1), JVC LT-55MB508, Lumio Vision 7,
+  NVIDIA SHIELD TV (2017), OnePlus TV (Cebu and Dosa), Philips Google TV TA1 and TA7, Redmi Mi TV
+  MFTP0, Sber SaluteTV AT30A6, Sharp 2T-C32GH3000I, Sony BRAVIA VU1 and VU3, TCL 50DP660, TCL G08
+  (EU, Android 12), Thomson 43RT1055, Xiaomi Mi Box S (Android 12) and Xiaomi Mi TV ASTP0, AYFR0,
+  MSSP0, MSSP2 and MTEQ0.
+- Lists we already had for TCL, Xiaomi, Sony, Philips, Amazon and others got their contributors'
+  fixes. The Sony BRAVIA BF1 lists now match BF1 sets, the Skyworth SWTV-22AE list works on
+  Android 11, and the Mi Box S list covers older firmware.
+- The Sony BRAVIA VU3 keeps its own home screen, so the remote's app buttons (Netflix, YouTube,
+  Prime Video and YouTube Music) keep working. The app still switches off the adverts and tracking.
+- A TV that shows Google TV's home screen no longer gets a list written for the Android TV version
+  of the same model; it is set up like any TV no list knows, with its brand set. This fixes
+  the TCL Smart TV Pro (BeyondTV4) on its Google TV build AR11, which got the TCL 65C725 Android TV
+  list and lost the remote's virtual keys helper (#114, #390).
+- PatchWall on Xiaomi TVs is now your choice, kept on unless you switch it off in Customise: with
+  it off, the remote's PatchWall button stops working while the TV's own home screen is in use.
+  This covers the Xiaomi brand set, every Xiaomi list and the Mi TV 4i test list (#111).
+- The Motorola MotorolaTV matches a tested list now (#446). When a TV's start-up
+  fallback screen (such as the TCL Percee TV's FallbackHomeCustomizer) also answers Home, the card
+  no longer names it as another home screen app (#481).
+
+### Better back on
+Some TVs need an app that an earlier list switched off. If this app switched one of them off on
+your TV, Manage now says so under "Better back on" and offers to switch it back on, with the reason:
+- the TCL G10's remote mic service;
+- the update helper on the TCL G03;
+- the updater on the TCL ak30a5;
+- the stock home screen and setup wizard on the Kalley R10G.
+
+### Safety
+- After the home screen update, it restarts cleanly and its remote helpers come back.
+- "Undo everything" is no longer refused for apps that are protected, and it never switches
+  accessibility on.
+- The restore point never records a chooser or a placeholder as your home screen.
+- A TV whose home screen is undecided keeps every home screen app protected.
+
+### Smaller fixes
+- The Look preview's description for screen readers names the new options.
+- The restore point's file list is right after an undo.
+- Undo tidies the watchdog files it leaves behind.
+- Clearer wording while the new home screen is removed.
+- With "Keep debugging on", the Done screen says debugging stays on.
+- The licences screen now says MIT for Clean Your TV.
 
 ### Connecting
 - Phones on Android 9 to 12 can connect to a TV again: the step that hands the TV the phone's key
@@ -31,18 +95,6 @@ All notable changes to the app. Versions follow [semantic versioning](https://se
   asks you to press only Home and not open anything else (#629).
 - When reading the TV fails, the log line now says what the app found, for example "getprop has
   no ro.product.model", instead of only the step that failed (#788, #1112).
-
-### TV lists
-- A TV that shows Google TV's home screen no longer gets a list written for the Android TV version
-  of the same model; it is set up like any TV no list knows, with its brand set. This fixes
-  the TCL Smart TV Pro (BeyondTV4) on its Google TV build AR11, which got the TCL 65C725 Android TV
-  list and lost the remote's virtual keys helper (#114, #390).
-- PatchWall on Xiaomi TVs is now your choice, kept on unless you switch it off in Customise: with
-  it off, the remote's PatchWall button stops working while the TV's own home screen is in use.
-  This covers the Xiaomi brand set, every Xiaomi list and the Mi TV 4i test list (#111).
-- The Motorola MotorolaTV matches a tested list now (#446). When a TV's start-up
-  fallback screen (such as the TCL Percee TV's FallbackHomeCustomizer) also answers Home, the card
-  no longer names it as another home screen app (#481).
 
 ## 0.4.0 (2026-10-26)
 
