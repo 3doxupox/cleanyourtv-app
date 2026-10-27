@@ -30,6 +30,7 @@ class PromotedListsSafetyTest {
         "jvc-lt55mb508",
         "sharp-2t-c32gh3000i",
         "thomson-43rt1055",
+        "hisense-fire-tv-aftcibfbd1",
     )
     // Xiaomi China-market sets whose Home takes only allowlisted apps: no known stock launcher, so a
     // home screen switch asked for anyway is refused and the clean-up alone is planned.

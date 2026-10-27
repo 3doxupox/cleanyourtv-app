@@ -25,7 +25,7 @@ class ProfilesTest {
 
     @Test fun everyConvertedUpstreamExampleParsesWithCuratedMetadata() {
         assertEquals(316, upstream.size)
-        assertEquals(159, examples.size)
+        assertEquals(160, examples.size)
         for (e in examples) {
             val profile = DebloatTxtParser.parse(e.debloatTxt, e.folder)
             assertEquals(e.folder, profile.id)
@@ -62,7 +62,7 @@ class ProfilesTest {
     @Test fun theUnconvertedListIsPinnedToTheSubmodule() {
         val meta = ProfileMeta.decode(File(Fixtures.repoRoot, "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json").readText())
         assertEquals(upstream.map { it.folder }.filter { it !in meta.profiles }.toSet(), unconverted)
-        assertEquals(157, unconverted.size)
+        assertEquals(156, unconverted.size)
         val listed = unconvertedFile.readLines().filter { it.isNotBlank() && !it.startsWith("#") }
         assertEquals(listed.sorted(), listed, "one folder per line, sorted")
         assertTrue('\u2014' !in unconvertedFile.readText() && "-".repeat(2) !in unconvertedFile.readText())
@@ -334,6 +334,8 @@ class ProfilesTest {
             f("skyworth", "skyworth", "SWTV-24AE-FHD", "beomil", 34, "skyworth/SW11_TG/beomil:14/UKN7.260716.011/15978261:user/release-keys") to null,   // #108, neither SHARP nor Motorola
             f("THOMSON", "SPPL", "SPPL 2K ANDROID TV", "sauve", 34, "THOMSON/SPPL_2K_RT41/sauve:14/UKRE.260524.055/16101080:user/release-keys") to "thomson-43rt1055",   // #558
             f("THOMSON", "SPPL", "SPPL 2K ANDROID TV", "sauve", 30, "THOMSON/SPPL_2K_RT41/sauve:11/RTK4.241026.026/12861515:user/release-keys") to null,   // #825, Android 11
+            f("Amazon", "Amazon", "AFTCIBFBD1", "coyote", 30, "Amazon/coyote/coyote:11/RS8180.3749N/0032280323460:user/amz-p,release-keys") to "hisense-fire-tv-aftcibfbd1",   // #949
+            f("Amazon", "Amazon", "AFTCIBFBD1", "coyote", 30, "Amazon/coyote/coyote:11/RS8180.3734N/0032280319620:user/amz-p,release-keys") to "hisense-fire-tv-aftcibfbd1",   // #347
         )
         for ((facts, id) in reports) assertEquals(id, (source.resolveNow(facts) as? ProfileResolution.Exact)?.profile?.id, "${facts.model} ${facts.fingerprint}")
         for (id in cleanUpOnlyPart2) {

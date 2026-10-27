@@ -704,6 +704,31 @@
         "com.vt.ambiencephoto": { "category": "screensaver", "ask": true }
       }
     },
+    "hisense-fire-tv-aftcibfbd1": {
+      "match": { "models": ["AFTCIBFBD1"], "devices": ["coyote"], "brand": "Amazon", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
+      "platform": "FIRE_OS",
+      "stockLaunchers": ["com.amazon.tv.launcher", "com.amazon.firehomestarter"],
+      "liveTv": "com.amazon.tv.livetv",
+      "setupWraith": null,
+      "quirks": ["REENABLED_AT_BOOT"],
+      "neverDisable": ["com.amazon.tv.launcher", "com.amazon.firehomestarter", "com.amazon.tv.livetv", "com.amazon.tv.settings.v2", "com.amazon.tv.quicksettings", "com.amazon.tv.ime", "com.amazon.tv.inputpreference.service", "com.amazon.ftvads.deeplinking", "com.amazon.device.crashmanager"],
+      "suggestedDock": [],
+      "tested": { "by": "Amey Arya (PR #545), Mimoh Solanki (PR #572)", "firmware": "Fire OS 8.0 (RS8180.3734N)", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Ads, shopping and content recognition": { "category": "ads", "ask": false },
+        "Telemetry and metrics": { "category": "tracking", "ask": false },
+        "Tutorials": { "category": "preloads", "ask": false },
+        "Alexa (personal choice; vizzini comes back at every boot, see the header)": { "category": "voice", "ask": true },
+        "Casting (personal choice)": { "category": "casting", "ask": true },
+        "Preloaded apps (personal choice)": { "category": "preloads", "ask": true }
+      },
+      "packages": {
+        "com.amazon.tv.acr": { "category": "tracking", "ask": false },
+        "com.amazon.tv.democontent.provider": { "category": "demo", "ask": false },
+        "com.amazon.tv.ftvambient": { "category": "screensaver", "ask": true },
+        "com.amazon.hedwig": { "category": "ads", "ask": true }
+      }
+    },
     "hisense-hg9": {
       "match": { "models": [], "devices": ["laohushan"], "brand": "Hisense", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": null },
       "platform": "ANDROID_TV",

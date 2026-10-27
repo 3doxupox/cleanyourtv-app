@@ -129,6 +129,7 @@ object SureSetGenerator {
         "jvc-lt55mb508",
         "sharp-2t-c32gh3000i",
         "thomson-43rt1055",
+        "hisense-fire-tv-aftcibfbd1",
     )
 
     // The upstream v2.7.0 lists promoted in 0.3.7. They ship as exact profiles but do not feed the

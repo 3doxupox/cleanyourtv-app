@@ -171,6 +171,7 @@ com.amazon.tv.settings.v2	Fire TV settings	Picture, sound and system settings	sy
 com.amazon.tv.support	Amazon support	Help and support screens	brand
 com.amazon.tv.website_launcher	Website shortcuts	Shortcuts to websites	preloads
 com.amazon.uxnotification	Amazon notifications	Shows Amazon system notifications	brand
+com.amazon.vizzini	Alexa	Alexa voice assistant on Fire TV	voice
 com.amazon.webapps.nbc.telemundo	Telemundo (web)	Telemundo web app	streaming
 com.amazon.wha.mediabrowserservice	Multi-room music browser	Media browser for multi-room audio	brand
 com.amazon.whad	Multi-room music	Plays music on several Amazon devices	brand

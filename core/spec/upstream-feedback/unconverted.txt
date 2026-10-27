@@ -37,7 +37,6 @@ grundig-kunyang    # parked at v2.7.0: not curated yet and no TV report needs it
 haier-hr9216eu    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 hisense-65d62qh    # parked at v2.7.0: device MT9653 at SDK 30 is also hisense-e5q-pro and vidda-mt9653; needs a model or fingerprint key to be told apart
 hisense-fire-tv-55qd6qf    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review (Fire OS, clean-up only)
-hisense-fire-tv-aftcibfbd1    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 hotack-smart2kpjt    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 hy320    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 inclo-google-tv-4k    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
