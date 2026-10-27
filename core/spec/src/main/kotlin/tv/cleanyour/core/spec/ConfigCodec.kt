@@ -384,7 +384,14 @@ internal object ConfigCodecImpl {
         val keyFilter = on("key_filter", true)
         if (set("consume_volume_keys", true) && !keyFilter) w += "consume_volume_keys does nothing with key_filter false: the key helpers do not see the volume keys"
         if (set("home_long_press_home", true) && !keyFilter) w += "home_long_press_home does nothing with key_filter false: the key helper does not see the Home key"
-        if ("lunar_utc_offset" in o && !on("lunar_date", false)) w += "lunar_utc_offset does nothing without lunar_date: the TV shows no lunar date"
+        // Config.integer(json, "lunar_utc_offset", -1, -1, 14): -1 (the locale's own) unless a number in range.
+        val offset = when (val v = o["lunar_utc_offset"]) {
+            is AValue.IntV -> v.v
+            is AValue.LongV -> v.v.toInt()
+            is AValue.Dbl -> v.v.toInt()
+            else -> null
+        }?.takeIf { it in -1..14 } ?: LauncherKeys.DEFAULTS_30.lunarUtcOffset
+        if (offset != LauncherKeys.DEFAULTS_30.lunarUtcOffset && !on("lunar_date", false)) w += "lunar_utc_offset does nothing without lunar_date: the TV shows no lunar date"
         when (val g = o["glass_style"]) {
             null -> {}
             is AValue.Str -> if (LauncherKeys.glassStyle(g.v) == GlassStyle.GLASS && !g.v.javaTrim().equals("glass", ignoreCase = true))

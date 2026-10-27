@@ -20,6 +20,8 @@ class Launcher30CodecTest {
             """{"library_ok_opens": true, "app_library": false}""" to "library_ok_opens does nothing without app_library: there is no App library to open apps from",
             """{"wifi_status_warnings": true}""" to "wifi_status_warnings does nothing without wifi_status_color: the Wi-Fi icon stays white",
             """{"lunar_utc_offset": 7}""" to "lunar_utc_offset does nothing without lunar_date: the TV shows no lunar date",
+            """{"lunar_utc_offset": 0, "lunar_date": false}""" to "lunar_utc_offset does nothing without lunar_date: the TV shows no lunar date",
+            """{"lunar_utc_offset": 14}""" to "lunar_utc_offset does nothing without lunar_date: the TV shows no lunar date",
             """{"glass_style": "frost"}""" to "glass_style is not glass, rim or halo; the launcher uses glass",
             """{"glass_style": 2}""" to "glass_style is not a string; the launcher uses glass",
         )) {
@@ -34,13 +36,16 @@ class Launcher30CodecTest {
             warnings("""{"key_filter": false, "home_long_press_home": true}"""))
     }
 
+    // A value at the launcher's own (lunar_utc_offset -1, the locale's own offset, or one Config.integer
+    // gives -1 for: out of -1 to 14, or not a number) never warns.
     @Test fun aKeyWithWhatItNeedsOrAtItsDefaultIsNot() {
         for (json in listOf(
             """{"single_row": true}""", """{"single_row": true, "dock_band_all": true}""", """{"dock_row": false, "single_row": false}""",
             """{"dock_band_all": false}""", """{"show_library_pill": true}""", """{"show_library_pill": false, "app_library": true}""",
             """{"library_ok_opens": true, "app_library": true}""", """{"wifi_status_warnings": true, "wifi_status_color": true}""",
             """{"wifi_status_warnings": false}""", """{"consume_volume_keys": true}""", """{"home_long_press_home": true}""",
-            """{"lunar_date": true, "lunar_utc_offset": 7}""", """{"glass_style": "rim"}""", """{"glass_style": " Halo "}""",
+            """{"lunar_date": true, "lunar_utc_offset": 7}""", """{"lunar_utc_offset": -1}""", """{"lunar_utc_offset": -1.0}""",
+            """{"lunar_utc_offset": 15}""", """{"lunar_utc_offset": "7"}""", """{"glass_style": "rim"}""", """{"glass_style": " Halo "}""",
             """{"glass_style": "glass"}""", """{"glass_style": "GLASS"}""", """{"dock_band": false, "show_greeting": false, "date_below_clock": true,
                 "header_white": true, "uniform_tiles": true}""",
         )) {
