@@ -30,7 +30,7 @@ class LauncherPinTest {
 
     @Test fun pinIsTheUpstreamPackage() {
         assertEquals("com.gathin.tvhome", PinnedLauncher.PACKAGE)
-        assertEquals("3e34f40f42728284bbb3d4d7bea57c3f504c3b31", PinnedLauncher.UPSTREAM_COMMIT)
+        assertEquals("b06ab21105c49900cb1ed76b24414dba1e21d0db", PinnedLauncher.UPSTREAM_COMMIT)
         val gitlink = File(Repo.root, "third_party/cleanyourtv/.git")
         if (gitlink.exists()) {
             // The submodule checkout and the pin must agree (DECISIONS-W1 D-W1-8, ARCHITECTURE 6.2).

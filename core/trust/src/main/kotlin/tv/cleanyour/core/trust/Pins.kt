@@ -24,10 +24,12 @@ object TrustRoots {
 // tag v2.7.0, commit 3e34f40 (third_party/cleanyourtv), `assembleRelease` twice, both re-signed with
 // the dedicated launcher release key and compared by scripts/build-launcher-on-forge.sh. The verifyLauncherPin task (part of
 // :core:trust check and of :android:platform preBuild) fails the build when the asset differs.
+// UPSTREAM_COMMIT is the submodule's commit (b06ab21, after v3.0.0), the one the lists come from.
 object PinnedLauncher {
     const val ASSET_NAME = "cleanyourtv-launcher.apk"
-    const val UPSTREAM_COMMIT = "3e34f40f42728284bbb3d4d7bea57c3f504c3b31"
+    const val UPSTREAM_COMMIT = "b06ab21105c49900cb1ed76b24414dba1e21d0db"
     const val PACKAGE = "com.gathin.tvhome"
+    // TEMP until WP2: the APK is still 2.7
     const val VERSION_CODE = 8L
     const val VERSION_NAME = "2.7"
     const val SIZE = 491_007L
