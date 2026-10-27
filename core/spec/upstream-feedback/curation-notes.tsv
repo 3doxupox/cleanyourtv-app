@@ -314,6 +314,7 @@ sony-bravia-4k-gb	(match)	EU firmware of the BRAVIA_ATV2 platform; the fingerpri
 sony-bravia-4k-gb-us	com.sony.dtv.networkapp.wifidirect	Wi-Fi Direct for screen mirroring, in the owner's optional group; an ask row, never default-off
 sony-bravia-4k-gb-us	com.sony.dtv.osat.music	listed under preloaded apps; it plays music from USB, so it is an ask row
 sony-bravia-4k-gb-us	com.sony.dtv.smartmediaapp	listed under preloaded apps; it is the USB media player, so it is an ask row
+sony-bravia-4k-vh2	(groups)	b06ab21, the two Asia-Pacific groups stay ask rows: the unit that ran them off (India, BRAVIA_VH2_PA) and the UC units resolve to sony-kd-55x85j, while this profile matches the EU fingerprint only, where they were never tried (2.7 bump rule: only ads and telemetry tested off go off)
 sony-bravia-4k-vh2	(match)	EU firmware of BRAVIA_VH2; the fingerprint prefix leaves other regions to sony-kd-55x85j (same device and build)
 sony-bravia-4k-vh21	com.google.android.tts	in the owner's memory group; text to speech feeds TalkBack, so it is an accessibility ask row
 sony-bravia-4k-vh21	com.vewd.core.service	Vewd may also run HbbTV here (kept by the owner), so both Vewd packages are ask rows
