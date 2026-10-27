@@ -129,6 +129,9 @@ data class LookEditorState(
     // Home screen 3.0: its rows show only with `reads30`; `extras` the person's choice of them.
     val reads30: Boolean = false,
     val extras: LookExtras = LookExtras.DEFAULT,
+    // What of `extras` acts in this look, and what would act if it were on (LookDraft's, from LookRules).
+    val actingExtras: LookExtras = LookExtras.DEFAULT,
+    val offeredExtras: LookExtras = LookExtras.DEFAULT,
 ) {
     // A photo of the person's (kept, new or the earlier look's) rather than a gallery picture.
     val photo: Boolean get() = picture == MINE || picture == NEW || picture == EARLIER

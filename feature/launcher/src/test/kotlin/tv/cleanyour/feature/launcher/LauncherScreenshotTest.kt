@@ -163,7 +163,7 @@ object LauncherShots {
         },
         Shot("look_main_earlier", 1100.dp) { LookShot(lookSheet(LookFixtures.draft(StyleId.CALM, "none", wayBack = WayBack.EARLIER))) },
         Shot("look_main_eight", 1100.dp) { LookShot(lookSheet(LookFixtures.draft(columns = 8, movement = Movement.QUICK, movementPicked = true))) },
-        Shot("look_older_home_screen", 1100.dp) { LookShot(lookSheet(LookFixtures.draft(reads27 = false)) { it.copy(updateTo = "2.7") }) },
+        Shot("look_older_home_screen", 1100.dp) { LookShot(lookSheet(LookFixtures.draft(reads27 = false)) { it.copy(updateTo = "3.0") }) },
         Shot("look_photo_tint_line", 1100.dp) {
             LookShot(lookSheet(LookFixtures.draft(picture = LookEditorState.MINE)) { it.copy(ownPicture = LookFixtures.gallery.getValue("aurora").wallpaper.let { w ->
                 w.copy(path = LookFixtures.resourcePath(w)!!) }) })

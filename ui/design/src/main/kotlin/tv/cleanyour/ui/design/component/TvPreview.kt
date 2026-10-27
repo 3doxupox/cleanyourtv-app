@@ -624,8 +624,11 @@ private fun BandBox(look: TvLook, g: TvLayout, tv: Tv, x: Float, width: Float, p
 // at 75% when every tile has its name.
 // Home screen 3.0: with icon tiles (uniform_tiles, AppAdapter.java at b06ab21) the card is the
 // app's colour top to bottom (backdrop, AppAdapter.java:714-725) with the icon centred at 62% of the
-// tile's height (ICON_SHARE, AppAdapter.java:421-427, 669) and no name inside it; the phone has no
-// icons, so the icon is a light rounded square with the app's first letter. The highlight
+// tile's height (ICON_SHARE, AppAdapter.java:421-427, 669) and no name inside it (AppAdapter.java:491);
+// the name under it keeps its own rule (AppAdapter.java:463-466): none in the dock or a single row
+// unless every app has its name (the big name names the app you are on), under the focused tile
+// in the grid. The phone has no icons, so the icon is a light rounded square with the app's first
+// letter. The highlight
 // (glass_style, GlassView.java at b06ab21): glass as 2.7 draws it; rim only a 2 dp edge, no glow,
 // panel or shine (GlassView.java:66-68, 104-106); halo the same edge with the glow at half its
 // strength (GlassView.java:92-95). The edge is white at 80%, or the ring's colour two thirds of the

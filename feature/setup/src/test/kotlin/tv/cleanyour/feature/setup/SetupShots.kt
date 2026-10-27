@@ -243,9 +243,10 @@ private fun lookStep(draft: LookDraft, dock: List<AppChoice> = dockApps, waiting
 // look2 look step: the same Look editor as the Look sheet, with Done. The previews come from the
 // bytes the push would send (LookSamples); the rows are written out here (a fake in test sources).
 private val lookSource = BundledThemeSource()
-private fun look2Preview(style: StyleId, picture: String, columns: Int = 5): LookPreview {
-    val choice = HomeChoice(dockApps.map { it.pkg }, null, cards = false, picture = picture, columns = columns, style = style.id, movement = Movement.LIVELY.id)
-    val p = LookSamples.preview(LookSample("setup", choice, choice.dock, LookTv(8L, 2048, false)), lookSource, lookSource, LocalDate.of(2026, 10, 26), 20 * 60 + 30)
+private fun look2Preview(style: StyleId, picture: String, columns: Int = 5, extras: tv.cleanyour.core.spec.LookExtras = tv.cleanyour.core.spec.LookExtras.DEFAULT): LookPreview {
+    val choice = HomeChoice(dockApps.map { it.pkg }, null, cards = false, picture = picture, columns = columns, style = style.id, movement = Movement.LIVELY.id,
+        extras = extras)
+    val p = LookSamples.preview(LookSample("setup", choice, choice.dock, LookTv(if (extras == tv.cleanyour.core.spec.LookExtras.DEFAULT) 8L else 9L, 2048, false)), lookSource, lookSource, LocalDate.of(2026, 10, 26), 20 * 60 + 30)
     return p.copy(picturePath = gallery[picture]?.let { resourcePath(it.wallpaper) }, dock = dockApps.map { it.name })
 }
 private fun look2Rows(style: StyleId, picture: String): LookRows {
@@ -262,11 +263,17 @@ private fun look2Rows(style: StyleId, picture: String): LookRows {
 private fun look2Draft(style: StyleId = StyleId.CLASSIC, picture: String = "mist", columns: Int = 5, newPhoto: Boolean = false, waiting: Int = 0,
     oneRow: Boolean? = null) = LookDraft(
     "default", picture,
-    // oneRow: a TV that reads 3.0, with Every app in one row as given (the preview as its bytes will read
-    // once up300-look-model writes single_row: one row, no rows under it).
-    preview = look2Preview(style, if (newPhoto) "mist" else picture, columns).let { if (oneRow == true) it.copy(oneRow = true, rowsBelowDock = 0) else it },
+    // oneRow: a TV that reads 3.0, with Every app in one row as given (the preview from the bytes the push writes).
+    preview = look2Preview(style, if (newPhoto) "mist" else picture, columns, tv.cleanyour.core.spec.LookExtras(oneRow = oneRow == true)),
     columns = columns, lookColumns = columns, style = style,
     reads30 = oneRow != null, extras = tv.cleanyour.core.spec.LookExtras(oneRow = oneRow == true),
+    // What acts and what could act (LookRules.extras): one row on every style with a dock, the band's None
+    // not on Spotlight, the internet warnings only with Green Wi-Fi (off in these rows).
+    actingExtras = tv.cleanyour.core.spec.LookExtras(oneRow = oneRow == true && style != StyleId.ALL_APPS).takeIf { oneRow != null }
+        ?: tv.cleanyour.core.spec.LookExtras.DEFAULT,
+    offeredExtras = if (oneRow == null) tv.cleanyour.core.spec.LookExtras.DEFAULT else tv.cleanyour.core.spec.LookExtras(
+        oneRow = style != StyleId.ALL_APPS, noBand = style != StyleId.ALL_APPS && style != StyleId.SPOTLIGHT, hideGreeting = true, dateBelow = true,
+        brightDate = true, tiles = tv.cleanyour.core.spec.TilesChoice.ICONS, highlight = tv.cleanyour.core.spec.HighlightChoice.RIM),
     styleCards = StyleId.entries.map { StyleCard(it, look2Preview(it, if (newPhoto) "mist" else picture, columns), true) },
     rows = look2Rows(style, picture), newPhoto = newPhoto, settingsFile = "{\n  \"columns\": $columns\n}", apps = dockApps.size + waiting, waiting = waiting,
 )

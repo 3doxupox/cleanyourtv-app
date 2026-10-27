@@ -135,7 +135,7 @@ internal fun ColumnScope.LookMorePage(state: LookEditorState, onEdit: (LookEdit)
 
     LookSection(stringResource(R.string.cyt_look_more_top))
     if (x.header) {
-        val e = x.extras
+        val e = x.acting
         ListGroup(Modifier.padding(bottom = 4.dp)) {
             LookSwitchRow(
                 stringResource(R.string.cyt_look_greeting), !e.hideGreeting, { on -> x.edit(onEdit) { copy(hideGreeting = !on) } },
@@ -176,7 +176,7 @@ internal fun ColumnScope.LookMorePage(state: LookEditorState, onEdit: (LookEdit)
                 ListDivider()
                 val why = if (x.menu) R.string.cyt_look_wifi_green_menu else R.string.cyt_look_wifi_warn_needs
                 LookSwitchRow(
-                    stringResource(R.string.cyt_look_wifi_warn), x.wifiWarnEnabled && x.extras.wifiWarnings, { on -> x.edit(onEdit) { copy(wifiWarnings = on) } },
+                    stringResource(R.string.cyt_look_wifi_warn), x.wifiWarnOn, { on -> x.edit(onEdit) { copy(wifiWarnings = on) } },
                     description = stringResource(R.string.cyt_look_wifi_warn_desc), enabled = x.wifiWarnEnabled,
                     lines = listOfNotNull(stringResource(why).takeUnless { x.wifiWarnEnabled }), keyName = KEY_NAMES["wifiWarn"].takeIf { keys },
                 )
@@ -192,7 +192,7 @@ internal fun ColumnScope.LookMorePage(state: LookEditorState, onEdit: (LookEdit)
                 RadioChoice(TilesChoice.ART.id, stringResource(R.string.cyt_look_tiles_art), stringResource(R.string.cyt_look_tiles_art_desc)),
                 RadioChoice(TilesChoice.ICONS.id, stringResource(R.string.cyt_look_tiles_icons), stringResource(R.string.cyt_look_tiles_icons_desc)),
             ),
-            x.extras.tiles.id, { id -> TilesChoice.entries.firstOrNull { it.id == id }?.let { t -> x.edit(onEdit) { copy(tiles = t) } } },
+            x.acting.tiles.id, { id -> TilesChoice.entries.firstOrNull { it.id == id }?.let { t -> x.edit(onEdit) { copy(tiles = t) } } },
             keyName = KEY_NAMES["tiles"].takeIf { keys },
         )
     }

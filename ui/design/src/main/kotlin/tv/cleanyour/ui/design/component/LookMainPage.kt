@@ -117,7 +117,7 @@ internal fun ColumnScope.LookMainPage(
     ListGroup(Modifier.padding(top = 16.dp)) {
         ListRow(stringResource(R.string.cyt_look_more_title), subtitle = moreSummary(state), onClick = onMore)
     }
-    val icons = x.tiles && state.extras.tiles == tv.cleanyour.core.spec.TilesChoice.ICONS
+    val icons = x.tiles && x.acting.tiles == tv.cleanyour.core.spec.TilesChoice.ICONS
     LookBody(stringResource(if (icons) R.string.cyt_look_tiles_note_icons else R.string.cyt_look_tiles_note), Modifier.padding(start = 4.dp, end = 4.dp, top = 16.dp))
 }
 

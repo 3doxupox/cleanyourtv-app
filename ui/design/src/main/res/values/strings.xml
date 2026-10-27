@@ -310,7 +310,7 @@
     <string name="cyt_look_tiles_art">The app\'s own art</string>
     <string name="cyt_look_tiles_art_desc">Each app\'s banner, as the app makes it.</string>
     <string name="cyt_look_tiles_icons">Icons on cards</string>
-    <string name="cyt_look_tiles_icons_desc">Each app\'s icon on a card in its own colour. The name shows under the app you are on.</string>
+    <string name="cyt_look_tiles_icons_desc">Each app\'s icon on a card in its own colour, with no name on the card.</string>
     <string name="cyt_look_highlight">Highlight</string>
     <string name="cyt_look_highlight_glass">Glass</string>
     <string name="cyt_look_highlight_glass_desc">A glass panel with a soft shine.</string>

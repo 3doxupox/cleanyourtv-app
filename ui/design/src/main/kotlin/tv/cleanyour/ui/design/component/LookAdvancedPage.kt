@@ -44,7 +44,7 @@ internal fun ColumnScope.LookAdvancedPage(state: LookEditorState, onEdit: (LookE
                     RadioChoice(HighlightChoice.RIM.id, stringResource(R.string.cyt_look_highlight_rim), stringResource(R.string.cyt_look_highlight_rim_desc)),
                     RadioChoice(HighlightChoice.HALO.id, stringResource(R.string.cyt_look_highlight_halo), stringResource(R.string.cyt_look_highlight_halo_desc)),
                 ),
-                x.extras.highlight.id, { id -> HighlightChoice.entries.firstOrNull { it.id == id }?.let { h -> x.edit(onEdit) { copy(highlight = h) } } },
+                x.acting.highlight.id, { id -> HighlightChoice.entries.firstOrNull { it.id == id }?.let { h -> x.edit(onEdit) { copy(highlight = h) } } },
                 keyName = KEY_NAMES["highlight"].takeIf { keys },
             )
         }

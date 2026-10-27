@@ -171,6 +171,12 @@ data class LookDraft(
     // (LookRules.extras); `rows.resettable` counts those.
     val reads30: Boolean = false,
     val extras: LookExtras = LookExtras.DEFAULT,
+    // For the Look UI, both from LookRules.extras: `actingExtras`, what of `extras` acts in this look
+    // (the rows show these values and More options' summary counts them, as LookRules.extrasChanged
+    // does); `offeredExtras`, what would act if it were on (every switch on, then the rules), so a
+    // row whose key cannot act in this look is hidden or greyed, never a live toggle that does nothing.
+    val actingExtras: LookExtras = LookExtras.DEFAULT,
+    val offeredExtras: LookExtras = LookExtras.DEFAULT,
 )
 
 // The parts of a choice the rules read, from a draft or a saved choice: every value concrete.

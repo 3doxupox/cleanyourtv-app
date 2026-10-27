@@ -151,13 +151,16 @@ object LookFixtures {
         app("com.amazon.amazonvideo.livingroom", "Prime Video"), app("in.startv.hotstar", "JioHotstar"),
     )
 
-    fun choice(style: StyleId, picture: String, columns: Int, details: LookDetails, names: Boolean, movement: Movement, lift: Boolean, dock: List<AppChoice>) =
+    fun choice(style: StyleId, picture: String, columns: Int, details: LookDetails, names: Boolean, movement: Movement, lift: Boolean, dock: List<AppChoice>,
+        extras: LookExtras = LookExtras.DEFAULT) =
         HomeChoice(dock.map { it.pkg }, null, cards = false, picture = picture, columns = columns, style = style.id, movement = movement.id, lift = lift,
-            names = names, details = details)
+            names = names, details = details, extras = extras)
 
     fun preview(style: StyleId = StyleId.CLASSIC, picture: String = "mist", columns: Int = 5, details: LookDetails = LookDetails(), names: Boolean = false,
-        movement: Movement = Movement.LIVELY, lift: Boolean = false, dock: List<AppChoice> = dock4): LookPreview {
-        val sample = LookSample("shot", choice(style, picture, columns, details, names, movement, lift, dock), dock.map { it.pkg }, LookTv(8L, 2048, false))
+        movement: Movement = Movement.LIVELY, lift: Boolean = false, dock: List<AppChoice> = dock4, extras: LookExtras = LookExtras.DEFAULT): LookPreview {
+        // A TV that reads 3.0 (versionCode 9) when the look has 3.0 switches, so the push writes them.
+        val tv = LookTv(if (extras == LookExtras.DEFAULT) 8L else 9L, 2048, false)
+        val sample = LookSample("shot", choice(style, picture, columns, details, names, movement, lift, dock, extras), dock.map { it.pkg }, tv)
         val p = LookSamples.preview(sample, source, source, LocalDate.of(2026, 10, 26), 20 * 60 + 30)
         return p.copy(picturePath = gallery[picture]?.let { resourcePath(it.wallpaper) }, dock = dock.map { it.name })
     }
@@ -213,7 +216,7 @@ object LookFixtures {
         val ch = choice(style, picture, columns, details, names, movement, lift, dock)
         val full = LookSamples.push(LookSample("shot", ch, ch.dock), source, source).second.decodeToString()
         return LookDraft(
-            "default", picture, preview = if (previews) with30(preview(style, picture, columns, details, names, movement, lift, dock), e) else null,
+            "default", picture, preview = if (previews) preview(style, picture, columns, details, names, movement, lift, dock, e) else null,
             columns = columns, lookColumns = columns, style = style, names = names, movement = movement, movementPicked = movementPicked, lift = lift,
             details = details,
             styleCards = StyleId.entries.map { s ->
@@ -223,20 +226,22 @@ object LookFixtures {
             wayBack = wayBack, note = note, styles = if (reads27) StyleId.entries else listOf(StyleId.CLASSIC), reads27 = reads27, ramMb = ramMb,
             keyNames = keyNames, settingsFile = SETTINGS, fullFile = full, apps = dock.size + waiting, waiting = waiting, tvChanged = tvChanged,
             reads30 = reads30, extras = e,
+            actingExtras = if (reads30) acting(style, rows(style, details), e) else LookExtras.DEFAULT,
+            offeredExtras = if (reads30) acting(style, rows(style, details), ALL_ON) else LookExtras.DEFAULT,
         )
     }
 
-    // Stand-in until up300-look-model writes the 3.0 keys (LookKeys.build with extras): the preview
-    // with the fields the bytes would give, by the launcher's rules (single_row only with a dock row).
-    fun with30(p: LookPreview, e: LookExtras): LookPreview {
-        if (e == LookExtras.DEFAULT) return p
-        val oneRow = e.oneRow && p.dockRow
-        return p.copy(
-            oneRow = oneRow, bandAll = oneRow && e.bandAll, rowsBelowDock = if (oneRow) 0 else p.rowsBelowDock,
-            band = if (e.noBand && p.dockRow) PreviewBand.NONE else p.band, greetingShown = !e.hideGreeting, dateBelow = e.dateBelow,
-            brightDate = e.brightDate, iconTiles = e.tiles == TilesChoice.ICONS, highlight = e.highlight,
-        )
+    // LookRules.extras as the flows apply it (internal there), for the hand-made drafts: what of
+    // the 3.0 switches acts in this look.
+    private val ALL_ON = LookExtras(true, true, true, true, true, true, true, TilesChoice.ICONS, tv.cleanyour.core.spec.HighlightChoice.RIM)
+    private fun acting(style: StyleId, r: LookRows, e: LookExtras): LookExtras {
+        val dock = style != StyleId.ALL_APPS
+        val oneRow = e.oneRow && dock
+        val noBand = e.noBand && dock && style != StyleId.SPOTLIGHT
+        return e.copy(oneRow = oneRow, noBand = noBand, bandAll = e.bandAll && oneRow && !noBand,
+            wifiWarnings = e.wifiWarnings && r.greenWifi.value == true && r.buttons.value != ButtonsChoice.MENU)
     }
+
 
     // A short look settings file, as Advanced shows it.
     private val SETTINGS = listOf(

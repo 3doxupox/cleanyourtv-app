@@ -7,13 +7,13 @@ import tv.cleanyour.core.flows.LookEdit
 import tv.cleanyour.core.spec.ButtonsChoice
 import tv.cleanyour.core.spec.HighlightChoice
 import tv.cleanyour.core.spec.LookExtras
-import tv.cleanyour.core.spec.StyleId
 import tv.cleanyour.core.spec.TilesChoice
 import tv.cleanyour.ui.design.R
 
 // Home screen 3.0's rows (plan WP6), from the editor state: each shows only on a TV whose home
 // screen reads 3.0 (LookGates.reads30), and only where its key takes effect on the TV, so a row
-// never offers what the TV would not do:
+// never offers what the TV would not do. Where a key acts is the flows' (LookRules.extras, as
+// LookDraft.offeredExtras and actingExtras give it); the rows below follow it:
 // - Every app in one row: a style with a dock (single_row needs dock_row, so not All apps);
 // - None for the dock band: where a band is offered (not All apps or Spotlight);
 // - Band behind every app (dock_band_all): not offered in 0.4.5. At rest the launcher's band already
@@ -26,17 +26,21 @@ import tv.cleanyour.ui.design.R
 // A row that cannot be changed shows the value the TV will use (off), with its reason.
 @Immutable
 internal class ExtraRows(state: LookEditorState) {
+    // The person's choice (what an edit changes), what of it acts, and what could act.
     val extras: LookExtras = state.extras
+    val acting: LookExtras = state.actingExtras
+    private val offered = state.offeredExtras
     private val on = state.reads30
     private val r = state.rows
-    val oneRow: Boolean = on && state.style != StyleId.ALL_APPS
-    val oneRowOn: Boolean = oneRow && extras.oneRow
-    val bandOffered: Boolean = on && r != null && r.band.visible && r.band.enabled
-    val noBandOn: Boolean = bandOffered && extras.noBand
+    val oneRow: Boolean = on && offered.oneRow
+    val oneRowOn: Boolean = oneRow && acting.oneRow
+    val bandOffered: Boolean = on && offered.noBand && r != null && r.band.visible && r.band.enabled
+    val noBandOn: Boolean = bandOffered && acting.noBand
     val header: Boolean = on
     val wifiWarn: Boolean = on && r != null && r.greenWifi.visible
     val menu: Boolean = r?.buttons?.value == ButtonsChoice.MENU
-    val wifiWarnEnabled: Boolean = wifiWarn && !menu && r?.greenWifi?.value == true
+    val wifiWarnEnabled: Boolean = wifiWarn && offered.wifiWarnings
+    val wifiWarnOn: Boolean = wifiWarnEnabled && acting.wifiWarnings
     val tiles: Boolean = on
     val highlight: Boolean = on
 
@@ -49,18 +53,19 @@ internal class ExtraRows(state: LookEditorState) {
 }
 
 // The 3.0 rows the person changed, in page order, for More options' summary ("One row",
-// "Rim highlight"); only rows that show and can be changed.
+// "Rim highlight"): only what acts in this look (actingExtras), so it counts as
+// LookRules.extrasChanged does.
 @Composable
 internal fun extraWords(state: LookEditorState): List<String> {
     val x = ExtraRows(state)
-    val e = x.extras
+    val e = x.acting
     val out = mutableListOf<String>()
     if (x.oneRowOn) out += stringResource(R.string.cyt_look_word_one_row)
     if (x.noBandOn) out += stringResource(R.string.cyt_look_word_no_band)
     if (x.header && e.hideGreeting) out += stringResource(R.string.cyt_look_word_no_greeting)
     if (x.header && e.dateBelow) out += stringResource(R.string.cyt_look_word_date_below)
     if (x.header && e.brightDate) out += stringResource(R.string.cyt_look_word_bright_date)
-    if (x.wifiWarnEnabled && e.wifiWarnings) out += stringResource(R.string.cyt_look_word_wifi_warn)
+    if (x.wifiWarnOn) out += stringResource(R.string.cyt_look_word_wifi_warn)
     if (x.tiles && e.tiles == TilesChoice.ICONS) out += stringResource(R.string.cyt_look_word_icon_tiles)
     if (x.highlight && e.highlight == HighlightChoice.RIM) out += stringResource(R.string.cyt_look_word_rim)
     if (x.highlight && e.highlight == HighlightChoice.HALO) out += stringResource(R.string.cyt_look_word_halo)

@@ -29,10 +29,8 @@ import tv.cleanyour.core.flows.LookPreview
 import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.spec.BandChoice
 import tv.cleanyour.core.spec.ButtonsChoice
-import kotlinx.serialization.json.JsonPrimitive
 import tv.cleanyour.core.spec.GlowChoice
 import tv.cleanyour.core.spec.HighlightChoice
-import tv.cleanyour.core.spec.LauncherConfigDoc
 import tv.cleanyour.core.spec.LookExtras
 import tv.cleanyour.core.spec.TilesChoice
 import tv.cleanyour.core.spec.LauncherConfigCodec
@@ -174,6 +172,8 @@ object TvShots {
         add(TvCase("no_band", LookKeys.spec(StyleId.CLASSIC), extras = d.copy(noBand = true)))
         add(TvCase("header_variants", LookKeys.spec(StyleId.CLASSIC), extras = d.copy(hideGreeting = true, dateBelow = true, brightDate = true)))
         add(TvCase("icon_tiles", LookKeys.spec(StyleId.CLASSIC), dock = dock15, extras = d.copy(tiles = TilesChoice.ICONS)))
+        // All apps: the focused app's name under its card, as the grid shows it (AppAdapter.java:463-466).
+        add(TvCase("icon_tiles_allapps", LookKeys.spec(StyleId.ALL_APPS), dock = dock15, extras = d.copy(tiles = TilesChoice.ICONS)))
         add(TvCase("rim", LookKeys.spec(StyleId.CLASSIC), extras = d.copy(highlight = HighlightChoice.RIM)))
         add(TvCase("halo", LookKeys.spec(StyleId.CLASSIC), extras = d.copy(highlight = HighlightChoice.HALO)))
     }
@@ -181,29 +181,8 @@ object TvShots {
     private val today = LocalDate.of(2026, 10, 26)
 
     fun preview(case: TvCase): LookPreview {
-        val bytes = LauncherConfigCodec.encode(with30(LookKeys.build(case.spec, case.picture.keys, case.columns, case.dock.map { it.pkg }, cards = true), case.extras, case.spec))
+        val bytes = LauncherConfigCodec.encode(LookKeys.build(case.spec, case.picture.keys, case.columns, case.dock.map { it.pkg }, cards = true, extras = case.extras))
         return LookPreview.of(bytes, null, case.dock, others.filter { o -> case.dock.none { it.pkg == o.pkg } }, today, case.minute, case.inputs)
-    }
-
-    // Stand-in for WP5's LookKeys.build(extras) until up300-look-model lands: each 3.0 key written only
-    // when it is not the launcher's default and where it takes effect (plan WP5 step 4). With one row
-    // there are no rows under the dock, so rows_below_dock is 0 and the big name is the style's own
-    // again (the launcher still sizes and lifts the row by rows_below_dock, MainActivity.java:609-630).
-    private fun with30(doc: LauncherConfigDoc, e: LookExtras, spec: LookSpec): LauncherConfigDoc {
-        val dockRow = doc.dockRow != false
-        val keys = buildMap<String, JsonPrimitive> {
-            if (e.oneRow && dockRow) put("single_row", JsonPrimitive(true))
-            if (e.bandAll && e.oneRow && dockRow) put("dock_band_all", JsonPrimitive(true))
-            if (e.noBand && dockRow) put("dock_band", JsonPrimitive(false))
-            if (e.hideGreeting) put("show_greeting", JsonPrimitive(false))
-            if (e.dateBelow) put("date_below_clock", JsonPrimitive(true))
-            if (e.brightDate) put("header_white", JsonPrimitive(true))
-            if (e.tiles == TilesChoice.ICONS) put("uniform_tiles", JsonPrimitive(true))
-            if (e.highlight != HighlightChoice.GLASS) put("glass_style", JsonPrimitive(e.highlight.id))
-        }
-        if (keys.isEmpty()) return doc
-        val rows = if (keys.containsKey("single_row")) doc.copy(rowsBelowDock = 0, dockTitle = spec.style == StyleId.SPOTLIGHT || spec.bigName) else doc
-        return rows.copy(unknown = doc.unknown + keys)
     }
 
     private val images = HashMap<String, ImageBitmap>()
