@@ -1,7 +1,6 @@
 package tv.cleanyour.core.planner
 
 import tv.cleanyour.core.model.BlobRef
-import tv.cleanyour.core.model.ChangeRecord
 import tv.cleanyour.core.model.LauncherArtifact
 import tv.cleanyour.core.model.Op
 import tv.cleanyour.core.model.SettingKey
@@ -25,8 +24,9 @@ import kotlin.test.assertTrue
 // on; it only puts back what the TV had. Over seeded random TVs (accessibility on, off or unknown;
 // lists with the launcher's helpers, someone else's service, both or none) and every kind of plan
 // that can touch accessibility, each SettingsPut of enabled_accessibility_services or
-// accessibility_enabled writes null, "0" or the snapshot's own value; Undo everything may also
-// write the value a change record says the TV had before the app changed it.
+// accessibility_enabled writes null, "0" or the snapshot's own value. Undo everything too (WP4 G4):
+// it never writes back the value a change record says the TV had, since the person may have
+// switched accessibility off or changed the list since.
 class AccessibilityPutBackPropertyTest {
     private val rnd = Random(0x5EED_0A11)
     private val accessibility = setOf(SettingKey.ENABLED_ACCESSIBILITY, SettingKey.ACCESSIBILITY_ENABLED)
@@ -61,15 +61,13 @@ class AccessibilityPutBackPropertyTest {
         PlanRequest.Reboot,
     )
 
-    private fun check(plan: Plan, snap: Snapshot, journals: List<ChangeRecord>, label: String): Int {
+    private fun check(plan: Plan, snap: Snapshot, label: String): Int {
         var puts = 0
-        val had = journals.filter { (it.op as? Op.SettingsPut)?.key in accessibility }.map { it.prior?.settingValue }.toSet()
         for (s in plan.steps) {
             val op = s.op as? Op.SettingsPut ?: continue
             if (op.key !in accessibility) continue
             puts++
-            val ok = op.value == null || op.value == "0" || op.value == snap.settings[op.key] ||
-                (plan.kind == PlanKind.UNDO_EVERYTHING && op.value in had)
+            val ok = op.value == null || op.value == "0" || op.value == snap.settings[op.key]
             assertTrue(ok, "$label writes ${op.key.key} = ${op.value}; the TV had ${snap.settings[op.key]}")
         }
         return puts
@@ -83,13 +81,13 @@ class AccessibilityPutBackPropertyTest {
                 val r = planner(OverlayTransport()).plan(req, snap, facts, emptyList())
                 val plan = (r as? PlanResult.Ok)?.plan ?: continue
                 plans++
-                puts += check(plan, snap, emptyList(), "#$i ${req::class.simpleName}")
+                puts += check(plan, snap, "#$i ${req::class.simpleName}")
                 // Apply it to a model TV, then undo everything from its change records.
                 val tv = ModelTv(snap)
                 tv.apply(plan)
                 val applied = tv.snapshot()
                 val undo = planner(OverlayTransport()).plan(PlanRequest.UndoEverything(tv.changes, removeLauncher = rnd.nextBoolean()), applied, facts, tv.changes)
-                (undo as? PlanResult.Ok)?.plan?.let { puts += check(it, applied, tv.changes, "#$i undo after ${req::class.simpleName}") }
+                (undo as? PlanResult.Ok)?.plan?.let { puts += check(it, applied, "#$i undo after ${req::class.simpleName}") }
             }
         }
         assertTrue(plans > 1000 && puts > 150, "generator lost coverage: plans=$plans, accessibility writes=$puts")

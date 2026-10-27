@@ -57,8 +57,7 @@ class UndoSafetyTest {
     }
 
     // (1) The helper put back journals accessibility_enabled 1 and the service list as priors.
-    // After the person switched accessibility off, Undo everything never writes 1, and writes a
-    // non-empty list only while accessibility is on right now.
+    // Undo everything never writes 1 nor a non-empty list, whatever the TV has now.
     @Test fun undoNeverSwitchesAccessibilityOn() {
         val putBack = listOf(
             change(0, Op.SettingsPut(SettingKey.ENABLED_ACCESSIBILITY, null), Prior(settingValue = helpers)),
@@ -71,9 +70,10 @@ class UndoSafetyTest {
         for (list in listOf(helpers, null)) {
             assertTrue(undo(tv("0", list), putBack).steps.none { it.op is Op.SettingsPut }, "accessibility off, list $list")
         }
-        // On now with the list cleared: the list goes back, accessibility is left as it is.
-        val on = undo(tv("1", null), putBack).steps.map { it.op }
-        assertEquals(listOf<Op>(Op.SettingsPut(SettingKey.ENABLED_ACCESSIBILITY, helpers)), on.filterIsInstance<Op.SettingsPut>())
+        // On now with the list cleared or changed: the list is not written back either.
+        for (list in listOf(null, "com.example.reader/.Reader")) {
+            assertTrue(undo(tv("1", list), putBack).steps.none { it.op is Op.SettingsPut }, "accessibility on, list $list")
+        }
         for (s in listOf(tv("0", helpers), tv("0", null), tv("1", null), tv(null, null))) {
             assertTrue(undo(s, putBack).steps.none { it.op == Op.SettingsPut(SettingKey.ACCESSIBILITY_ENABLED, "1") })
         }

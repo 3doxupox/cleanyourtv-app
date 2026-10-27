@@ -711,10 +711,11 @@ class DefaultPlanner(
                         if (t.key == SettingKey.ADB_ENABLED || t.key == SettingKey.ADB_WIFI_ENABLED) continue   // never switched back on by the app
                         // WP4 (G4, RF-LAUNCHER-240 F7): nor is accessibility. The helper put back journals
                         // accessibility_enabled 1 and the service list as priors; after the person switched
-                        // accessibility off, writing them back would switch it on again. So "1" is never
-                        // written, and a non-empty list only while accessibility is on right now.
+                        // accessibility off or changed the list, writing them back would switch a service
+                        // on again. So an undo writes neither "1" nor a non-empty list: every accessibility
+                        // write is null, "0" or what the TV has right now (AccessibilityPutBackPropertyTest).
                         if (t.key == SettingKey.ACCESSIBILITY_ENABLED && original == "1") continue
-                        if (t.key == SettingKey.ENABLED_ACCESSIBILITY && !original.isNullOrEmpty() && snapshot.settings[SettingKey.ACCESSIBILITY_ENABLED] != "1") continue
+                        if (t.key == SettingKey.ENABLED_ACCESSIBILITY && !original.isNullOrEmpty()) continue
                         step(Op.SettingsPut(t.key, original), Prior(settingValue = current), GROUP_UNDO, "Putting back the TV's ${t.key.key.replace('_', ' ')} setting", FailurePolicy.CONTINUE)
                     }
                     UndoOrder.Target.Home -> if (originalHome != null && originalHome != launcher) useStockHome(originalHome, null, changes)
