@@ -93,6 +93,9 @@ limehd.ru.lise	purpose from the package name
 limehd.ru.lite	purpose from the package name
 mobi.zona	purpose from the package name
 net.hexage.ritual	taken for a Hexage game from the name and group
+org.droidtv.control4UcService	purpose from the package name and the list's group title
+org.droidtv.control4adapterservice	purpose from the package name and the list's group title
+org.droidtv.control4sddp	purpose from the package name and the list's group title
 org.droidtv.nettvapp4771	what Divan.TV offers (label from the list)
 org.droidtv.nettvapp5251	what Min Bio offers (label from the list)
 org.droidtv.nettvapps	read from its manifest only (silent install permission), behaviour not traced

@@ -1630,6 +1630,44 @@
         "com.google.android.syncadapters.calendar": { "category": "other", "ask": false }
       }
     },
+    "philips-google-tv-ta1": {
+      "match": { "models": [], "devices": ["PH1M_WW_9972"], "brand": "Philips", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "org.droidtv.playtv",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": ["org.droidtv.playtv", "org.droidtv.xtv", "org.droidtv.xtvsystem", "org.droidtv.channels", "org.droidtv.hdmiservice", "org.droidtv.tv.tptvservice", "org.droidtv.tvsystemui", "org.droidtv.tvpowermanagerservice", "org.droidtv.GlobalKey", "org.droidtv.homeintentresolver", "org.droidtv.upgradeapp", "com.mediatek.tv.agent", "com.mediatek.tv.systemupdater", "com.google.android.katniss", "com.google.android.apps.mediashell", "com.google.android.tv.remote.service"],
+      "suggestedDock": [],
+      "tested": { "by": "Nefritor (PR #1631)", "firmware": "UKN2.241117.001", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Batch 1: vendor analytics, retail demo, auto-installs and apps the owner does not use.": { "category": "preloads", "ask": true },
+        "Batch 2: background services that run all day and that this owner does not use (about 100 MB of RAM back).": { "category": "brand", "ask": true },
+        "Stock home last, after the new launcher is installed. The Wi-Fi network was forgotten and added again first,": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "org.droidtv.candeebug": { "category": "tracking", "ask": false },
+        "org.droidtv.gel": { "category": "tracking", "ask": false },
+        "com.google.android.partnersetup": { "category": "tracking", "ask": false },
+        "android.autoinstalls.config.google.gtvpai": { "category": "ads", "ask": false },
+        "com.google.android.onetimeinitializer": { "category": "other", "ask": false },
+        "com.google.android.syncadapters.calendar": { "category": "other", "ask": false },
+        "com.google.android.play.games": { "category": "preloads", "ask": false },
+        "com.netflix.ninja": { "category": "streaming", "ask": true },
+        "com.amazon.amazonvideo.livingroom": { "category": "streaming", "ask": true },
+        "com.google.android.videos": { "category": "streaming", "ask": true },
+        "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": true },
+        "ru.ivi.client": { "category": "streaming", "ask": true },
+        "org.droidtv.demome": { "category": "demo", "ask": false },
+        "org.droidtv.amazonalexa": { "category": "voice", "ask": true },
+        "tv.samba.ssm": { "category": "tracking", "ask": false },
+        "org.droidtv.customautologservice": { "category": "tracking", "ask": false },
+        "com.mediatek.airplaydaemon": { "category": "casting", "ask": true },
+        "com.mediatek.partner.airplay_sys": { "category": "casting", "ask": true },
+        "org.droidtv.hbbtvopapp": { "category": "other", "ask": true },
+        "com.google.android.tts": { "category": "accessibility", "ask": true }
+      }
+    },
     "philips-r8g-google-tv": {
       "match": { "models": ["R8G"], "devices": ["whitefield"], "brand": "Philips", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
       "platform": "GOOGLE_TV",

@@ -469,6 +469,7 @@ com.mediatek.dialservice	DIAL service	Lets phone apps find the TV to cast	castin
 com.mediatek.dtv.tvinput.atsctuner	ATSC tuner input	Antenna TV tuner (North America)	other
 com.mediatek.hotkey.dispatcher	MediaTek hotkeys	Remote hotkeys including Source	system
 com.mediatek.network	MediaTek network monitor	Network monitor, needed by the system	system
+com.mediatek.partner.airplay_sys	AirPlay system part	System part of AirPlay	casting
 com.mediatek.testpq	Picture test tool	MediaTek picture quality tool	other
 com.mediatek.tv.agent	MediaTek TV agent	Power, HbbTV and keys	system
 com.mediatek.tv.factory	MediaTek factory tools	Factory diagnostics	demo
@@ -572,6 +573,7 @@ com.pandora.android.atv	Pandora	Music streaming app	streaming
 com.peacock.peacockfiretv	Peacock	Streaming app	streaming
 com.peacocktv.peacockandroid	Peacock	NBC series, films and live sport	streaming
 com.phorus.playfi.softap	Play-Fi access point	Wi-Fi helper for Play-Fi speakers	brand
+com.phorus.playfi.tv	Philips Play-Fi	Multi-room audio to Play-Fi speakers	brand
 com.plexapp.android	Plex	Your own films and music, and free channels	streaming
 com.pomelogames.MarsGame	Pomelo Games game	Preloaded game	preloads
 com.poovarasan.tv.tamiltv	Tamil TV	Streaming app	streaming
@@ -811,6 +813,7 @@ com.teamviewer.quicksupport.market	TeamViewer QuickSupport	Remote support app	pr
 com.ted.android.tv	TED	TED talks	streaming
 com.tianci.localmedia	Skyworth USB media player	Plays media from USB	system
 com.tiktok.tv	TikTok	Short video app	streaming
+com.tpv.nftgallery	Philips NFT gallery	Shows NFT artwork	preloads
 com.tpv.xmic.ots.cms.client	TPV CMS client	TPV background content and data service	tracking
 com.tubitv	Tubi	Free films and series with adverts	streaming
 com.tubitv.ott	Tubi	Streaming app	streaming
@@ -825,6 +828,7 @@ com.vestel.smartcenter	Vestel SmartCenter	Background service that sees which app
 com.vestel.smartlogger	Vestel logger	Vestel logging service	tracking
 com.vestel.tv.speedup	Vestel speed up	Memory cleaner that can read system logs	brand
 com.vestel.vestelreporter	Vestel reporter	Sends usage reports to Vestel at boot	tracking
+com.vewd.core.browser	Vewd browser	Built-in web browser	preloads
 com.vewd.core.integration.dia	Vewd	Web app store and browser	preloads
 com.vewd.core.service	Vewd core	App store and HbbTV core service	brand
 com.viacom18.tv.voot	Voot	Streaming app	streaming
@@ -953,9 +957,15 @@ org.chromium.webview_shell	WebView test browser	AOSP test browser for the web vi
 org.droidtv.amazonalexa	Philips Alexa	Alexa bridge for the TV	voice
 org.droidtv.android.fitness	Fitness Buddy	Fitness app	preloads
 org.droidtv.candeebug	Philips DAC analytics	Uploads viewing and device data	tracking
+org.droidtv.control4UcService	Control4 service	Control4 smart home service	brand
+org.droidtv.control4adapterservice	Control4 adapter	Control4 smart home adapter	brand
+org.droidtv.control4app	Control4	Control4 smart home integration	brand
+org.droidtv.control4sddp	Control4 discovery	Lets Control4 find the TV	brand
+org.droidtv.customautologservice	TP Vision log collector	Collects logs for TP Vision	tracking
 org.droidtv.demome	Philips Demo me	Store demo mode	demo
 org.droidtv.dlna	Philips DLNA	Media server and renderer for the network	casting
 org.droidtv.gel	Philips metrics	Collects metrics for the analytics uploader	tracking
+org.droidtv.hbbtvopapp	HbbTV	Interactive features of broadcast TV	other
 org.droidtv.ipcontrol	Philips IP control	Control from apps on the home network	brand
 org.droidtv.m7opapp	M7 operator app	Satellite operator promo app	brand
 org.droidtv.nettv.market	Smart TV Collection	Philips app gallery	ads
@@ -989,6 +999,7 @@ org.videolan.vlc	VLC	Video player	streaming
 paskov.biz.happyfruits	Happy Fruits	Preloaded game	preloads
 ro.pontes.forinaline	Four in a Line	Preloaded game	preloads
 rocks.funkykarts	Funky Karts	Preloaded game	preloads
+ru.ivi.client	ivi	Russian streaming app	streaming
 screnmirroring.com	Screen mirroring	Miracast receiver	casting
 tunein.player	TuneIn Radio	Radio streaming app	streaming
 tv.airtel.xstream.tvapp	Airtel Xstream	Airtel streaming app (India)	streaming

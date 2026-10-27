@@ -273,6 +273,10 @@ philips-75pus8505	(match)	same board, firmware and fingerprint as philips-tpm191
 philips-75pus8505	com.google.android.tvrecommendations	default-off as listed; the header notes it also owns the system notification panel and should go after the stock launcher (RF-PROFILES-63 P14)
 philips-75pus8505	com.phorus.playfi.softap	Play-Fi's soft access point helper (network plumbing); ask row as on philips-55oled707
 philips-75pus8505	org.droidtv.sticker	default-off as listed: a separate package from org.droidtv.eum, which stays never-disable; the header checked it on the TV
+philips-google-tv-ta1	(header)	HDMI and Live TV were not exercised on the test unit, so the TP Vision TV stack and global keys are never-disable as on philips-50pus8517; the Kept on purpose names (Assistant, Chromecast, firmware updates) are never-disable too
+philips-google-tv-ta1	(match)	device PH1M_WW_9972 at SDK 34 and no model key, so the TA5 sets (product PH1M_WW_9972_20, the same UKN2.241117.001 build) resolve too (issues #1095, #1045); the Android 12 TA1 (#1231) stays on the Philips set
+philips-google-tv-ta1	org.droidtv.control4app	Control4 smart home integration (four packages), the owner's choice: an ask row
+philips-google-tv-ta1	org.droidtv.hbbtvopapp	HbbTV for broadcast TV; an ask row, as Live TV was not exercised with it off
 philips-r8g-google-tv	(match)	ro.product.brand is PHILIPS and the manufacturer MOKA; brands match without case
 philips-r8g-google-tv	com.google.android.tungsten.setupwraith	the header reports it deleted the Wi-Fi saved at setup; the takeover's Wi-Fi guard skips it when it owns the network
 polytron-2k-hayward	(header)	the Kept on purpose names (Live TV, the USB media player, the contacts provider) are in the curated never-disable list

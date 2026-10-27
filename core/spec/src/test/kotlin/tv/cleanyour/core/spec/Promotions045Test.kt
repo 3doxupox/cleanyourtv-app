@@ -45,4 +45,11 @@ class Promotions045Test {
         facts("BRAVIA VU1", "BRAVIA_VU1", "Sony", 30, "Sony/BRAVIA_VU1_UC/BRAVIA_VU1:11/RTT7.210105.001/366.60436:user/release-keys") to "sony-bravia-vu1", // #1155
         facts("BRAVIA VU2", "BRAVIA_VU1_2K", "Sony", 30, "Sony/BRAVIA_VU2/BRAVIA_VU1_2K:11/RTT7.210923.001/146-60522:user/release-keys") to null, // #1005
     )
+
+    // TA1 and TA5 run the same board (PH1M_WW_9972) and Google TV 14 build; the Android 12 TA1 stays out.
+    @Test fun philipsGoogleTvTa1() = check(
+        facts("Philips Google TV TA1", "PH1M_WW_9972", "Philips", 34, "Philips/PH1M_WW_9972/PH1M_WW_9972:14/UKN2.241117.001/3000518:user/release-keys", manufacturer = "TPV") to "philips-google-tv-ta1", // #1223
+        facts("Philips Google TV TA5", "PH1M_WW_9972", "Philips", 34, "Philips/PH1M_WW_9972_20/PH1M_WW_9972:14/UKN2.241117.001/3000669:user/release-keys", manufacturer = "TPV") to "philips-google-tv-ta1", // #1095
+        facts("Philips Google TV TA1", "PH1M_WW_9972", "Philips", 31, "Philips/PH1M_WW_9972/PH1M_WW_9972:12/STT2.230831.001/20826:user/release-keys", manufacturer = "TPV") to null, // #1231
+    )
 }

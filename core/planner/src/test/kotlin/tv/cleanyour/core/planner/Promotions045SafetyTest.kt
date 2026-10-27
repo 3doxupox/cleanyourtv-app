@@ -45,4 +45,12 @@ class Promotions045SafetyTest {
         keeps("sony-bravia-vu1", "com.android.tv", "com.realtek.dtv", "com.realtek.tv.atv", "com.sony.dtv.smartui", "com.google.android.tv.remote.service")
         for (s in listOf("com.google.android.tts", "com.google.android.katniss", "com.google.android.tvrecommendations")) assertTrue(p(s) !in defaultOff("sony-bravia-vu1"), s)
     }
+
+    @Test fun philipsGoogleTvTa1() {
+        defaultsPass("philips-google-tv-ta1")
+        keeps("philips-google-tv-ta1", "org.droidtv.playtv", "org.droidtv.hdmiservice", "org.droidtv.GlobalKey", "com.google.android.apps.mediashell")
+        // The owner's picks and the broadcast features are ask rows.
+        for (s in listOf("com.netflix.ninja", "com.amazon.amazonvideo.livingroom", "org.droidtv.hbbtvopapp", "com.mediatek.airplaydaemon", "org.droidtv.control4app"))
+            assertTrue(p(s) !in defaultOff("philips-google-tv-ta1"), s)
+    }
 }
