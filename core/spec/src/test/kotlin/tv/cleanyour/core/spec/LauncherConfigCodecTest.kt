@@ -233,6 +233,20 @@ class LauncherConfigCodecTest {
         assertEquals(listOf("unknown key zz; the launcher ignores it (carried as is)"), r.warnings)
     }
 
+    // CARRIED_30 is exactly what launcher 3.0's Config.load (the submodule at the pin) reads from a
+    // config.json beyond 2.7's (the frozen v27 copy), and each is in 3.0's config.xml but
+    // lunar_utc_offset, which Config.load reads from config.json alone.
+    @Test fun carried30IsWhatLauncher30ReadsBeyond27() {
+        fun jsonKeys(f: java.io.File) = Regex("\\((?:json|o), \"([a-z_0-9]+)\"").findAll(f.readText()).map { it.groupValues[1] }.toSet()
+        val v30 = jsonKeys(java.io.File(Fixtures.upstreamDir, "launcher/app/src/main/java/com/gathin/tvhome/Config.java"))
+        val v27 = jsonKeys(java.io.File(Fixtures.repoRoot, "core/spec/src/test/java/com/gathin/tvhome/v27/Config.java"))
+        assertEquals(ConfigCodecImpl.CARRIED_30, v30 - v27)
+        assertEquals(emptySet(), v27 - v30, "3.0 still reads every key 2.7 reads")
+        val xml = java.io.File(Fixtures.upstreamDir, "launcher/app/src/main/res/values/config.xml").readText()
+        for (k in ConfigCodecImpl.CARRIED_30 - "lunar_utc_offset") assertTrue(Regex("<(bool|integer|string|string-array) name=\"$k\"").containsMatchIn(xml), k)
+        assertTrue("name=\"lunar_utc_offset\"" !in xml)
+    }
+
     // RFC-W4-1: the two keys upstream 1bbf0c9 added are fields, decoded in Config.java's order and
     // never carried in `unknown`.
     @Test fun inputActionAndModuleCardsAreModelled() {
