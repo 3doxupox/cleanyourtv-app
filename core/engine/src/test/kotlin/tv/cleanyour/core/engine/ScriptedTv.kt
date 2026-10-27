@@ -251,7 +251,7 @@ class ScriptedProber(private val tv: ScriptedTv) : Prober {
         calls += "snapshot $reason"; tv.exec(ShellLine0.props, ExecSpec.Default)   // one command, so a lost connection surfaces here too
         return tv.snapshot(reason)
     }
-    override suspend fun homeNow(session: TvSession): HomeResolution = tv.snapshot().home
+    override suspend fun homeNow(session: TvSession): HomeResolution { calls += "homeNow"; return tv.snapshot().home }
     override suspend fun homeFocus(session: TvSession): Component? { calls += "homeFocus"; tv.exec(ShellLine0.focus, ExecSpec.Default); return tv.focus }
     override suspend fun screenshot(session: TvSession): ByteArray? { calls += "screenshot"; screenshots++; return if (screenshotFails || screenshots > screenshotOkCount) null else tv.screenshot }
     override suspend fun fileSha256(session: TvSession, path: RemotePath): Sha256? = tv.files[path.absolute]?.let { sha256Of(it) }

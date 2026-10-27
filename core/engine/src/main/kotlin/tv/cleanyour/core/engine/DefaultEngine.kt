@@ -405,10 +405,14 @@ class DefaultEngine(
                 // few tries spread over the first minute of the check. The window and the watchdog
                 // stay as they are, and a home screen of the TV's own in front still rolls back at once.
                 val now = clock.monotonicMs()
-                if (!homeCheck && presses < PATIENT_PRESSES && now - lastPress >= PATIENT_GAP_MS && now - run.sectionOpenedAt <= PATIENT_WINDOW_MS) {
+                // No try that would run into the check's deadline; a try that found no case for a press
+                // waits as long as a press does, so Home is not read every 2 s for the whole minute.
+                if (!homeCheck && presses < PATIENT_PRESSES && now - lastPress >= PATIENT_GAP_MS && now - run.sectionOpenedAt <= PATIENT_WINDOW_MS &&
+                    deadlineMono - now >= PATIENT_GAP_MS) {
+                    lastPress = now
                     when (pressHomeAgain(run, section, focus)) {
                         null -> {}
-                        true -> { presses++; lastPress = now }
+                        true -> presses++
                         false -> return HomeOutcome.CONNECTION_LOST
                     }
                 }
