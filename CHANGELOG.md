@@ -5,7 +5,7 @@ All notable changes to the app. Versions follow [semantic versioning](https://se
 ## Unreleased
 
 ### Home screen
-- Xiaomi TVs on Android TV (Mi TV 4i, Mi TV P1 and others), Redmi sets among them, can now get the
+- Xiaomi TVs on Android TV (the Mi TV 4i and others), Redmi sets among them, can now get the
   new home screen; their setup wizard stays on. This is for the sets whose only home screen is
   Google's Android TV home and whose setup wizard does not answer the Home button.
 - Each time you open Manage with the TV connected, the app checks the Home button again. If the
