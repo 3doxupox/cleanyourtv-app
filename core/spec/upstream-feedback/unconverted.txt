@@ -16,7 +16,6 @@ amazon-fire-tv-afteu014    # parked at v2.7.0: not curated yet and no TV report 
 anker-nebula-d2140    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 anker-nebula-d2426    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 anker-nebula-mars-3-air    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
-aqua-matrixtv-ee-50    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 artel-cvte-mt5863    # refused at v2.7.0: Android 7.0 (SDK 24) is below the launcher's Android 8, network ADB opens only from the CVTE factory menu, and the header gives no device codename to match on
 asus-m1g    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 beko-b43b880b    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
@@ -37,13 +36,11 @@ grundig-kunyang    # parked at v2.7.0: not curated yet and no TV report needs it
 haier-hr9216eu    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 hisense-65d62qh    # parked at v2.7.0: device MT9653 at SDK 30 is also hisense-e5q-pro and vidda-mt9653; needs a model or fingerprint key to be told apart
 hisense-fire-tv-55qd6qf    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review (Fire OS, clean-up only)
-hisense-fire-tv-aftcibfbd1    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 hotack-smart2kpjt    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 hy320    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 inclo-google-tv-4k    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 insignia-ns42f201na22    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review (Fire OS, clean-up only)
 jvc-lt-43km348    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
-jvc-lt55mb508    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 jvc-uk-4k-sadang    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 kogan-g7    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 ktc-4k-smart-tv-hongkong    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
@@ -70,13 +67,11 @@ portronics-beem-470    # refused: the firmware reports the generic Allwinner ADT
 rca-2k-android-tv-lasalle    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 rca-rc50a21s-4ksm    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 redmi-mitv-antl0    # refused: Android 5.1.1 (SDK 22). The launcher needs Android 8 (SDK 26), and this firmware refuses pm disable for the shell, the only way the app switches an app off (the list works with pm hide instead); v2.5.0 adds notes for newer firmware (upstream #403), where the list was not re-tested
-redmi-mitv-mftp0    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 rocktek-gb1    # parked at v2.7.0: no device codename in the header or README, so a profile could match on a model string only; ask the contributor for getprop (RF-PROFILES-63 P8)
 rocktek-gx1    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 sankey-smart-tv-hi3751v350    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 sankey-smart2ktvse    # parked at v2.7.0: no device codename in the header or README, so a profile could match on a model string only; ask the contributor for getprop (RF-PROFILES-63 P8)
 seleco-tv39020hda9smart    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
-sharp-2t-c32gh3000i    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 sharp-aquos-tve23a    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 siragon-4k-smart-tv-elliniko    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 skyworth-65a3f    # parked at v2.7.0: no device codename in the header or README, so a profile could match on a model string only; ask the contributor for getprop (RF-PROFILES-63 P8)
@@ -146,9 +141,8 @@ tcl-l40s66e    # parked: same device, product, software (LF1V030) and AR14 finge
 tcl-mt9655-cn-android14    # refused: network ADB opens only after adb tcpip 5555 from a computer over a USB cable and closes again at every reboot (the firmware's own switch offers TLS only, with no pairing), so the app could neither reach the TV nor undo its changes later without a computer; the firmware also refuses every APK install, so there is no new home screen either (contributed by moqilin258-commits, PR #498)
 tcl-q7c-google-tv    # parked at v2.7.0: device G08 at SDK 34 carries eight new lists plus the shipped tcl-c755-google-tv and tcl-qm6k-google-tv; only fingerprint prefixes could tell them apart; its Home also relies on stock_home_redirect, a home mode this app does not have
 tcl-tc8000-ay30a2    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
-thomson-43rt1055    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 thomson-sppl-4k-sw6h    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review; same board and build as skyworth-sw-22sa, and it switches off the vendor setup wizard com.smartdevice.setupwraith, which this app keeps on
-tivo-stream-4k    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
+tivo-stream-4k    # refused at b06ab21: the firmware refuses pm disable-user, pm disable and pm hide from the shell (the list is applied with pm suspend, which the app does not do), and com.nes.coreservice uninstalls at every boot any added app that declares HOME (upstream #2045)
 tornado-65ua1400e    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 turkcell-tv-plus-4k-box-dv6069y    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 tuvio-td43ufbcv5    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
@@ -157,12 +151,6 @@ vision-2024vision43stv    # parked: the build fingerprint is spoofed (google/sha
 vu-vibe-tv    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 xgimi-mogo-4    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 xgimi-mogo-4-laser    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
-xiaomi-mi-box-s-android12    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 xiaomi-mitv-afmu1    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
-xiaomi-mitv-astp0    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 xiaomi-mitv-astr0    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 xiaomi-mitv-axfr0    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
-xiaomi-mitv-ayfr0    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
-xiaomi-mitv-mssp0    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
-xiaomi-mitv-mssp2    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
-xiaomi-mitv-mteq0    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review; China build that switches off the vendor setup wizard com.xiaomi.setupwizard, which this app keeps on

@@ -25,7 +25,7 @@ class ProfilesTest {
 
     @Test fun everyConvertedUpstreamExampleParsesWithCuratedMetadata() {
         assertEquals(316, upstream.size)
-        assertEquals(160, examples.size)
+        assertEquals(172, examples.size)
         for (e in examples) {
             val profile = DebloatTxtParser.parse(e.debloatTxt, e.folder)
             assertEquals(e.folder, profile.id)
@@ -65,7 +65,7 @@ class ProfilesTest {
     @Test fun theUnconvertedListIsPinnedToTheSubmodule() {
         val meta = ProfileMeta.decode(File(Fixtures.repoRoot, "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json").readText())
         assertEquals(upstream.map { it.folder }.filter { it !in meta.profiles }.toSet(), unconverted)
-        assertEquals(156, unconverted.size)
+        assertEquals(144, unconverted.size)
         val listed = unconvertedFile.readLines().filter { it.isNotBlank() && !it.startsWith("#") }
         assertEquals(listed.sorted(), listed, "one folder per line, sorted")
         assertTrue('\u2014' !in unconvertedFile.readText() && "-".repeat(2) !in unconvertedFile.readText())
@@ -227,12 +227,20 @@ class ProfilesTest {
 
     // RF-PROFILES-63 P2: the exact profiles that know no stock launcher get the clean-up only (Setup's
     // homePossible); pinned, so a new one is a reviewed decision.
+    // 0.4.5 (second curator): Xiaomi China-market sets whose Home takes only allowlisted apps, so
+    // com.mitv.tvhome stays on and Setup does the clean-up only (no new home screen offered).
+    private val cleanUpOnlyPart2: Set<String> = setOf(
+        "xiaomi-mitv-astp0",
+        "xiaomi-mitv-mteq0",
+        "redmi-mitv-mftp0",
+    )
+
     @Test fun theProfilesWithNoKnownStockLauncher() {
         val none = BundledProfileSource.bundled.profiles.filter { it.stockLaunchers.isEmpty() && it.platform != Platform.FIRE_OS && it.platform != Platform.TCL_CN }
         // xiaomi-mitv-mftr0 (0.3.7): China firmware whose home is com.mitv.tvhome, not a known launcher.
         // sber-salute-tv-at30a6 (0.4.5): StarOS, whose home is Sber's ru.sberdevices.starlauncher.
         assertEquals(setOf("challenger-32t22bt", "freebox-player-pop", "google-tv-streamer-4k-kirkwood", "hisense-e5q-pro", "kalley-43g200",
-            "sber-salute-tv-at30a6", "stellamore-t950s", "verizon-stream-tv", "vidda-mt9653", "xiaomi-mitv-ansp0", "xiaomi-mitv-astp1", "xiaomi-mitv-mffu0", "xiaomi-mitv-mftr0"), none.map { it.id }.toSet())
+            "sber-salute-tv-at30a6", "stellamore-t950s", "verizon-stream-tv", "vidda-mt9653", "xiaomi-mitv-ansp0", "xiaomi-mitv-astp1", "xiaomi-mitv-mffu0", "xiaomi-mitv-mftr0") + cleanUpOnlyPart2, none.map { it.id }.toSet())
     }
 
     // RF-PROFILES-63 P8: where two profiles score the same for a TV, the longer fingerprint prefix wins
@@ -325,6 +333,46 @@ class ProfilesTest {
         // The fingerprint prefix settles the BRAVIA_ATV2, BRAVIA_VH2, G05 and G08 pairs (pinned above);
         // tcl-g10-google-tv is the one true duplicate.
         assertEquals(setOf(setOf("tcl-55s470g", "tcl-g10-google-tv")), ties)
+    }
+
+    // 0.4.5 (second curator): each promoted b06ab21 list resolves from a TV report in our issues, and
+    // the near misses (another Android version, another badge on the same board) keep their old path.
+    @Test fun promotedAtB06ab21Part2ResolveFromTheirReports() {
+        val source = BundledProfileSource()
+        fun f(brand: String, maker: String, model: String, device: String, sdk: Int, fingerprint: String) =
+            Fixtures.miTv().facts().copy(brand = brand, manufacturer = maker, model = model, device = device, sdk = sdk, fingerprint = fingerprint)
+        val reports = listOf<Pair<tv.cleanyour.core.model.DeviceFacts, String?>>(
+            f("Xiaomi", "Xiaomi", "MIBOX4", "oneday", 31, "Xiaomi/oneday/oneday:12/STTC.230106.001/4560:user/release-keys") to "xiaomi-mi-box-s-android12",   // #1153
+            f("Xiaomi", "Xiaomi", "MiTV-MSSP2", "volver", 28, "Xiaomi/volver/volver:9/PI/6305:user/release-keys") to "xiaomi-mitv-mssp2",   // #1209
+            f("Xiaomi", "Xiaomi", "MiTV-MSSP2", "volver", 28, "Xiaomi/volver/volver:9/PI/4621:user/release-keys") to "xiaomi-mitv-mssp2",   // #814
+            f("Xiaomi", "Xiaomi", "MiTV-MSSP2", "volver", 30, "Xiaomi/volver/volver:11/RTT2.211214.001/933:user/release-keys") to null,   // #540, Android 11
+            f("Xiaomi", "Xiaomi", "MiTV-MSSP0", "amelie", 28, "Xiaomi/amelie/amelie:9/PI/4072:user/release-keys") to "xiaomi-mitv-mssp0",   // #970
+            f("SaluteTV", "SaluteTV", "SaluteTV", "m5621", 28, "MediaTek/m5621/m5621:9/PPR2.180905.006.A1/tuz_starosfw_jenkins06181401:user/release-keys") to null,   // #1052, the board name
+            f("Xiaomi", "Xiaomi", "MiTV-AYFR0", "soul", 34, "Xiaomi/soul/soul:14/UKG3.250107.001/V816.0.26.6.10.UZFAATK:user/release-keys") to "xiaomi-mitv-ayfr0",   // #1173
+            f("Xiaomi", "Xiaomi", "MiTV-AYFR0", "soul", 30, "Xiaomi/soul/soul:11/RTT0.211222.001/1546:user/release-keys") to null,   // #1180, Android 11
+            f("Xiaomi", "xiaomi", "MiTV-ASTP0", "mulan", 28, "Xiaomi/mulan/mulan:9/PPR1.180610.011/3982:user/release-keys") to "xiaomi-mitv-astp0",   // #882
+            f("Xiaomi", "xiaomi", "MiTV-ASTP0", "mulan", 28, "Xiaomi/mulan/mulan:9/PPR1.180610.011/OS3.0.101.0.PSTAATV:user/release-keys") to "xiaomi-mitv-astp0",   // #340
+            f("xiaomi", "xiaomi", "MiTV-MTEQ0", "baymax", 29, "xiaomi/baymax/baymax:10/QQ2A.200305.004.A1/2446:user/release-keys") to "xiaomi-mitv-mteq0",   // #1079
+            f("xiaomi", "xiaomi", "MiTV-MFTP0", "alita", 28, "xiaomi/alita/alita:9/PPR2.180905.006.A1/6318:user/release-keys") to "redmi-mitv-mftp0",   // #670
+            f("Xiaomi", "Xiaomi", "MIBOX4", "oneday", 28, "Xiaomi/oneday/oneday:9/PI/3595:user/release-keys") to "xiaomi-mi-box-s",   // #772, older PI firmware
+            f("Xiaomi", "Xiaomi", "MIBOX4", "oneday", 28, "Xiaomi/oneday/oneday:9/PI/3933:user/release-keys") to "xiaomi-mi-box-s",   // #187, the tested firmware
+            f("AQUA", "Haier", "AQUA MatrixTV EE", "omonia", 34, "AQUA/AQ9676EU/omonia:14/UKN6.260116.056/15136903:user/release-keys") to "aqua-matrixtv-ee-50",   // #646
+            f("Haier", "Haier", "Haier MatrixTV EE", "omonia", 34, "Haier/HR9676EU/omonia:14/UKN5.251016.114/14643368:user/release-keys") to "aqua-matrixtv-ee-50",   // #822
+            f("Haier", "Haier", "Haier MatrixTV DE", "omonia", 34, "Haier/HR9676EUF/omonia:14/UKN2.241219.053/13043114:user/release-keys") to "aqua-matrixtv-ee-50",   // #926
+            f("JVC", "MTC", "SA 4K Android TV", "seocho", 30, "JVC/MTCMSD6886SA/seocho:11/RTO8.250904.001/14050644:user/release-keys") to "jvc-lt55mb508",   // #127
+            f("Sharp", "skyworth", "SHARP 2K Smart TV-A", "beomil", 34, "Sharp/SW11_SHARP_APEU/beomil:14/UKN6.260116.061/15165694:user/release-keys") to "sharp-2t-c32gh3000i",   // #793
+            f("skyworth", "skyworth", "SWTV-24AE-FHD", "beomil", 34, "skyworth/SW11_TG/beomil:14/UKN7.260716.011/15978261:user/release-keys") to null,   // #108, neither SHARP nor Motorola
+            f("THOMSON", "SPPL", "SPPL 2K ANDROID TV", "sauve", 34, "THOMSON/SPPL_2K_RT41/sauve:14/UKRE.260524.055/16101080:user/release-keys") to "thomson-43rt1055",   // #558
+            f("THOMSON", "SPPL", "SPPL 2K ANDROID TV", "sauve", 30, "THOMSON/SPPL_2K_RT41/sauve:11/RTK4.241026.026/12861515:user/release-keys") to null,   // #825, Android 11
+            f("Amazon", "Amazon", "AFTCIBFBD1", "coyote", 30, "Amazon/coyote/coyote:11/RS8180.3749N/0032280323460:user/amz-p,release-keys") to "hisense-fire-tv-aftcibfbd1",   // #949
+            f("Amazon", "Amazon", "AFTCIBFBD1", "coyote", 30, "Amazon/coyote/coyote:11/RS8180.3734N/0032280319620:user/amz-p,release-keys") to "hisense-fire-tv-aftcibfbd1",   // #347
+            f("eSTREAM4K", "SEI Robotics", "TiVo Stream 4K", "SEI400TV", 31, "eSTREAM4K/SEI400TV/SEI400TV:12/SC/1272:user/release-keys") to null,   // #1214, parked
+        )
+        for ((facts, id) in reports) assertEquals(id, (source.resolveNow(facts) as? ProfileResolution.Exact)?.profile?.id, "${facts.model} ${facts.fingerprint}")
+        for (id in cleanUpOnlyPart2) {
+            val pr = BundledProfileSource.bundled.profiles.single { it.id == id }
+            assertTrue(p("com.mitv.tvhome") in pr.neverDisable && pr.stockLaunchers.isEmpty(), id)
+        }
     }
 
     @Test fun malformedFilesFailWithTheLine() {

@@ -250,6 +250,33 @@
         "com.amazon.tv.mattercohost": { "category": "other", "ask": true }
       }
     },
+    "aqua-matrixtv-ee-50": {
+      "match": { "models": [], "devices": ["omonia"], "brand": "Haier", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.cltv.hybrid",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH", "EXTRA_HOME_CLAIMERS"],
+      "neverDisable": ["com.cltv.hybrid", "com.cltv.mal", "com.mediatek.tis", "com.mediatek.dtv.tvinput.dvbtuner", "com.mediatek.tv.agent", "com.mediatek.extservice", "com.google.android.tv.inputplayer", "com.haier.appmanager.dispatcher", "com.haier.hkcfac", "com.haier.tv.hmagicboard", "com.mediatek.autopair", "com.haier.bt_pair_tips", "com.google.android.tv.googletvremotepairer", "com.telink.lt", "com.google.android.tv.remote.service", "mediatek.factorymenu.ui"],
+      "suggestedDock": [],
+      "tested": { "by": "Randhi Pratama Putra (PR #1444)", "firmware": "UKN7.260716.049", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Haier content, IoT, cleaner, e-manual": { "category": "brand", "ask": false },
+        "Telemetry, partner rows, retail demo, preloads": { "category": "tracking", "ask": false },
+        "By owner choice: apps the test household did not use": { "category": "streaming", "ask": true },
+        "Google TV home handover. setupwraith's RecoveryActivity claims HOME at priority 1 and takes over once launcherx": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.haier.apps": { "category": "ads", "ask": false },
+        "com.haier.oemtabprovider": { "category": "ads", "ask": false },
+        "com.haier.launcher.haiermatrix": { "category": "ads", "ask": true },
+        "com.mediatek.tv.launcher.partner": { "category": "ads", "ask": false },
+        "com.mediatek.tv.retaildemo": { "category": "demo", "ask": false },
+        "com.google.android.play.games": { "category": "preloads", "ask": false },
+        "com.haier.overseastv.bluetoothspeaker": { "category": "brand", "ask": true },
+        "com.google.android.marvin.talkback": { "category": "accessibility", "ask": true }
+      }
+    },
     "benq-e55-735": {
       "match": { "models": ["AI PONT"], "devices": [], "brand": "BenQ", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
       "platform": "GOOGLE_TV",
@@ -709,6 +736,31 @@
         "com.vt.ambiencephoto": { "category": "screensaver", "ask": true }
       }
     },
+    "hisense-fire-tv-aftcibfbd1": {
+      "match": { "models": ["AFTCIBFBD1"], "devices": ["coyote"], "brand": "Amazon", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
+      "platform": "FIRE_OS",
+      "stockLaunchers": ["com.amazon.tv.launcher", "com.amazon.firehomestarter"],
+      "liveTv": "com.amazon.tv.livetv",
+      "setupWraith": null,
+      "quirks": ["REENABLED_AT_BOOT"],
+      "neverDisable": ["com.amazon.tv.launcher", "com.amazon.firehomestarter", "com.amazon.tv.livetv", "com.amazon.tv.settings.v2", "com.amazon.tv.quicksettings", "com.amazon.tv.ime", "com.amazon.tv.inputpreference.service", "com.amazon.ftvads.deeplinking", "com.amazon.device.crashmanager"],
+      "suggestedDock": [],
+      "tested": { "by": "Amey Arya (PR #545), Mimoh Solanki (PR #572)", "firmware": "Fire OS 8.0 (RS8180.3734N)", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Ads, shopping and content recognition": { "category": "ads", "ask": false },
+        "Telemetry and metrics": { "category": "tracking", "ask": false },
+        "Tutorials": { "category": "preloads", "ask": false },
+        "Alexa (personal choice; vizzini comes back at every boot, see the header)": { "category": "voice", "ask": true },
+        "Casting (personal choice)": { "category": "casting", "ask": true },
+        "Preloaded apps (personal choice)": { "category": "preloads", "ask": true }
+      },
+      "packages": {
+        "com.amazon.tv.acr": { "category": "tracking", "ask": false },
+        "com.amazon.tv.democontent.provider": { "category": "demo", "ask": false },
+        "com.amazon.tv.ftvambient": { "category": "screensaver", "ask": true },
+        "com.amazon.hedwig": { "category": "ads", "ask": true }
+      }
+    },
     "hisense-hg9": {
       "match": { "models": [], "devices": ["laohushan"], "brand": "Hisense", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": null },
       "platform": "ANDROID_TV",
@@ -1073,6 +1125,31 @@
         "com.android.providers.calendar": { "category": "other", "ask": true },
         "com.google.android.backdrop": { "category": "screensaver", "ask": true },
         "com.google.android.tvrecommendations": { "category": "ads", "ask": true }
+      }
+    },
+    "jvc-lt55mb508": {
+      "match": { "models": [], "devices": ["seocho"], "brand": "JVC", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.mediatek.wwtv.tvcenter",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.mediatek.wwtv.tvcenter", "com.mediatek.tvinput", "fusion.android.tv.demo", "com.google.android.leanbacklauncher.partnercustomizer", "com.airoha.btd", "com.mediatek.tv.factorykey", "com.google.android.tv.remote.service", "mediatek.factorymenu.ui"],
+      "suggestedDock": [],
+      "tested": { "by": "loopbackbr (PR #1469)", "firmware": "RTO8.250904.001", "daysLivedWith": 4, "rebootTested": true },
+      "groups": {
+        "Batch 1: telemetry": { "category": "tracking", "ask": false },
+        "Batch 2: auto-installs and background services": { "category": "ads", "ask": false },
+        "Batch 3: recommendation rows and notifications panel (test alone, closest to the stock launcher)": { "category": "ads", "ask": false },
+        "Batch 4: personal choice, comment out what you use": { "category": "streaming", "ask": true },
+        "Not system apps: pushed through the Play Store by the auto-install config above after setup": { "category": "streaming", "ask": true },
+        "Batch 5: personal choice, voice and features": { "category": "voice", "ask": true }
+      },
+      "packages": {
+        "com.google.android.syncadapters.calendar": { "category": "other", "ask": false },
+        "com.google.android.apps.mediashell": { "category": "casting", "ask": true },
+        "com.google.android.backdrop": { "category": "screensaver", "ask": true },
+        "com.mediatek.wwtv.mediaplayer": { "category": "preloads", "ask": true }
       }
     },
     "kalley-43g200": {
@@ -2004,6 +2081,26 @@
         "com.google.android.tv.remote.service": { "category": "casting", "ask": true }
       }
     },
+    "redmi-mitv-mftp0": {
+      "match": { "models": ["MiTV-MFTP0"], "devices": ["alita"], "brand": "Xiaomi", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.mitv.tvhome"],
+      "liveTv": "com.xiaomi.mitv.tvplayer",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.mitv.tvhome", "mitv.service", "com.xiaomi.mitv.tvplayer", "com.xiaomi.mitv.settings", "com.xiaomi.mitv.systemui", "com.mediatek.tvinput", "com.sohu.inputmethod.sogou.tv", "com.xiaomi.mitv.tvpush.tvpushservice", "com.xiaomi.mitv.smartpanel", "com.mitv.codec.update", "com.xiaomi.mitv.appstore", "com.xiaomi.mitv.mediaexplorer", "com.mitv.videoplayer", "com.xiaomi.account"],
+      "suggestedDock": [],
+      "tested": { "by": "shaoxyz (PR #631)", "firmware": "23.2.10.6129", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "Xiaomi telemetry / quality reports / cloud control": { "category": "tracking", "ask": false },
+        "Ads / promoted content / shopping": { "category": "ads", "ask": false },
+        "Xiaomi background services and preloaded apps (most are in Settings.System can_be_deleted)": { "category": "preloads", "ask": false },
+        "Off by choice: re-enable if an external Xiao Ai speaker should control the TV (see MiTV-ANSP0)": { "category": "brand", "ask": true }
+      },
+      "packages": {
+        "com.xiaomi.gamecenter.sdk.service.mibox": { "category": "brand", "ask": true }
+      }
+    },
     "sanyo-atv-r2": {
       "match": { "models": [], "devices": ["R2"], "brand": "SANYO", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": "SANYO/SANYO/R2:9/PTT1.201001.001/200" },
       "platform": "ANDROID_TV",
@@ -2066,6 +2163,40 @@
         "ru.sberdevices.openbeta": { "category": "brand", "ask": false },
         "ru.sberdevices.starcleaner": { "category": "preloads", "ask": false },
         "ru.sberdevices.gamepad.service": { "category": "other", "ask": true }
+      }
+    },
+    "sharp-2t-c32gh3000i": {
+      "match": { "models": [], "devices": ["beomil"], "brand": "SHARP", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": "Sharp/SW11_SHARP_APEU/beomil:14/" },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.cltv.hybrid",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH", "WIRELESS_DEBUG_PAIRING_REQUIRED"],
+      "neverDisable": ["com.cltv.hybrid", "com.mediatek.tvinput", "com.smartdevice.global.service", "com.smartdevice.dailyshortcut", "com.tianci.localmedia", "com.google.android.tv.googletvremotepairer", "com.smartdevice.factory", "com.google.android.tv.remote.service"],
+      "suggestedDock": [],
+      "tested": { "by": "ariwisnu (PR #1160)", "firmware": "UKN6.260116.061", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Skyworth telemetry and activation": { "category": "tracking", "ask": false },
+        "Android ad and personalisation services": { "category": "tracking", "ask": false },
+        "Skyworth content and recommendations": { "category": "ads", "ask": false },
+        "Bloatware / cleaners / manuals / unused": { "category": "preloads", "ask": false },
+        "Stock Google TV home and setup wizard": { "category": "home", "ask": false },
+        "Memory pass: the set has ~1 GB RAM and was swapping": { "category": "other", "ask": false }
+      },
+      "packages": {
+        "com.android.adservices.api": { "category": "ads", "ask": false },
+        "com.smartdevice.leanbacklauncher.customizer": { "category": "ads", "ask": true },
+        "com.smartdevice.dailymanage": { "category": "brand", "ask": false },
+        "com.smartdevice.myapp": { "category": "brand", "ask": false },
+        "com.google.android.play.games": { "category": "preloads", "ask": true },
+        "com.amazon.amazonvideo.livingroom": { "category": "streaming", "ask": true },
+        "com.google.android.apps.mediashell": { "category": "casting", "ask": true },
+        "com.smartdevice.dtv.icast": { "category": "casting", "ask": true },
+        "com.google.android.apps.tv.dreamx": { "category": "screensaver", "ask": true },
+        "com.google.android.partnersetup": { "category": "tracking", "ask": false },
+        "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": true },
+        "com.tencent.qqlivei18n": { "category": "streaming", "ask": true },
+        "com.apple.atve.androidtv.appletv": { "category": "streaming", "ask": true }
       }
     },
     "sharp-aquos-tve21f": {
@@ -3664,6 +3795,36 @@
         "com.google.android.speech.pumpkin": { "category": "voice", "ask": true }
       }
     },
+    "thomson-43rt1055": {
+      "match": { "models": [], "devices": ["sauve"], "brand": "Thomson", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": "THOMSON/SPPL_2K_RT41/sauve:14/" },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.realtek.tv",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.realtek.tv", "com.realtek.tv.passthrough", "com.realtek.dtv", "com.realtek.tv.atv", "com.realtek.menu", "com.realtek.globalkeyhandler", "com.realtek.systemservice", "com.realtek.connecteddevices", "com.google.android.tv.googletvremotepairer", "com.google.android.tv.remote.service"],
+      "suggestedDock": [],
+      "tested": { "by": "Manu Sharma (PR #634)", "firmware": "UKRE.260524.055", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Telemetry and ad services": { "category": "tracking", "ask": false },
+        "Content, promos and partner installs": { "category": "ads", "ask": false },
+        "Background services": { "category": "other", "ask": false },
+        "Off by choice on this unit (comment out what you use)": { "category": "streaming", "ask": true },
+        "Stock launcher and its partner rows. Do this LAST, after launcher/ is installed and set as Home.": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.android.adservices.api": { "category": "ads", "ask": false },
+        "com.android.ondevicepersonalization.services": { "category": "ads", "ask": false },
+        "com.vewd.core.service": { "category": "other", "ask": true },
+        "com.realtek.retailmode": { "category": "demo", "ask": false },
+        "com.rtk.mediabrowser": { "category": "preloads", "ask": true },
+        "com.cltv.fast": { "category": "ads", "ask": true },
+        "com.google.android.apps.mediashell": { "category": "casting", "ask": true },
+        "com.google.android.tv.dfuservice": { "category": "other", "ask": true },
+        "com.google.android.backdrop": { "category": "screensaver", "ask": true },
+        "com.google.android.play.games": { "category": "preloads", "ask": true }
+      }
+    },
     "thomson-t32rtl6000": {
       "match": { "models": ["ATV R1"], "devices": ["R1"], "brand": "Thomson", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": "THOMSON/THOMSON/R1:9/PTT1.210114.001/" },
       "platform": "ANDROID_TV",
@@ -3983,7 +4144,7 @@
       }
     },
     "xiaomi-mi-box-s": {
-      "match": { "models": ["MIBOX4"], "devices": ["oneday"], "brand": "Xiaomi", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": "Xiaomi/oneday/oneday:9/PI/3933" },
+      "match": { "models": ["MIBOX4"], "devices": ["oneday"], "brand": "Xiaomi", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": "Xiaomi/oneday/oneday:9/PI/" },
       "platform": "ANDROID_TV",
       "stockLaunchers": ["com.google.android.tvlauncher"],
       "liveTv": null,
@@ -4031,6 +4192,24 @@
         "com.amazon.amazonvideo.livingroom": { "category": "streaming", "ask": true },
         "com.google.android.videos": { "category": "streaming", "ask": true }
       }
+    },
+    "xiaomi-mi-box-s-android12": {
+      "match": { "models": ["MIBOX4"], "devices": ["oneday"], "brand": "Xiaomi", "sdkMin": 31, "sdkMax": 31, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": null,
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["mitv.service", "com.google.android.tv.remote.service", "com.xiaomi.android.tvsetup.partnercustomizer", "com.google.android.tungsten.setupwraith"],
+      "suggestedDock": [],
+      "tested": { "by": "Alimango Studio (PR #1523)", "firmware": "STTC.230106.001.4560", "daysLivedWith": 2, "rebootTested": false },
+      "groups": {
+        "Xiaomi telemetry": { "category": "tracking", "ask": false },
+        "PatchWall, content rows, ad-funded channels": { "category": "ads", "ask": false },
+        "Personal choice: Mi casting": { "category": "casting", "ask": true },
+        "Xiaomi screensaver, replaced by the launcher's clock": { "category": "screensaver", "ask": true }
+      },
+      "packages": {}
     },
     "xiaomi-mi-tv-4a": {
       "match": { "models": ["MiTV-MOOQ1"], "devices": ["tarzan"], "brand": "Xiaomi", "sdkMin": 29, "sdkMax": 29, "fingerprintPrefix": null },
@@ -4149,6 +4328,40 @@
         "com.mitv.alarmcenter": { "category": "other", "ask": true }
       }
     },
+    "xiaomi-mitv-astp0": {
+      "match": { "models": ["MiTV-ASTP0"], "devices": ["mulan"], "brand": "Xiaomi", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.mitv.tvhome"],
+      "liveTv": "com.xiaomi.mitv.tvplayer",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.mitv.tvhome", "mitv.service", "com.xiaomi.mitv.settings", "com.xiaomi.mitv.tvplayer", "com.droidlogic.tvinput", "com.xiaomi.mitv.systemui", "com.xiaomi.mitv.smartshare", "com.mitv.videoplayer", "com.xiaomi.mitv.mediaexplorer", "com.xiaomi.mitv.appstore"],
+      "suggestedDock": [],
+      "tested": { "by": "Kien (PR #628)", "firmware": "22.12.2.1630", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "Xiaomi telemetry / push / cloud control": { "category": "tracking", "ask": false },
+        "Ads / promoted content / shopping": { "category": "ads", "ask": false },
+        "Xiaomi background services": { "category": "brand", "ask": false },
+        "Preloaded apps not used": { "category": "preloads", "ask": false },
+        "Casting except AirPlay (com.xiaomi.mitv.smartshare keeps .mairplay.AirPlayService on port 47000)": { "category": "casting", "ask": true },
+        "Phone remote, air mouse and the TV assistant relay. It reconnects to relay01.c.assistant.tv.mi.com,": { "category": "brand", "ask": true },
+        "Chinese voice assistant (owner's choice)": { "category": "voice", "ask": true },
+        "Chinese payment (owner's choice)": { "category": "brand", "ask": true },
+        "Content (owner's choice)": { "category": "streaming", "ask": true },
+        "Keyboard: Gboard for Android TV 16.1.02 (com.google.android.inputmethod.latin, tv_release armeabi-v7a,": { "category": "other", "ask": true }
+      },
+      "packages": {
+        "com.android.smspush": { "category": "preloads", "ask": false },
+        "com.xiaomi.mitv.tvmanager": { "category": "brand", "ask": true },
+        "com.xiaomi.gamecenter.sdk.service.mibox": { "category": "brand", "ask": true },
+        "com.xiaomi.wakeupservice": { "category": "voice", "ask": true },
+        "com.xiaomi.mitv.smartpanel": { "category": "brand", "ask": true },
+        "com.mitv.screensaver": { "category": "screensaver", "ask": true },
+        "com.xiaomi.mibox.lockscreen": { "category": "other", "ask": true },
+        "com.xiaomi.smarthome.tv": { "category": "brand", "ask": true },
+        "com.xiaomi.mitv.tvpush.tvpushservice": { "category": "tracking", "ask": true }
+      }
+    },
     "xiaomi-mitv-astp1": {
       "match": { "models": ["MiTV-ASTP1"], "devices": ["maverick"], "brand": "Xiaomi", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": null },
       "platform": "ANDROID_TV",
@@ -4242,6 +4455,30 @@
         "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": true },
         "com.google.android.marvin.talkback": { "category": "accessibility", "ask": true },
         "com.android.dreams.basic": { "category": "screensaver", "ask": true }
+      }
+    },
+    "xiaomi-mitv-ayfr0": {
+      "match": { "models": ["MiTV-AYFR0"], "devices": ["soul"], "brand": "Xiaomi", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": null,
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["mitv.service", "com.mi.bluetooth", "com.xiaomi.tvqs.overseas", "com.xiaomi.android.tvsetup.partnercustomizer", "com.google.android.tv.remote.service", "com.google.android.tungsten.setupwraith"],
+      "suggestedDock": [],
+      "tested": { "by": "steepenergy (PR #740)", "firmware": "UKG3.250107.001 (V816.0.26.6.10)", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "Xiaomi + Google telemetry and attribution": { "category": "tracking", "ask": false },
+        "PatchWall, content rows, promos, auto-installs": { "category": "ads", "ask": false },
+        "Xiaomi update service (re-enable to check for firmware updates)": { "category": "updates", "ask": true },
+        "Preloaded apps": { "category": "preloads", "ask": false }
+      },
+      "packages": {
+        "com.netflix.ninja": { "category": "streaming", "ask": true },
+        "com.amazon.amazonvideo.livingroom": { "category": "streaming", "ask": true },
+        "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": true },
+        "com.google.android.marvin.talkback": { "category": "accessibility", "ask": true },
+        "com.mitv.videoplayer": { "category": "preloads", "ask": true }
       }
     },
     "xiaomi-mitv-mffu0": {
@@ -4433,6 +4670,27 @@
         "fusion.android.tv.demo": { "category": "demo", "ask": true }
       }
     },
+    "xiaomi-mitv-mssp0": {
+      "match": { "models": ["MiTV-MSSP0"], "devices": ["amelie"], "brand": "Xiaomi", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.mediatek.wwtv.tvcenter",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.mediatek.wwtv.tvcenter", "com.mediatek.tvinput", "mitv.service", "com.mediatek.hotkey.dispatcher", "com.xiaomi.android.tvsetup.partnercustomizer", "com.google.android.tv.remote.service", "com.xiaomi.mitv.updateservice"],
+      "suggestedDock": [],
+      "tested": { "by": "Roman Linev (PR #661)", "firmware": "PI.5926", "daysLivedWith": 2, "rebootTested": true },
+      "groups": {
+        "Xiaomi telemetry and Google TV bug-report uploader": { "category": "tracking", "ask": false },
+        "Promotional content and stock-home recommendation feeds": { "category": "ads", "ask": false },
+        "Assistant - off by owner choice": { "category": "voice", "ask": true },
+        "Unused preloaded apps - off by owner choice": { "category": "preloads", "ask": true },
+        "Original photo screensaver, replaced by the launcher's Clock (see above)": { "category": "screensaver", "ask": true }
+      },
+      "packages": {
+        "com.xiaomi.floatingframe": { "category": "brand", "ask": false }
+      }
+    },
     "xiaomi-mitv-mssp1": {
       "match": { "models": ["MiTV-MSSP1"], "devices": ["nino"], "brand": "Xiaomi", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": null },
       "platform": "ANDROID_TV",
@@ -4457,6 +4715,27 @@
       "packages": {
         "com.xiaomi.floatingframe": { "category": "brand", "ask": false },
         "com.google.android.marvin.talkback": { "category": "accessibility", "ask": true }
+      }
+    },
+    "xiaomi-mitv-mssp2": {
+      "match": { "models": ["MiTV-MSSP2"], "devices": ["volver"], "brand": "Xiaomi", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.mediatek.wwtv.tvcenter",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.mediatek.wwtv.tvcenter", "com.mediatek.tvinput", "mitv.service", "com.mediatek.hotkey.dispatcher", "com.xiaomi.android.tvsetup.partnercustomizer", "com.google.android.tv.remote.service", "com.xiaomi.mitv.mediaexplorer", "com.xiaomi.mitv.updateservice"],
+      "suggestedDock": [],
+      "tested": { "by": "bart-b-pl (PR #643)", "firmware": "PI.4621", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "Xiaomi + Google telemetry": { "category": "tracking", "ask": false },
+        "PatchWall, content rows, sponsored rows": { "category": "ads", "ask": false },
+        "Xiaomi + Android background services": { "category": "preloads", "ask": false },
+        "Preloaded apps": { "category": "preloads", "ask": false },
+        "Stock Android TV launchers, replaced by launcher/": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.google.android.videos": { "category": "streaming", "ask": true }
       }
     },
     "xiaomi-mitv-mssp3": {
@@ -4503,6 +4782,37 @@
         "Preloaded apps": { "category": "preloads", "ask": false }
       },
       "packages": {}
+    },
+    "xiaomi-mitv-mteq0": {
+      "match": { "models": ["MiTV-MTEQ0"], "devices": ["baymax"], "brand": "Xiaomi", "sdkMin": 29, "sdkMax": 29, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.mitv.tvhome"],
+      "liveTv": "com.xiaomi.mitv.tvplayer",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.mitv.tvhome", "mitv.service", "com.xiaomi.mitv.tvplayer", "com.xiaomi.mitv.settings", "com.xiaomi.mitv.systemui", "com.xiaomi.mitv.providers.settings", "com.mediatek.backgrounddetection", "com.mediatek.tvinput", "com.sohu.inputmethod.sogou.tv", "com.xiaomi.setupwizard"],
+      "suggestedDock": [],
+      "tested": { "by": "Gấu Coder (PR #612)", "firmware": "23.6.26.4028 (QQ2A.200305.004.A1)", "daysLivedWith": 1, "rebootTested": true },
+      "groups": {
+        "Xiaomi telemetry, diagnostics and log upload": { "category": "tracking", "ask": false },
+        "Push, cloud control, ads and promoted content": { "category": "ads", "ask": false },
+        "Shopping, payment and Mi account": { "category": "brand", "ask": true },
+        "Updates and app store": { "category": "updates", "ask": true },
+        "Cleaners, panels and first-run setup": { "category": "brand", "ask": false },
+        "Casting (off by choice)": { "category": "casting", "ask": true },
+        "Smart home / IoT": { "category": "brand", "ask": true },
+        "XiaoAI voice assistant. The remote's mic key only reaches com.xiaomi.voicecontrol (no key event),": { "category": "voice", "ask": true },
+        "Preloaded apps (off by choice)": { "category": "preloads", "ask": true }
+      },
+      "packages": {
+        "com.xiaomi.mitv.tvpush.tvpushservice": { "category": "tracking", "ask": true },
+        "com.mitv.screensaver": { "category": "screensaver", "ask": true },
+        "fusion.android.tv.demo": { "category": "demo", "ask": true },
+        "com.xiaomi.gamecenter.sdk.service.mibox": { "category": "brand", "ask": true },
+        "com.xiaomi.mitv.smartpanel": { "category": "brand", "ask": true },
+        "com.xiaomi.setupwizard": { "category": "other", "ask": true },
+        "com.xiaomi.mitv.tvmanager": { "category": "brand", "ask": true }
+      }
     },
     "xiaomi-tv-a-pro-2026": {
       "match": { "models": ["MiTV-MZTU0"], "devices": ["river"], "brand": "Xiaomi", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
