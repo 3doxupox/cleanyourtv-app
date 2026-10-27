@@ -746,6 +746,13 @@ class DefaultEngine(
         }
     }
 
+    // A curtain step of this run was done (its install or its start) and its removal was not.
+    private fun curtainLeft(run: Run): Boolean {
+        val steps = run.plan.steps.filter { it.group == DefaultPlanner.GROUP_CURTAIN }
+        val removal = steps.lastOrNull { it.op is Op.Uninstall } ?: return false
+        return removal.index !in run.done && steps.any { it.index in run.done && (it.op is Op.Install || it.op is Op.InstallStream || it.op is Op.StartActivity) }
+    }
+
     private suspend fun end(run: Run, status: RunStatus, home: HomeOutcome?) {
         journal.append(JournalRecord.End(run.plan.id, status))
         run.hold?.close(); run.hold = null
@@ -866,7 +873,11 @@ class DefaultEngine(
         if (flow(tvId).value !is RunState.Paused) return
         val open = run.plan.sections.firstOrNull { it.name in run.openSections }
         val restore = unfinishedAccessibilityRestore(run)
-        if (open == null && restore.isEmpty()) { end(run, RunStatus.ABANDONED, run.home); return }
+        // QA of 0.4.5: "Stop here" left the TV curtain this run installed running on the TV. Its
+        // removal (the plan's own curtain step, nothing else) runs before the run is given up, when
+        // the TV is there; without the TV the run ends as before, and Leftovers removes it later.
+        val curtain = curtainLeft(run) && run.session.state.value is ConnectionState.Connected
+        if (open == null && restore.isEmpty() && !curtain) { end(run, RunStatus.ABANDONED, run.home); return }
         // An open section means the TV's own home screen may be off: step R runs before the run is
         // given up. A restore of the accessibility services cut off half way (upstream #424) leaves
         // the TV with none, and accessibility off: its remaining steps run first too (RF-LAUNCHER-250
@@ -878,6 +889,7 @@ class DefaultEngine(
             guarded(run) {
                 if (open != null && !rollbackSection(run, open, HomeOutcome.CONNECTION_LOST)) return@guarded
                 if (!finishAccessibilityRestore(run, restore)) return@guarded
+                if (curtainLeft(run)) removeCurtain(run, 0)
                 end(run, RunStatus.ABANDONED, run.home)
             }
         }
