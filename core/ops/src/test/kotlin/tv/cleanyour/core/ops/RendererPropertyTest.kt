@@ -19,6 +19,7 @@ import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 // SECURITY 3.4 item 4 as property tests over seeded generators (deterministic, no library): for any
@@ -154,6 +155,8 @@ class RendererPropertyTest {
                 Op.Read(ProbeKind.PACKAGE_DUMP, ReadArg.Pkg(tvhome)), Op.Read(ProbeKind.SETTINGS, ReadArg.Ns(SettingsNs.SECURE)))
         }
         val forbidden = setOf("notification", "allow_listener", "allow_assistant", "grant", "appops")
+        // No setting the app can write is a notification one (enabled_notification_listeners and the like).
+        for (k in SettingKey.entries) assertTrue("notification" !in k.key, k.key)
         for (op in aimed + List(5000) { anyOp() }) {
             val r = try { renderer.render(op) } catch (e: RenderRefused) { continue }
             val rendered = r.lines + listOfNotNull(r.verify).flatMap { renderer.render(it).lines }
@@ -166,8 +169,9 @@ class RendererPropertyTest {
                 assertTrue(argv.none { it in forbidden }, line.text)
                 assertTrue(argv.none { "WRITE_SECURE_SETTINGS" in it || "BIND_NOTIFICATION_LISTENER" in it }, line.text)
                 if (argv.take(2) == listOf("am", "broadcast")) assertEquals("tv.cleanyour.curtain/.CueReceiver", argv[3], line.text)
-                if (argv.any { "accessibility" in it } && argv.firstOrNull() == "settings" && argv.getOrNull(1) != "list") {
-                    val put = op as Op.SettingsPut
+                // Any line naming accessibility, but the settings list read, is one of the two SettingsPut forms.
+                if (argv.any { "accessibility" in it } && argv.take(2) != listOf("settings", "list")) {
+                    val put = assertIs<Op.SettingsPut>(op, line.text)
                     assertTrue(put.key == SettingKey.ENABLED_ACCESSIBILITY || put.key == SettingKey.ACCESSIBILITY_ENABLED, line.text)
                     val want = if (put.value == null) listOf("settings", "delete", "secure", put.key.key)
                         else listOf("settings", "put", "secure", put.key.key, put.value!!)
