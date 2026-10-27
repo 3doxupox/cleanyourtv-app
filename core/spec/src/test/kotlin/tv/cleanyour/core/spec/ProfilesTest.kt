@@ -109,6 +109,23 @@ class ProfilesTest {
         for (pkg in secondSet) assertEquals(GroupDefault.ASK, aesp0.groups.single { g -> g.packages.any { it.name == p(pkg) } }.default, pkg)
     }
 
+    // b06ab21: the R10G lists of the MOKA family. kalley-r10g keeps launcherx and the setup wizard on
+    // (upstream #1807: with both off, system_server crashed in a boot loop), and prismplus-q65-ultra-r10g,
+    // whose list switches the wizard off, keeps it on too (setupWraithStaysOn): the home screen switch is
+    // skipped for the family (HomeSwitchRisk.BOOT_LOOP), so neither profile switches either one off.
+    @Test fun theR10gProfilesKeepTheStockHomeAndTheWizard() {
+        for (id in listOf("kalley-r10g", "prismplus-q65-ultra-r10g")) {
+            val pr = profile(id)
+            val inGroups = pr.groups.flatMap { g -> g.packages.map { it.name } }
+            for (pkg in listOf(KnownLaunchers.LAUNCHERX.pkg, KnownLaunchers.SETUPWRAITH)) assertTrue(pkg !in inGroups, "$id $pkg")
+            assertEquals(null, pr.setupWraith, id)
+            assertTrue(Quirk.HOME_TAKEOVER_SETUPWRAITH !in pr.quirks, id)
+            assertTrue(KnownLaunchers.SETUPWRAITH in pr.neverDisable, id)
+        }
+        val kalley = profile("kalley-r10g")
+        assertTrue(KnownLaunchers.LAUNCHERX.pkg in kalley.neverDisable && Quirk.STOCK_LAUNCHER_KEEP_ENABLED in kalley.quirks)
+    }
+
     @Test fun theReferenceTvProfile() {
         val mi = profile("xiaomi-mitv-axso0")
         assertEquals(listOf("MiTV-AXSO0"), mi.match.models)
@@ -397,6 +414,9 @@ class ProfilesTest {
     // 0.3.7 (owner decision): the Hisense set gains com.google.android.partnersetup and
     // com.google.android.syncadapters.calendar from v2.7.0's hisense-smarttv-4k-ffm (9 to 11). The
     // lists promoted in 0.3.7 do not feed the sets yet (SureSetGenerator.REVIEW_PENDING).
+    // b06ab21: the same rows. The Amazon set's notes for com.amazon.media.recommendations,
+    // com.amazon.client.metrics.api and com.amazon.tv.developer.dataservice now come from
+    // amazon-fire-tv-afttiff43, the first Amazon list, whose Omni rows note them.
     @Test fun theFullSetsAreThoseOf034() {
         val profiles = SureSetGenerator.feeding(BundledProfileSource.bundled.profiles.filter { !it.isCandidate })
         val brands = profiles.groupBy { it.match.brand!!.lowercase() }
@@ -411,7 +431,7 @@ class ProfilesTest {
                 s.stockLaunchers.joinToString(",") { it.flat } + "\n"
         }
         val digest = java.security.MessageDigest.getInstance("SHA-256").digest(canon.encodeToByteArray()).joinToString("") { "%02x".format(it) }
-        assertEquals("5bb3f4276f1faf5308cb627bb4f22d5655121c8d71e21be111fbeb8489679106", digest)
+        assertEquals("87fc297c2148998441972fa6a737143094657bc28a78bd4d14db9db8a2089d01", digest)
         // The careful sets come after every full set, so a full set wins when both match a TV.
         assertTrue(sets.drop(full.size).all { brands.getValue(it.brand.lowercase()).size < 3 })
     }
@@ -428,23 +448,21 @@ class ProfilesTest {
         assertEquals(six, SureSetGenerator.CAREFUL_PACKAGES)
         val union = careful.flatMap { s -> s.groups.flatMap { g -> g.packages.map { it.name } } }.toSet()
         assertTrue(six.containsAll(union), "careful sets hold only the reviewed packages: ${union - six}")
-        // b06ab21: the other five are asked first somewhere (com.android.printspooler in
-        // amazon-fire-tv-afttiff43's Omni rows; com.android.tv.feedbackconsent and the three Privacy
-        // Sandbox packages in prismplus-q65-ultra-r10g), so rule 2 leaves them out of every careful set
-        // until those rows are reviewed. docs/history/reviews/UP300-sure-sets.txt has the per brand diff.
-        assertEquals(setOf(p("com.google.android.feedback")), union, "the reviewed packages no list asks for first")
+        assertEquals(six, union, "every reviewed package is in some careful set")
         assertEquals(careful.map { it.brand.lowercase() }.sorted(), careful.map { it.brand.lowercase() })
         fun pkgs(vararg names: String) = names.map(::p).toSet()
         // The brands of the reported TVs the change is for (docs/lists-0.3.5, the per-brand table).
         val reported = mapOf(
-            "Skyworth" to pkgs("com.google.android.feedback"),
-            "SHARP" to pkgs("com.google.android.feedback"),
+            "Skyworth" to pkgs("com.google.android.feedback", "com.android.tv.feedbackconsent"),
+            "SHARP" to pkgs("com.google.android.feedback", "com.android.tv.feedbackconsent"),
             "OnePlus" to pkgs("com.google.android.feedback"),
-            "onn" to pkgs("com.google.android.feedback"),
+            "onn" to pkgs("com.google.android.feedback", "com.android.tv.feedbackconsent", "com.android.printspooler"),
             "Haier" to pkgs("com.google.android.feedback"),
-            "google" to pkgs("com.google.android.feedback"),
-            "Expressluck" to pkgs("com.google.android.feedback"),
-            "SkyworthDigital" to pkgs("com.google.android.feedback"),
+            "google" to pkgs("com.google.android.feedback", "com.android.tv.feedbackconsent"),
+            "Expressluck" to six - p("com.android.printspooler"),
+            "SkyworthDigital" to six,
+            // b06ab21: prismplus-q65-ultra-r10g switches off what kalley-43g200 does (curation notes).
+            "MOKA" to six - p("com.google.android.feedback"),
         )
         for ((brand, want) in reported) assertEquals(want, careful.single { it.brand == brand }.groups.flatMap { g -> g.packages.map { it.name } }.toSet(), brand)
         val askedSomewhere = profiles.flatMap { pr -> pr.groups.filter { it.default != GroupDefault.DISABLE }.flatMap { g -> g.packages.map { it.name } } }.toSet()
@@ -476,7 +494,7 @@ class ProfilesTest {
         val sharp = source.resolve(mi.copy(brand = "SHARP", manufacturer = "SHARP", model = "AQUOS_TVE19A", device = "sindang", sdk = 30))
         assertTrue(sharp is ProfileResolution.BrandSureSet && sharp.brand == "SHARP", sharp.toString())
         assertEquals(KnownLaunchers.generic, sharp.stockLaunchers)
-        assertEquals(setOf(p("com.google.android.feedback")), sharp.sureSet.flatMap { g -> g.packages.map { it.name } }.toSet())
+        assertEquals(setOf(p("com.google.android.feedback"), p("com.android.tv.feedbackconsent")), sharp.sureSet.flatMap { g -> g.packages.map { it.name } }.toSet())
         // A brand with a full set keeps it when its maker also has a careful set.
         val sonyBySkyworth = source.resolve(mi.copy(brand = "Sony", manufacturer = "Skyworth", model = "X1", device = "x1"))
         assertTrue(sonyBySkyworth is ProfileResolution.BrandSureSet && sonyBySkyworth.brand == "Sony", sonyBySkyworth.toString())
