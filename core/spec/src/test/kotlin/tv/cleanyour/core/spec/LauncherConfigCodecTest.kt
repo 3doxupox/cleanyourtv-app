@@ -210,6 +210,29 @@ class LauncherConfigCodecTest {
         assertEquals(all, ok(text).doc)
     }
 
+    // RFC-UP300-1: the 25 keys launcher 3.0 added are carried as is with no warning, apart from the
+    // modelled keys and the 2.7 carried ones, and written back after the modelled keys, sorted.
+    @Test fun launcher30KeysAreCarriedWithoutAWarning() {
+        assertEquals(25, ConfigCodecImpl.CARRIED_30.size)
+        for (k in ConfigCodecImpl.CARRIED_30) assertTrue(k !in ConfigCodecImpl.MODELLED && k !in ConfigCodecImpl.CARRIED_27, k)
+        val values = mapOf(
+            "input_sources" to JsonArray(listOf(JsonPrimitive("HW5=23"), JsonPrimitive("HW8=-"))),
+            "top_bar_apps" to JsonArray(listOf(JsonPrimitive("com.google.android.youtube.tv"))),
+            "lunar_utc_offset" to JsonPrimitive(7),
+            "clock_wallpaper_dim" to JsonPrimitive(40),
+            "locale" to JsonPrimitive("pt-BR"),
+            "glass_style" to JsonPrimitive("rim"),
+        )
+        val all = LauncherConfigDoc(dockRow = true, unknown = ConfigCodecImpl.CARRIED_30.associateWith { k -> values[k] ?: JsonPrimitive(true) })
+        val text = LauncherConfigCodec.encode(all).decodeToString()
+        assertEquals(listOf("dock_row") + ConfigCodecImpl.CARRIED_30.sorted(), Regex("^  \"([a-z_0-9]+)\":", RegexOption.MULTILINE).findAll(text).map { it.groupValues[1] }.toList())
+        assertEquals(emptyList(), ok(text).warnings)
+        assertEquals(all, ok(text).doc)
+        // Next to an unknown key, only that one warns.
+        val r = ok("{\"single_row\": true, \"dock_band\": false, \"zz\": 1}")
+        assertEquals(listOf("unknown key zz; the launcher ignores it (carried as is)"), r.warnings)
+    }
+
     // RFC-W4-1: the two keys upstream 1bbf0c9 added are fields, decoded in Config.java's order and
     // never carried in `unknown`.
     @Test fun inputActionAndModuleCardsAreModelled() {

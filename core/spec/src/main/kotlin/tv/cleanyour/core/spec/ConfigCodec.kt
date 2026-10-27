@@ -71,6 +71,26 @@ internal object ConfigCodecImpl {
         "wifi_status_color", "focus_overshoot",
         "cinematic_white_focus", "cinematic_dots",
     )
+    // The 25 keys launcher 3.0 (upstream main b06ab21, versionCode 9) added to Config.load, none of
+    // them modelled: carried in `unknown` as is with no warning, like CARRIED_27, since the bundled
+    // launcher reads them (RFC-UP300-1). A TV still on 2.7 or older ignores them. Every default keeps
+    // the 2.7 look (dock_band, show_greeting, clock_glow and show_library_pill default to true, the
+    // rest to off or empty), so BUILT_IN is unchanged. In Config.java's reading order: input_sources
+    // (a list, also in config.xml), lunar_date, lunar_utc_offset (-1 to 14, config.json only),
+    // open_on_start_choice, show_library_pill, library_ok_opens, uniform_tiles, the key helper
+    // switches, dock_band, then the top bar, header, clock screensaver and single row keys and
+    // glass_style. top_bar_apps also leaves the grid: Config adds those apps to the hidden list.
+    val CARRIED_30: Set<String> = setOf(
+        "input_sources", "lunar_date", "lunar_utc_offset", "open_on_start_choice",
+        "show_library_pill", "library_ok_opens", "uniform_tiles",
+        "consume_volume_keys", "power_on_home", "home_long_press_home", "power_on_home_always",
+        "dock_band",
+        "wifi_status_warnings", "date_below_clock", "vpn_pill", "locale", "top_bar_apps",
+        "show_greeting", "header_white",
+        "clock_wallpaper", "clock_wallpaper_dim", "clock_glow",
+        "single_row", "dock_band_all",
+        "glass_style",
+    )
 
     // res/values/config.xml of launcher 2.7 (unchanged for these keys since v2.5.0; the keys of older
     // launchers keep their values).
@@ -304,7 +324,7 @@ internal object ConfigCodecImpl {
         for ((k, v) in o) {
             if (k in MODELLED) continue
             unknown[k] = v.toJsonElement()
-            if (k !in CARRIED_27) w += "unknown key $k; the launcher ignores it (carried as is)"
+            if (k !in CARRIED_27 && k !in CARRIED_30) w += "unknown key $k; the launcher ignores it (carried as is)"
         }
         val doc = LauncherConfigDoc(
             dockApps = dock, hiddenApps = hidden, liveTvPackage = liveTv, liveTvAction = liveTvAction,
