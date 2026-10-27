@@ -120,6 +120,8 @@ class ManageDeps(
     val homeDecisions: HomeDecisions = HomeDecisions(documents),
     // 0.4.0: the pictures any look can show instead of its own (the app's ThemeSource is one).
     val pictures: PictureSource = themes as? PictureSource ?: PictureSource.NONE,
+    // 0.4.6: the app's redactor, run over what a card puts into a problem report (ReportContext).
+    val redact: (String) -> String = { it },
 ) {
     fun tv(id: TvId): Tv? = tvs.tvs.value.firstOrNull { it.id == id }
 
