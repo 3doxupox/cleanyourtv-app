@@ -59,4 +59,14 @@ class Promotions045SafetyTest {
         keeps("philips-google-tv-ta7", "com.mediatek.wwtv.tvcenter", "com.mediatek.tvinput", "com.mediatek.autopair", "com.mediatek.tv.service")
         for (s in listOf("com.google.android.apps.mediashell", "com.mediatek.opapp", "com.netflix.ninja")) assertTrue(p(s) !in defaultOff("philips-google-tv-ta7"), s)
     }
+
+    @Test fun tclG08EuAndroid12() {
+        val pr = defaultsPass("tcl-g08-eu-android12")
+        // The setup wizard is a kept line in the list; the header says to switch it off just before the
+        // launcher goes in, which is the home screen switch, with the Wi-Fi guard.
+        assertEquals(KnownLaunchers.SETUPWRAITH, pr.setupWraith)
+        keeps("tcl-g08-eu-android12", "com.tcl.autopair", "com.tcl.suspension", "com.tcl.interactive", "com.tcl.ttvs", "com.tcl.tv", "com.tcl.globalkeyoverlay")
+        for (s in listOf("com.mediatek.network", "com.mediatek.backgrounddetection", "com.mediatek.airplaydaemon", "com.tcl.dashboard", "com.tcl.browser", "com.tcl.hearaid", "com.google.android.tts"))
+            assertTrue(p(s) !in defaultOff("tcl-g08-eu-android12"), s)
+    }
 }

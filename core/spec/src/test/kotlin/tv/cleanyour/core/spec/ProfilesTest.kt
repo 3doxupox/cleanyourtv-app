@@ -25,7 +25,7 @@ class ProfilesTest {
 
     @Test fun everyConvertedUpstreamExampleParsesWithCuratedMetadata() {
         assertEquals(316, upstream.size)
-        assertEquals(151, examples.size)
+        assertEquals(152, examples.size)
         for (e in examples) {
             val profile = DebloatTxtParser.parse(e.debloatTxt, e.folder)
             assertEquals(e.folder, profile.id)
@@ -62,7 +62,7 @@ class ProfilesTest {
     @Test fun theUnconvertedListIsPinnedToTheSubmodule() {
         val meta = ProfileMeta.decode(File(Fixtures.repoRoot, "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json").readText())
         assertEquals(upstream.map { it.folder }.filter { it !in meta.profiles }.toSet(), unconverted)
-        assertEquals(165, unconverted.size)
+        assertEquals(164, unconverted.size)
         val listed = unconvertedFile.readLines().filter { it.isNotBlank() && !it.startsWith("#") }
         assertEquals(listed.sorted(), listed, "one folder per line, sorted")
         assertTrue('\u2014' !in unconvertedFile.readText() && "-".repeat(2) !in unconvertedFile.readText())
@@ -227,6 +227,8 @@ class ProfilesTest {
             facts("Smart TV Pro", "G05", "TCL", 30, "TCL/G05_4K_US/G05:11/x") to "tcl-g05-google-tv",
             facts("Smart TV Pro", "G08", "TCL", 34, "TCL/G08_4K_GB/G08:14/x") to "tcl-c755-google-tv",
             facts("Smart TV Pro", "G08", "TCL", 34, "TCL/G08_4K_US/G08:14/x") to "tcl-qm6k-google-tv",
+            // An AU G08 on Android 12 reports the EU list's fingerprint, so it gets that list (0.4.5).
+            facts("Smart TV Pro", "G08", "TCL", 31, "TCL/G08_4K_GB/G08:12/STT2.221228.001/AS34:user/release-keys") to "tcl-g08-eu-android12",
             facts("Smart TV Pro", "BeyondTV4", "TCL", 30) to "tcl-65c725",
             facts("UnionTV", "UnionTV", "TCL", 28) to "tcl-uniontv-latin-america",
             facts("UnionTV", "UnionTV", "Thomson", 28) to "thomson-32he5800",

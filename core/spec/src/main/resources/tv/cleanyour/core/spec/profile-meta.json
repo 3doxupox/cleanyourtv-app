@@ -3139,6 +3139,41 @@
         "com.google.android.apps.tv.dreamx": { "category": "screensaver", "ask": true }
       }
     },
+    "tcl-g08-eu-android12": {
+      "match": { "models": ["Smart TV Pro"], "devices": ["G08"], "brand": "TCL", "sdkMin": 31, "sdkMax": 31, "fingerprintPrefix": "TCL/G08_4K_GB/G08:12/" },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.tcl.tv",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH"],
+      "neverDisable": ["com.tcl.autopair", "com.tcl.suspension", "com.tcl.interactive", "com.tcl.ttvs", "com.tcl.tv", "com.tcl.tvinput", "com.tcl.globalkeyoverlay", "com.tcl.tv.tclhome_passive", "com.google.android.katniss"],
+      "suggestedDock": [],
+      "tested": { "by": "contributor of PR #657, second unit kermes (PR #1610)", "firmware": "STT2.221228.001 AS34", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "TCL promo, push messages, help/demo apps and log capture": { "category": "ads", "ask": false },
+        "Duplicate webviews on this firmware (com.google.android.webview is the active one)": { "category": "other", "ask": true },
+        "Mediatek casting/telemetry leftovers": { "category": "other", "ask": true },
+        "Google storefront and extras": { "category": "preloads", "ask": false }
+      },
+      "packages": {
+        "com.tcl.dashboard": { "category": "brand", "ask": true },
+        "com.tcl.exhibit": { "category": "demo", "ask": false },
+        "com.tcl.hearaid": { "category": "accessibility", "ask": true },
+        "com.tcl.ocean.instructions": { "category": "preloads", "ask": false },
+        "com.tcl.repairguide": { "category": "preloads", "ask": false },
+        "com.tcl.logkit": { "category": "tracking", "ask": false },
+        "com.tcl.browser": { "category": "preloads", "ask": true },
+        "com.tcl.smartalexa": { "category": "voice", "ask": true },
+        "com.tcl.t_solo": { "category": "brand", "ask": true },
+        "com.tcl.eva": { "category": "voice", "ask": true },
+        "com.tcl.magiconnectfree": { "category": "casting", "ask": true },
+        "com.tcl.gamebar": { "category": "brand", "ask": true },
+        "com.mediatek.airplaydaemon": { "category": "casting", "ask": true },
+        "com.google.android.videos": { "category": "streaming", "ask": true },
+        "com.google.android.tts": { "category": "accessibility", "ask": true },
+        "com.google.android.apps.tv.dreamx": { "category": "screensaver", "ask": true }
+      }
+    },
     "tcl-g09-google-tv": {
       "match": { "models": [], "devices": ["G09"], "brand": "TCL", "sdkMin": 31, "sdkMax": 31, "fingerprintPrefix": null },
       "platform": "GOOGLE_TV",

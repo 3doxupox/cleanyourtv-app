@@ -420,6 +420,14 @@ tcl-g07-google-tv	com.tcl.dashboard	other TCL lists keep it; ask row
 tcl-g07-google-tv	com.tcl.notereminder	added in v2.5.0 (it was on on the AR17 unit); reminders fed by the message box, default-off as listed
 tcl-g07-google-tv	com.tcl.ttvs	the header itself says it is also TCL's firmware updater; Software updates row
 tcl-g07-google-tv	com.tcl.useragreement	tcl-55s470g and tcl-c755 keep it (setup screens); ask row
+tcl-g08-eu-android12	(header)	the four DO NOT DISABLE lines (autopair, suspension, interactive, ttvs) and the Left enabled on purpose names are never-disable
+tcl-g08-eu-android12	(match)	device G08 with the prefix TCL/G08_4K_GB/G08:12/ keeps out the US and NF products and Android 14 (issues #574, #406). The AU list reports the same fingerprint, so an AU set resolves here; its list switches off every package of this one that the AU build has, except the AirPlay daemon, which is an ask row here
+tcl-g08-eu-android12	com.google.android.tungsten.setupwraith	a kept line in the list, which says to switch it off just before installing the launcher: that is the home screen switch, with the Wi-Fi guard (the second unit, AS36, ran it so)
+tcl-g08-eu-android12	com.mediatek.airplaydaemon	the AU list keeps it for AirPlay; casting ask row
+tcl-g08-eu-android12	com.mediatek.backgrounddetection	ask row: tcl-q7c keeps it on its Google TV home units, with com.mediatek.network
+tcl-g08-eu-android12	com.mediatek.network	MediaTek's network monitor (persistent on xiaomi-mitv-moor2); the owner rule keeps network services out of default-off groups, so an ask row
+tcl-g08-eu-android12	com.tcl.browser	tcl-q7c calls it the remote's Web-key target; ask row
+tcl-g08-eu-android12	com.tcl.dashboard	tcl-q7c says it is the gear button's app on the stock home, which this list's first set kept; ask row
 tcl-g09-google-tv	(match)	device G09 alone: the model Smart TV Pro names a family; no other profile uses G09
 tcl-g09-google-tv	com.google.android.tungsten.setupwraith	the header says it claims Home once launcherx is off and the scripts check its Wi-Fi first; it goes with the home screen switch, where the Wi-Fi guard applies
 tcl-g09-google-tv	com.google.android.tv.remote.service	the phone remote; on tcl-c755 and tcl-85rm7l it carries the remote's mic button; casting ask row

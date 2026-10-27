@@ -35,9 +35,12 @@ com.hisense.logupload	purpose from the package name
 com.hisense.myapplication	taken for a screensaver from the list's comment (DayDreamService)
 com.hisense.platformreport	purpose from the package name
 com.hisense.tv.fitmirror	purpose from the list's comment only (fitness mirror)
+com.iplayer.android.webview	purpose from the package name and the list's group title
 com.joxdev.orbia	what the app is (taken for a game from the list's games group)
 com.mautilus.tvgames.portal.androidtv	what the app is (taken for a game portal from the name and group)
 com.mediatek.androidbox	what it is on each set: the Miracast receiver on the Hisense and Haier lists, a test app on the AiPro2K
+com.mediatek.backgrounddetection	purpose from the package name and the list's group title
+com.mediatek.support.webview	purpose from the package name and the list's group title
 com.mediatek.tv.factory	purpose from the list's comment only
 com.mediatek.tv.freeviewplay	purpose from the lists' comments only
 com.mediatek.wwtv.tvrecommendation	purpose from the package name

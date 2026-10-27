@@ -439,6 +439,7 @@ com.iflytek.xiri.translate	iFlytek translate	Voice translation helper	voice
 com.imdb.livingroom.firetv	IMDb	Film and TV database app	preloads
 com.imdbtv.livingroom	Freevee	Amazon's free streaming app (IMDb TV)	streaming
 com.internet.tvbrowser	TV browser	Preloaded web browser	preloads
+com.iplayer.android.webview	Extra WebView	A second web view the TV does not use	other
 com.iqiyi.i18n.tv	iQIYI	Asian drama and film streaming app	streaming
 com.ivona.orchestrator	Alexa speech engine	Text-to-speech for Alexa	voice
 com.ivona.tts.oem	Alexa speech voices	Voice data for Alexa speech	voice
@@ -465,12 +466,14 @@ com.mediatek.airplaydaemon	AirPlay service	Background service for AirPlay	castin
 com.mediatek.android.leanbacklauncher.partnercustomizer	Home screen partner config	Partner rows; some MediaTek TVs need it for the TV service at boot	system
 com.mediatek.androidbox	Screen sharing	Miracast receiver (Wi-Fi Display)	casting
 com.mediatek.autopair	MediaTek remote pairing	Pairs and wakes the remote	system
+com.mediatek.backgrounddetection	MediaTek background check	MediaTek background service	other
 com.mediatek.dialservice	DIAL service	Lets phone apps find the TV to cast	casting
 com.mediatek.dtv.tvinput.atsctuner	ATSC tuner input	Antenna TV tuner (North America)	other
 com.mediatek.hotkey.dispatcher	MediaTek hotkeys	Remote hotkeys including Source	system
 com.mediatek.network	MediaTek network monitor	Network monitor, needed by the system	system
 com.mediatek.opapp	Operator apps	Satellite operator apps for Europe	other
 com.mediatek.partner.airplay_sys	AirPlay system part	System part of AirPlay	casting
+com.mediatek.support.webview	MediaTek WebView	A second web view the TV does not use	other
 com.mediatek.testpq	Picture test tool	MediaTek picture quality tool	other
 com.mediatek.tv.agent	MediaTek TV agent	Power, HbbTV and keys	system
 com.mediatek.tv.factory	MediaTek factory tools	Factory diagnostics	demo
@@ -748,6 +751,7 @@ com.tcl.cyberui	TCL CyberUI	TCL's home screen on China sets; a content service o
 com.tcl.dashboard	TCL Home panel	TCL dashboard and promos; newer TCL Google TVs need it for inputs	ads
 com.tcl.dashboard.service	TCL dashboard service	Dashboard service, needed by the system	system
 com.tcl.esticker	TCL sticker	Retail demo stickers	demo
+com.tcl.eva	TCL voice layer	TCL voice assistant layer	voice
 com.tcl.exhibit	TCL exhibit mode	Shop display mode	demo
 com.tcl.factory.view	TCL factory wizard	Factory wizard, needed by the system	system
 com.tcl.ffeducation	TCL education	Kids and education content	preloads

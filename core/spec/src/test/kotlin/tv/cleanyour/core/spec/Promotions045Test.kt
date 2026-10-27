@@ -56,4 +56,14 @@ class Promotions045Test {
     @Test fun philipsGoogleTvTa7() = check(
         facts("Philips Google TV TA7", "PH3M_AL_T32", "Philips", 34, "Philips/PH3M_LT_T32/PH3M_AL_T32:14/UTT1.250308.001/101000072000:user/release-keys", manufacturer = "TPV") to "philips-google-tv-ta7", // #1213
     )
+
+    // The G08 EU Android 12 build by its product G08_4K_GB; the US and NF products and Android 14 stay out. The
+    // AU list reports the same fingerprint, so an AU set resolves here (its list switches off the same packages).
+    @Test fun tclG08EuAndroid12() = check(
+        facts("Smart TV Pro", "G08", "TCL", 31, "TCL/G08_4K_GB/G08:12/STT2.221228.001/AS34:user/release-keys") to "tcl-g08-eu-android12", // #1228
+        facts("Smart TV Pro", "G08", "TCL", 31, "TCL/G08_4K_GB/G08:12/STT2.221228.001/AS18:user/release-keys") to "tcl-g08-eu-android12", // #953
+        facts("Smart TV Pro", "G08", "TCL", 31, "TCL/G08_4K_US/G08:12/STT2.230203.001/AS95:user/release-keys") to null, // #574
+        facts("Smart TV", "G08", "TCL", 31, "TCL/G08_4K_GB_NF/G08:12/STT2.221228.001/AS19:user/release-keys") to null, // #406
+        facts("Smart TV Pro", "G08", "TCL", 34, "TCL/G08_4K_GB/G08:14/UTT2.250416.001/AU02:user/release-keys") to "tcl-c755-google-tv", // #1062
+    )
 }
