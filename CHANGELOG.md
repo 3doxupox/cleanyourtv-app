@@ -14,7 +14,11 @@ All notable changes to the app. Versions follow [semantic versioning](https://se
   what went wrong and the newest lines of the log, and the app copies the whole report too. Before,
   a report too long for the link left the box empty and asked you to paste it.
 - When the phone can't connect, the report has the phone's side instead of the TV's: how the TV was
-  found, the port, the error the app named and the phone's Android version.
+  found, the port, the error the app named and the phone's Android version. The app hasn't read
+  the TV yet, so type its brand and model into the form's TV box.
+- Links to GitHub are shorter, so they open for people signed in to GitHub too (a long link and the
+  browser's sign-in data together got an error page). The "Help add this TV" report doesn't fit in
+  such a link, so the app copies it and you paste it into the form, as before for long reports.
 - The issue's title names the TV, for example "Problem: Xiaomi MiTV-AXSO0 (dangal, Android 9)", or
   "Problem: could not connect (refused)" when no TV was read.
 
