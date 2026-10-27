@@ -35,14 +35,14 @@ shipped lists) or a new setup wizard, so `ProfileCategories.kt` and `Denylist.kt
 | philips-50pud7406 | third unit (55PUS7906), one evening; its candidates stay comments | header only |
 | philips-50pus8517 | second unit (70PUS8505), one day | header only |
 | philips-r8g-google-tv | standby light link | header only |
-| prismplus-q65-ultra-r10g | Privacy Sandbox group, feedbackconsent and setupwraith off, tested with a reboot (PR #1146) | the four rows default-off (ads and tracking, as on kalley-43g200); setupwraith kept on (setupWraithStaysOn), since the switch is skipped for the MOKA family and the same board boot-looped with it off |
+| prismplus-q65-ultra-r10g | Privacy Sandbox group, feedbackconsent and setupwraith off (PR #1146; the reboot check is in the PR thread, not the header) | the four rows are ask rows, since the header does not say the set was tested with them off; setupwraith kept on (setupWraithStaysOn), since the switch is skipped for the MOKA family and the same board boot-looped with it off |
 | rca-ai-pont | CHiQ and ERGO variants, with "Keep X" notes | no package change; the header keep notes add the OTA, USB media, mirroring and TTS packages to never-disable, so com.homwee.mmp.fileexplorer is in the protected report (never switched off) |
 | skyworth-sw-22sa | Undo line | header only |
 | sony-bravia-4k-vh2 | third, fourth and fifth units, two Asia-Pacific groups | the Asia-Pacific groups stay ask rows: the unit that tested them resolves to sony-kd-55x85j, this profile matches the EU fingerprint |
 | tcl-43s5k | 32V5C, AU13 and Brazilian units; com.mediatek.MtkDemo | MtkDemo default-off (switched off and reboot-checked on AU13); the three [43S5K ONLY] rows are already ask rows or harmless preloads |
 | tcl-55s470g | note that remote.service is the mic bridge (#1441); retitled launcher group | remote.service already an ask row and denylisted; title renamed with its old values |
 | tcl-65c735 | 65C745 unit; its extra rows stay comments | header only |
-| tcl-ak30a5 | second firmware (20250610); versionUpdateApp now kept on; header runs into the first group | versionUpdateApp no longer a row; the header (now read again) adds appmarket2 and versionUpdateApp to never-disable |
+| tcl-ak30a5 | second firmware (20250610); versionUpdateApp now kept on; header runs into the first group; warning that the kids and music apps feed the stock desktop's rows | versionUpdateApp no longer a row; the header (now read again) adds appmarket2 and versionUpdateApp to never-disable; ffeducation, ffkaraoke and tclmusic are ask rows, since the stock desktop stays Home on TCL China |
 | tcl-g03-google-tv | StartandroidService now kept on (TCL updater); screensaver title extended | StartandroidService no longer a row; group 1 holds bi, logkit and feedback; title renamed with its old values |
 | tcl-g05-google-tv | troubleshooting link | header only |
 | tcl-g07-google-tv | fourth and fifth units; channelplus note | header only; channelplus stays denylisted (a TV input) |
@@ -65,9 +65,16 @@ shipped lists) or a new setup wizard, so `ProfileCategories.kt` and `Denylist.kt
 ## Brand sets
 
 The full sets keep their rows; three notes in the Amazon set now come from amazon-fire-tv-afttiff43. The
-careful sets are those of 0.4.0, and the MOKA set gains the four reviewed packages that
-prismplus-q65-ultra-r10g now switches off as kalley-43g200 does (the reasons are in the curation notes).
+MOKA careful set is the 0.4.0 one. prismplus-q65-ultra-r10g asks first for com.android.tv.feedbackconsent
+and the three Privacy Sandbox packages, so the careful-set rule leaves them out of every careful set: the
+careful sets now hold com.google.android.feedback and, where they had it, com.android.printspooler.
 `UP300-sure-sets.txt` has the per brand detail.
+
+## Other lists
+
+com.tcl.xian.StartandroidService is a Software updates row (D22) on ffalcon-65s585c-pro and tcl-q10g-pro,
+from tcl-g03-google-tv's header at b06ab21 (TCL's updater reads the device number through it). Their lists
+did not change.
 
 ## The now-kept packages
 
