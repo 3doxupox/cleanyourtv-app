@@ -991,6 +991,8 @@ class ManageMachinesTest {
         // choice, and on a TV with an exact list Setup then offers the switch.
         assertEquals(NotOnTv(HomeBlock.HOME_CHANGED, "Xiaomi", setupAgain = true), notOnTv(HomeDecision(false, "HOME_CHANGED")))
         assertEquals(NotOnTv(HomeBlock.HOME_CHANGED, "Xiaomi", unlisted = true), notOnTv(HomeDecision(false, "HOME_CHANGED"), profileId = null))
+        // beta3: another home screen app claims Home; with it removed, Setup can switch. No list is missing.
+        assertEquals(NotOnTv(HomeBlock.OTHER_HOME, "Xiaomi", unlisted = true, setupAgain = true), notOnTv(HomeDecision(false, "OTHER_HOME"), profileId = null))
         // Planned, but the launcher is gone since (removed): Setup again adds it. No decision (a TV set
         // up before 0.3.2): the same.
         assertEquals(NotOnTv(null, "Xiaomi", setupAgain = true), notOnTv(HomeDecision(true)))

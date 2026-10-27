@@ -45,6 +45,43 @@ class Issue1119SetupTest {
         assertEquals(EnabledState.DEFAULT, snap.packages.getValue(PackageName("com.google.android.tungsten.setupwraith")).enabled)
     }
 
+    private fun kotlinx.coroutines.test.TestScope.found(problem: ReportText.Parsed, snap: tv.cleanyour.core.model.Snapshot, wifi: SavedWifi,
+                                                      onPlan: (tv.cleanyour.core.planner.Plan) -> Unit = {}): Pair<Harness, SetupMachine> {
+        val h = Harness(facts = BundledFactsTable())
+        h.sessions.allowPromptFor[HOST] = "AB:CD:7F:2A"
+        h.prober.facts = problem.facts
+        h.prober.snapshotFor = { reason -> snap.copy(reason = reason) }
+        val source = BundledProfileSource()
+        h.profiles.homeResolver = { f, home -> source.resolveNow(f, home = home, packages = snap.packages) }
+        val planner = tv.cleanyour.core.planner.DefaultPlanner(h.clock, FakeIdGen(), tv.cleanyour.core.ops.ShellRenderer(), FakeConfigTransport(), "0.4.6")
+        h.planner.respond = { request, s -> planner.plan(request, s, h.facts, emptyList()).also { if (request is PlanRequest.Setup && it is PlanResult.Ok) onPlan(it.plan) } }
+        val m = SetupMachine(h.setupDeps(savedWifi = { wifi }), backgroundScope, SetupStart.Fresh)
+        h.discovery.emit(tv.cleanyour.core.discovery.DiscoveryEvent.Found(miTvFound))
+        settle()
+        m.dispatch(SetupIntent.Start)
+        settle()
+        h.discovery.open5555[HOST] = true
+        settle(2_100)
+        settle(700)
+        return h to m
+    }
+
+    // beta3: the same TV with that app listed as a system app (as a vendor home ships): R0 cannot take
+    // it, and the reason told is the other home screen app, not the setup wizard.
+    @Test fun anotherHomeAppR0CannotTakeIsTheReasonTold() = runTest(timeout = 60.seconds) {
+        val (problem, base) = snapshot()
+        val theirs = PackageName("person.home1")
+        val snap = base.copy(packages = base.packages + (theirs to base.packages.getValue(theirs).copy(system = true)))
+        releaseRule {
+            for (wifi in listOf(SavedWifi(true, 1, setOf("android.uid.system:1000")), SavedWifi(true, 1, setOf("com.google.android.tungsten.setupwraith:10010")))) {
+                val (h, m) = found(problem, snap, wifi)
+                assertEquals(HomeBlock.OTHER_HOME, m.extras.value.homeBlock, "${wifi.owners}")
+                assertEquals(HomeDecision(false, "OTHER_HOME", profile = "brand set Xiaomi"), HomeDecisions(h.documents).load(snap.tvId))
+                assertTrue("setup: home switch blocked OTHER_HOME" in h.logLines, h.logLines.joinToString("\n"))
+            }
+        }
+    }
+
     @Test fun setupPlansTheSwitchAndLeavesTheirHomeAppAlone() = runTest(timeout = 60.seconds) {
         val (problem, snap) = snapshot()
         releaseRule {

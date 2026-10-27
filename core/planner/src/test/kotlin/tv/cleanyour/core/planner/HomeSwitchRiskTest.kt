@@ -291,19 +291,21 @@ class HomeSwitchRiskTest {
             check(r0Tv(f, two + HomeClaimant(Component(PackageName("com.android.provision"), ".DefaultActivity"), 0)), "provision claims Home")
             // Google TV (launcherx), PatchWall, or any other home among the claimants.
             check(r0Tv(f, listOf(HomeClaimant(launcherx, 2), HomeClaimant(fallback, -1000)), home = launcherx), "Google TV")
-            check(r0Tv(f, two + HomeClaimant(launcherx, 1)), "launcherx next to tvlauncher")
+            // beta3: where only another home screen app stands in R0's way, that is the reason told.
+            val other = Risk.OTHER_HOME
+            check(r0Tv(f, two + HomeClaimant(launcherx, 1)), "launcherx next to tvlauncher", risk = other)
             check(r0Tv(f, listOf(HomeClaimant(patchWall, 100), HomeClaimant(fallback, -1000)), home = patchWall), "PatchWall")
-            check(r0Tv(f, two + HomeClaimant(patchWall, 0)), "PatchWall next to tvlauncher")
-            check(r0Tv(f, two + HomeClaimant(Component(PackageName("com.vendor.launcher"), ".Home"), 0)), "a vendor home")
+            check(r0Tv(f, two + HomeClaimant(patchWall, 0)), "PatchWall next to tvlauncher", risk = other)
+            check(r0Tv(f, two + HomeClaimant(Component(PackageName("com.vendor.launcher"), ".Home"), 0)), "a vendor home", risk = other)
             // tvlauncher not a claimant, or switched off.
             check(r0Tv(f, listOf(HomeClaimant(fallback, -1000)), home = fallback), "no tvlauncher")
             check(r0Tv(f, disabled = setOf(tvlauncher.pkg.value)), "tvlauncher switched off")
             // Home answers to an app the claimants do not list (PatchWall resolved while only tvlauncher
             // and FallbackHome are listed), no claimants at all, or tvlauncher with no package entry.
-            check(r0Tv(f, home = patchWall), "Home answers to PatchWall")
+            check(r0Tv(f, home = patchWall), "Home answers to PatchWall", risk = other)
             check(r0Tv(f, emptyList(), home = null), "no claimants")
             check(r0Tv(f).let { s -> s.copy(packages = s.packages - tvlauncher.pkg).let { it.copy(contentHash = SnapshotCodec.hash(it)) } }, "tvlauncher not in the package list")
-            check(r0Tv(f, two + HomeClaimant(Component(PackageName("com.unlisted.home"), ".Home"), 0)), "a claimant with no package entry")
+            check(r0Tv(f, two + HomeClaimant(Component(PackageName("com.unlisted.home"), ".Home"), 0)), "a claimant with no package entry", risk = other)
             // The same TV under another maker.
             val acme = f.copy(brand = "Acme", manufacturer = "Acme")
             releaseRule { check(r0Tv(acme), "not a Xiaomi", facts = acme) }
@@ -338,10 +340,13 @@ class HomeSwitchRiskTest {
                 for ((why, s) in listOf(
                     "the wizard claims Home" to r0Tv(f, two + HomeClaimant(recovery, 0)),
                     "Google TV" to r0Tv(f, listOf(HomeClaimant(launcherx, 2), HomeClaimant(fallback, -1000)), home = launcherx),
-                    "a vendor home" to r0Tv(f, two + HomeClaimant(Component(PackageName("com.vendor.launcher"), ".Home"), 0)),
                     "no tvlauncher" to r0Tv(f, listOf(HomeClaimant(fallback, -1000)), home = fallback),
                     "tvlauncher switched off" to r0Tv(f, disabled = setOf(tvlauncher.pkg.value)),
                 )) assertEquals(blocked, HomeSwitchRisk.of(f, null, s, w, anyBrand = true), "$brand $w, test build: $why")
+                assertEquals(Risk.OTHER_HOME, HomeSwitchRisk.of(f, null, r0Tv(f, two + HomeClaimant(Component(PackageName("com.vendor.launcher"), ".Home"), 0)), w, anyBrand = true),
+                    "$brand $w, test build: a vendor home")
+                assertEquals(blocked, HomeSwitchRisk.of(f, null, r0Tv(f, two + HomeClaimant(Component(PackageName("com.vendor.launcher"), ".Home"), 0)), w, anyBrand = false),
+                    "$brand $w, release: R0 is not for this brand, so the wizard is the reason")
                 val candidate = PlannerFixtures.profile().copy(tested = TestedInfo("candidate", null, null, rebootTested = false, candidate = true))
                 // A candidate list gets R0 in the test build (aCandidateListGetsR0OnlyInTheWidenedTestBuild), never in a release.
                 assertNull(HomeSwitchRisk.of(f, candidate, r0Tv(f), w, anyBrand = true), "$brand $w, test build: a candidate list")
@@ -406,15 +411,17 @@ class HomeSwitchRiskTest {
             // Still refused: the app is not in the package list, is a system app (a vendor home ships as
             // one), claims above 0 (Android never lets an installed app), is named like a setup wizard
             // or is a vendor home by name; or a wizard claims Home next to it.
-            check(r0Tv(mitv4i, three), "the app is not listed")
-            check(withTheirs(r0Tv(mitv4i, three), system = true), "a system app")
-            check(withTheirs(r0Tv(mitv4i, listOf(HomeClaimant(tvlauncher, 2), HomeClaimant(theirs, 1), HomeClaimant(fallback, -1000)))), "priority 1")
+            // beta3: the reason told is the other home screen app where only it stands in the way.
+            fun other(snap: Snapshot, why: String) = assertEquals(Risk.OTHER_HOME, HomeSwitchRisk.of(mitv4i, null, snap, w, anyBrand = false), "$w: $why")
+            other(r0Tv(mitv4i, three), "the app is not listed")
+            other(withTheirs(r0Tv(mitv4i, three), system = true), "a system app")
+            other(withTheirs(r0Tv(mitv4i, listOf(HomeClaimant(tvlauncher, 2), HomeClaimant(theirs, 1), HomeClaimant(fallback, -1000)))), "priority 1")
             val wraith = Component(PackageName("person.setupwraith"), ".Main")
             check(withTheirs(r0Tv(mitv4i, listOf(HomeClaimant(tvlauncher, 2), HomeClaimant(wraith, 0))), pkg = wraith.pkg), "named like a wizard")
             val vendor = Component(PackageName(Denylist.vendorHomes.first()), ".Home")
-            check(withTheirs(r0Tv(mitv4i, listOf(HomeClaimant(tvlauncher, 2), HomeClaimant(vendor, 0))), pkg = vendor.pkg), "a vendor home by name")
+            other(withTheirs(r0Tv(mitv4i, listOf(HomeClaimant(tvlauncher, 2), HomeClaimant(vendor, 0))), pkg = vendor.pkg), "a vendor home by name")
             check(withTheirs(r0Tv(mitv4i, three + HomeClaimant(recovery, 0))), "the wizard claims Home too")
-            check(withTheirs(r0Tv(mitv4i, three, home = launcherx)), "Home answers to Google TV")
+            other(withTheirs(r0Tv(mitv4i, three, home = launcherx)), "Home answers to Google TV")
         }
         // The plan: tvlauncher off, their app left alone, ours made Home and checked; their app, the
         // chooser (package android) and FallbackHome in front after Home roll the switch back.

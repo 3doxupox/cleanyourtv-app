@@ -349,6 +349,8 @@ class HomeScreenMachine(
             // Forgetting and adding the network again makes the TV's own Wi-Fi settings the owner; on a
             // TV no exact profile knows the wizard still has to stay on (HomeSwitchRisk), so not there.
             HomeBlock.WIZARD_WIFI -> !unlisted
+            // beta3: with that other home screen app removed, Setup can switch.
+            HomeBlock.OTHER_HOME -> true
             else -> false
         }
         val needsList = reason == HomeBlock.UNKNOWN_HOME || reason == HomeBlock.WIZARD_STAYS_ON || (reason == HomeBlock.WIZARD_WIFI && unlisted)
