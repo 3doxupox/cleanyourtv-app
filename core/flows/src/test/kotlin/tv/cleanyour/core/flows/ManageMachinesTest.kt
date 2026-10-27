@@ -397,6 +397,23 @@ class ManageMachinesTest {
         assertEquals(UpdateCheck.Available("0.2.0"), m.state.value.update)
     }
 
+    // beta2 QA: after Stop and undo, then OK, the chip stayed on "Working"; and the Restore point row
+    // showed the latest read of the TV while the Restore point page (and Undo everything) use the
+    // first one, from before any change.
+    @Test fun theChipFollowsTheRunAndTheRestorePointIsTheFirstRead() = runTest(timeout = 30.seconds) {
+        val h = Harness()
+        val tv = h.knownTv()   // its stored snapshot is the baseline, at NOW_MS
+        h.snapshots.save(Samples.snapshot(reason = SnapshotReason.MANUAL, takenAtMs = Samples.NOW_MS + 3_600_000))
+        val m = ManageMachine(h.manageDeps(), backgroundScope, null)
+        settle()
+        assertEquals(Samples.NOW_MS, assertNotNull(m.state.value.current).restorePointAtMs)
+        val plan = h.plan(listOf(Op.Disable(adPkg)))
+        h.engine.emit(tv.id, RunState.RollingBack(plan, 0)); settle()
+        assertEquals(ChipState.WORKING, assertNotNull(m.state.value.current).chip)
+        h.engine.emit(tv.id, RunState.Finished(plan, RunStatus.ROLLED_BACK, emptyList(), null)); settle()
+        assertEquals(ChipState.CONNECTED, assertNotNull(m.state.value.current).chip)
+    }
+
     @Test fun manageShowsTheTvAndOpensSections() = runTest(timeout = 30.seconds) {
         val h = Harness()
         val tv = h.knownTv()
