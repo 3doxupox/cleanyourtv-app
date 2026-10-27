@@ -20,6 +20,10 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -130,6 +134,20 @@ fun ManageScreen(state: ManageState, onIntent: (ManageIntent) -> Unit, modifier:
             if (tv.helpAddTv) {
                 Banner(stringResource(R.string.manage_help_add_tv_banner), BannerTone.INFO, Modifier.padding(top = 16.dp),
                     actionLabel = stringResource(R.string.manage_help_add_tv), onAction = { onIntent(ManageIntent.HelpAddTv) })
+            }
+            // 0.4.6: on this connect a setup wizard claims Home while the TV's own home screen is off
+            // (WizardHome). The way back sits above the rows, like the drift banner's "Restore mine";
+            // its button writes to the TV, so it is guarded.
+            if (tv.wizardHome) {
+                val title = stringResource(R.string.manage_wizard_home_title)
+                val body = stringResource(R.string.manage_wizard_home_body)
+                Banner(
+                    buildAnnotatedString { withStyle(SpanStyle(fontWeight = FontWeight.Medium)) { append(title) }; append("\n"); append(body) },
+                    BannerTone.WARNING, Modifier.padding(top = 16.dp),
+                    actionLabel = if (state.switchingHome) null else stringResource(R.string.manage_wizard_home_button),
+                    onAction = { onIntent(ManageIntent.SwitchStockHomeOn) }, guardAction = true,
+                )
+                if (state.switchingHome) LiveLine(stringResource(R.string.manage_wizard_home_working))
             }
             ListGroup(Modifier.padding(top = 16.dp)) {
                 // 0.3.3 D2: without the new home screen there is no dock to name; the row opens the reason.

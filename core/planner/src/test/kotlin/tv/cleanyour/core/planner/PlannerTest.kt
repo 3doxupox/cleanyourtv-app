@@ -558,4 +558,17 @@ class PlannerTest {
             change(2, Op.SetHome(launcher), Prior(home = stock))))
         assertTrue(Op.SetHome(launcher) !in ops(undo) && Op.SetHome(stock) in ops(undo))
     }
+
+    // 0.4.6: Manage's wizard Home row ("Switch it back on") is this same plan. On an R0 TV (the
+    // switch left the wizard on, so no record switches it back on) it switches the TV's own home
+    // screen on and hands it Home, and nothing else: no setting (so no accessibility, no Wi-Fi).
+    @Test fun useTheTvsOwnHomeScreenOnAnR0TvTouchesNothingElse() {
+        val ours = snapshot(disabled = setOf(stock.pkg.value), home = launcher, claimants = listOf(launcher, Component(wizard, ".RecoveryActivity")), extra = mapOf(installedLauncher()))
+            .withSettings(mapOf(SettingKey.ACCESSIBILITY_ENABLED to "0", SettingKey.ADB_ENABLED to "1"))
+        val journals = listOf(change(1, Op.ArmHomeWatchdog(stock, 150, tv.cleanyour.core.model.RunToken("00000000000000aa")), null),
+            change(2, Op.Disable(stock.pkg), Prior(packageState = EnabledState.ENABLED)), change(3, Op.SetHome(launcher), Prior(home = stock)))
+        val p = plan(PlanRequest.UseStockHome(stock), ours, journals)
+        assertEquals(listOf(Op.Enable(stock.pkg), Op.SetHome(stock), Op.VerifyHome(stock), Op.PressHome), ops(p))
+    }
 }
+
