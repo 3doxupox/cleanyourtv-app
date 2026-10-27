@@ -50,15 +50,26 @@ versionCode 8). The manifest at this commit is the same as at the v3.0.0 tag:
   with `Theme.NoDisplay`. It opens an installed app by its package name (its TV launch entry, else
   its phone one) and closes; it takes no other data. It serves the "open app" request of the
   Android TV Remote service, which the stock launcher normally answers. This app never sends it.
+  Exposure: since it is exported and BROWSABLE, any app or web link on the TV can ask it to open an
+  installed app by package name; it cannot open anything that is not already installed and
+  launchable, so the risk is low.
 - New notification listener `GuardRevival` (behind `BIND_NOTIFICATION_LISTENER_SERVICE`). It reads
-  no notification; the system only binds it after `cmd notification allow_listener
-  com.gathin.tvhome/.GuardRevival`, and then rebinds it after a force stop, which brings Home back
-  on firmware that kills it. **This app never sends that command**, so on a TV set up with this
-  app the listener stays unbound.
+  no notification. The system binds it only once notification access is approved for it, by
+  `cmd notification allow_listener com.gathin.tvhome/.GuardRevival` or by the owner in the TV's
+  Notification access setting; it then rebinds it after a force stop, which brings Home back on
+  firmware that kills it. On each bind it calls `GuardKeep.ensureHomeKey`, which does nothing more
+  than the opt-in below allows. **This app never sends that command**, so on a TV set up with this
+  app the listener stays unbound unless the owner approves it on the TV.
 - New receiver `GuardConfig` for `com.gathin.tvhome.GUARD`, protected by `WRITE_SECURE_SETTINGS`:
-  only a sender holding that permission (the ADB shell) can reach it. It switches the opt-in "leave
-  the home helper off in standby", and acting on it needs the launcher itself to hold
-  `WRITE_SECURE_SETTINGS`. **This app never grants that** (`pm grant`) and never sends the broadcast.
+  only a sender holding that permission (the ADB shell) can reach it. It switches the opt-in
+  `guard_off_in_standby` ("leave the home helper off in standby", off by default; nothing else sets
+  it). With the opt-in on, `HomeKeyService` steps out at screen off (`armStandbyExit`,
+  `leaveForStandby`, `GuardKeep.stepOut`, which calls `disableSelf()` and needs no permission).
+  Putting the helper back at screen on (`GuardKeep.ensureHomeKey`, which writes
+  `enabled_accessibility_services` and `accessibility_enabled`) needs the launcher itself to hold
+  `WRITE_SECURE_SETTINGS`; without that grant the opt-in leaves the remote-button helper off after
+  the first standby. **This app never grants that** (`pm grant`) and never sends the broadcast, so
+  the opt-in stays off on a TV set up with this app.
 - New package visibility query for `android.settings.APPLICATION_DETAILS_SETTINGS` (scheme
   `package`): the tile menu and the app library offer App info only where it resolves. It grants
   nothing.
