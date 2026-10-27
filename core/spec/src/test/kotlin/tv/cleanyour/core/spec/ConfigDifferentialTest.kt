@@ -20,12 +20,14 @@ import kotlin.test.fail
 // 10,000 generated files, so the phone's preview can never disagree with the TV. Upstream runs
 // for real: its Config.java (and the classes it calls) compiled unchanged on the JVM against
 // AOSP's own org.json and Color.parseColor (test sources) and stubs for Context, Resources,
-// SharedPreferences, Environment, Log and Cards.cleanLabel. Three launchers: 2.7 (3e34f40), the one
-// the app bundles and the pinned reader, compared on every modelled field and every carried look
-// key (LauncherKeys.look); 2.5 (v2.5.0), kept for the keys it reads, a TV updated once and not
-// since; and 2.0 (1bbf0c9), which a TV set up before the first update still runs. 2.0 ignores the
-// keys v2.4.0 and v2.5.0 added, so only the keys both read are compared there. The look2 docs have
-// their own differential, LookDifferentialTest.
+// SharedPreferences, Environment, Log and Cards.cleanLabel. Four launchers: 3.0 (b06ab21, upstream
+// main after v3.0.0), the one the app bundles and the reader the codec is checked against
+// (RFC-UP300-1), compared on every modelled field, every carried look key (LauncherKeys.look) and
+// the 25 keys 3.0 added (LauncherKeys.keys30); 2.7 (v2.7.0, 3e34f40), frozen, a TV updated to 2.7
+// and not since; 2.5 (v2.5.0), kept for the keys it reads, a TV updated once and not since; and 2.0
+// (1bbf0c9), which a TV set up before the first update still runs. 2.0 ignores the keys v2.4.0 and
+// v2.5.0 added, so only the keys both read are compared there. The look2 docs have their own
+// differential, LookDifferentialTest.
 class ConfigDifferentialTest {
     @get:Rule val tmp = TemporaryFolder()
 
@@ -34,13 +36,23 @@ class ConfigDifferentialTest {
     }
 
     private fun allLaunchers() = listOf(
-        UpstreamLauncher(Version.V27, tmp.newFolder("bundled")),
+        UpstreamLauncher(Version.V30, tmp.newFolder("bundled")),
+        UpstreamLauncher(Version.V27, tmp.newFolder("v27")),
         UpstreamLauncher(Version.V25, tmp.newFolder("v25")),
         UpstreamLauncher(Version.V20, tmp.newFolder("previous")),
     )
 
     @Test fun builtInDefaultsEqualTheLaunchersConfigXml() {
         for (up in allLaunchers()) assertEquals(up.defaults(), LauncherConfigCodec.builtInDefaults)
+        // The 25 keys of 3.0: config.xml at the pin is LauncherKeys.DEFAULTS_30, and so is the real
+        // 3.0 Config with no file; the 2.7 look keys keep their 2.7 defaults on 3.0.
+        val bundled = UpstreamLauncher(Version.V30, tmp.newFolder("defaults30"))
+        assertEquals(LauncherKeys.DEFAULTS_30, bundled.keys30Defaults())
+        val none = assertIs<UpstreamLauncher.Outcome.Loaded>(bundled.load(null, wallpaper = false)).config
+        assertEquals(LauncherKeys.DEFAULTS_30, UpstreamLauncher.keys30(none.v30))
+        assertEquals(LauncherKeys.DEFAULTS_30, LauncherKeys.keys30(null))
+        assertEquals(LauncherKeys.DEFAULTS_27, UpstreamLauncher.look(none.v27))
+        assertEquals(LauncherKeys.DEFAULTS_27, bundled.lookDefaults())
         val previous = UpstreamLauncher.parseConfigXml(java.io.File(javaClass.getResource("/upstream/config-1bbf0c9.xml")!!.toURI()))
         val b = LauncherConfigCodec.builtInDefaults
         assertEquals(b.inputAction to b.moduleCards, previous.getValue("input_action") to previous.getValue("module_cards"))
@@ -156,10 +168,22 @@ class ConfigDifferentialTest {
         }
     }
 
-    // The fuzz writes the carried 2.7 look keys too (ConfigFuzz), so LauncherKeys.look meets their
-    // wrong types and out of range values against the real 2.7 reader.
+    // The fuzz writes the carried 2.7 look keys and the 25 keys of 3.0 too (ConfigFuzz), so
+    // LauncherKeys.look and keys30 meet their wrong types and out of range values against the real
+    // 3.0 reader.
     @Test fun tenThousandGeneratedFilesAgreeWithTheBundledLauncher() {
-        val up = UpstreamLauncher(Version.V27, tmp.newFolder("gen"))
+        val up = UpstreamLauncher(Version.V30, tmp.newFolder("gen"))
+        val fuzz = ConfigFuzz(seed = 0x5EED_0030)
+        val t = Tally()
+        repeat(10_000) { i -> agree(up, fuzz.next(), wallpaper = i % 3 != 0, label = "generated #$i", t = t) }
+        println("launcher 3.0: ${t.applied} applied (${t.withWarnings} with warnings), ${t.ignored} ignored, ${t.crashed} would crash, ${t.agreed} agreed")
+        assertTrue(t.applied > 4_000 && t.ignored > 1_000 && t.crashed > 10 && t.withWarnings > 1_000, "generator lost coverage: applied ${t.applied}, ignored ${t.ignored}, crashed ${t.crashed}")
+        assertEquals(10_000, t.agreed)
+    }
+
+    // The frozen 2.7 reader, a TV updated to 2.7 and not since: the same fuzz, the 2.7 fields.
+    @Test fun tenThousandGeneratedFilesAgreeWithLauncher27() {
+        val up = UpstreamLauncher(Version.V27, tmp.newFolder("gen27"))
         val fuzz = ConfigFuzz(seed = 0x5EED_0001)
         val t = Tally()
         repeat(10_000) { i -> agree(up, fuzz.next(), wallpaper = i % 3 != 0, label = "generated #$i", t = t) }
@@ -186,7 +210,7 @@ class ConfigDifferentialTest {
     // choices win over config.json until a push changes the file, which every push does (a new
     // modification time). A restart without a push keeps them.
     @Test fun aChoiceMadeOnTheTvLastsUntilTheNextPush() {
-        val up = UpstreamLauncher(Version.V27, tmp.newFolder("choices"))
+        val up = UpstreamLauncher(Version.V30, tmp.newFolder("choices"))
         val pushed = LauncherConfigCodec.encode(LauncherConfigDoc(columns = 4, animations = true))
         fun loaded(o: UpstreamLauncher.Outcome) = assertIs<UpstreamLauncher.Outcome.Loaded>(o).config
         assertEquals(4, loaded(up.load(pushed, wallpaper = false)).columns)
@@ -209,7 +233,7 @@ class ConfigDifferentialTest {
     // Launcher 2.5 adds two choices on the TV: rows below the dock (0 to 3) and a wallpaper pick
     // ("none" or a picture's name). Like the columns they win until a push changes config.json.
     @Test fun launcher25ChoicesOnTheTvLastUntilTheNextPush() {
-        val up = UpstreamLauncher(Version.V27, tmp.newFolder("choices25"))
+        val up = UpstreamLauncher(Version.V30, tmp.newFolder("choices25"))
         val pushed = LauncherConfigCodec.encode(LauncherConfigDoc(rowsBelowDock = 1, wallpaper = true))
         fun loaded(o: UpstreamLauncher.Outcome) = assertIs<UpstreamLauncher.Outcome.Loaded>(o).config
         loaded(up.load(pushed, wallpaper = true)).let { assertEquals(1 to true, it.rowsBelowDock to it.wallpaperShown) }
@@ -226,8 +250,9 @@ class ConfigDifferentialTest {
 
     // Launcher 2.7 adds the dock band's see-through amount to the choices on the TV (Launcher
     // settings offers 70, 50 and 30); like the others it wins until a push changes config.json.
-    @Test fun launcher27DockOpacityChoiceLastsUntilTheNextPush() {
-        val up = UpstreamLauncher(Version.V27, tmp.newFolder("choices27"))
+    // The same on 3.0 and on 2.7.
+    @Test fun launcher27DockOpacityChoiceLastsUntilTheNextPush() = listOf(Version.V30, Version.V27).forEach { version ->
+        val up = UpstreamLauncher(version, tmp.newFolder("choices27-${version.label}"))
         val pushed = LauncherConfigCodec.encode(LauncherConfigDoc(unknown = mapOf("dock_opacity" to JsonPrimitive(50))))
         fun opacity(o: UpstreamLauncher.Outcome) = assertIs<UpstreamLauncher.Outcome.Loaded>(o).config.v27.dockOpacity
         assertEquals(50, opacity(up.load(pushed, wallpaper = false)))
@@ -238,6 +263,23 @@ class ConfigDifferentialTest {
         up.choices.values["dock_opacity"] = 30
         assertEquals(50, opacity(up.load(pushed, wallpaper = false)), "a push clears it")
         assertEquals(null, up.choices.values["dock_opacity"])
+    }
+
+    private fun carried30Keys(r: Random): Map<String, kotlinx.serialization.json.JsonElement> {
+        val out = LinkedHashMap<String, kotlinx.serialization.json.JsonElement>()
+        fun list(vararg xs: String) = kotlinx.serialization.json.JsonArray(xs.toList().shuffled(r).take(r.nextInt(xs.size + 1)).map { JsonPrimitive(it) })
+        for (k in ConfigCodecImpl.CARRIED_30.shuffled(r).take(r.nextInt(ConfigCodecImpl.CARRIED_30.size + 1))) {
+            out[k] = when (k) {
+                "input_sources" -> list("HW5=23", "HW6=24", "HW8=-")
+                "top_bar_apps" -> list("com.google.android.youtube.tv", "com.netflix.ninja", "a.b")
+                "lunar_utc_offset" -> JsonPrimitive(listOf(-1, 7, 8, 14).random(r))
+                "clock_wallpaper_dim" -> JsonPrimitive(r.nextInt(0, 91))
+                "locale" -> JsonPrimitive(listOf("", "vi", "pt-BR").random(r))
+                "glass_style" -> JsonPrimitive(listOf("glass", "rim", "halo").random(r))
+                else -> JsonPrimitive(r.nextBoolean())
+            }
+        }
+        return out
     }
 
     private fun carriedLookKeys(r: Random): Map<String, kotlinx.serialization.json.JsonElement> {
@@ -255,7 +297,9 @@ class ConfigDifferentialTest {
 
     // Our own encoder's output reads back to the same doc and the TV sees what effective() says.
     @Test fun encodedDocsReadBackIdenticallyOnBothSides() {
-        val up = UpstreamLauncher(Version.V27, tmp.newFolder("enc"))
+        val up = UpstreamLauncher(Version.V30, tmp.newFolder("enc"))
+        val up27 = UpstreamLauncher(Version.V27, tmp.newFolder("enc27"))
+        val t27 = Tally()
         val r = Random(0x5EED_0003)
         val pkgs = listOf("com.netflix.ninja", "com.google.android.youtube.tv", "in.startv.hotstar", "com.android.tv", "a.b")
         val strings = listOf("", "com.android.tv", "with \"quotes\" and \\ slash", "tab\tinside", "ünï", "\u0001", "emoji 😀", "lone \uD800 surrogate")
@@ -298,6 +342,8 @@ class ConfigDifferentialTest {
             )
             // The carried 2.7 look keys, with the values LookKeys writes.
             if (r.nextBoolean()) doc = doc.copy(unknown = doc.unknown + carriedLookKeys(r))
+            // The 25 keys of 3.0, with valid values.
+            if (r.nextBoolean()) doc = doc.copy(unknown = doc.unknown + carried30Keys(r))
             if (r.nextInt(3) == 0) doc = doc.copy(
                 festival = listOf("dussehra", "Diwali", "", "x".repeat(41)).random(r),
                 festivalUntil = maybe { listOf("2026-10-21", "2026-02-30", "").random(r) },
@@ -311,10 +357,12 @@ class ConfigDifferentialTest {
             val back = LauncherConfigCodec.decode(bytes)
             assertTrue(back is DecodeResult.Ok && back.doc == doc, "round trip changed the doc #$i\n$doc\n$back\n${bytes.decodeToString()}")
             agree(up, bytes, wallpaper = true, label = "encoded #$i", t = t)
+            agree(up27, bytes, wallpaper = true, label = "encoded #$i", t = t27)
             // And the AOSP parser reads our output as strict JSON with the same keys.
             assertEquals(JSONObject(bytes.decodeToString()).length(), (back as DecodeResult.Ok).doc.let { countKeys(it) })
         }
         assertEquals(2_000, t.applied)
+        assertEquals(2_000, t27.applied)
     }
 
     // The dock sheet's rows reach the TV as the sheet shows them. Our doc goes through the real
@@ -328,7 +376,7 @@ class ConfigDifferentialTest {
     // (they are skipped, the later ones move up). Not modelled: one package with two activities
     // under two labels, which shows two tiles on the TV and one on the phone.
     @Test fun dockRowsShowOnTheTvAsTheSheetShowsThem() {
-        val up = UpstreamLauncher(Version.V27, tmp.newFolder("dock"))
+        val up = UpstreamLauncher(Version.V30, tmp.newFolder("dock"))
         val r = Random(0x5EED_0005)
         val pool = List(20) { PackageName("com.example.app$it") }
         data class Activity(val pkg: String, val name: String, val label: String, val exported: Boolean)

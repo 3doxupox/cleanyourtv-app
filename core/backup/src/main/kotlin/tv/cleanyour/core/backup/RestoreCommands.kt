@@ -5,6 +5,9 @@ import tv.cleanyour.core.model.Op
 import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.model.RemoteDir
 import tv.cleanyour.core.model.RemotePath
+import tv.cleanyour.core.model.Prior
+import tv.cleanyour.core.model.SettingKey
+import tv.cleanyour.core.ops.HomePlaceholder
 import tv.cleanyour.core.ops.OpRenderer
 import tv.cleanyour.core.ops.RenderRefused
 import tv.cleanyour.core.ops.UndoOrder
@@ -38,7 +41,9 @@ data class RestoreStep(val kind: RestoreStepKind, val change: ChangeRecord, val 
 //
 // Left out on purpose: ops that change nothing lasting on the TV (reads, settles, the HOME
 // watchdog and its confirmation, restarts, debugging off, reboot, mkdir), and our own restore
-// point files under /sdcard/cleanyourtv, which every plan rewrites.
+// point files under /sdcard/cleanyourtv, which every plan rewrites. So the two small files the
+// watchdog leaves in /data/local/tmp/cleanyourtv (its token file and its log) have no step here;
+// the phone's Undo everything removes them with the launcher (DefaultPlanner.tidyWatchdogFiles).
 class RestoreCommands(private val renderer: OpRenderer) {
 
     fun steps(changes: List<ChangeRecord>): List<RestoreStep> {
@@ -48,6 +53,9 @@ class RestoreCommands(private val renderer: OpRenderer) {
         // Packages the records leave uninstalled: their last app record is an uninstall.
         val gone: Set<PackageName> = latest.filter { (t, c) -> t is UndoOrder.Target.App && c.op is Op.Uninstall }
             .keys.map { (it as UndoOrder.Target.App).pkg }.toSet()
+        // WP4 (G4): a placeholder SetHome prior (a journal from before 0.4.5) goes back to the stock
+        // home the switch armed its watchdog with.
+        val stockHome = HomePlaceholder.stockFromRecords(changes)
         return UndoOrder.undoOrder(lasting).mapNotNull { first ->
             when (val t = UndoOrder.target(first.op)) {
                 is UndoOrder.Target.PackageEnabled -> if (t.pkg in gone) null else step(first, gone)
@@ -64,6 +72,15 @@ class RestoreCommands(private val renderer: OpRenderer) {
                     first.op is Op.RemoveFile && first.prior?.present == false -> step(latest.getValue(t).copy(prior = first.prior), gone)
                     else -> step(first, gone)
                 }
+                UndoOrder.Target.Home -> {
+                    val prior = first.prior
+                    val recorded = prior?.home
+                    if (prior != null && recorded != null && HomePlaceholder.isPlaceholder(recorded)) {
+                        if (stockHome != null) step(first.copy(prior = prior.copy(home = stockHome)), gone)
+                        else RestoreStep(RestoreStepKind.NOT_FROM_LAPTOP, first, null, TextSafety.ascii("${describeChange(first.op)} (plan step ${first.step})", 160),
+                            emptyList(), "the record names no home screen of the TV's own to go back to")
+                    } else step(first, gone)
+                }
                 else -> step(first, gone)
             }
         }
@@ -74,6 +91,12 @@ class RestoreCommands(private val renderer: OpRenderer) {
         val prior = change.prior
             ?: return RestoreStep(RestoreStepKind.NOT_FROM_LAPTOP, change, null, what, emptyList(),
                 "there is no record of how it was before, so it is left as it is")
+        // WP4 (G4, RF-LAUNCHER-240 F7): a script cannot read the TV first, so it never writes
+        // accessibility back on: the person may have switched it off since our records.
+        if (switchesAccessibilityOn(change.op, prior)) {
+            return RestoreStep(RestoreStepKind.NOT_FROM_LAPTOP, change, null, what, emptyList(),
+                "it would switch accessibility back on, which this app never does; switch it on in the TV's settings if you want it")
+        }
         val inverse = renderer.inverse(change.op, prior)
             ?: return if (nothingToPutBack(change.op)) null
             else RestoreStep(RestoreStepKind.NOT_FROM_LAPTOP, change, null, what, emptyList(), cannotUndo(change.op))
@@ -111,6 +134,13 @@ class RestoreCommands(private val renderer: OpRenderer) {
         fun isRestorePointFile(op: Op): Boolean = when (op) {
             is Op.PushAsset -> op.dest.dir == RemoteDir.RESTORE
             is Op.RemoveFile -> op.path.dir == RemoteDir.RESTORE
+            else -> false
+        }
+
+        // The inverse of this record would write accessibility_enabled 1 or a non-empty service list.
+        private fun switchesAccessibilityOn(op: Op, prior: Prior): Boolean = op is Op.SettingsPut && when (op.key) {
+            SettingKey.ACCESSIBILITY_ENABLED -> prior.settingValue == "1"
+            SettingKey.ENABLED_ACCESSIBILITY -> !prior.settingValue.isNullOrEmpty()
             else -> false
         }
 

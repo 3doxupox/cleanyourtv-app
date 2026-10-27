@@ -94,6 +94,7 @@
     <string name="found_home_wizard_wifi_unknown">We couldn\'t check who saved this TV\'s Wi-Fi. The new home screen needs the setup wizard off, which could forget the Wi-Fi, and with the wizard left on the TV can crash. So it keeps its own home screen. We\'ll still switch off the adverts and tracking.</string>
     <string name="found_home_casting">On this Google device the new home screen needs the setup wizard off, and without it casting from phones stops working after every restart. So it keeps its own home screen. We\'ll still switch off the adverts and tracking.</string>
     <string name="found_home_boot_loop">On this TV family the setup wizard comes back at every restart, and with the TV\'s own home screen off that can stop the TV starting up. So it keeps its own home screen. We\'ll still switch off the adverts and tracking.</string>
+    <string name="found_home_remote_buttons">On this TV the remote\'s app buttons (Netflix, YouTube, Prime Video and YouTube Music) only work through its own home screen. So it keeps its own home screen. We\'ll still switch off the adverts and tracking.</string>
     <string name="found_home_wizard_stays_on">We don\'t know this TV well enough to switch its setup wizard off, and with the wizard left on and the TV\'s own home screen off, the TV can crash. So it keeps its own home screen. We\'ll still switch off the adverts and tracking.</string>
 
     <!-- S3a Customise sheet -->
@@ -178,7 +179,7 @@
     <string name="check_thumbnail_cd">{count, plural, =0 {The TV shows the new home screen with an empty dock} one {The TV shows the new home screen with one app in the dock} other {The TV shows the new home screen with # apps in the dock}}</string>
     <string name="check_dock_sentence">The new home screen, with {dock} along the bottom.</string>
     <string name="check_dock_sentence_empty">The new home screen.</string>
-    <string name="check_press_home">Press Home on the remote once.</string>
+    <string name="check_press_home">Press only Home on the remote, once. Don\'t open anything else on the TV.</string>
     <string name="check_live_ok">Home opens the new screen</string>
     <string name="check_live_pending_cd">Not checked yet</string>
     <string name="check_live_done_cd">Checked</string>
@@ -205,6 +206,8 @@
     <string name="stop_home_other_launcher_body">Another home screen app, {launcher}, is in charge of Home. We don\'t switch off apps we don\'t know. Choose which one you want.</string>
     <string name="stop_home_other_launcher_primary">Use the new home screen</string>
     <string name="stop_home_other_launcher_secondary">Keep {launcher}</string>
+    <!-- Issue #629: the check rolled back because a Settings page was open on the TV. -->
+    <string name="stop_home_settings_open_body">A Settings page was open on the TV during the check, so we put the old home screen back to be safe. Nothing is wrong with your TV. Try again, and this time press only Home on the remote.</string>
     <string name="stop_home_unknown_title">The old home screen is back</string>
     <string name="stop_home_unknown_body">We couldn\'t make the new home screen take over on this TV, so we put things back. Everything else we did is kept. You can try again from Manage, or send us a report so we can look at this model.</string>
     <string name="stop_home_unknown_primary">Report a problem</string>
@@ -215,6 +218,7 @@
     <string name="stop_home_user_said_no_secondary">Something looked wrong</string>
     <string name="stop_home_timed_out_title">The old home screen is back</string>
     <string name="stop_home_timed_out_body">Putting the old home screen back... Done. Your TV is as it was. You can try again from Manage.</string>
+    <string name="stop_home_timed_out_body_off">{count, plural, one {Putting the old home screen back... Done. # thing is still switched off, and the home screen is as it was. You can try again from Manage.} other {Putting the old home screen back... Done. # things are still switched off, and the home screen is as it was. You can try again from Manage.}}</string>
     <string name="stop_home_timed_out_primary">OK</string>
     <string name="stop_home_timed_out_secondary">Try again</string>
 
@@ -278,8 +282,12 @@
     <string name="done_body_no_home">{count, plural, one {# thing switched off. Everything can be put back.} other {# things switched off. Everything can be put back.}}</string>
     <string name="done_body_partial">{total, plural, other {{done} of # switched off; the home screen is unchanged. Everything can be put back.}}</string>
     <string name="done_body_partial_home_on">{total, plural, other {{done} of # switched off. New home screen on. Everything can be put back.}}</string>
+    <string name="done_home_kept_timed_out">The home screen is unchanged: the check on the TV ran out of time, so the old home screen is back. You can try again from Manage.</string>
+    <string name="done_home_kept_said_no">The home screen is unchanged: you said the new one didn\'t look right, so the old home screen is back.</string>
+    <string name="done_home_kept">The home screen is unchanged: the new one didn\'t take over, so the old home screen is back.</string>
     <string name="done_restore_saved">Restore point saved on this phone ({date})</string>
     <string name="done_debug_note">Debugging on the TV switches off when you tap Finish</string>
+    <string name="done_debug_kept">Debugging on the TV stays on, as you chose</string>
     <string name="done_skipped">{name} wouldn\'t switch off; it\'s harmless.</string>
     <!-- RF-LAUNCHER-250 F1 (owner copy): a switch-off the TV refused because the app runs the TV's inputs, on Done and in Manage -->
     <string name="kept_tv_input">{name}. Kept: it runs the TV\'s HDMI and tuner inputs.</string>

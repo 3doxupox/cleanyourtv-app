@@ -54,10 +54,11 @@ internal class Look(val doc: LauncherConfigDoc, val digest: Sha256, val config: 
 
         // look2: the doc and the wallpaper of a choice in the new form: its rows resolved on this TV,
         // then LookKeys.build (style keys, details, picture, movement, columns, fill_dock false, the
-        // dock and its rows, module_cards).
+        // dock and its rows, module_cards, and the 3.0 switches that act here, LookRules.extras).
         fun docOf(parts: LookParts, picture: LookPictureInfo, dock: List<PackageName>, cards: Boolean, tv: LookTv): Pair<LauncherConfigDoc, BlobRef?> {
             val rows = LookRules.rows(parts, picture, DockLayers.trim(dock, parts.columns).size, tv)
-            val doc = LookKeys.build(LookRules.spec(parts, rows), LookRules.pictureKeys(picture, rows), parts.columns, dock, cards)
+            val doc = LookKeys.build(LookRules.spec(parts, rows), LookRules.pictureKeys(picture, rows), parts.columns, dock, cards,
+                LookRules.extras(parts, rows, tv))
             return doc to picture.wallpaper
         }
     }

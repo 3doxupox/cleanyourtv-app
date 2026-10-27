@@ -27,6 +27,11 @@ object HomeSwitchRisk {
         // The MOKA family (kalley-43g200): the firmware turns the wizard back on at every boot, and with
         // the TV's own home screen off it boot-looped a set that needed a USB reflash.
         BOOT_LOOP("on this TV family the setup wizard comes back at every restart, and with the TV's own home screen off the TV can fail to start"),
+        // 0.4.5, sony-bravia-vu3 (upstream PR #1757): Realtek's GlobalKeyReceiver hands the remote's Netflix,
+        // YouTube, Prime Video and YouTube Music buttons to launcherx, so with it off they do nothing.
+        // Upstream's own install keeps launcherx on with a key helper, and this app never switches an
+        // accessibility service on, so there is no switch.
+        REMOTE_BUTTONS("on this TV the remote's app buttons only work through its own home screen, so with it switched off they stop working"),
     }
 
     // Google's own Google TV hardware, by maker and device: Chromecast with Google TV 4K (sabrina)
@@ -48,11 +53,15 @@ object HomeSwitchRisk {
     val MOKA_FAMILY: Set<Pair<String, String>> = setOf("R3_GTV" to "MOKA", "R10G" to "MOKA", "R10G" to "Kalley") + MOKA_REPORTED
     val MOKA_PROFILES: Set<String> = setOf("kalley-43g200", "kalley-r10g", "prismplus-q65-ultra-r10g")
 
+    // The profiles whose remote's app buttons need the TV's own home screen (REMOTE_BUTTONS).
+    val REMOTE_BUTTON_PROFILES: Set<String> = setOf("sony-bravia-vu3")
+
     // The first risk that applies, or null when the switch may be planned. `profile` is the exact
     // profile (null on a brand sure set or the generic path); `wizardWifi` the D3 answer.
     fun of(facts: DeviceFacts, profile: Profile?, snapshot: Snapshot, wizardWifi: WizardWifi): Risk? = when {
         isMokaFamily(facts) || profile?.id in MOKA_PROFILES -> Risk.BOOT_LOOP
         isGoogleHardware(facts) || profile?.id in CASTING_PROFILES -> Risk.CASTING
+        profile?.id in REMOTE_BUTTON_PROFILES -> Risk.REMOTE_BUTTONS
         // Test build: a candidate list was never tried with the switch, so for the setup wizard it
         // counts as no profile at all (a wizard that is on stays on, so no switch).
         else -> wizardWifiRisk(profile?.takeUnless { it.isCandidate }, snapshot, wizardWifi)

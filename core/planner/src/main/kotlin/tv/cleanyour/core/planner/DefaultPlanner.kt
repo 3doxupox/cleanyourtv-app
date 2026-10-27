@@ -26,15 +26,18 @@ import kotlinx.coroutines.runBlocking
 import tv.cleanyour.core.ops.ConfigTransport
 import tv.cleanyour.core.ops.Denylist
 import tv.cleanyour.core.ops.FailurePolicy
+import tv.cleanyour.core.ops.HomePlaceholder
 import tv.cleanyour.core.ops.OpRenderer
 import tv.cleanyour.core.ops.RenderRefused
 import tv.cleanyour.core.ops.Rendered
 import tv.cleanyour.core.ops.UndoOrder
+import tv.cleanyour.core.ops.Watchdog
 import tv.cleanyour.core.spec.AppNames
 import tv.cleanyour.core.spec.FactsTable
 import tv.cleanyour.core.spec.ProfileCategory
 import tv.cleanyour.core.spec.ProfileResolution
 import tv.cleanyour.core.spec.ProfileSource
+import tv.cleanyour.core.spec.resolveFor
 import tv.cleanyour.core.store.Clock
 import tv.cleanyour.core.store.IdGen
 
@@ -121,9 +124,10 @@ class DefaultPlanner(
 
         fun summary() = PlanSummary(groups.toList(), keepNames, dockNames, homeScreenPossible, replacesLauncher)
 
-        // This TV's resolution for the Manage requests (R1 R-3). The bundled source answers without
-        // suspending, so the blocking call returns at once; the planner stays a plain function.
-        val resolution: ProfileResolution? by lazy { profiles?.let { src -> runBlocking { src.resolve(snapshot.facts) } } }
+        // This TV's resolution for the Manage requests (R1 R-3), with the snapshot's Home (issue #114).
+        // The bundled source answers without suspending, so the blocking call returns at once; the
+        // planner stays a plain function.
+        val resolution: ProfileResolution? by lazy { profiles?.let { src -> runBlocking { src.resolveFor(snapshot) } } }
         val managedProfile: Profile? get() = (resolution as? ProfileResolution.Exact)?.profile
         val managedStockLaunchers: List<Component> get() = when (val r = resolution) {
             is ProfileResolution.Exact -> r.profile.stockLaunchers
@@ -133,7 +137,16 @@ class DefaultPlanner(
         }
 
         fun name(pkg: PackageName): String = AppNames.of(pkg, facts, snapshot.packages[pkg]?.label)
-        fun description(pkg: PackageName): String = facts.lookup(pkg)?.description ?: ""
+        // Issue #111: an owner's-choice row says what switching it off costs.
+        fun description(pkg: PackageName): String {
+            val what = facts.lookup(pkg)?.description ?: ""
+            val cost = ProfileCategory.OWNERS_CHOICE[pkg] ?: return what
+            return if (what.isEmpty()) cost else "$what. $cost"
+        }
+        // An uninstall's line on the progress screen. Our launcher is "the new home screen" there as
+        // everywhere else in the app: the TV reads no label for it, so AppNames would make its name
+        // from the package ("Gathin Home", QA 0.4.5-beta1).
+        fun removing(pkg: PackageName): String = if (pkg == launcher.pkg) NARRATION_REMOVE_LAUNCHER else "Removing ${name(pkg)} from the TV"
         fun state(pkg: PackageName): PackageState? = snapshot.packages[pkg]
         fun isOff(pkg: PackageName): Boolean = state(pkg)?.enabled.let { it == EnabledState.DISABLED_USER || it == EnabledState.DISABLED }
         fun installed(pkg: PackageName): Boolean = pkg in snapshot.packages
@@ -158,6 +171,34 @@ class DefaultPlanner(
         fun refusesOtherHomes(profile: Profile?): Boolean = FireOs.isFireOs(snapshot.facts, snapshot) || TclChina.applies(snapshot.facts, profile)
         fun planned(op: Op): Boolean = steps.any { it.op == op }
         fun putBackPlanned(pkg: PackageName): Boolean = planned(Op.Enable(pkg)) || planned(Op.DefaultState(pkg))
+
+        // WP4 (C6, G4): a package the static denylist protects now (an earlier build switched it off,
+        // like TCL G10's remote mic service) only ever takes the write towards on. The renderer
+        // refuses a DefaultState for it, so one that is off goes back on with Enable, and one that is
+        // on needs nothing; an inverse that would switch it off is never planned. Null: no step.
+        fun protectedInverse(pkg: PackageName, inverse: Op): Op? {
+            if (Denylist.staticReason(pkg.value) == null) return inverse
+            return when (inverse) {
+                is Op.DefaultState -> if (isOff(pkg)) Op.Enable(pkg) else null
+                is Op.Disable -> null
+                else -> inverse
+            }
+        }
+
+        // WP4 (G4): a journal from before 0.4.5 may hold the chooser or another placeholder as the
+        // SetHome prior on a TV whose HOME was undecided. The home screen to go back to is then the
+        // stock home the switch armed its watchdog with, else the TV's stock home claimant, else a
+        // stock launcher of the exact profile (never a brand set's or the generic KnownLaunchers) that
+        // is installed and either claims HOME or has a Disable record of ours: a launcher the factory
+        // switched off is never handed HOME.
+        fun homeToRestore(recorded: Component?, records: List<ChangeRecord>): Component? {
+            if (recorded == null || !StockHome.isPlaceholder(recorded)) return recorded
+            val all = journals + records
+            fun claims(pkg: PackageName) = snapshot.home.claimants.any { it.component.pkg == pkg }
+            fun ourDisable(pkg: PackageName) = all.any { (it.op as? Op.Disable)?.pkg == pkg }
+            return HomePlaceholder.stockFromRecords(records) ?: StockHome.of(snapshot, managedStockLaunchers)
+                ?: managedProfile?.stockLaunchers.orEmpty().firstOrNull { installed(it.pkg) && (claims(it.pkg) || ourDisable(it.pkg)) }
+        }
 
         // The rule the engine applies again with live facts (SwitchOffRule, 0.3.3 issue #10), outside
         // the home screen switch, plus this build's own choice: keepUpdatesOn keeps the updaters.
@@ -478,7 +519,8 @@ class DefaultPlanner(
             val from = step(Op.ArmHomeWatchdog(stock, watchdogSeconds, token), null, GROUP_HOME, "Arming the safety timer", FailurePolicy.STOP_AND_ROLLBACK)
             if (!keepStockEnabled) disable(stock.pkg, GROUP_HOME, FailurePolicy.STOP_AND_ROLLBACK, "Switching off the TV's own home screen")
             if (wizard != null) disable(wizard, GROUP_HOME, FailurePolicy.STOP_AND_ROLLBACK, NARRATION_WIZARD)
-            step(Op.SetHome(launcher), Prior(home = snapshot.home.resolved), GROUP_HOME, "Making the new home screen the default", FailurePolicy.STOP_AND_ROLLBACK)
+            // WP4 (B5): the prior is the home screen the TV goes back to; never the chooser or a placeholder.
+            step(Op.SetHome(launcher), Prior(home = StockHome.recorded(snapshot, stock)), GROUP_HOME, "Making the new home screen the default", FailurePolicy.STOP_AND_ROLLBACK)
             val to = step(Op.VerifyHome(launcher), null, GROUP_HOME, "Checking the home screen", FailurePolicy.STOP_AND_ROLLBACK)
             step(Op.ConfirmHome(token), null, GROUP_HOME, "Confirming the new home screen", FailurePolicy.CONTINUE)
             step(Op.KillWatchdog(token), null, GROUP_HOME, "Disarming the safety timer", FailurePolicy.CONTINUE)
@@ -515,7 +557,8 @@ class DefaultPlanner(
                 refuse("${name(pkg)} cannot be switched back on while the new home screen is in charge: $REASON_WIZARD_WHILE_OURS"); return
             }
             val change = journals.filter { it.op is Op.Disable && (it.op as Op.Disable).pkg == pkg }.maxByOrNull { it.atMs }
-            val op = change?.let { renderer.inverse(it.op, it.prior ?: Prior()) } ?: Op.Enable(pkg)
+            val inverse = change?.let { renderer.inverse(it.op, it.prior ?: Prior()) } ?: Op.Enable(pkg)
+            val op = protectedInverse(pkg, inverse) ?: return
             step(op, Prior(packageState = state(pkg)?.enabled), GROUP_PUT_BACK, "Switching ${name(pkg)} back on", FailurePolicy.STOP_AND_ROLLBACK)
         }
 
@@ -630,14 +673,21 @@ class DefaultPlanner(
             val ours = current.installedByUs || journals.any { (it.op as? Op.Install)?.pkg == pkg || (it.op as? Op.InstallStream)?.pkg == pkg }
             if (!ours) { refuse("${name(pkg)} was not installed by this app"); return }
             if (pkg == launcher.pkg && snapshot.home.resolved == launcher) { refuse("use the TV's own home screen first, then remove the new one"); return }
-            step(Op.Uninstall(pkg), Prior(present = true), GROUP_MODULE, "Removing ${name(pkg)} from the TV", FailurePolicy.STOP_AND_ROLLBACK)
+            step(Op.Uninstall(pkg), Prior(present = true), GROUP_MODULE, removing(pkg), FailurePolicy.STOP_AND_ROLLBACK)
         }
 
         // Also the core of UndoEverything and BeforeFactoryReset: the TV's own home screen back.
-        fun useStockHome(stock: Component, wizardFromJournal: PackageName?) {
+        // `records`: change records besides the journals that may name it (Undo everything's own).
+        // WP4 (G4): the stock home the switch armed its watchdog with, and an installed stock
+        // launcher of this TV's exact profile (not a brand set's, not the generic KnownLaunchers), are
+        // home screens this TV had too (a placeholder prior is mapped to one of them by homeToRestore).
+        fun useStockHome(stock: Component, wizardFromJournal: PackageName?, records: List<ChangeRecord> = emptyList()) {
             if (stock == launcher) { refuse("that is the new home screen, not the TV's own"); return }
+            val all = journals + records
             val known = snapshot.home.claimants.any { it.component == stock } ||
-                journals.any { it.op is Op.SetHome && it.prior?.home == stock }
+                all.any { it.op is Op.SetHome && it.prior?.home == stock } ||
+                all.any { (it.op as? Op.ArmHomeWatchdog)?.stock == stock } ||
+                (stock in managedProfile?.stockLaunchers.orEmpty() && installed(stock.pkg))
             if (!known) { refuse("${stock.flat} is not a home screen this TV had"); return }
             // A package the undo already puts back (Enable, or DefaultState for an original DEFAULT)
             // is not enabled a second time: that would leave it ENABLED instead of DEFAULT (R1 R-10).
@@ -657,7 +707,7 @@ class DefaultPlanner(
         // orders them: package states, settings, the home screen, our apps, our files.
         fun undoEverything(changes: List<ChangeRecord>, removeLauncher: Boolean) {
             val order = UndoOrder.undoOrder(changes)
-            val originalHome: Component? = order.firstOrNull { it.op is Op.SetHome }?.prior?.home
+            val originalHome: Component? = homeToRestore(order.firstOrNull { it.op is Op.SetHome }?.prior?.home, changes + journals)
             val ourApps = order.filter { UndoOrder.target(it.op) is UndoOrder.Target.App && it.prior?.present == false }
                 .mapNotNull { packageOf(it.op) }.toSet()
             var clearedLook = false
@@ -668,7 +718,7 @@ class DefaultPlanner(
                         val prior = c.prior ?: continue
                         val original = prior.packageState ?: continue
                         if (current.enabled == original) continue
-                        val inverse = renderer.inverse(c.op, prior) ?: continue
+                        val inverse = renderer.inverse(c.op, prior)?.let { protectedInverse(t.pkg, it) } ?: continue
                         step(inverse, Prior(packageState = current.enabled), GROUP_UNDO, undoNarration(inverse, t.pkg), FailurePolicy.CONTINUE)
                     }
                     is UndoOrder.Target.Setting -> {
@@ -676,9 +726,16 @@ class DefaultPlanner(
                         val current = snapshot.settings[t.key]
                         if (t.key !in snapshot.settings || current == original) continue
                         if (t.key == SettingKey.ADB_ENABLED || t.key == SettingKey.ADB_WIFI_ENABLED) continue   // never switched back on by the app
+                        // WP4 (G4, RF-LAUNCHER-240 F7): nor is accessibility. The helper put back journals
+                        // accessibility_enabled 1 and the service list as priors; after the person switched
+                        // accessibility off or changed the list, writing them back would switch a service
+                        // on again. So an undo writes neither "1" nor a non-empty list: every accessibility
+                        // write is null, "0" or what the TV has right now (AccessibilityPutBackPropertyTest).
+                        if (t.key == SettingKey.ACCESSIBILITY_ENABLED && original == "1") continue
+                        if (t.key == SettingKey.ENABLED_ACCESSIBILITY && !original.isNullOrEmpty()) continue
                         step(Op.SettingsPut(t.key, original), Prior(settingValue = current), GROUP_UNDO, "Putting back the TV's ${t.key.key.replace('_', ' ')} setting", FailurePolicy.CONTINUE)
                     }
-                    UndoOrder.Target.Home -> if (originalHome != null && originalHome != launcher) useStockHome(originalHome, null)
+                    UndoOrder.Target.Home -> if (originalHome != null && originalHome != launcher) useStockHome(originalHome, null, changes)
                     is UndoOrder.Target.App -> {
                         val pkg = t.pkg
                         if (pkg !in ourApps || !installed(pkg)) continue
@@ -686,7 +743,8 @@ class DefaultPlanner(
                         if (pkg == launcher.pkg && snapshot.home.resolved == launcher && (originalHome == null || originalHome == launcher)) {
                             refuse("the new home screen is still in charge; the TV's own home screen must come back first"); continue
                         }
-                        step(Op.Uninstall(pkg), Prior(present = true), GROUP_UNDO, "Removing ${name(pkg)} from the TV", FailurePolicy.CONTINUE)
+                        val removed = step(Op.Uninstall(pkg), Prior(present = true), GROUP_UNDO, removing(pkg), FailurePolicy.CONTINUE)
+                        if (pkg == launcher.pkg && removed >= 0) tidyWatchdogFiles(changes + journals)
                     }
                     is UndoOrder.Target.File -> {
                         // Only files in the launcher's folder that did not exist before us; a file that
@@ -710,8 +768,29 @@ class DefaultPlanner(
             }
         }
 
+        // QA 0.4.5-beta1: the home switch leaves two small files of ours in /data/local/tmp/cleanyourtv,
+        // the token file that defused the watchdog and the watchdog's log (empty unless it fired).
+        // When the undo removes the new home screen they have no use left, so they go with it: one
+        // RemoveFile (`rm -f` of that one file, nothing broader) per file name the watchdog template
+        // writes, for the run tokens of our ArmHomeWatchdog and ConfirmHome records, skipping a file
+        // an earlier undo already removed. The folder itself stays (there is no op that removes one).
+        fun tidyWatchdogFiles(records: List<ChangeRecord>) {
+            val tokens = records.sortedWith(UndoOrder.CHRONOLOGICAL).mapNotNull { c ->
+                when (val op = c.op) { is Op.ArmHomeWatchdog -> op.token; is Op.ConfirmHome -> op.token; else -> null }
+            }.distinct()
+            val gone = records.mapNotNull { (it.op as? Op.RemoveFile)?.path }.toSet()
+            var first = true
+            for (token in tokens) {
+                for (file in listOf(Watchdog.tokenFileName(token), Watchdog.logFileName(token))) {
+                    val path = RemotePath(RemoteDir.TMP, listOf(file))
+                    if (path in gone) continue
+                    if (step(Op.RemoveFile(path), null, GROUP_UNDO, if (first) "Tidying up" else "", FailurePolicy.CONTINUE) >= 0) first = false
+                }
+            }
+        }
+
         fun beforeFactoryReset() {
-            val originalHome = journals.filter { it.op is Op.SetHome }.minByOrNull { it.atMs }?.prior?.home
+            val originalHome = homeToRestore(journals.filter { it.op is Op.SetHome }.minByOrNull { it.atMs }?.prior?.home, journals)
             val wizard = journals.firstOrNull { it.op is Op.Disable && (it.op as Op.Disable).pkg.value in Denylist.setupWizards }?.let { (it.op as Op.Disable).pkg }
             if (originalHome != null && originalHome != launcher) {
                 useStockHome(originalHome, wizard)
@@ -748,11 +827,17 @@ class DefaultPlanner(
             if (snapshot.facts.installRefusal) { refuse("this TV refuses app installs"); return }
             installApk(artifact.blob, artifact.sha256, artifact.pkg, artifact.versionCode, artifact.signer,
                 present = true, group = GROUP_LAUNCHER, narration = "Updating the home screen to version ${artifact.versionName}")
-            // The update stops the old version; when it is the TV's home screen, start the new one at
-            // once and check that it comes up.
+            // The update stops the old version; when it is the TV's home screen, restart the new one at
+            // once (upstream #1101: a TCL G03 restarted it mid-update and kept the old picture on
+            // screen, so a plain start is not enough). Then the remote button helpers: the update
+            // stops the launcher and drops its accessibility services as a force-stop does, so they
+            // are put back exactly as the TV had them, whether or not it is
+            // Home. restoreAccessibility adds nothing unless the TV had one of ours on, and it never
+            // switches one on (RF-LAUNCHER-240 F7).
             if (snapshot.home.resolved == launcher) {
-                step(Op.StartActivity(launcher, wait = true), null, GROUP_LAUNCHER, "Starting the updated home screen", FailurePolicy.CONTINUE)
+                step(Op.RestartHome(launcher), null, GROUP_LAUNCHER, NARRATION_RESTART_UPDATED, FailurePolicy.CONTINUE)
             }
+            restoreAccessibility(GROUP_LAUNCHER)
         }
 
         // RFC-W8-5: the D24 restart test as a plan, so the reboot is journaled like any other write.
@@ -781,6 +866,7 @@ class DefaultPlanner(
         const val GROUP_SESSION_END = "session_end"
         const val GROUP_RESTORE = "restore"
         const val GROUP_REBOOT = "reboot"
+        const val NARRATION_RESTART_UPDATED = "Restarting the updated home screen"
         // RFC-CURTAIN-1
         const val GROUP_CURTAIN = "curtain"
         const val CURTAIN_PACKAGE = "tv.cleanyour.curtain"
@@ -800,6 +886,7 @@ class DefaultPlanner(
         const val REASON_WIZARD_SECTION_ONLY = "the first-run setup wizard is only switched off as part of the home screen switch"
         const val NARRATION_WIZARD = "Switch off the first-run setup wizard so the new home screen can take over"
         // Launcher v2.4.0 plan, finding 4: the uninstall erases everything the other launcher kept.
+        const val NARRATION_REMOVE_LAUNCHER = "Removing the new home screen from the TV"
         const val NARRATION_REPLACE_LAUNCHER = "Replace the home screen app (its look, order, app list, settings and card answers on the TV are reset)"
         // UX 2, the preview sheet's "Needed for the new home screen" group.
         const val TITLE_HOME = "Needed for the new home screen"

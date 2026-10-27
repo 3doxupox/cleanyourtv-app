@@ -36,6 +36,7 @@ import tv.cleanyour.core.flows.Confirmations
 import tv.cleanyour.core.flows.OpenWrite
 import tv.cleanyour.core.flows.OpenWriteAction
 import tv.cleanyour.core.flows.Reach
+import tv.cleanyour.core.flows.OffGroup
 import tv.cleanyour.core.flows.SwitchedOffIntent
 import tv.cleanyour.core.flows.SwitchedOffState
 import tv.cleanyour.core.flows.TvSettingsIntent
@@ -141,6 +142,11 @@ fun ManageScreen(state: ManageState, onIntent: (ManageIntent) -> Unit, modifier:
                     ListRow(stringResource(R.string.manage_row_cards), onClick = { onIntent(ManageIntent.Open(ManageSection.MODULES)) })
                     ListDivider()
                 }
+                // WP4 (C6): what the list for this TV now keeps on, as one line into Switched off.
+                if (tv.betterBackOn > 0) {
+                    ListRow(msg(R.string.manage_row_better_back_on, "count" to tv.betterBackOn), onClick = { onIntent(ManageIntent.Open(ManageSection.SWITCHED_OFF)) })
+                    ListDivider()
+                }
                 ListRow(msg(R.string.manage_row_switched_off, "count" to tv.switchedOff), subtitle = stringResource(R.string.manage_row_switched_off_sub),
                     onClick = { onIntent(ManageIntent.Open(ManageSection.SWITCHED_OFF)) })
                 ListDivider()
@@ -201,13 +207,18 @@ internal fun ColumnScope.OpenWriteContent(
     initiallyAsking: OpenWriteAction? = null, onReport: () -> Unit = {},
 ) {
     val setup = open.kind == PlanKind.SETUP
+    // QA of 0.4.5: a run paused STALE (the TV changed after we read it) is checked again, never
+    // carried on; with no step done it says nothing was changed and offers no undo.
+    val stale = !setup && open.reason == PauseReason.STALE
     val body = when {
         open.notTaken -> stringResource(R.string.openwrite_not_taken)
         setup -> msg(R.string.openwrite_body_setup, "tv" to open.tvName)
+        stale && open.nothingDone -> stringResource(R.string.openwrite_body_stale_nothing)
+        stale -> stringResource(R.string.openwrite_body_stale)
         open.reason == PauseReason.CONNECTION_LOST -> stringResource(R.string.openwrite_body_lost)
         else -> stringResource(R.string.openwrite_body)
     }
-    val title = msg(R.string.openwrite_title, "tv" to open.tvName)
+    val title = msg(if (stale) R.string.openwrite_title_stale else R.string.openwrite_title, "tv" to open.tvName)
     Gap(8.dp)
     if (setup) {
         StopCard(title, body,
@@ -227,8 +238,8 @@ internal fun ColumnScope.OpenWriteContent(
         }
         fun act(a: OpenWriteAction) { if (Confirmations.forOpenWrite(a) != null) asking = a else onAction(a) }
         StopCard(title, body,
-            primaryLabel = if (open.busy) null else stringResource(R.string.openwrite_carry_on), onPrimary = { act(OpenWriteAction.CARRY_ON) },
-            secondaryLabel = if (open.busy) null else stringResource(R.string.openwrite_undo), onSecondary = { act(OpenWriteAction.UNDO) },
+            primaryLabel = if (open.busy) null else stringResource(if (stale) R.string.openwrite_check_again else R.string.openwrite_carry_on), onPrimary = { act(OpenWriteAction.CARRY_ON) },
+            secondaryLabel = if (open.busy || (stale && open.nothingDone)) null else stringResource(R.string.openwrite_undo), onSecondary = { act(OpenWriteAction.UNDO) },
             tertiaryLabel = if (open.busy) null else stringResource(R.string.openwrite_stop), onTertiary = { act(OpenWriteAction.STOP_HERE) },
             busyText = if (open.busy) stringResource(R.string.openwrite_busy) else null)
     }
@@ -250,6 +261,8 @@ fun SwitchedOffScreen(state: SwitchedOffState, onIntent: (SwitchedOffIntent) -> 
             Lead(stringResource(R.string.switchedoff_intro), Modifier.padding(top = 12.dp))
         }
         state.groups.forEach { g ->
+            // WP4 (C6): "Better back on" at the top, each row with our reason and the ordinary PutBack.
+            if (g.id == OffGroup.BETTER_BACK_ON) { BetterBackOnGroup(g, state.busy, onIntent); return@forEach }
             SectionLabel(g.title.ifEmpty { stringResource(R.string.switchedoff_group_other) })
             ListGroup {
                 g.rows.forEachIndexed { i, r ->
@@ -272,6 +285,23 @@ fun SwitchedOffScreen(state: SwitchedOffState, onIntent: (SwitchedOffIntent) -> 
             )
         }
         Gap(24.dp)
+    }
+}
+
+@Composable
+private fun BetterBackOnGroup(g: OffGroup, busy: PackageName?, onIntent: (SwitchedOffIntent) -> Unit) {
+    SectionLabel(stringResource(R.string.switchedoff_group_better))
+    ListGroup {
+        g.rows.forEachIndexed { i, r ->
+            if (i > 0) ListDivider()
+            val cd = msg(R.string.switchedoff_switch_back_on_cd, "name" to r.name)
+            val kept = stringResource(R.string.switchedoff_better_kept)
+            ListRow(r.name, subtitle = listOfNotNull(r.reason, kept).joinToString(" "), trailing = {
+                if (busy == r.pkg) Box(Modifier.padding(horizontal = 16.dp)) { Spinner() }
+                else TertiaryButton(stringResource(R.string.switchedoff_switch_back_on), { onIntent(SwitchedOffIntent.PutBack(r.pkg)) },
+                    Modifier.semantics { contentDescription = cd }, enabled = busy == null)
+            })
+        }
     }
 }
 

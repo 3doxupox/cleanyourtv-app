@@ -39,11 +39,11 @@ class FixturesLoadTest {
 
     @Test fun upstreamSubmoduleFixturesLoad() {
         val examples = Fixtures.upstreamExamples()
-        assertEquals(248, examples.size, "every upstream examples/*/debloat.txt at the pinned commit (3e34f40, v2.7.0)")
+        assertEquals(316, examples.size, "every upstream examples/*/debloat.txt at the pinned commit (b06ab21, after v3.0.0)")
         assertTrue(examples.all { it.debloatTxt.isNotBlank() })
         assertTrue(examples.any { it.folder == "xiaomi-mitv-axso0" })
         val themes = Fixtures.upstreamThemes().associateBy { it.name }
-        assertEquals(setOf("aurora", "default", "dussehra", "glass", "ruska", "scenes", "six-columns", "sweden"), themes.keys)
+        assertEquals(setOf("aurora", "default", "dussehra", "glass", "nature-calm", "retro", "ruska", "scenes", "six-columns", "sweden"), themes.keys)
         assertNotNull(themes.getValue("aurora").wallpaperJpg)
         assertNotNull(themes.getValue("dussehra").wallpaperJpg)
         assertTrue(Fixtures.upstreamConfigJava().readText().contains("class Config"))

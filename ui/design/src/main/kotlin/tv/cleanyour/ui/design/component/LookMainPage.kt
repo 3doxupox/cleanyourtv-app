@@ -92,6 +92,19 @@ internal fun ColumnScope.LookMainPage(
 
     AppsInARow(state, onEdit)
 
+    // Home screen 3.0: every app in one row, under Apps in a row, with its note while it is on.
+    val x = ExtraRows(state)
+    if (x.oneRow) {
+        ListGroup(Modifier.padding(top = 16.dp)) {
+            LookSwitchRow(
+                stringResource(R.string.cyt_look_one_row), x.oneRowOn, { on -> x.edit(onEdit) { copy(oneRow = on) } },
+                description = stringResource(R.string.cyt_look_one_row_desc),
+                lines = listOfNotNull(stringResource(R.string.cyt_look_one_row_note).takeIf { x.oneRowOn }),
+                keyName = KEY_NAMES["oneRow"].takeIf { state.keyNames },
+            )
+        }
+    }
+
     // Names under every app, on the main page (review M4): it belongs to nobody, like apps in a row.
     val names = state.rows?.names ?: LookRow(state.names, state.reads27, if (state.reads27) null else tv.cleanyour.core.flows.LookReason.NEEDS_UPDATE)
     ListGroup(Modifier.padding(top = 16.dp)) {
@@ -104,7 +117,8 @@ internal fun ColumnScope.LookMainPage(
     ListGroup(Modifier.padding(top = 16.dp)) {
         ListRow(stringResource(R.string.cyt_look_more_title), subtitle = moreSummary(state), onClick = onMore)
     }
-    LookBody(stringResource(R.string.cyt_look_tiles_note), Modifier.padding(start = 4.dp, end = 4.dp, top = 16.dp))
+    val icons = x.tiles && x.acting.tiles == tv.cleanyour.core.spec.TilesChoice.ICONS
+    LookBody(stringResource(if (icons) R.string.cyt_look_tiles_note_icons else R.string.cyt_look_tiles_note), Modifier.padding(start = 4.dp, end = 4.dp, top = 16.dp))
 }
 
 // From font scale 1.5 the TV-changes line sits in the list instead of under the button.
@@ -183,10 +197,13 @@ private fun columnsHelp(state: LookEditorState): List<String> {
     val lines = mutableListOf(stringResource(if (c == state.minColumns) R.string.cyt_look_columns_biggest else R.string.cyt_look_columns_help))
     if (c == state.maxColumns) lines += stringResource(R.string.cyt_look_columns_eight)
     val below = (n - state.waiting).coerceAtMost(c * 3) - c
+    // With every app in one row there are no rows under the dock and nothing waits (its own note says so).
+    val oneRow = ExtraRows(state).oneRowOn
     when {
         state.style == StyleId.ALL_APPS -> lines += lookMsg(R.string.cyt_look_columns_all_apps, "count" to c)
         n == 0 -> lines += stringResource(R.string.cyt_look_columns_empty_dock)
         n < c -> lines += lookMsg(R.string.cyt_look_columns_empty, "apps" to n, "free" to c - n)
+        oneRow -> if (c == 7) lines += stringResource(R.string.cyt_look_columns_seven)
         state.waiting > 0 -> lines += lookMsg(R.string.cyt_look_columns_waiting, "count" to state.waiting)
         state.style == StyleId.SPOTLIGHT && below > 0 -> lines += lookMsg(R.string.cyt_look_columns_spotlight_below, "count" to below)
         below > 0 -> lines += lookMsg(R.string.cyt_look_columns_below, "count" to below)
@@ -241,6 +258,8 @@ private fun changedWords(state: LookEditorState): List<String> {
     // Darken and Sky only when they differ from the picture's own, as "Use {style}'s own settings" counts them.
     if (r.dimChanged) out += lookMsg(R.string.cyt_look_word_dim, "dim" to (r.dim.value ?: d.dim ?: 0))
     if (r.skyChanged) out += stringResource(if (r.sky.value == true) R.string.cyt_look_word_sky_on else R.string.cyt_look_word_sky_off)
+    // Home screen 3.0's rows, after the 2.7 ones.
+    out += extraWords(state)
     return out
 }
 

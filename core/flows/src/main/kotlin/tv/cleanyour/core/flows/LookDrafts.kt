@@ -7,6 +7,7 @@ import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.spec.DockLayers
 import tv.cleanyour.core.spec.GlowChoice
 import tv.cleanyour.core.spec.LauncherConfigDoc
+import tv.cleanyour.core.spec.LookExtras
 import tv.cleanyour.core.spec.LookGates
 import tv.cleanyour.core.spec.LookKeys
 import tv.cleanyour.core.spec.Looks
@@ -49,7 +50,9 @@ internal data class LookContext(
 // apply); a picture change puts the picture's dim and sky back; names, movement and apps in a row
 // belong to nobody. "Use {style}'s own settings" puts every detail back, with Movement the TV's
 // default. Undo changes goes back to what was last sent; the earlier look fills the draft. Nothing
-// here sends anything.
+// here sends anything. 0.4.5: the home screen 3.0 switches (LookExtras) belong to nobody, like
+// names: a style change keeps them (the rules take what acts in the new style); "Use {style}'s own
+// settings" puts them back to the launcher's own; Undo changes and the earlier look carry them.
 internal class LookDrafts(
     private val themes: ThemeSource,
     private val pictures: PictureSource,
@@ -112,16 +115,18 @@ internal class LookDrafts(
                     if (galleryPicture(id)?.let { !Looks.offered(it, today) } == true) choice.previousPicture ?: LookPicture.NONE_ID else id
                 }
                 LookParts(StyleId.of(choice.style) ?: StyleId.CLASSIC, picture, choice.columns?.takeIf { it in OFFERED } ?: DockLayers.DEFAULT_COLUMNS,
-                    choice.names ?: false, movement ?: Movement.LIVELY, choice.lift ?: false, choice.details)
+                    choice.names ?: false, movement ?: Movement.LIVELY, choice.lift ?: false, choice.details, extras = choice.extras)
             }
         }
-        val gated = if (p.style in LookGates.styles(tv.versionCode)) p
+        val styled = if (p.style in LookGates.styles(tv.versionCode)) p
             else p.copy(style = StyleId.CLASSIC, details = LookRules.withoutStyleDetails(p.details))
+        // 0.4.5: a TV below home screen 3.0 has none of its switches (they come back with the update).
+        val gated = if (LookGates.reads30(tv.versionCode)) styled else styled.copy(extras = LookExtras.DEFAULT)
         return if (autoPick && !chosen) LookRules.autoPick(gated, tv.ramMb) else gated
     }
 
     private fun partsOf(d: LookDraft) = LookParts(d.style, d.picture ?: LookPicture.NONE_ID, d.columns, d.names, d.movement, d.lift, d.details,
-        d.movementPicked, d.legacyThemeId)
+        d.movementPicked, d.legacyThemeId, d.extras)
 
     // A picture id as the rules and the push see it; an id this phone cannot show is no picture.
     fun pictureOf(id: String, ctx: LookContext): LookPictureInfo {
@@ -197,7 +202,8 @@ internal class LookDrafts(
             LookEdit.ResetDetails -> if (rows.resettable == 0) p else {
                 val before = p
                 noted(LookNoteKind.RESET, { before })
-                touched(p.copy(details = LookDetails(), movement = LookGates.defaultMovement(ctx.tv.ramMb), lift = false, movementPicked = false))
+                touched(p.copy(details = LookDetails(), movement = LookGates.defaultMovement(ctx.tv.ramMb), lift = false, movementPicked = false,
+                    extras = LookExtras.DEFAULT))
             }
             LookEdit.UndoChanges -> base?.takeIf { draft.changed }?.let { b ->
                 val before = p
@@ -219,6 +225,8 @@ internal class LookDrafts(
                 p
             }
             is LookEdit.SetKeyNames -> p
+            is LookEdit.SetExtras -> if (LookGates.reads30(ctx.tv.versionCode)) touched(p.copy(extras = edit.extras)) else p
+            is LookEdit.SetBandBack -> if (rows.band.enabled) touched(p.copy(details = p.details.copy(band = edit.band), extras = p.extras.copy(noBand = false))) else p
         }
         if (next == p && note == draft.note && ctx.keyNames == draft.keyNames) return draft
         return fill(next, ctx, note)
@@ -343,6 +351,10 @@ internal class LookDrafts(
             keyNames = ctx.keyNames, settingsFile = encoder.encode(doc.copy(dockApps = null, moduleCards = null)).decodeToString(),
             fullFile = full, apps = ctx.apps.size, waiting = DockLayers.waiting(ctx.apps.size, p.columns),
             tvChanged = ctx.tvChanged,
+            reads30 = LookGates.reads30(tv.versionCode),
+            extras = if (LookGates.reads30(tv.versionCode)) p.extras else LookExtras.DEFAULT,
+            actingExtras = LookRules.extras(p, rows, tv),
+            offeredExtras = LookRules.extras(p.copy(extras = ALL_ON), rows, tv),
         )
     }
 
@@ -362,7 +374,7 @@ internal class LookDrafts(
     fun choiceOf(draft: LookDraft, saved: HomeChoice?, dock: List<PackageName>, cards: Boolean?, picture: String, dim: Int?): HomeChoice =
         HomeChoice(dock, themeId = null, cards = cards, picture = picture, dim = dim, columns = draft.columns,
             style = draft.style.id, movement = draft.movement.id, lift = draft.lift, names = draft.names, details = draft.details,
-            previousPicture = previousPicture(saved, picture))
+            previousPicture = previousPicture(saved, picture), extras = draft.extras)
 
     private fun previousPicture(saved: HomeChoice?, next: String): String? {
         if (!datedPicture(next)) return null
@@ -402,6 +414,10 @@ internal class LookDrafts(
 
     companion object {
         val OFFERED = DockLayers.MIN_OFFERED_COLUMNS..DockLayers.MAX_OFFERED_COLUMNS
+
+        // Every 3.0 switch on, for offeredExtras.
+        private val ALL_ON = LookExtras(oneRow = true, bandAll = true, noBand = true, hideGreeting = true, dateBelow = true, brightDate = true,
+            wifiWarnings = true, tiles = tv.cleanyour.core.spec.TilesChoice.ICONS, highlight = tv.cleanyour.core.spec.HighlightChoice.RIM)
 
         private const val BIG_NAME = "bigName"
         private const val GLOW = "glow"

@@ -243,9 +243,10 @@ private fun lookStep(draft: LookDraft, dock: List<AppChoice> = dockApps, waiting
 // look2 look step: the same Look editor as the Look sheet, with Done. The previews come from the
 // bytes the push would send (LookSamples); the rows are written out here (a fake in test sources).
 private val lookSource = BundledThemeSource()
-private fun look2Preview(style: StyleId, picture: String, columns: Int = 5): LookPreview {
-    val choice = HomeChoice(dockApps.map { it.pkg }, null, cards = false, picture = picture, columns = columns, style = style.id, movement = Movement.LIVELY.id)
-    val p = LookSamples.preview(LookSample("setup", choice, choice.dock, LookTv(8L, 2048, false)), lookSource, lookSource, LocalDate.of(2026, 10, 26), 20 * 60 + 30)
+private fun look2Preview(style: StyleId, picture: String, columns: Int = 5, extras: tv.cleanyour.core.spec.LookExtras = tv.cleanyour.core.spec.LookExtras.DEFAULT): LookPreview {
+    val choice = HomeChoice(dockApps.map { it.pkg }, null, cards = false, picture = picture, columns = columns, style = style.id, movement = Movement.LIVELY.id,
+        extras = extras)
+    val p = LookSamples.preview(LookSample("setup", choice, choice.dock, LookTv(if (extras == tv.cleanyour.core.spec.LookExtras.DEFAULT) 8L else 9L, 2048, false)), lookSource, lookSource, LocalDate.of(2026, 10, 26), 20 * 60 + 30)
     return p.copy(picturePath = gallery[picture]?.let { resourcePath(it.wallpaper) }, dock = dockApps.map { it.name })
 }
 private fun look2Rows(style: StyleId, picture: String): LookRows {
@@ -259,8 +260,20 @@ private fun look2Rows(style: StyleId, picture: String): LookRows {
         resettable = 0, festiveRing = false, liftSlowRamMb = null,
     )
 }
-private fun look2Draft(style: StyleId = StyleId.CLASSIC, picture: String = "mist", columns: Int = 5, newPhoto: Boolean = false, waiting: Int = 0) = LookDraft(
-    "default", picture, preview = look2Preview(style, if (newPhoto) "mist" else picture, columns), columns = columns, lookColumns = columns, style = style,
+private fun look2Draft(style: StyleId = StyleId.CLASSIC, picture: String = "mist", columns: Int = 5, newPhoto: Boolean = false, waiting: Int = 0,
+    oneRow: Boolean? = null) = LookDraft(
+    "default", picture,
+    // oneRow: a TV that reads 3.0, with Every app in one row as given (the preview from the bytes the push writes).
+    preview = look2Preview(style, if (newPhoto) "mist" else picture, columns, tv.cleanyour.core.spec.LookExtras(oneRow = oneRow == true)),
+    columns = columns, lookColumns = columns, style = style,
+    reads30 = oneRow != null, extras = tv.cleanyour.core.spec.LookExtras(oneRow = oneRow == true),
+    // What acts and what could act (LookRules.extras): one row on every style with a dock, the band's None
+    // not on Spotlight, the internet warnings only with Green Wi-Fi (off in these rows).
+    actingExtras = tv.cleanyour.core.spec.LookExtras(oneRow = oneRow == true && style != StyleId.ALL_APPS).takeIf { oneRow != null }
+        ?: tv.cleanyour.core.spec.LookExtras.DEFAULT,
+    offeredExtras = if (oneRow == null) tv.cleanyour.core.spec.LookExtras.DEFAULT else tv.cleanyour.core.spec.LookExtras(
+        oneRow = style != StyleId.ALL_APPS, noBand = style != StyleId.ALL_APPS && style != StyleId.SPOTLIGHT, hideGreeting = true, dateBelow = true,
+        brightDate = true, tiles = tv.cleanyour.core.spec.TilesChoice.ICONS, highlight = tv.cleanyour.core.spec.HighlightChoice.RIM),
     styleCards = StyleId.entries.map { StyleCard(it, look2Preview(it, if (newPhoto) "mist" else picture, columns), true) },
     rows = look2Rows(style, picture), newPhoto = newPhoto, settingsFile = "{\n  \"columns\": $columns\n}", apps = dockApps.size + waiting, waiting = waiting,
 )
@@ -427,6 +440,10 @@ object SetupShots {
         Shot("theme_sheet", 1100.dp) {
             LookFrame({ Setup(found()) }) { nav -> ThemeContent(look2Step(look2Draft()), NoSetupActions, PhotoPicker {}, pictureFiles, nav = nav) }
         },
+        // Home screen 3.0 (0.4.5): the same step on a TV that reads 3.0, with Every app in one row on.
+        Shot("theme_sheet_30", 1300.dp) {
+            LookFrame({ Setup(found()) }) { nav -> ThemeContent(look2Step(look2Draft(oneRow = true)), NoSetupActions, PhotoPicker {}, pictureFiles, nav = nav) }
+        },
         Shot("theme_sheet_more", 1700.dp) {
             LookFrame({ Setup(found()) }, LookPage.MORE) { nav -> ThemeContent(look2Step(look2Draft(StyleId.GLASS)), NoSetupActions, PhotoPicker {}, pictureFiles, nav = nav) }
         },
@@ -484,6 +501,11 @@ object SetupShots {
             Stopped(home(StopCase.HOME_UNKNOWN, R.string.stop_home_unknown_title, R.string.stop_home_unknown_body,
                 R.string.stop_home_unknown_primary, R.string.stop_home_unknown_secondary), connected.copy(commands = commands))
         },
+        // Issue #629: a Settings page was open on the TV during the check.
+        Shot("stopped_home_settings_open") {
+            Stopped(home(StopCase.HOME_SETTINGS_OPEN, R.string.stop_home_unknown_title, R.string.stop_home_settings_open_body,
+                R.string.stop_home_user_said_no_primary, R.string.stop_home_setupwraith_secondary), connected.copy(commands = commands))
+        },
         Shot("stopped_home_user_said_no") {
             Stopped(home(StopCase.HOME_USER_SAID_NO, R.string.stop_home_user_said_no_title, R.string.stop_home_user_said_no_body,
                 R.string.stop_home_user_said_no_primary, R.string.stop_home_user_said_no_secondary), connected.copy(commands = commands))
@@ -491,6 +513,11 @@ object SetupShots {
         Shot("stopped_home_timed_out") {
             Stopped(home(StopCase.HOME_TIMED_OUT, R.string.stop_home_timed_out_title, R.string.stop_home_timed_out_body,
                 R.string.stop_home_timed_out_primary, R.string.stop_home_timed_out_secondary), connected.copy(commands = commands))
+        },
+        // QA of 0.4.5: things stayed switched off, so the card says how many, never "as it was".
+        Shot("stopped_home_timed_out_switched_off") {
+            Stopped(home(StopCase.HOME_TIMED_OUT, R.string.stop_home_timed_out_title, R.string.stop_home_timed_out_body_off,
+                R.string.stop_home_timed_out_primary, R.string.stop_home_timed_out_secondary, args = mapOf("count" to 3)), connected.copy(commands = commands))
         },
         // M5: step R put the old home screen back after a lost connection (D-W8-16)
         Shot("stopped_home_put_back") { Stopped(homePutBack(), connected.copy(commands = commands)) },
@@ -570,6 +597,10 @@ object SetupShots {
         },
         Shot("done_finishing") { Setup(done(), connected.copy(finishing = Finishing.SWITCHING)) },
         Shot("done_finished") { Setup(done(), connected.copy(chip = ChipState.DEBUGGING_OFF, finishing = Finishing.DONE)) },
+        // D7: "Keep debugging on" chosen, so Done says debugging stays on (baseline QA, 0.4.0).
+        Shot("done_keep_debugging") { Setup(done(), connected.copy(keepsDebugging = true)) },
+        // QA of 0.4.5: OK on the timed out card; the home screen is unchanged and Done says why.
+        Shot("done_home_kept_timed_out") { Setup(done(off = 3, home = false), connected.copy(doneHomeKept = tv.cleanyour.core.engine.HomeOutcome.TIMED_OUT)) },
         // The Google Play build (STORES-PLAN 1): Done offers no card to add.
         Shot("play_done_home_on") { Setup(done(), connected.copy(addOns = false)) },
     )

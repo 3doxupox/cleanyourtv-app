@@ -19,6 +19,7 @@ import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 // SECURITY 3.4 item 4 as property tests over seeded generators (deterministic, no library): for any
@@ -135,6 +136,49 @@ class RendererPropertyTest {
             r.verify?.let { v -> renderer.render(v).lines.forEach { ShellTokens.assertLine(it.text) } }
         }
         assertTrue(lines > 3500)
+    }
+
+    // SECURITY.md, Launcher 3.0: the app never approves the launcher's notification listener
+    // (GuardRevival needs `cmd notification allow_listener`), never grants it WRITE_SECURE_SETTINGS
+    // (`pm grant`, which also guards GuardConfig) and never broadcasts to it; its only accessibility
+    // writes are SettingsPut of the two accessibility settings with the op's own value, which the
+    // planner uses only to put back the list the TV had (restoreAccessibility, Launcher24PlanTest).
+    // Pinned for every op kind, random ones and ones aimed at the launcher's 3.0 components.
+    @Test fun noOpApprovesGrantsOrSwitchesOnTheLaunchersHelpers() {
+        val tvhome = PackageName("com.gathin.tvhome")
+        val parts = listOf(".GuardRevival", ".GuardConfig", ".AppLaunchActivity", ".HomeKeyService", ".InputKeyService", ".MainActivity")
+            .map { Component(tvhome, it) }
+        val aimed = parts.flatMap { c ->
+            listOf(Op.Enable(tvhome), Op.DefaultState(tvhome), Op.SetHome(c), Op.VerifyHome(c), Op.RestartHome(c),
+                Op.StartActivity(c, true), Op.StartActivity(c, false), Op.ArmHomeWatchdog(c, 60, token()),
+                Op.SettingsPut(SettingKey.ENABLED_ACCESSIBILITY, c.flat), Op.SettingsPut(SettingKey.ACCESSIBILITY_ENABLED, "1"),
+                Op.Read(ProbeKind.PACKAGE_DUMP, ReadArg.Pkg(tvhome)), Op.Read(ProbeKind.SETTINGS, ReadArg.Ns(SettingsNs.SECURE)))
+        }
+        val forbidden = setOf("notification", "allow_listener", "allow_assistant", "grant", "appops")
+        // No setting the app can write is a notification one (enabled_notification_listeners and the like).
+        for (k in SettingKey.entries) assertTrue("notification" !in k.key, k.key)
+        for (op in aimed + List(5000) { anyOp() }) {
+            val r = try { renderer.render(op) } catch (e: RenderRefused) { continue }
+            val rendered = r.lines + listOfNotNull(r.verify).flatMap { renderer.render(it).lines }
+            for (line in rendered) {
+                if (op is Op.ArmHomeWatchdog && line.text == renderer.render(op).lines.last().text) {
+                    assertTrue(forbidden.none { it in line.text } && "WRITE_SECURE_SETTINGS" !in line.text, line.text)
+                    continue
+                }
+                val argv = ShellTokens.tokenize(line.text)
+                assertTrue(argv.none { it in forbidden }, line.text)
+                assertTrue(argv.none { "WRITE_SECURE_SETTINGS" in it || "BIND_NOTIFICATION_LISTENER" in it }, line.text)
+                if (argv.take(2) == listOf("am", "broadcast")) assertEquals("tv.cleanyour.curtain/.CueReceiver", argv[3], line.text)
+                // Any line naming accessibility, but the settings list read, is one of the two SettingsPut forms.
+                if (argv.any { "accessibility" in it } && argv.take(2) != listOf("settings", "list")) {
+                    val put = assertIs<Op.SettingsPut>(op, line.text)
+                    assertTrue(put.key == SettingKey.ENABLED_ACCESSIBILITY || put.key == SettingKey.ACCESSIBILITY_ENABLED, line.text)
+                    val want = if (put.value == null) listOf("settings", "delete", "secure", put.key.key)
+                        else listOf("settings", "put", "secure", put.key.key, put.value!!)
+                    assertEquals(want, argv)
+                }
+            }
+        }
     }
 
     // RFC-CURTAIN-1: every cue is one fixed argv: constant words, the token, two enum names and four

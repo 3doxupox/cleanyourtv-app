@@ -8,6 +8,7 @@ import tv.cleanyour.core.discovery.Discovery
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 import tv.cleanyour.core.engine.Engine
+import tv.cleanyour.core.engine.PauseReason
 import tv.cleanyour.core.engine.RunState
 import tv.cleanyour.core.engine.RunStatus
 import tv.cleanyour.core.engine.StartRefusal
@@ -17,6 +18,7 @@ import tv.cleanyour.core.planner.PlanRequest
 import tv.cleanyour.core.planner.PlanResult
 import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.model.Profile
+import tv.cleanyour.core.model.Snapshot
 import tv.cleanyour.core.model.Tv
 import tv.cleanyour.core.model.TvId
 import tv.cleanyour.core.ops.ConfigTransport
@@ -30,14 +32,18 @@ import tv.cleanyour.core.spec.BandChoice
 import tv.cleanyour.core.spec.ButtonsChoice
 import tv.cleanyour.core.spec.DockLayers
 import tv.cleanyour.core.spec.GlowChoice
+import tv.cleanyour.core.spec.HighlightChoice
+import tv.cleanyour.core.spec.LookExtras
 import tv.cleanyour.core.spec.LookKeys
 import tv.cleanyour.core.spec.Movement
 import tv.cleanyour.core.spec.StyleId
 import tv.cleanyour.core.spec.FactsTable
+import tv.cleanyour.core.spec.HomeFit
 import tv.cleanyour.core.spec.Looks
 import tv.cleanyour.core.spec.PictureSource
 import tv.cleanyour.core.spec.ProfileSource
 import tv.cleanyour.core.spec.ThemeSource
+import tv.cleanyour.core.spec.TilesChoice
 import tv.cleanyour.core.store.BlobStore
 import tv.cleanyour.core.store.Clock
 import tv.cleanyour.core.store.DocumentStore
@@ -117,7 +123,14 @@ class ManageDeps(
 ) {
     fun tv(id: TvId): Tv? = tvs.tvs.value.firstOrNull { it.id == id }
 
-    suspend fun profileOf(tv: Tv): Profile? = tv.profileId?.let { id -> attempt { profiles.all() }.getOrNull()?.firstOrNull { it.id == id } }
+    // The TV's exact profile as Setup last stored it, unless it does not fit the Home of the TV's
+    // latest snapshot (issue #114: a record kept from before the rule names an Android TV list for a
+    // Google TV set; Setup clears it on the next connect, Manage already leaves it out).
+    suspend fun profileOf(tv: Tv): Profile? {
+        val profile = tv.profileId?.let { id -> attempt { profiles.all() }.getOrNull()?.firstOrNull { it.id == id } } ?: return null
+        val latest = attempt { snapshots.latest(tv.id) }.getOrNull()
+        return profile.takeIf { HomeFit.fits(it, latest?.home, latest?.packages) }
+    }
 
     fun nameOf(pkg: PackageName, label: String? = null): String = AppNames.of(pkg, facts, label)
 }
@@ -140,10 +153,12 @@ class ManageDeps(
 // are the person's changes over the style's and the picture's own; `previousPicture` ("prevpic=") is
 // the picture before a dated one (Diwali), which is theirs again once it ends. In the new form
 // `picture` is never null and `columns` is always written.
+// 0.4.5: `extras` (the "x." lines) are the home screen 3.0 switches, each line written only when it
+// is not the launcher's own, so a 0.4.0 file loads as DEFAULT and saves again byte for byte.
 data class HomeChoice(val dock: List<PackageName>, val themeId: String?, val cards: Boolean? = null, val previousThemeId: String? = null,
     val picture: String? = null, val dim: Int? = null, val columns: Int? = null,
     val style: String? = null, val movement: String? = null, val lift: Boolean? = null, val names: Boolean? = null,
-    val details: LookDetails = LookDetails(), val previousPicture: String? = null) {
+    val details: LookDetails = LookDetails(), val previousPicture: String? = null, val extras: LookExtras = LookExtras.DEFAULT) {
     // The look that is this TV's on `today`: the saved one, or once a dated look has ended, the one
     // before it (null, the Default look, when that one has ended too or there was none).
     fun lookOn(today: LocalDate): String? = when {
@@ -180,7 +195,8 @@ fun Clock.today(): LocalDate = Instant.ofEpochMilli(nowMs()).atZone(ZoneId.syste
 
 // tvs/<id>/home.txt, one "key=value" line each. Every line is optional, and a value that does not
 // read loads as null, so a file of any version loads: 0.3.x (dock, theme, cards, previous), 0.4.0
-// (picture, dim, columns) and look2 (style, movement, lift, names, prevpic and the "d." details).
+// (picture, dim, columns), look2 (style, movement, lift, names, prevpic and the "d." details) and
+// 0.4.5 (the "x." extras, only those not at the launcher's own).
 class HomePrefs(private val store: DocumentStore) {
     private fun path(id: TvId) = "tvs/${id.value}/home.txt"
 
@@ -204,9 +220,17 @@ class HomePrefs(private val store: DocumentStore) {
                 "d.bigname" to d.bigName, "d.glow" to d.glow?.id, "d.spotcolour" to d.spotColour, "d.ring" to d.ring,
                 "d.band" to d.band?.id, "d.see" to d.seeThrough, "d.buttons" to d.buttons?.id, "d.wifi" to d.greenWifi,
                 "d.dim" to d.dim, "d.sky" to d.sky, "d.skystr" to d.skyStrength,
-            )
+            ) + extrasLines(choice.extras)
             return lines.filter { (k, v) -> v != null || k == "dock" || k == "theme" }.joinToString("") { (k, v) -> "$k=$v\n" }
         }
+
+        // The "x." lines, each only when it is not LookExtras.DEFAULT's value (null leaves it out).
+        private fun extrasLines(e: LookExtras): List<Pair<String, Any?>> = listOf(
+            "x.onerow" to "1".takeIf { e.oneRow }, "x.bandall" to "1".takeIf { e.bandAll }, "x.noband" to "1".takeIf { e.noBand },
+            "x.nogreeting" to "1".takeIf { e.hideGreeting }, "x.datebelow" to "1".takeIf { e.dateBelow },
+            "x.brightdate" to "1".takeIf { e.brightDate }, "x.wifiwarn" to "1".takeIf { e.wifiWarnings },
+            "x.tiles" to e.tiles.takeIf { it != TilesChoice.ART }?.id, "x.highlight" to e.highlight.takeIf { it != HighlightChoice.GLASS }?.id,
+        )
 
         fun decode(text: String): HomeChoice {
             val map = text.lines().filter { '=' in it }.associate { it.substringBefore('=') to it.substringAfter('=') }
@@ -224,6 +248,13 @@ class HomePrefs(private val store: DocumentStore) {
                 str("theme"), bool("cards"), str("previous"), str("picture"), int("dim", 0..90), int("columns", OFFERED),
                 style = StyleId.of(map["style"])?.id, movement = Movement.of(map["movement"])?.id, lift = bool("lift"), names = bool("names"),
                 details = details, previousPicture = str("prevpic"),
+                extras = LookExtras(
+                    oneRow = map["x.onerow"] == "1", bandAll = map["x.bandall"] == "1", noBand = map["x.noband"] == "1",
+                    hideGreeting = map["x.nogreeting"] == "1", dateBelow = map["x.datebelow"] == "1", brightDate = map["x.brightdate"] == "1",
+                    wifiWarnings = map["x.wifiwarn"] == "1",
+                    tiles = TilesChoice.entries.firstOrNull { it.id == map["x.tiles"] } ?: TilesChoice.ART,
+                    highlight = HighlightChoice.entries.firstOrNull { it.id == map["x.highlight"] } ?: HighlightChoice.GLASS,
+                ),
             )
         }
     }
@@ -284,13 +315,22 @@ class TvWriter(private val d: ManageDeps) {
         }
         val tv = d.tv(tvId) ?: return WriteResult.NoTv
         // An earlier write left its run open: no new plan, no prompt, the card for that run (O2).
-        (d.engine.runState(tvId).value as? RunState.Paused)?.let { p -> d.openWrites.show(tv, p); return WriteResult.Paused(p.plan, p) }
+        (d.engine.runState(tvId).value as? RunState.Paused)?.let { p -> publish(tv, p); return WriteResult.Paused(p.plan, p) }
         return attempt {
             val snapshot = if (fresh) d.runner.freshSnapshot(session) else d.runner.snapshotFor(tv, session)
+            runFrom(tv, session, request, snapshot, onBusy)
+        }.getOrElse { WriteResult.Failed(it.message ?: it.toString()) }
+    }
+
+    // The plan for the request from this read of the TV, then the run, followed to its end or pause.
+    private suspend fun runFrom(tv: Tv, session: TvSession, request: PlanRequest, snapshot: Snapshot, onBusy: (Busy) -> Unit): WriteResult {
+        val tvId = tv.id
+        return attempt {
             val plan = when (val r = d.runner.plan(tv, request, snapshot)) {
                 is PlanResult.Ok -> r.plan
                 is PlanResult.Refused -> return@attempt WriteResult.Refused(r.reasons)
             }
+            d.openWrites.remember(plan.id, request)
             val outcome = d.runner.run(tv, plan, session, onStarted = { d.sessionEnd.touched(tvId) }) { s ->
                 if (s is RunState.Running) onBusy(Busy.Working(s.percent, s.narration.map { it.text }))
             }
@@ -299,7 +339,7 @@ class TvWriter(private val d: ManageDeps) {
                     afterRun(tv, session, plan, outcome.state)
                     WriteResult.Done(plan, outcome.state)
                 }
-                is RunOutcome.Paused -> { d.openWrites.show(tv, outcome.state); WriteResult.Paused(plan, outcome.state) }
+                is RunOutcome.Paused -> { publish(tv, outcome.state); WriteResult.Paused(plan, outcome.state) }
                 is RunOutcome.StartRefused -> if (outcome.refusal == StartRefusal.RUN_OPEN) {
                     openRun(tv, session)?.let { WriteResult.Paused(it.plan, it) } ?: WriteResult.Failed(outcome.refusal.name)
                 } else WriteResult.Failed(outcome.refusal.name)
@@ -321,8 +361,15 @@ class TvWriter(private val d: ManageDeps) {
     suspend fun openRun(tv: Tv, session: TvSession, publish: Boolean = true): RunState.Paused? {
         if (d.engine.runState(tv.id).value !is RunState.Paused) attempt { d.engine.resume(tv.id, session) }
         val p = d.engine.runState(tv.id).value as? RunState.Paused ?: return null
-        if (publish) d.openWrites.show(tv, p)
+        if (publish) publish(tv, p)
         return p
+    }
+
+    // The open run's card (O2). QA of 0.4.5: it knows whether any step of the run was done, so a run
+    // paused STALE before its first step says nothing was changed, never "we stopped partway".
+    suspend fun publish(tv: Tv, p: RunState.Paused) {
+        val nothingDone = attempt { d.ledger.progress(p.plan.id).doneSteps == 0 }.getOrDefault(false)
+        d.openWrites.show(tv, p, nothingDone)
     }
 
     // The card's buttons (O2): carry on, undo what we did, or stop here, for the open run on this
@@ -340,6 +387,7 @@ class TvWriter(private val d: ManageDeps) {
         return attempt {
             val paused = openRun(tv, session, publish = false) ?: run { d.openWrites.clear(tvId); return@attempt WriteResult.NoTv }   // it ended meanwhile
             val plan = paused.plan
+            if (action == OpenWriteAction.CARRY_ON && paused.reason == PauseReason.STALE) return@attempt checkAgain(tv, session, paused)
             when (action) {
                 OpenWriteAction.CARRY_ON, OpenWriteAction.UNDO -> {
                     val pass = if (GateKeeper.needsPass(plan)) d.gate.pass(tvId, tv.nickname) ?: run { idle(); return@attempt WriteResult.GateCancelled } else null
@@ -358,10 +406,37 @@ class TvWriter(private val d: ManageDeps) {
                     afterRun(tv, session, plan, outcome.state)
                     WriteResult.Done(plan, outcome.state)
                 }
-                is RunOutcome.Paused -> { d.openWrites.show(tv, outcome.state); WriteResult.Paused(plan, outcome.state) }
+                is RunOutcome.Paused -> { publish(tv, outcome.state); WriteResult.Paused(plan, outcome.state) }
                 else -> { idle(); WriteResult.Failed("unexpected") }
             }
         }.getOrElse { idle(); WriteResult.Failed(it.message ?: it.toString()) }
+    }
+
+    // QA of 0.4.5: the TV changed after the read the plan was made from, so the engine paused the run
+    // STALE before the step whose prior no longer held. Carrying on with that plan meets the same
+    // check again, for good (the engine re-reads the TV but the plan's priors stay old). "Check
+    // again" ends that run (what was done stays done), reads the TV afresh and plans the same request
+    // from what it has now, and runs it; the engine checks the new plan against the TV once more
+    // before its first step, so a plan made from an old read never runs. When the request is not
+    // known (the app was restarted since), the run is ended and the TV read, and the next change
+    // starts from that read.
+    private suspend fun checkAgain(tv: Tv, session: TvSession, paused: RunState.Paused): WriteResult {
+        d.engine.abandon(tv.id)
+        val after = d.engine.runState(tv.id).value
+        if (after is RunState.Paused) {   // the run could not be ended (the TV went away again)
+            d.openWrites.update(tv.id) { it.copy(busy = false, notTaken = true) }
+            return WriteResult.Paused(paused.plan, after)
+        }
+        val snapshot = d.runner.freshSnapshot(session)
+        val request = d.openWrites.requestOf(paused.plan.id)
+        if (request == null) {
+            d.openWrites.clear(tv.id)
+            return WriteResult.Done(paused.plan, after as? RunState.Finished ?: RunState.Finished(paused.plan, RunStatus.ABANDONED, emptyList(), null))
+        }
+        // The card stays, busy, while the new plan runs; a pause of that run shows its own card.
+        val result = runFrom(tv, session, request, snapshot) {}
+        if (result !is WriteResult.Paused) d.openWrites.clear(tv.id)
+        return result
     }
 
     companion object { const val MOVE_WAIT_MS = 5_000L }

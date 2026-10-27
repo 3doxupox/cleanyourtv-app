@@ -12,13 +12,14 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
 // LauncherKeys reads the carried 2.7 keys as launcher 2.7's Config.java does (Config.bool,
-// integer, string, glowStyle). The real reader on the same bytes: ConfigDifferentialTest and
+// integer, string, glowStyle), and the 25 keys of 3.0 as 3.0's does (also stringList and glassStyle). The real reader on the same bytes: ConfigDifferentialTest and
 // LookDifferentialTest.
 class LauncherKeysTest {
     private fun decoded(json: String): LauncherConfigDoc = assertIs<DecodeResult.Ok>(LauncherConfigCodec.decode(json.encodeToByteArray()), json).doc
     private fun doc(vararg pairs: Pair<String, JsonElement>) = LauncherConfigDoc(unknown = mapOf(*pairs))
 
-    // DEFAULTS_27 is res/values/config.xml of the submodule (launcher 2.7, 3e34f40), parsed here.
+    // DEFAULTS_27 is res/values/config.xml of launcher 2.7 (3e34f40); the submodule's, parsed here,
+    // keeps those values for the 2.7 keys at b06ab21.
     @Test fun defaultsAreConfigXml27() {
         val xml = UpstreamLauncher.parseConfigXml(File(Fixtures.upstreamDir, "launcher/app/src/main/res/values/config.xml"))
         fun b(k: String) = xml.getValue(k) as Boolean
@@ -81,6 +82,57 @@ class LauncherKeysTest {
         assertEquals(false, LauncherKeys.bool(doc("k" to JsonPrimitive("true")), "k", false))
         assertEquals(true, LauncherKeys.bool(doc("k" to JsonArray(emptyList())), "k", true))
         assertEquals(true, LauncherKeys.bool(doc("k" to JsonPrimitive(true)), "k", false))
+    }
+
+    // DEFAULTS_30 is res/values/config.xml of the submodule at the pin (launcher 3.0, b06ab21),
+    // parsed here; lunar_utc_offset is read from config.json alone (-1, -1 to 14).
+    @Test fun defaultsAreConfigXml30() {
+        val xml = UpstreamLauncher.parseConfigXml(File(Fixtures.upstreamDir, "launcher/app/src/main/res/values/config.xml"))
+        fun b(k: String) = xml.getValue(k) as Boolean
+        @Suppress("UNCHECKED_CAST")
+        fun list(k: String) = (xml.getValue(k) as Array<String>).toList()
+        val want = Keys30(
+            inputSources = list("input_sources"), lunarDate = b("lunar_date"), lunarUtcOffset = -1,
+            openOnStartChoice = b("open_on_start_choice"), showLibraryPill = b("show_library_pill"), libraryOkOpens = b("library_ok_opens"),
+            uniformTiles = b("uniform_tiles"), consumeVolumeKeys = b("consume_volume_keys"), powerOnHome = b("power_on_home"),
+            homeLongPressHome = b("home_long_press_home"), powerOnHomeAlways = b("power_on_home_always"), dockBand = b("dock_band"),
+            wifiStatusWarnings = b("wifi_status_warnings"), dateBelowClock = b("date_below_clock"), vpnPill = b("vpn_pill"),
+            locale = xml.getValue("locale") as String, topBarApps = list("top_bar_apps"), showGreeting = b("show_greeting"),
+            headerWhite = b("header_white"), clockWallpaper = b("clock_wallpaper"), clockWallpaperDim = xml.getValue("clock_wallpaper_dim") as Int,
+            clockGlow = b("clock_glow"), singleRow = b("single_row"), dockBandAll = b("dock_band_all"),
+            glassStyle = LauncherKeys.glassStyle(xml.getValue("glass_style") as String),
+        )
+        assertEquals(want, LauncherKeys.DEFAULTS_30)
+        assertEquals("glass", xml.getValue("glass_style"))
+        assertEquals(false, "lunar_utc_offset" in xml)
+        val reader = File(Fixtures.upstreamDir, "launcher/app/src/main/java/com/gathin/tvhome/Config.java").readText()
+        assertEquals(true, "integer(json, \"lunar_utc_offset\", lunarOffset, -1, 14)" in reader)
+        assertEquals(true, "int lunarOffset = -1;" in reader)
+        // Every 3.0 key is in config.xml but lunar_utc_offset, and 24 plus it are the 25.
+        assertEquals(ConfigCodecImpl.CARRIED_30 - "lunar_utc_offset", ConfigCodecImpl.CARRIED_30.filter { it in xml }.toSet())
+        assertEquals(LauncherKeys.DEFAULTS_30, LauncherKeys.keys30(null))
+        assertEquals(LauncherKeys.DEFAULTS_30, LauncherKeys.keys30(LauncherConfigDoc(columns = 5)))
+        // The 2.7 look keys keep their 2.7 defaults in 3.0's config.xml.
+        assertEquals(LauncherKeys.DEFAULTS_27.ambientGlow, b("ambient_glow"))
+    }
+
+    // Config.glassStyle: rim or halo in any case once trimmed, else glass; a non-string keeps glass.
+    @Test fun anUnknownGlassStyleGivesGlass() {
+        for ((v, want) in listOf("\"rim\"" to GlassStyle.RIM, "\" RIM \"" to GlassStyle.RIM, "\"Halo\"" to GlassStyle.HALO,
+            "\"glass\"" to GlassStyle.GLASS, "\"neon\"" to GlassStyle.GLASS, "\"\"" to GlassStyle.GLASS, "5" to GlassStyle.GLASS,
+            "true" to GlassStyle.GLASS, "[\"rim\"]" to GlassStyle.GLASS, "\"rim halo\"" to GlassStyle.GLASS))
+            assertEquals(want, LauncherKeys.keys30(decoded("{\"glass_style\": $v}")).glassStyle, "glass_style $v")
+        assertEquals(GlassStyle.GLASS, LauncherKeys.glassStyle(null))
+    }
+
+    // Config.stringList: strings only, trimmed as Java trims, blanks dropped; a non-list keeps the default.
+    @Test fun listsReadAsConfigStringListReadsThem() {
+        val k = LauncherKeys.keys30(decoded("{\"top_bar_apps\": [\" a.b \", \"\", \"  \", 5, null, [\"c.d\"], \"\\u0001e.f\"], \"input_sources\": \"HW5=23\"}"))
+        assertEquals(listOf("a.b", "e.f"), k.topBarApps)
+        assertEquals(emptyList(), k.inputSources)
+        assertEquals(listOf("HW5=23"), LauncherKeys.keys30(decoded("{\"input_sources\": [\"HW5=23\"]}")).inputSources)
+        val n = LauncherKeys.keys30(decoded("{\"lunar_utc_offset\": 15, \"clock_wallpaper_dim\": 90.9, \"dock_band\": \"false\", \"locale\": \" vi \"}"))
+        assertEquals(listOf<Any>(-1, 90, true, "vi"), listOf(n.lunarUtcOffset, n.clockWallpaperDim, n.dockBand, n.locale))
     }
 
     // Config.glowStyle: horizon in any case once trimmed, else radial; a non-string keeps radial.

@@ -44,6 +44,7 @@
     <string name="manage_row_cards_none">No cards yet</string>
     <string name="manage_row_switched_off">{count, plural, other {Switched off (#)}}</string>
     <string name="manage_row_switched_off_sub">Put any of them back</string>
+    <string name="manage_row_better_back_on">{count, plural, one {# app is better switched back on} other {# apps are better switched back on}}</string>
     <string name="manage_row_leftovers">Check for leftovers</string>
     <string name="manage_row_leftovers_sub">After a TV software update</string>
     <string name="manage_row_restore">Restore point</string>
@@ -69,6 +70,10 @@
     <string name="openwrite_not_taken">The TV didn\'t answer. Check that it\'s on and on the same Wi-Fi as this phone, then try again.</string>
     <string name="openwrite_busy">Working on it...</string>
     <string name="openwrite_carry_on">Carry on</string>
+    <string name="openwrite_title_stale">{tv} changed since we last read it</string>
+    <string name="openwrite_body_stale_nothing">Something on the TV changed after we read it, so we stopped before changing anything. Nothing was changed. Check the TV again and we\'ll start from what it has now.</string>
+    <string name="openwrite_body_stale">Something on the TV changed after we read it, so we stopped partway through. Check the TV again to carry on from what it has now, or undo what we did.</string>
+    <string name="openwrite_check_again">Check again</string>
     <string name="openwrite_undo">Undo what we did</string>
     <string name="openwrite_stop">Stop here</string>
     <string name="openwrite_open_setup">Open the setup</string>
@@ -87,6 +92,10 @@
     <string name="switchedoff_group_other">Chosen under Customise</string>
     <string name="switchedoff_put_back">Put back</string>
     <string name="switchedoff_put_back_cd">Put {name} back</string>
+    <string name="switchedoff_group_better">Better back on</string>
+    <string name="switchedoff_better_kept">The list for this TV now keeps it on.</string>
+    <string name="switchedoff_switch_back_on">Switch back on</string>
+    <string name="switchedoff_switch_back_on_cd">Switch {name} back on</string>
     <string name="switchedoff_snackbar">{name} is back on.</string>
     <string name="switchedoff_empty">Nothing is switched off right now.</string>
     <string name="switchedoff_empty_sub">Everything on the TV is switched on.</string>
@@ -141,7 +150,7 @@
     <string name="appsettings_up_to_date">You have the latest version</string>
     <string name="appsettings_update_error">Couldn\'t check for updates</string>
     <string name="appsettings_licences">Licences</string>
-    <string name="appsettings_licence_app">Clean Your TV: GPL-3.0-or-later</string>
+    <string name="appsettings_licence_app">Clean Your TV: MIT</string>
     <string name="appsettings_licence_font">Outfit typeface: SIL Open Font Licence 1.1</string>
     <string name="appsettings_licence_apache">dadb and Shizuku code we adapted: Apache-2.0 notices</string>
     <string name="appsettings_licence_pictures">Look pictures: our own work, CC0 1.0 (public domain); Aurora, Glass and Autumn lake (Ruska) from the Clean Your TV launcher, MIT</string>

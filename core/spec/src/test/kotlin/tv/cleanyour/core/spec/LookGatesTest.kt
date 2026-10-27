@@ -9,7 +9,7 @@ class LookGatesTest {
     private val all = listOf(StyleId.CLASSIC, StyleId.GLASS, StyleId.SPOTLIGHT, StyleId.ALL_APPS, StyleId.CALM)
 
     // Launcher 2.7 is versionCode 8: below it only Classic and no 2.7 rows; 8, later or not known
-    // (the bundled 2.7) gets all five styles.
+    // (the bundled launcher, 3.0 at versionCode 9) gets all five styles.
     @Test fun byVersionCode() {
         for ((vc, styles, reads) in listOf(
             Triple(5L, listOf(StyleId.CLASSIC), false),
@@ -22,9 +22,21 @@ class LookGatesTest {
             assertEquals(reads, LookGates.reads27(vc), "versionCode $vc")
         }
         assertEquals(8L, LookGates.FIRST_27_VERSION_CODE)
-        // The bundled launcher is that versionCode.
+        // The submodule's launcher (3.0, versionCode 9 at b06ab21) still reads the 2.7 keys. The bundled
+        // APK's own versionCode is pinned in core/trust (Pins.kt, LauncherPinTest).
         val gradle = File(Fixtures.upstreamDir, "launcher/app/build.gradle").readText()
-        assertEquals(true, Regex("versionCode\\s+8\\b").containsMatchIn(gradle) && Regex("versionName\\s+'2\\.7'").containsMatchIn(gradle))
+        val vc = Regex("versionCode\\s+(\\d+)\\b").find(gradle)!!.groupValues[1].toLong()
+        assertEquals(9L, vc)
+        assertEquals(true, LookGates.reads27(vc))
+    }
+
+    // Launcher 3.0 is versionCode 9: the LookExtras keys are read from 9 on, or when the version is
+    // not known (the bundled launcher); 2.7 (8) and older never get them.
+    @Test fun reads30ByVersionCode() {
+        for ((vc, reads) in listOf(5L to false, 7L to false, 8L to false, 9L to true, 10L to true, null to true)) {
+            assertEquals(reads, LookGates.reads30(vc), "versionCode $vc")
+        }
+        assertEquals(9L, LookGates.FIRST_30_VERSION_CODE)
     }
 
     // Movement: Quick at 1.5 GB or less, else Lively; Lift and zoom shown from 2 GB, when the

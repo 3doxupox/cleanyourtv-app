@@ -39,11 +39,13 @@ import tv.cleanyour.core.ops.Rendered
 import tv.cleanyour.core.ops.Transfer
 import tv.cleanyour.core.ops.VerifyResult
 import tv.cleanyour.core.model.Component
+import tv.cleanyour.core.planner.DefaultPlanner
 import tv.cleanyour.core.planner.GuardedSection
 import tv.cleanyour.core.planner.Plan
 import tv.cleanyour.core.planner.PlanKind
 import tv.cleanyour.core.planner.PlanSummary
 import tv.cleanyour.core.planner.Step
+import tv.cleanyour.core.planner.StockHome
 import tv.cleanyour.core.planner.SwitchOffRule
 import tv.cleanyour.core.probe.Prober
 import tv.cleanyour.core.session.BootOutcome
@@ -55,6 +57,7 @@ import tv.cleanyour.core.session.SessionHold
 import tv.cleanyour.core.session.TvSession
 import tv.cleanyour.core.spec.ProfileResolution
 import tv.cleanyour.core.spec.ProfileSource
+import tv.cleanyour.core.spec.resolveFor
 import tv.cleanyour.core.store.Clock
 import tv.cleanyour.core.store.GatePass
 import tv.cleanyour.core.store.SnapshotStore
@@ -83,6 +86,9 @@ class DefaultEngine(
     // Redacted lines for the diagnostics log (issue #375): only fixed words and the TV's own
     // package names, never an app the person installed. Defaulted and last, so every caller compiles.
     private val log: (String) -> Unit = {},
+    // Issue #629: what the home check saw in front when it rolled back (WRONG_FOCUS), so Setup can
+    // tell a Settings page the person opened from a home screen that did not hold. Defaulted, last.
+    private val onWrongFocus: (TvId, Component) -> Unit = { _, _ -> },
 ) : Engine {
 
     // `fromJournalOnly`: the plan file could not be trusted on resume, so this run holds only the
@@ -236,9 +242,10 @@ class DefaultEngine(
     }
 
     // The profile and the stock launchers of this TV's resolution, so the live check asks the same
-    // rule the planner asked (SwitchOffRule) with the same lists.
+    // rule the planner asked (SwitchOffRule) with the same lists, and with the snapshot's Home as
+    // Setup and the planner weigh it (issue #114).
     private suspend fun resolve(run: Run, snap: Snapshot) {
-        val r = profiles?.resolve(snap.facts)
+        val r = profiles?.resolveFor(snap)
         run.profile = (r as? ProfileResolution.Exact)?.profile
         run.stockLaunchers = when (r) {
             is ProfileResolution.Exact -> r.profile.stockLaunchers
@@ -384,6 +391,7 @@ class DefaultEngine(
                     val ownApp = run.snapshot?.packages?.get(focus.pkg)?.system == true || focus.pkg in tv.cleanyour.core.spec.KnownLaunchers.byPackage ||
                         focus.pkg.value in Denylist.setupWizards || focus.pkg.value in Denylist.vendorSetupWizards || focus.pkg.value == Denylist.FRAMEWORK || focus.pkg.value in SETTINGS_APPS
                     log("engine: the home check saw ${if (ownApp) focus.flat else "an app you installed"} in front, so the old home screen goes back")
+                    onWrongFocus(run.plan.tvId, focus)
                     return HomeOutcome.WRONG_FOCUS
                 }
                 homeCheck = focus.pkg == section.expectedHome.pkg
@@ -711,10 +719,38 @@ class DefaultEngine(
     // ---- ending a run ------------------------------------------------------------------------------
 
     private suspend fun finishWithSkips(run: Run, home: HomeOutcome?, from: Int) {
+        removeCurtain(run, from)
         for (i in from until run.plan.steps.size) if (i !in run.done && run.plan.steps[i] !in run.skipped) {
             run.skipped += run.plan.steps[i]; run.states[i] = NarrationState.SKIPPED
         }
         end(run, RunStatus.COMPLETED_WITH_SKIPS, home)
+    }
+
+    // QA of 0.4.5 (the home check timed out and the old home screen was put back): the run ended
+    // there and skipped every step after it, the TV curtain's removal (the plan's last step) too, so
+    // the curtain stayed installed and running on the TV. Its removal still runs when the rest is
+    // skipped. Like every curtain step it can never stop the run: a refusal or a lost connection
+    // only leaves it skipped.
+    private suspend fun removeCurtain(run: Run, from: Int) {
+        for (i in from until run.plan.steps.size) {
+            val step = run.plan.steps[i]
+            if (i in run.done || step.group != DefaultPlanner.GROUP_CURTAIN || step.op !is Op.Uninstall) continue
+            val outcome = try {
+                perform(run, i, step.op, step.rendered, step.prior)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                null
+            }
+            if (outcome == Outcome.Ok) { run.done += i; run.states[i] = NarrationState.DONE }
+        }
+    }
+
+    // A curtain step of this run was done (its install or its start) and its removal was not.
+    private fun curtainLeft(run: Run): Boolean {
+        val steps = run.plan.steps.filter { it.group == DefaultPlanner.GROUP_CURTAIN }
+        val removal = steps.lastOrNull { it.op is Op.Uninstall } ?: return false
+        return removal.index !in run.done && steps.any { it.index in run.done && (it.op is Op.Install || it.op is Op.InstallStream || it.op is Op.StartActivity) }
     }
 
     private suspend fun end(run: Run, status: RunStatus, home: HomeOutcome?) {
@@ -767,9 +803,17 @@ class DefaultEngine(
                 guarded(run) { if (rollbackSection(run, open, HomeOutcome.CONNECTION_LOST)) finishWithSkips(run, HomeOutcome.CONNECTION_LOST, run.at) }
                 return@launch
             }
-            execute(run, prePlan = false)
+            execute(run, prePlan = !begun(run))
         }
     }
+
+    // Issue #616: the TCL C735 lost the Wi-Fi while its run was saving the restore point ("run paused
+    // CONNECTION_LOST at step 0 (timeout)"), and later the app was closed before step 0 ("run paused
+    // IN_DOUBT at step 0" after the restart). Carry on then went on as after a step: no restore point
+    // was saved for the run, and the staleness check skipped step 0. A run with no step begun (no
+    // Begin in its journal) carries on from its very start instead: the restore point is taken and
+    // saved, and every step is checked against the TV, as a fresh start does.
+    private suspend fun begun(run: Run): Boolean = run.done.isNotEmpty() || journal.read(run.plan.id).any { it is JournalRecord.Begin }
 
     // A background job's failure lands the run in Paused, never in a crashed coroutine.
     private suspend fun guarded(run: Run, body: suspend () -> Unit) {
@@ -829,7 +873,11 @@ class DefaultEngine(
         if (flow(tvId).value !is RunState.Paused) return
         val open = run.plan.sections.firstOrNull { it.name in run.openSections }
         val restore = unfinishedAccessibilityRestore(run)
-        if (open == null && restore.isEmpty()) { end(run, RunStatus.ABANDONED, run.home); return }
+        // QA of 0.4.5: "Stop here" left the TV curtain this run installed running on the TV. Its
+        // removal (the plan's own curtain step, nothing else) runs before the run is given up, when
+        // the TV is there; without the TV the run ends as before, and Leftovers removes it later.
+        val curtain = curtainLeft(run) && run.session.state.value is ConnectionState.Connected
+        if (open == null && restore.isEmpty() && !curtain) { end(run, RunStatus.ABANDONED, run.home); return }
         // An open section means the TV's own home screen may be off: step R runs before the run is
         // given up. A restore of the accessibility services cut off half way (upstream #424) leaves
         // the TV with none, and accessibility off: its remaining steps run first too (RF-LAUNCHER-250
@@ -841,6 +889,7 @@ class DefaultEngine(
             guarded(run) {
                 if (open != null && !rollbackSection(run, open, HomeOutcome.CONNECTION_LOST)) return@guarded
                 if (!finishAccessibilityRestore(run, restore)) return@guarded
+                if (curtainLeft(run)) removeCurtain(run, 0)
                 end(run, RunStatus.ABANDONED, run.home)
             }
         }
@@ -928,7 +977,8 @@ class DefaultEngine(
             run.lastPause = records.filterIsInstance<JournalRecord.Paused>().lastOrNull()?.reason
             run.home = if (run.closedSections.isNotEmpty() && records.filterIsInstance<JournalRecord.Section>().any { it.state == SectionState.ROLLED_BACK }) HomeOutcome.CONNECTION_LOST else null
             for (i in run.done) run.states[i] = NarrationState.DONE
-            run.restorePoint = NarrationState.DONE
+            // Issue #616: no step begun, so the restore point may not have been saved; Carry on takes it.
+            run.restorePoint = if (records.any { it is JournalRecord.Begin }) NarrationState.DONE else NarrationState.UPCOMING
             run.snapshot = snapshots.load(tvId, plan.baseSnapshot) ?: snapshots.latest(tvId)
             run.snapshot?.let { s -> resolve(run, s) }
             runs[tvId] = run
@@ -1022,7 +1072,9 @@ internal object JournalStepR {
         val stock = (arm.op as Op.ArmHomeWatchdog).stock
         val disabled = inside.mapNotNull { (it.op as? Op.Disable)?.pkg }.distinct()
         val setHome = inside.firstOrNull { it.op is Op.SetHome }
-        val home: Component = setHome?.prior?.home ?: stock
+        // WP4 (G4): a journal from before 0.4.5 may hold the chooser or another placeholder as the
+        // SetHome prior; step R then hands HOME to the stock home the watchdog was armed with.
+        val home: Component = setHome?.prior?.home?.takeUnless { StockHome.isPlaceholder(it) } ?: stock
         val rollback: List<Op> = listOf(Op.ConfirmHome(section.token), Op.KillWatchdog(section.token)) +
             disabled.map { Op.Enable(it) } + listOf(Op.SetHome(home), Op.VerifyHome(home), Op.PressHome)
         val expected = (setHome?.op as? Op.SetHome)?.component ?: home
@@ -1120,7 +1172,14 @@ internal object Staleness {
                     val now = snapshot.settings[op.key]
                     if (now != prior.settingValue) out += "${op.key.key}: was ${prior.settingValue ?: "unset"}, now ${now ?: "unset"}"
                 }
-                is Op.SetHome -> prior.home?.let { if (snapshot.home.resolved != it) out += "home: was ${it.flat}, now ${snapshot.home.resolved?.flat ?: "none"}" }
+                // WP4 (B5): the planner records the stock home as the prior while HOME answers with
+                // the chooser, a placeholder or nothing (StockHome.recorded), so that answer is no change,
+                // as long as the recorded home still claims HOME.
+                is Op.SetHome -> prior.home?.let {
+                    val undecided = snapshot.home.resolved.let { r -> r == null || StockHome.isPlaceholder(r) }
+                    val stillClaims = snapshot.home.claimants.any { c -> c.component == it }
+                    if (snapshot.home.resolved != it && !(undecided && stillClaims)) out += "home: was ${it.flat}, now ${snapshot.home.resolved?.flat ?: "none"}"
+                }
                 else -> {}
             }
         }

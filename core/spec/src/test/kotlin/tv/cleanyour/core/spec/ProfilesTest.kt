@@ -24,8 +24,8 @@ class ProfilesTest {
     private fun profile(folder: String) = DebloatTxtParser.parse(examples.first { it.folder == folder }.debloatTxt, folder)
 
     @Test fun everyConvertedUpstreamExampleParsesWithCuratedMetadata() {
-        assertEquals(248, upstream.size)
-        assertEquals(148, examples.size)
+        assertEquals(316, upstream.size)
+        assertEquals(173, examples.size)
         for (e in examples) {
             val profile = DebloatTxtParser.parse(e.debloatTxt, e.folder)
             assertEquals(e.folder, profile.id)
@@ -38,9 +38,12 @@ class ProfilesTest {
             val scanned = DebloatTxt.scan(e.debloatTxt, e.folder).groups.flatMap { g -> g.entries.map { it.pkg } }.toSet()
             val inGroups = profile.groups.flatMap { g -> g.packages.map { it.name } }
             assertEquals(inGroups.size, inGroups.toSet().size, "${e.folder}: a package is in two groups")
-            // A wizard the curated takeover keeps on (setupWraithStaysOn) is never-disable instead.
+            // A wizard the curated takeover keeps on (setupWraithStaysOn) is never-disable instead, and a
+            // line the curated entry leaves out (leftOut) is in no place, as if commented out.
+            val leftOut = ProfileMeta.bundled.profiles.getValue(e.folder).leftOut.keys.map(::p).toSet()
             val placed = inGroups.toSet() + profile.stockLaunchers.map { it.pkg } + listOfNotNull(profile.setupWraith) +
-                profile.neverDisable.filter { it == KnownLaunchers.SETUPWRAITH }
+                profile.neverDisable.filter { it == KnownLaunchers.SETUPWRAITH } + leftOut
+            assertTrue(inGroups.none { it in leftOut }, "${e.folder}: a left-out line is in a group")
             assertEquals(emptySet(), scanned - placed, "${e.folder}: packages lost")
             assertTrue(inGroups.all { it in scanned }, e.folder)
         }
@@ -50,7 +53,7 @@ class ProfilesTest {
         val (bundle, problems) = ProfileConverter.convert(
             File(Fixtures.upstreamDir, "examples"),
             File(Fixtures.repoRoot, "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json"),
-            "3e34f40",
+            "b06ab21",
             unconverted,
         )
         assertEquals(emptyList(), problems)
@@ -62,7 +65,7 @@ class ProfilesTest {
     @Test fun theUnconvertedListIsPinnedToTheSubmodule() {
         val meta = ProfileMeta.decode(File(Fixtures.repoRoot, "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json").readText())
         assertEquals(upstream.map { it.folder }.filter { it !in meta.profiles }.toSet(), unconverted)
-        assertEquals(100, unconverted.size)
+        assertEquals(143, unconverted.size)
         val listed = unconvertedFile.readLines().filter { it.isNotBlank() && !it.startsWith("#") }
         assertEquals(listed.sorted(), listed, "one folder per line, sorted")
         assertTrue('\u2014' !in unconvertedFile.readText() && "-".repeat(2) !in unconvertedFile.readText())
@@ -109,6 +112,30 @@ class ProfilesTest {
         for (pkg in secondSet) assertEquals(GroupDefault.ASK, aesp0.groups.single { g -> g.packages.any { it.name == p(pkg) } }.default, pkg)
     }
 
+    // b06ab21: the R10G lists of the MOKA family. kalley-r10g keeps launcherx and the setup wizard on
+    // (upstream #1807: with both off, system_server crashed in a boot loop), and prismplus-q65-ultra-r10g,
+    // whose list switches the wizard off, leaves that line out (leftOut), as in 0.4.0: the home screen
+    // switch is skipped for the family (HomeSwitchRisk.BOOT_LOOP), so neither profile switches either one off.
+    // kalley-r10g still names its wizard with the takeover quirk, so a TV that has it off gets it back
+    // only with the TV's own home screen in charge (DefaultPlanner.putBack, PutBackAdvice); both are
+    // never-disable as well.
+    @Test fun theR10gProfilesKeepTheStockHomeAndTheWizard() {
+        for (id in listOf("kalley-r10g", "prismplus-q65-ultra-r10g")) {
+            val pr = profile(id)
+            val inGroups = pr.groups.flatMap { g -> g.packages.map { it.name } }
+            for (pkg in listOf(KnownLaunchers.LAUNCHERX.pkg, KnownLaunchers.SETUPWRAITH)) assertTrue(pkg !in inGroups, "$id $pkg")
+        }
+        val prism = profile("prismplus-q65-ultra-r10g")
+        assertEquals(null, prism.setupWraith)
+        assertTrue(Quirk.HOME_TAKEOVER_SETUPWRAITH !in prism.quirks)
+        assertTrue(KnownLaunchers.SETUPWRAITH.value in ProfileMeta.bundled.profiles.getValue("prismplus-q65-ultra-r10g").leftOut)
+        assertTrue(KnownLaunchers.SETUPWRAITH in profile("kalley-r10g").neverDisable)
+        val kalley = profile("kalley-r10g")
+        assertTrue(KnownLaunchers.LAUNCHERX.pkg in kalley.neverDisable && Quirk.STOCK_LAUNCHER_KEEP_ENABLED in kalley.quirks)
+        assertEquals(KnownLaunchers.SETUPWRAITH, kalley.setupWraith)
+        assertTrue(Quirk.HOME_TAKEOVER_SETUPWRAITH in kalley.quirks)
+    }
+
     @Test fun theReferenceTvProfile() {
         val mi = profile("xiaomi-mitv-axso0")
         assertEquals(listOf("MiTV-AXSO0"), mi.match.models)
@@ -120,7 +147,10 @@ class ProfilesTest {
         assertTrue(Quirk.REBOOT_COMMAND in mi.quirks)
         val byId = mi.groups.associateBy { it.id }
         assertEquals(GroupDefault.DISABLE, byId.getValue("ads").default)
-        assertTrue(p("com.mitv.tvhome.atv") in byId.getValue("ads").packages.map { it.name })
+        // Issue #111: PatchWall is the owner's choice (an ask row), not an advert switched off.
+        assertTrue(p("com.mitv.tvhome.atv") !in byId.getValue("ads").packages.map { it.name })
+        assertEquals(GroupDefault.ASK, byId.getValue("ads-optional").default)
+        assertTrue(p("com.mitv.tvhome.atv") in byId.getValue("ads-optional").packages.map { it.name })
         assertEquals(p("com.glance.tv"), byId.getValue("ads").packages.first { it.name.value == "com.glance.tv" }.name)
         assertEquals("Glance lock-screen news and ads", byId.getValue("ads").packages.first { it.name.value == "com.glance.tv" }.note)
         assertEquals(listOf("com.miui.tv.analytics", "com.xiaomi.statistic", "com.google.android.feedback", "com.google.android.tv.bugreportsender"),
@@ -132,11 +162,12 @@ class ProfilesTest {
         // Personal choices are ask groups: voice, casting, unused streaming apps.
         for (id in listOf("voice", "casting", "streaming")) assertEquals(GroupDefault.ASK, byId.getValue(id).default, id)
         assertEquals(listOf("com.google.android.katniss", "com.google.android.speech.pumpkin"), byId.getValue("voice").packages.map { it.name.value })
-        // Simple switches off the disable groups only; 20 packages on this TV.
+        // Simple switches off the disable groups only; 19 packages on this TV (20 before PatchWall
+        // became an ask row, issue #111).
         val simple = mi.groups.filter { it.default == GroupDefault.DISABLE }.flatMap { it.packages }
-        assertEquals(20, simple.size)
+        assertEquals(19, simple.size)
         // Disable groups come first, in the fixed category order.
-        assertEquals(listOf("ads", "tracking", "preloads", "brand", "other", "streaming", "voice", "casting", "updates"), mi.groups.map { it.id })
+        assertEquals(listOf("ads", "tracking", "preloads", "brand", "other", "ads-optional", "streaming", "voice", "casting", "updates"), mi.groups.map { it.id })
         assertEquals("Adverts and sponsored rows", byId.getValue("ads").title)
         assertEquals("Xiaomi extras", byId.getValue("brand").title)
         assertEquals(DebloatTxt.sha256(examples.first { it.folder == "xiaomi-mitv-axso0" }.debloatTxt), mi.sourceSha256)
@@ -162,6 +193,7 @@ class ProfilesTest {
     }
 
     // D22, widened in 0.3.7: the updaters upstream v2.7.0 lists name are Software updates rows by name.
+    // The b06ab21 lists name no new updater.
     @Test fun theUpdaterRuleKnowsTheV270Updaters() {
         for (name in listOf("com.cvte.tv.systemupgrade", "com.tcl.versionUpdateApp", "ru.sberdevices.rcfupdater", "com.amazon.tv.easyupgrade",
             "com.tcl.UpdatePeripheral", "com.sony.dtv.sensingcamera.fwupdate", "com.xiaomi.mitv.updateservice")) {
@@ -199,11 +231,20 @@ class ProfilesTest {
 
     // RF-PROFILES-63 P2: the exact profiles that know no stock launcher get the clean-up only (Setup's
     // homePossible); pinned, so a new one is a reviewed decision.
+    // 0.4.5 (second curator): Xiaomi China-market sets whose Home takes only allowlisted apps, so
+    // com.mitv.tvhome stays on and Setup does the clean-up only (no new home screen offered).
+    private val cleanUpOnlyPart2: Set<String> = setOf(
+        "xiaomi-mitv-astp0",
+        "xiaomi-mitv-mteq0",
+        "redmi-mitv-mftp0",
+    )
+
     @Test fun theProfilesWithNoKnownStockLauncher() {
         val none = BundledProfileSource.bundled.profiles.filter { it.stockLaunchers.isEmpty() && it.platform != Platform.FIRE_OS && it.platform != Platform.TCL_CN }
         // xiaomi-mitv-mftr0 (0.3.7): China firmware whose home is com.mitv.tvhome, not a known launcher.
+        // sber-salute-tv-at30a6 (0.4.5): StarOS, whose home is Sber's ru.sberdevices.starlauncher.
         assertEquals(setOf("challenger-32t22bt", "freebox-player-pop", "google-tv-streamer-4k-kirkwood", "hisense-e5q-pro", "kalley-43g200",
-            "stellamore-t950s", "verizon-stream-tv", "vidda-mt9653", "xiaomi-mitv-ansp0", "xiaomi-mitv-astp1", "xiaomi-mitv-mffu0", "xiaomi-mitv-mftr0"), none.map { it.id }.toSet())
+            "sber-salute-tv-at30a6", "stellamore-t950s", "verizon-stream-tv", "vidda-mt9653", "xiaomi-mitv-ansp0", "xiaomi-mitv-astp1", "xiaomi-mitv-mffu0", "xiaomi-mitv-mftr0") + cleanUpOnlyPart2, none.map { it.id }.toSet())
     }
 
     // RF-PROFILES-63 P8: where two profiles score the same for a TV, the longer fingerprint prefix wins
@@ -226,6 +267,8 @@ class ProfilesTest {
             facts("Smart TV Pro", "G05", "TCL", 30, "TCL/G05_4K_US/G05:11/x") to "tcl-g05-google-tv",
             facts("Smart TV Pro", "G08", "TCL", 34, "TCL/G08_4K_GB/G08:14/x") to "tcl-c755-google-tv",
             facts("Smart TV Pro", "G08", "TCL", 34, "TCL/G08_4K_US/G08:14/x") to "tcl-qm6k-google-tv",
+            // An AU G08 on Android 12 reports the EU list's fingerprint, so it gets that list (0.4.5).
+            facts("Smart TV Pro", "G08", "TCL", 31, "TCL/G08_4K_GB/G08:12/STT2.221228.001/AS34:user/release-keys") to "tcl-g08-eu-android12",
             facts("Smart TV Pro", "BeyondTV4", "TCL", 30) to "tcl-65c725",
             facts("UnionTV", "UnionTV", "TCL", 28) to "tcl-uniontv-latin-america",
             facts("UnionTV", "UnionTV", "Thomson", 28) to "thomson-32he5800",
@@ -296,6 +339,46 @@ class ProfilesTest {
         assertEquals(setOf(setOf("tcl-55s470g", "tcl-g10-google-tv")), ties)
     }
 
+    // 0.4.5 (second curator): each promoted b06ab21 list resolves from a TV report in our issues, and
+    // the near misses (another Android version, another badge on the same board) keep their old path.
+    @Test fun promotedAtB06ab21Part2ResolveFromTheirReports() {
+        val source = BundledProfileSource()
+        fun f(brand: String, maker: String, model: String, device: String, sdk: Int, fingerprint: String) =
+            Fixtures.miTv().facts().copy(brand = brand, manufacturer = maker, model = model, device = device, sdk = sdk, fingerprint = fingerprint)
+        val reports = listOf<Pair<tv.cleanyour.core.model.DeviceFacts, String?>>(
+            f("Xiaomi", "Xiaomi", "MIBOX4", "oneday", 31, "Xiaomi/oneday/oneday:12/STTC.230106.001/4560:user/release-keys") to "xiaomi-mi-box-s-android12",   // #1153
+            f("Xiaomi", "Xiaomi", "MiTV-MSSP2", "volver", 28, "Xiaomi/volver/volver:9/PI/6305:user/release-keys") to "xiaomi-mitv-mssp2",   // #1209
+            f("Xiaomi", "Xiaomi", "MiTV-MSSP2", "volver", 28, "Xiaomi/volver/volver:9/PI/4621:user/release-keys") to "xiaomi-mitv-mssp2",   // #814
+            f("Xiaomi", "Xiaomi", "MiTV-MSSP2", "volver", 30, "Xiaomi/volver/volver:11/RTT2.211214.001/933:user/release-keys") to null,   // #540, Android 11
+            f("Xiaomi", "Xiaomi", "MiTV-MSSP0", "amelie", 28, "Xiaomi/amelie/amelie:9/PI/4072:user/release-keys") to "xiaomi-mitv-mssp0",   // #970
+            f("SaluteTV", "SaluteTV", "SaluteTV", "m5621", 28, "MediaTek/m5621/m5621:9/PPR2.180905.006.A1/tuz_starosfw_jenkins06181401:user/release-keys") to null,   // #1052, the board name
+            f("Xiaomi", "Xiaomi", "MiTV-AYFR0", "soul", 34, "Xiaomi/soul/soul:14/UKG3.250107.001/V816.0.26.6.10.UZFAATK:user/release-keys") to "xiaomi-mitv-ayfr0",   // #1173
+            f("Xiaomi", "Xiaomi", "MiTV-AYFR0", "soul", 30, "Xiaomi/soul/soul:11/RTT0.211222.001/1546:user/release-keys") to null,   // #1180, Android 11
+            f("Xiaomi", "xiaomi", "MiTV-ASTP0", "mulan", 28, "Xiaomi/mulan/mulan:9/PPR1.180610.011/3982:user/release-keys") to "xiaomi-mitv-astp0",   // #882
+            f("Xiaomi", "xiaomi", "MiTV-ASTP0", "mulan", 28, "Xiaomi/mulan/mulan:9/PPR1.180610.011/OS3.0.101.0.PSTAATV:user/release-keys") to "xiaomi-mitv-astp0",   // #340
+            f("xiaomi", "xiaomi", "MiTV-MTEQ0", "baymax", 29, "xiaomi/baymax/baymax:10/QQ2A.200305.004.A1/2446:user/release-keys") to "xiaomi-mitv-mteq0",   // #1079
+            f("xiaomi", "xiaomi", "MiTV-MFTP0", "alita", 28, "xiaomi/alita/alita:9/PPR2.180905.006.A1/6318:user/release-keys") to "redmi-mitv-mftp0",   // #670
+            f("Xiaomi", "Xiaomi", "MIBOX4", "oneday", 28, "Xiaomi/oneday/oneday:9/PI/3595:user/release-keys") to "xiaomi-mi-box-s",   // #772, older PI firmware
+            f("Xiaomi", "Xiaomi", "MIBOX4", "oneday", 28, "Xiaomi/oneday/oneday:9/PI/3933:user/release-keys") to "xiaomi-mi-box-s",   // #187, the tested firmware
+            f("AQUA", "Haier", "AQUA MatrixTV EE", "omonia", 34, "AQUA/AQ9676EU/omonia:14/UKN6.260116.056/15136903:user/release-keys") to "aqua-matrixtv-ee-50",   // #646
+            f("Haier", "Haier", "Haier MatrixTV EE", "omonia", 34, "Haier/HR9676EU/omonia:14/UKN5.251016.114/14643368:user/release-keys") to "aqua-matrixtv-ee-50",   // #822
+            f("Haier", "Haier", "Haier MatrixTV DE", "omonia", 34, "Haier/HR9676EUF/omonia:14/UKN2.241219.053/13043114:user/release-keys") to "aqua-matrixtv-ee-50",   // #926
+            f("JVC", "MTC", "SA 4K Android TV", "seocho", 30, "JVC/MTCMSD6886SA/seocho:11/RTO8.250904.001/14050644:user/release-keys") to "jvc-lt55mb508",   // #127
+            f("Sharp", "skyworth", "SHARP 2K Smart TV-A", "beomil", 34, "Sharp/SW11_SHARP_APEU/beomil:14/UKN6.260116.061/15165694:user/release-keys") to "sharp-2t-c32gh3000i",   // #793
+            f("skyworth", "skyworth", "SWTV-24AE-FHD", "beomil", 34, "skyworth/SW11_TG/beomil:14/UKN7.260716.011/15978261:user/release-keys") to null,   // #108, neither SHARP nor Motorola
+            f("THOMSON", "SPPL", "SPPL 2K ANDROID TV", "sauve", 34, "THOMSON/SPPL_2K_RT41/sauve:14/UKRE.260524.055/16101080:user/release-keys") to "thomson-43rt1055",   // #558
+            f("THOMSON", "SPPL", "SPPL 2K ANDROID TV", "sauve", 30, "THOMSON/SPPL_2K_RT41/sauve:11/RTK4.241026.026/12861515:user/release-keys") to null,   // #825, Android 11
+            f("Amazon", "Amazon", "AFTCIBFBD1", "coyote", 30, "Amazon/coyote/coyote:11/RS8180.3749N/0032280323460:user/amz-p,release-keys") to "hisense-fire-tv-aftcibfbd1",   // #949
+            f("Amazon", "Amazon", "AFTCIBFBD1", "coyote", 30, "Amazon/coyote/coyote:11/RS8180.3734N/0032280319620:user/amz-p,release-keys") to "hisense-fire-tv-aftcibfbd1",   // #347
+            f("eSTREAM4K", "SEI Robotics", "TiVo Stream 4K", "SEI400TV", 31, "eSTREAM4K/SEI400TV/SEI400TV:12/SC/1272:user/release-keys") to null,   // #1214, parked
+        )
+        for ((facts, id) in reports) assertEquals(id, (source.resolveNow(facts) as? ProfileResolution.Exact)?.profile?.id, "${facts.model} ${facts.fingerprint}")
+        for (id in cleanUpOnlyPart2) {
+            val pr = BundledProfileSource.bundled.profiles.single { it.id == id }
+            assertTrue(p("com.mitv.tvhome") in pr.neverDisable && pr.stockLaunchers.isEmpty(), id)
+        }
+    }
+
     @Test fun malformedFilesFailWithTheLine() {
         val e = assertFailsWith<DebloatTxtException> { DebloatTxtParser.parse("# T\ncom.ok.pkg\nnot a package line!\n", "bad") }
         assertEquals(3, e.line)
@@ -304,10 +387,119 @@ class ProfilesTest {
         assertEquals("note more note", bom.groups.single().packages.first().note)
     }
 
+    // C2 (0.4.5): a commented-out package line is a package the owner keeps on. Inside a run it
+    // neither ends the run nor titles a group, and the comments indented under it are its own note.
+    @Test fun keptPackageLinesNeitherEndARunNorTitleAGroup() {
+        val mid = DebloatTxt.scan("# ==== 1. Telemetry ====\ncom.a.b   # one\n# com.k.kept   # stays on\ncom.c.d   # two\n", "x")
+        assertEquals(listOf("1. Telemetry"), mid.groups.map { it.title })
+        assertEquals(listOf("com.a.b", "com.c.d"), mid.groups.single().entries.map { it.pkg.value })
+        assertEquals(mapOf(p("com.k.kept") to "stays on"), mid.kept)
+        // The indented continuation of a kept line is the kept line's note, not the previous entry's.
+        val cont = DebloatTxt.scan("# Group\ncom.a.b   # note\n# com.k.kept   # first part\n    # second part\n#        # third part\ncom.c.d\n", "x")
+        assertEquals("note", cont.groups.single().entries.first().note)
+        assertEquals(null, cont.groups.single().entries.last().note)
+        assertEquals("first part second part third part", cont.kept[p("com.k.kept")])
+        // A kept line right under the title: the title stays, the run starts after it.
+        val first = DebloatTxt.scan("# Header\n\n# Preloads\n# com.k.kept\n    # why\ncom.a.b\n", "x")
+        assertEquals(listOf("Preloads"), first.groups.map { it.title })
+        assertEquals(mapOf(p("com.k.kept") to "why"), first.kept)
+        // Any other comment inside a run still ends it; a package also listed as active is not kept,
+        // and header lines are never kept.
+        val two = DebloatTxt.scan("#   com.h.header\n\n# One\ncom.a.b\n# Two\n# com.a.b\ncom.c.d\n", "x")
+        assertEquals(listOf("One", "Two"), two.groups.map { it.title })
+        assertEquals(emptyMap(), two.kept)
+        assertTrue(p("com.h.header") in DebloatTxt.keepListIn(listOf("# Keep:") + two.header))
+    }
+
+    // Packages under a block of kept lines only join the group before them, which the converter
+    // reports; a "## heading" under a kept line is a heading, not the kept line's note.
+    @Test fun keptOnlyBlocksAreReportedAndHeadingsStayHeadings() {
+        val joined = DebloatTxt.scan("# One\ncom.a.b\n\n# com.k.kept   # stays on\n    # why\ncom.c.d\n", "x")
+        assertEquals(listOf("One"), joined.groups.map { it.title })
+        assertEquals(listOf("com.a.b", "com.c.d"), joined.groups.single().entries.map { it.pkg.value })
+        assertEquals(listOf(6), joined.keptOnlyTitles)
+        assertEquals(mapOf(p("com.k.kept") to "stays on why"), joined.kept)
+        assertEquals(emptyList(), DebloatTxt.scan("# com.k.kept\ncom.a.b\n", "x").keptOnlyTitles, "no group before: an untitled group, as before")
+        val above = DebloatTxt.scan("# One\ncom.a.b\n\n# com.k.kept   # stays on\n## Two\ncom.c.d\n", "x")
+        assertEquals(listOf("One", "# Two"), above.groups.map { it.title })
+        assertEquals(mapOf(p("com.k.kept") to "stays on"), above.kept)
+        assertEquals(emptyList(), above.keptOnlyTitles)
+        val inRun = DebloatTxt.scan("# One\ncom.a.b\n# com.k.kept   # stays on\n## Two\ncom.c.d\n", "x")
+        assertEquals(listOf("One", "# Two"), inRun.groups.map { it.title })
+        assertEquals(mapOf(p("com.k.kept") to "stays on"), inRun.kept)
+        assertEquals(ProfileConverter.keptOnly("x", 6), "x/debloat.txt:6: the comment block above holds only commented-out packages, so these packages join the group before it")
+    }
+
+    // A header with no blank line before the first group ends at the last empty "#" line above it,
+    // when a title line follows; otherwise the block stays one title block, as before.
+    @Test fun aGluedHeaderEndsAtItsLastEmptyCommentLine() {
+        val cut = DebloatTxt.scan("# Model line\n# Keep: com.x.y\n#\n# Telemetry\ncom.a.b\n", "x")
+        assertEquals(listOf("Telemetry"), cut.groups.map { it.title })
+        assertEquals(listOf("# Model line", "# Keep: com.x.y", "#"), cut.header)
+        assertEquals(setOf(p("com.x.y")), DebloatTxt.keepListIn(cut.header))
+        val nothingAfter = DebloatTxt.scan("# Model line\n#\n# com.k.kept\ncom.a.b\n", "x")
+        assertEquals(listOf("Model line"), nothingAfter.groups.map { it.title })
+        assertEquals(emptyList(), nothingAfter.header)
+        assertEquals(mapOf(p("com.k.kept") to null), nothingAfter.kept)
+        val blank = DebloatTxt.scan("# Model line\n\n# Title\n#\n# More about it\ncom.a.b\n", "x")
+        assertEquals(listOf("Title"), blank.groups.map { it.title })
+        assertEquals(listOf("# Model line"), blank.header)
+        val noEmpty = DebloatTxt.scan("# Model line\n# Telemetry\ncom.a.b\n", "x")
+        assertEquals(listOf("Model line"), noEmpty.groups.map { it.title })
+    }
+
+    // FolderMeta.leftOut: an active line the curated entry leaves out is in no group, as if it were
+    // commented out, and an entry that names no active line fails the conversion.
+    @Test fun leftOutLinesAreNotInTheProfile() {
+        val text = "# One\ncom.a.b\ncom.c.d   # left out\n\n# Two\ncom.e.f\n"
+        fun meta(leftOut: Map<String, String>) = FolderMeta(
+            match = MatchMeta(models = listOf("X"), brand = "B"), platform = "ANDROID_TV",
+            groups = mapOf("One" to CategoryMeta("tracking"), "Two" to CategoryMeta("ads")), leftOut = leftOut,
+        )
+        val all = DebloatTxt.parse(text, "x", meta(emptyMap())).groups.flatMap { g -> g.packages.map { it.name.value } }
+        assertEquals(listOf("com.a.b", "com.c.d", "com.e.f").sorted(), all.sorted())
+        val out = DebloatTxt.parse(text, "x", meta(mapOf("com.c.d" to "not tested off")))
+        assertEquals(listOf("com.a.b", "com.e.f").sorted(), out.groups.flatMap { g -> g.packages.map { it.name.value } }.sorted())
+        assertTrue(out.neverDisable.none { it.value == "com.c.d" })
+        val scan = DebloatTxt.scan(text, "x")
+        assertEquals(emptyList(), ProfileConverter.staleLeftOut(scan, meta(mapOf("com.c.d" to "r"))))
+        assertEquals(listOf("com.k.gone"), ProfileConverter.staleLeftOut(scan, meta(mapOf("com.c.d" to "r", "com.k.gone" to "r"))))
+        // A kept (commented-out) line is not an active line either.
+        val kept = DebloatTxt.scan("# One\ncom.a.b\n# com.c.d\n", "x")
+        assertEquals(listOf("com.c.d"), ProfileConverter.staleLeftOut(kept, meta(mapOf("com.c.d" to "r"))))
+    }
+
+    // The real lists that split a group at a kept line before the fix, and every upstream folder:
+    // no group title is a package line. tcl-g09-google-tv opens two groups with a prose note that
+    // starts with a package name; both are curated ask groups and stay as they are.
+    @Test fun noGroupTitleIsAPackageLine() {
+        val titleStartsWithPackage = Regex("^[a-z][a-z0-9_]*(\\.[A-Za-z0-9_]+)+\\b")
+        val proseNotes = setOf(
+            "tcl-g09-google-tv: com.mirakulo.astrotv.service is Ginga, the ISDB-Tb broadcast interactive-TV engine (AstroTVService,",
+            "tcl-g09-google-tv: com.google.android.tv.remote.service pairs phone remote apps (_androidtvremote2._tcp, 6466 pairing,",
+        )
+        val found = upstream.flatMap { e -> DebloatTxt.scan(e.debloatTxt, e.folder).groups.map { "${e.folder}: ${it.title}" } }
+            .filter { titleStartsWithPackage.containsMatchIn(it.substringAfter(": ")) }
+        assertEquals(proseNotes, found.toSet())
+        fun scan(folder: String) = DebloatTxt.scan(upstream.first { it.folder == folder }.debloatTxt, folder)
+        val g03 = scan("tcl-g03-google-tv")
+        assertEquals(listOf("com.tcl.bi", "com.tcl.logkit", "com.google.android.feedback"),
+            g03.groups.single { it.title == "1. TCL and Google telemetry" }.entries.map { it.pkg.value })
+        assertTrue(p("com.tcl.xian.StartandroidService") in g03.kept)
+        assertTrue(p("com.tcl.versionUpdateApp") in scan("tcl-ak30a5").kept)
+        assertTrue(p("com.google.android.tv.remote.service") in scan("tcl-g10-google-tv").kept)
+        val r10g = scan("kalley-r10g")
+        assertTrue(p("com.google.android.apps.tv.launcherx") in r10g.kept && KnownLaunchers.SETUPWRAITH in r10g.kept)
+        for (s in listOf(g03, r10g, scan("tcl-ak30a5"), scan("tcl-g10-google-tv"))) {
+            val active = s.groups.flatMap { g -> g.entries.map { it.pkg } }.toSet()
+            assertTrue(s.kept.keys.none { it in active })
+        }
+    }
+
     @Test fun bundledProfilesEqualAFreshParse() {
         // Test build: the candidate lists (CandidatesTest) come after the upstream profiles.
         val bundle = BundledProfileSource.bundled.let { b -> b.copy(profiles = b.profiles.filter { !it.isCandidate }) }
-        assertEquals("3e34f40", bundle.upstreamCommit)
+        assertEquals("b06ab21", bundle.upstreamCommit)
         assertEquals(examples.map { it.folder }, bundle.profiles.map { it.id })
         for (e in examples) assertEquals(DebloatTxtParser.parse(e.debloatTxt, e.folder), bundle.profiles.first { it.id == e.folder }, e.folder)
         assertEquals(SureSetGenerator.generate(bundle.profiles, BundledFactsTable.bundled), bundle.sureSets)
@@ -327,7 +519,9 @@ class ProfilesTest {
         val keep = profiles.flatMap { it.neverDisable }.toSet()
         for (s in sets) {
             val mine = profiles.filter { it.match.brand.equals(s.brand, true) }
-            for (g in s.groups) {
+            // Issue #111: an ask group holds owner's-choice packages only (ProfileCategory.OWNERS_CHOICE).
+            for (g in s.groups.filter { it.default == GroupDefault.ASK }) assertTrue(g.packages.all { ProfileCategory.isOwnersChoice(it.name) }, "${s.brand} ${g.id}")
+            for (g in s.groups.filter { it.default != GroupDefault.ASK }) {
                 assertEquals(GroupDefault.DISABLE, g.default)
                 for (e in g.packages) {
                     assertTrue(e.name !in keep)
@@ -345,6 +539,11 @@ class ProfilesTest {
     // 0.3.7 (owner decision): the Hisense set gains com.google.android.partnersetup and
     // com.google.android.syncadapters.calendar from v2.7.0's hisense-smarttv-4k-ffm (9 to 11). The
     // lists promoted in 0.3.7 do not feed the sets yet (SureSetGenerator.REVIEW_PENDING).
+    // b06ab21: the same rows. The Amazon set's notes for com.amazon.media.recommendations,
+    // com.amazon.client.metrics.api and com.amazon.tv.developer.dataservice now come from
+    // amazon-fire-tv-afttiff43, the first Amazon list, whose Omni rows note them.
+    // Issue #111: the Xiaomi set's PatchWall row moves from off to an ask row ("More promoted
+    // content"), still 29 rows.
     @Test fun theFullSetsAreThoseOf034() {
         val profiles = SureSetGenerator.feeding(BundledProfileSource.bundled.profiles.filter { !it.isCandidate })
         val brands = profiles.groupBy { it.match.brand!!.lowercase() }
@@ -359,7 +558,7 @@ class ProfilesTest {
                 s.stockLaunchers.joinToString(",") { it.flat } + "\n"
         }
         val digest = java.security.MessageDigest.getInstance("SHA-256").digest(canon.encodeToByteArray()).joinToString("") { "%02x".format(it) }
-        assertEquals("5bb3f4276f1faf5308cb627bb4f22d5655121c8d71e21be111fbeb8489679106", digest)
+        assertEquals("701fb0da11cb2e11c122cb4d8944362c3ea95a20530152dfdd9e46004457e1a7", digest)
         // The careful sets come after every full set, so a full set wins when both match a TV.
         assertTrue(sets.drop(full.size).all { brands.getValue(it.brand.lowercase()).size < 3 })
     }
@@ -389,6 +588,7 @@ class ProfilesTest {
             "google" to pkgs("com.google.android.feedback", "com.android.tv.feedbackconsent"),
             "Expressluck" to six - p("com.android.printspooler"),
             "SkyworthDigital" to six,
+            "MOKA" to pkgs("com.android.printspooler"),
         )
         for ((brand, want) in reported) assertEquals(want, careful.single { it.brand == brand }.groups.flatMap { g -> g.packages.map { it.name } }.toSet(), brand)
         val askedSomewhere = profiles.flatMap { pr -> pr.groups.filter { it.default != GroupDefault.DISABLE }.flatMap { g -> g.packages.map { it.name } } }.toSet()
@@ -471,7 +671,8 @@ class ProfilesTest {
         fun askRow(id: String, pkg: String) = all.getValue(id).groups.single { g -> g.packages.any { it.name == p(pkg) } }.default
         for (id in listOf("google-chromecast-gtv-4k", "tcl-g05-google-tv", "tcl-g10-google-tv", "xiaomi-mi-box-s", "google-tv-streamer-4k-kirkwood"))
             assertEquals(GroupDefault.ASK, askRow(id, "com.google.android.marvin.talkback"), id)
-        assertEquals(GroupDefault.ASK, askRow("tcl-g10-google-tv", "com.google.android.tv.remote.service"))
+        // At b06ab21 the tcl-g10 list keeps the phone remote service on (the remote mic's bridge, #1441).
+        assertTrue(all.getValue("tcl-g10-google-tv").groups.none { g -> g.packages.any { it.name == p("com.google.android.tv.remote.service") } })
         for (id in listOf("google-chromecast-gtv-4k", "google-tv-streamer-4k-kirkwood"))
             assertEquals(GroupDefault.ASK, askRow(id, "com.google.android.tv.remotecontrol.logging"), id)
     }

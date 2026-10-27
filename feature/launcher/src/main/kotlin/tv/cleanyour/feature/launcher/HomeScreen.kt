@@ -171,6 +171,7 @@ private fun NotOnTvScreen(tvName: String, n: NotOnTv, onIntent: (HomeScreenInten
             HomeBlock.WIZARD_WIFI_UNKNOWN -> stringResource(R.string.home_not_on_tv_wizard_wifi_unknown)
             HomeBlock.CASTING -> stringResource(R.string.home_not_on_tv_casting)
             HomeBlock.BOOT_LOOP -> stringResource(R.string.home_not_on_tv_boot_loop)
+            HomeBlock.REMOTE_BUTTONS -> stringResource(R.string.home_not_on_tv_remote_buttons)
             HomeBlock.WIZARD_STAYS_ON -> stringResource(R.string.home_not_on_tv_wizard_stays_on)
             HomeBlock.HOME_CHANGED -> stringResource(R.string.home_not_on_tv_home_changed)
             HomeBlock.NONE, null -> stringResource(R.string.home_not_on_tv_none)

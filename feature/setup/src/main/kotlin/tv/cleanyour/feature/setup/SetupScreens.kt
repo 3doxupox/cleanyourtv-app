@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import java.text.SimpleDateFormat
 import java.util.Date
 import kotlinx.coroutines.delay
+import tv.cleanyour.core.engine.HomeOutcome
 import tv.cleanyour.core.engine.RunState
 import tv.cleanyour.core.flows.AppChoice
 import tv.cleanyour.core.flows.ChipState
@@ -275,6 +276,7 @@ fun FoundScreen(
                 HomeBlock.WIZARD_WIFI_UNKNOWN -> stringResource(R.string.found_home_wizard_wifi_unknown)
                 HomeBlock.CASTING -> stringResource(R.string.found_home_casting)
                 HomeBlock.BOOT_LOOP -> stringResource(R.string.found_home_boot_loop)
+                HomeBlock.REMOTE_BUTTONS -> stringResource(R.string.found_home_remote_buttons)
                 HomeBlock.WIZARD_STAYS_ON -> stringResource(R.string.found_home_wizard_stays_on)
                 // Issue #2: a Fire TV Edition set is named for Fire OS, not its panel's brand.
                 else -> msg(R.string.stop_tv_refuses_home_body, "brand" to (if (extras.fireTv) stringResource(R.string.fire_tv_name) else extras.tvName ?: ""))
@@ -595,7 +597,7 @@ private val REPORT_CASES = setOf(StopCase.STEP_FAILED, StopCase.INSTALL_FAILED, 
 // The home cases: their card offers "Show details" with the run's lines (D21).
 private val HOME_CASES = setOf(
     StopCase.HOME_SETUPWRAITH, StopCase.HOME_OTHER_LAUNCHER, StopCase.HOME_UNKNOWN, StopCase.HOME_USER_SAID_NO,
-    StopCase.HOME_TIMED_OUT, StopCase.UNDONE, StopCase.HOME_PUT_BACK,
+    StopCase.HOME_TIMED_OUT, StopCase.UNDONE, StopCase.HOME_PUT_BACK, StopCase.HOME_SETTINGS_OPEN,
 )
 
 // S4c, S4d, S4e: stop cards with a grey icon and the way out on the card (UX 4).
@@ -678,10 +680,23 @@ fun DoneScreen(state: SetupState.Done, extras: SetupExtras, actions: SetupAction
             else -> msg(R.string.done_body_no_home, "count" to s.switchedOff)
         }
         Lead(lead, Modifier.padding(top = 8.dp))
+        // QA of 0.4.5: the home screen switch was tried and the old home screen is back; Done says so and why.
+        extras.doneHomeKept?.let { why ->
+            Body(stringResource(when (why) {
+                HomeOutcome.TIMED_OUT -> R.string.done_home_kept_timed_out
+                HomeOutcome.USER_SAID_NO -> R.string.done_home_kept_said_no
+                else -> R.string.done_home_kept
+            }), Modifier.padding(top = 8.dp))
+        }
         Column(Modifier.padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             CheckLine(msg(R.string.done_restore_saved, "date" to dateTime(s.restorePointAtMs, locale)))
+            // D7: with "Keep debugging on" chosen, Finish leaves debugging on, and the line says so.
             CheckLine(
-                stringResource(if (finishing == Finishing.DONE) R.string.done_finished else R.string.done_debug_note),
+                stringResource(when {
+                    finishing == Finishing.DONE -> R.string.done_finished
+                    extras.keepsDebugging -> R.string.done_debug_kept
+                    else -> R.string.done_debug_note
+                }),
                 state = if (finishing == Finishing.SWITCHING) CheckState.PENDING else CheckState.DONE,
             )
         }

@@ -115,6 +115,40 @@ object SureSetGenerator {
     private val ROLE_WORDS = Regex("setup|launcher|input|tuner|voice|update|key")
     private val TV_STACK = listOf("com.mediatek", "com.droidlogic", "com.realtek", "org.droidtv", "com.hisense.smartsense", "com.vt", "com.mstar", "com.cvte", "com.amlogic", "mitv.service")
 
+    // The upstream b06ab21 lists promoted in 0.4.5 (first part), held back from the brand sets the same
+    // way: with them NVIDIA and OnePlus would get full sets and the Sony, Philips and TCL sets would move.
+    val PROMOTED_045: Set<String> = setOf(
+        "epson-ls800",
+        "lumio-vision-7",
+        "nvidia-shield-tv-2017",
+        "oneplus-tv-cebu",
+        "oneplus-tv-dosa",
+        "philips-google-tv-ta1",
+        "philips-google-tv-ta7",
+        "sber-salute-tv-at30a6",
+        "sony-bravia-vu1",
+        "sony-bravia-vu3",
+        "tcl-50dp660",
+        "tcl-g08-eu-android12",
+    )
+
+    // The b06ab21 lists promoted in 0.4.5 (second curator): exact profiles that wait for the same
+    // owner review before they feed a brand set, so the brand sets stay those of the base bump.
+    private val PROMOTED_B06AB21_PART2: Set<String> = setOf(
+        "xiaomi-mi-box-s-android12",
+        "xiaomi-mitv-mssp2",
+        "xiaomi-mitv-mssp0",
+        "xiaomi-mitv-ayfr0",
+        "xiaomi-mitv-astp0",
+        "xiaomi-mitv-mteq0",
+        "redmi-mitv-mftp0",
+        "aqua-matrixtv-ee-50",
+        "jvc-lt55mb508",
+        "sharp-2t-c32gh3000i",
+        "thomson-43rt1055",
+        "hisense-fire-tv-aftcibfbd1",
+    )
+
     // The upstream v2.7.0 lists promoted in 0.3.7. They ship as exact profiles but do not feed the
     // brand sets yet: with them the Amazon, Sony, Xiaomi and Hisense sets would grow and Skyworth and
     // google would get full sets, which is a separate owner review (the 0.3.7 job report has the diff).
@@ -122,7 +156,9 @@ object SureSetGenerator {
         "amazon-fire-tv-aftdec012e", "google-chromecast-gtv-hd", "hisense-smarttv-4k-ffm-android11", "hisense-smarttv-4k-ffm-lushan", "karbonn-swtv-20ae",
         "ok-ai-pont-ikebukuro", "philips-50pud7406", "skyworth-sw-22sa", "skyworth-swtv-22ae-fhd", "sony-bravia-4k-ur3", "sony-bravia-4k-vh1", "sony-kd-43x80l",
         "xiaomi-mi-box-3", "xiaomi-mitv-mftr0", "xiaomi-mitv-moeu0", "xiaomi-mitv-mooq2", "xiaomi-mitv-mssp1",
-    )
+        // The v2.7.0 list curated for a reported TV (#446), held back from the brand sets like the rest.
+        "motorola-mt4310",
+    ) + PROMOTED_045 + PROMOTED_B06AB21_PART2
 
     // The profiles the brand sets are made of: every shipped one but those still under review.
     fun feeding(profiles: List<Profile>): List<Profile> = profiles.filter { it.id !in REVIEW_PENDING }
@@ -147,8 +183,20 @@ object SureSetGenerator {
             groupVotes.getOrPut(e.name) { LinkedHashMap() }.let { v -> v[g.id] = (v[g.id] ?: 0) + 1 }
         }
         val sure = count.filter { (pkg, n) -> n >= minProfiles && pkg !in keep }.keys
+        // Issue #111: an owner's-choice package (ProfileCategory.OWNERS_CHOICE) that at least
+        // minProfiles of the brand's lists offer, as a row, is an ask row of the set, never an off.
+        val askCount = LinkedHashMap<PackageName, Int>()
+        val askVotes = LinkedHashMap<PackageName, MutableMap<String, Int>>()
+        val askSeen = LinkedHashMap<PackageName, Pair<PackageGroup, PackageEntry>>()
+        for (p in ps) for (g in p.groups.filter { it.default == GroupDefault.ASK }) for (e in g.packages) if (ProfileCategory.isOwnersChoice(e.name)) {
+            askCount[e.name] = (askCount[e.name] ?: 0) + 1
+            askSeen.putIfAbsent(e.name, g to e)
+            askVotes.getOrPut(e.name) { LinkedHashMap() }.let { v -> v[g.id] = (v[g.id] ?: 0) + 1 }
+        }
+        val ask = askCount.filter { (pkg, n) -> n >= minProfiles && pkg !in keep && pkg !in sure }.keys
         val launchers = (ps.flatMap { it.stockLaunchers } + KnownLaunchers.generic).distinct()
-        return SureSet(brand, ps.map { it.id }.sorted(), groups(ps, sure, groupVotes, firstSeen), launchers)
+        val groups = groups(ps, sure, groupVotes, firstSeen) + groups(ps, ask, askVotes, askSeen, GroupDefault.ASK)
+        return SureSet(brand, ps.map { it.id }.sorted(), groups, launchers)
     }
 
     private fun carefulSet(ps: List<Profile>, profiles: List<Profile>, facts: Map<PackageName, PackageFacts>): SureSet? {
@@ -186,7 +234,7 @@ object SureSetGenerator {
     // Each package goes to the group id most of the brand's profiles file it under.
     private fun groups(
         ps: List<Profile>, sure: Collection<PackageName>, groupVotes: Map<PackageName, Map<String, Int>>,
-        firstSeen: Map<PackageName, Pair<PackageGroup, PackageEntry>>,
+        firstSeen: Map<PackageName, Pair<PackageGroup, PackageEntry>>, default: GroupDefault = GroupDefault.DISABLE,
     ): List<PackageGroup> {
         val byGroup = LinkedHashMap<String, MutableList<PackageEntry>>()
         val titles = HashMap<String, String>()
@@ -196,7 +244,7 @@ object SureSetGenerator {
             byGroup.getOrPut(id) { mutableListOf() } += PackageEntry(pkg, firstSeen.getValue(pkg).second.note)
             titles.putIfAbsent(id, ps.asSequence().flatMap { it.groups }.first { it.id == id }.title)
         }
-        return byGroup.entries.sortedBy { order(it.key) }.map { (id, es) -> PackageGroup(id, titles.getValue(id), GroupDefault.DISABLE, es.sortedBy { it.name.value }) }
+        return byGroup.entries.sortedBy { order(it.key) }.map { (id, es) -> PackageGroup(id, titles.getValue(id), default, es.sortedBy { it.name.value }) }
     }
 
     private fun order(groupId: String): Int = ProfileCategory.entries.indexOfFirst { groupId.removeSuffix("-optional") == it.id }

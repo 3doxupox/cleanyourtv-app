@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import tv.cleanyour.ui.design.theme.CytTheme
@@ -42,8 +43,11 @@ import tv.cleanyour.core.flows.LookNoteKind
 import tv.cleanyour.core.flows.WayBack
 import tv.cleanyour.core.spec.BandChoice
 import tv.cleanyour.core.spec.GlowChoice
+import tv.cleanyour.core.spec.HighlightChoice
+import tv.cleanyour.core.spec.LookExtras
 import tv.cleanyour.core.spec.Movement
 import tv.cleanyour.core.spec.StyleId
+import tv.cleanyour.core.spec.TilesChoice
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import tv.cleanyour.ui.design.component.PhotoPicker
@@ -105,6 +109,20 @@ private fun LookShot(state: HomeScreenState, page: LookPage = LookPage.MAIN, ask
     }
 }
 
+// The sheet laid out in full (no bound, so the page is not cut) inside a scroll at its end, to reach the
+// bottom of a long page.
+@Composable
+private fun LookShotScrolled(state: HomeScreenState, page: LookPage) {
+    val nav = remember { LookEditorNav().apply { open(page) } }
+    Box(Modifier.fillMaxSize().background(CytTheme.colors.scrim)) {
+        Column(Modifier.fillMaxSize().verticalScroll(androidx.compose.foundation.rememberScrollState(Int.MAX_VALUE))) {
+            SheetSurface(Modifier.padding(top = 48.dp)) {
+                LookContent(state, {}, pictures = LookFixtures.pictureFiles, photos = PhotoPicker {}, nav = nav)
+            }
+        }
+    }
+}
+
 // 0.3.3 D2: a TV without the new home screen, as HomeScreenMachine loads it (no dock, no stock row).
 private fun notOnTv(n: NotOnTv, tvName: String = "Mi TV 4A") =
     HomeScreenState(tvName = tvName, themes = themes, homeScreenOurs = false, notOnTv = n)
@@ -160,7 +178,7 @@ object LauncherShots {
         },
         Shot("look_main_earlier", 1100.dp) { LookShot(lookSheet(LookFixtures.draft(StyleId.CALM, "none", wayBack = WayBack.EARLIER))) },
         Shot("look_main_eight", 1100.dp) { LookShot(lookSheet(LookFixtures.draft(columns = 8, movement = Movement.QUICK, movementPicked = true))) },
-        Shot("look_older_home_screen", 1100.dp) { LookShot(lookSheet(LookFixtures.draft(reads27 = false)) { it.copy(updateTo = "2.7") }) },
+        Shot("look_older_home_screen", 1100.dp) { LookShot(lookSheet(LookFixtures.draft(reads27 = false)) { it.copy(updateTo = "3.0") }) },
         Shot("look_photo_tint_line", 1100.dp) {
             LookShot(lookSheet(LookFixtures.draft(picture = LookEditorState.MINE)) { it.copy(ownPicture = LookFixtures.gallery.getValue("aurora").wallpaper.let { w ->
                 w.copy(path = LookFixtures.resourcePath(w)!!) }) })
@@ -177,6 +195,25 @@ object LauncherShots {
             LookShot(lookSheet(LookFixtures.draft(details = LookDetails(band = BandChoice.SEE_THROUGH, seeThrough = 30), keyNames = true)), LookPage.ADVANCED)
         },
         Shot("look_advanced_low_memory", 1700.dp) { LookShot(lookSheet(LookFixtures.draft(lift = true, ramMb = 1536)), LookPage.ADVANCED) },
+        // Home screen 3.0 (0.4.5): on a TV that reads 3.0, Every app in one row (on, with its note)
+        // on the Look page; More options with the band's None, the greeting and date rows, Warn
+        // when the internet is down (greyed until Green Wi-Fi) and the Tiles; Advanced's Highlight.
+        // On a TV below 3.0 with the update offered, More options ends with the footer line.
+        Shot("look_main_30", 1300.dp) { LookShot(lookSheet(LookFixtures.draft(reads30 = true, extras = LookExtras(oneRow = true)))) },
+        Shot("look_more_30", 3400.dp) {
+            LookShot(lookSheet(LookFixtures.draft(reads30 = true, extras = LookExtras(noBand = true, dateBelow = true, tiles = TilesChoice.ICONS))), LookPage.MORE)
+        },
+        Shot("look_more_30_names", 3600.dp) {
+            LookShot(lookSheet(LookFixtures.draft(reads30 = true, keyNames = true, details = LookDetails(greenWifi = true),
+                extras = LookExtras(hideGreeting = true, brightDate = true, wifiWarnings = true))), LookPage.MORE)
+        },
+        // The end of More options on a TV that reads 3.0, laid out in full and scrolled to it: the
+        // Tiles section with Icons on cards chosen, Picture, and the Advanced link.
+        Shot("look_more_30_tiles", 2400.dp) {
+            LookShotScrolled(lookSheet(LookFixtures.draft(reads30 = true, extras = LookExtras(tiles = TilesChoice.ICONS))), LookPage.MORE)
+        },
+        Shot("look_advanced_30", 1900.dp) { LookShot(lookSheet(LookFixtures.draft(reads30 = true, extras = LookExtras(highlight = HighlightChoice.RIM))), LookPage.ADVANCED) },
+        Shot("look_more_older_footer", 3000.dp) { LookShot(lookSheet(LookFixtures.draft()) { it.copy(updateTo = "3.0") }, LookPage.MORE) },
         // "Your photo": Cancel at the top, the style's glow over the photo, the Darken line.
         Shot("home_photo_crop", 900.dp) {
             Column(Modifier.fillMaxSize().background(CytTheme.colors.bg).padding(20.dp)) {

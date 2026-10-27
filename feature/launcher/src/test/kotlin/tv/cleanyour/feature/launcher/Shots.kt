@@ -24,7 +24,11 @@ import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.spec.BandChoice
 import tv.cleanyour.core.spec.BundledThemeSource
 import tv.cleanyour.core.spec.ButtonsChoice
+import tv.cleanyour.core.flows.PreviewBand
+import tv.cleanyour.core.spec.LauncherConfigCodec
+import tv.cleanyour.core.spec.LookExtras
 import tv.cleanyour.core.spec.LookGates
+import tv.cleanyour.core.spec.TilesChoice
 import tv.cleanyour.core.spec.LookKeys
 import tv.cleanyour.core.spec.Movement
 import tv.cleanyour.core.spec.Picture
@@ -148,13 +152,16 @@ object LookFixtures {
         app("com.amazon.amazonvideo.livingroom", "Prime Video"), app("in.startv.hotstar", "JioHotstar"),
     )
 
-    fun choice(style: StyleId, picture: String, columns: Int, details: LookDetails, names: Boolean, movement: Movement, lift: Boolean, dock: List<AppChoice>) =
+    fun choice(style: StyleId, picture: String, columns: Int, details: LookDetails, names: Boolean, movement: Movement, lift: Boolean, dock: List<AppChoice>,
+        extras: LookExtras = LookExtras.DEFAULT) =
         HomeChoice(dock.map { it.pkg }, null, cards = false, picture = picture, columns = columns, style = style.id, movement = movement.id, lift = lift,
-            names = names, details = details)
+            names = names, details = details, extras = extras)
 
     fun preview(style: StyleId = StyleId.CLASSIC, picture: String = "mist", columns: Int = 5, details: LookDetails = LookDetails(), names: Boolean = false,
-        movement: Movement = Movement.LIVELY, lift: Boolean = false, dock: List<AppChoice> = dock4): LookPreview {
-        val sample = LookSample("shot", choice(style, picture, columns, details, names, movement, lift, dock), dock.map { it.pkg }, LookTv(8L, 2048, false))
+        movement: Movement = Movement.LIVELY, lift: Boolean = false, dock: List<AppChoice> = dock4, extras: LookExtras = LookExtras.DEFAULT): LookPreview {
+        // A TV that reads 3.0 (versionCode 9) when the look has 3.0 switches, so the push writes them.
+        val tv = LookTv(if (extras == LookExtras.DEFAULT) 8L else 9L, 2048, false)
+        val sample = LookSample("shot", choice(style, picture, columns, details, names, movement, lift, dock, extras), dock.map { it.pkg }, tv)
         val p = LookSamples.preview(sample, source, source, LocalDate.of(2026, 10, 26), 20 * 60 + 30)
         return p.copy(picturePath = gallery[picture]?.let { resourcePath(it.wallpaper) }, dock = dock.map { it.name })
     }
@@ -204,12 +211,17 @@ object LookFixtures {
         movement: Movement = Movement.LIVELY, lift: Boolean = false, dock: List<AppChoice> = dock4, waiting: Int = 0,
         reads27: Boolean = true, ramMb: Int? = 2048, wayBack: WayBack = WayBack.NONE, changed: Boolean = false, newPhoto: Boolean = false,
         note: LookNote? = null, keyNames: Boolean = false, tvChanged: Boolean = false, movementPicked: Boolean = false, resettable: Int = 0,
-        previews: Boolean = true,
+        previews: Boolean = true, reads30: Boolean = false, extras: LookExtras = LookExtras.DEFAULT,
     ): LookDraft {
-        val ch = choice(style, picture, columns, details, names, movement, lift, dock)
-        val full = LookSamples.push(LookSample("shot", ch, ch.dock), source, source).second.decodeToString()
+        val e = if (reads30) extras else LookExtras.DEFAULT
+        val ch = choice(style, picture, columns, details, names, movement, lift, dock, e)
+        // A TV that reads 3.0: the push and Advanced's settings file as the flows make them (the look
+        // keys without dock_apps and module_cards), so the file shows the 3.0 keys the look writes.
+        val pushed = LookSamples.push(if (reads30) LookSample("shot", ch, ch.dock, LookTv(9L, 2048, false)) else LookSample("shot", ch, ch.dock), source, source)
+        val full = pushed.second.decodeToString()
+        val settings = if (reads30) LauncherConfigCodec.encode(pushed.first.copy(dockApps = null, moduleCards = null)).decodeToString() else SETTINGS
         return LookDraft(
-            "default", picture, preview = if (previews) preview(style, picture, columns, details, names, movement, lift, dock) else null,
+            "default", picture, preview = if (previews) preview(style, picture, columns, details, names, movement, lift, dock, e) else null,
             columns = columns, lookColumns = columns, style = style, names = names, movement = movement, movementPicked = movementPicked, lift = lift,
             details = details,
             styleCards = StyleId.entries.map { s ->
@@ -217,9 +229,24 @@ object LookFixtures {
             },
             rows = rows(style, details, picture, reads27, ramMb, movement, lift, names, resettable), changed = changed, newPhoto = newPhoto,
             wayBack = wayBack, note = note, styles = if (reads27) StyleId.entries else listOf(StyleId.CLASSIC), reads27 = reads27, ramMb = ramMb,
-            keyNames = keyNames, settingsFile = SETTINGS, fullFile = full, apps = dock.size + waiting, waiting = waiting, tvChanged = tvChanged,
+            keyNames = keyNames, settingsFile = settings, fullFile = full, apps = dock.size + waiting, waiting = waiting, tvChanged = tvChanged,
+            reads30 = reads30, extras = e,
+            actingExtras = if (reads30) acting(style, rows(style, details), e) else LookExtras.DEFAULT,
+            offeredExtras = if (reads30) acting(style, rows(style, details), ALL_ON) else LookExtras.DEFAULT,
         )
     }
+
+    // LookRules.extras as the flows apply it (internal there), for the hand-made drafts: what of
+    // the 3.0 switches acts in this look.
+    private val ALL_ON = LookExtras(true, true, true, true, true, true, true, TilesChoice.ICONS, tv.cleanyour.core.spec.HighlightChoice.RIM)
+    private fun acting(style: StyleId, r: LookRows, e: LookExtras): LookExtras {
+        val dock = style != StyleId.ALL_APPS
+        val oneRow = e.oneRow && dock
+        val noBand = e.noBand && dock && style != StyleId.SPOTLIGHT
+        return e.copy(oneRow = oneRow, noBand = noBand, bandAll = e.bandAll && oneRow && !noBand,
+            wifiWarnings = e.wifiWarnings && r.greenWifi.value == true && r.buttons.value != ButtonsChoice.MENU)
+    }
+
 
     // A short look settings file, as Advanced shows it.
     private val SETTINGS = listOf(

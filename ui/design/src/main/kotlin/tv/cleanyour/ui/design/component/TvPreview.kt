@@ -66,6 +66,8 @@ import kotlin.math.roundToInt
 import tv.cleanyour.core.flows.PreviewBand
 import tv.cleanyour.core.flows.PreviewButtons
 import tv.cleanyour.core.flows.PreviewGlow
+import tv.cleanyour.core.spec.AppColours
+import tv.cleanyour.core.spec.HighlightChoice
 import tv.cleanyour.ui.design.R
 import tv.cleanyour.ui.design.theme.CytTheme
 import tv.cleanyour.ui.design.theme.Outfit
@@ -102,6 +104,11 @@ import tv.cleanyour.ui.design.theme.Outfit
 // glow and the shade at full strength and the chrome faint.
 // `emptyDockSlots` (0.4.0, fill_dock false): a dock space after the person's dock apps has no tile,
 // so the band shows through, as on the TV. With fill_dock true the TV fills it with other apps.
+// Home screen 3.0 (0.4.5), each drawn from launcher 3.0 at b06ab21 (cited where it is drawn), all
+// with defaults that draw exactly what 2.7 draws: `oneRow` (single_row), `bandAll` (dock_band_all),
+// band NONE with a dock (dock_band false), `greetingShown` (show_greeting), `dateBelow`
+// (date_below_clock), `brightDate` (header_white), `iconTiles` (uniform_tiles), `highlight`
+// (glass_style), and `dockColours` and `otherColours`, each app's colour for its icon card.
 @Immutable
 data class TvLook(
     val background: Color,
@@ -147,6 +154,15 @@ data class TvLook(
     // strings_tvpreview.xml, when `dayGreeting` is empty; -1 draws neither) and the sun's place across.
     val minuteOfDay: Int = -1,
     val sunX: Float = 0.5f,
+    val oneRow: Boolean = false,
+    val bandAll: Boolean = false,
+    val greetingShown: Boolean = true,
+    val dateBelow: Boolean = false,
+    val brightDate: Boolean = false,
+    val iconTiles: Boolean = false,
+    val highlight: HighlightChoice = HighlightChoice.GLASS,
+    val dockColours: List<Color> = emptyList(),
+    val otherColours: List<Color> = emptyList(),
 )
 
 private const val TV_W = 960f
@@ -182,6 +198,9 @@ private const val MIN_HEIGHT_FIT = 0.85f
 private const val BAND_PAD = 14f
 private const val BAND_SIDE = 22f
 private const val NAMES_ROOM = 22f
+// single_row without always_show_names sits the row 29 dp lower: the 7 dp gap and the 22 dp name
+// item_app.xml keeps under a tile are not used (MainActivity.java:626-628 at b06ab21).
+private const val ONE_ROW_DROP = 29f
 
 // The launcher's tile width for `columns` tiles a row when only the width counts (AppAdapter.tileWidthPx):
 // the cell less 12 dp, room for the focus scale, between 80 and 180 dp.
@@ -197,6 +216,9 @@ private fun tileCorner(w: Float) = 16f * min(1f, w / 180f)
 // most to 85%), and the dock keeps the title's room above it; what still does not fit runs off the
 // bottom, as on the TV.
 private class TvLayout(look: TvLook) {
+    // The grid starts under the header, which the 3.0 header keys make shorter or taller.
+    val gridTop = GRID_TOP + headerShift(look)
+    private val gridH = TV_H - gridTop
     val n = look.columns.coerceIn(1, 8)
     val cell = GRID_INNER / n
     val dockRow = look.dockRow
@@ -208,7 +230,7 @@ private class TvLayout(look: TvLook) {
             w0
         } else {
             val reserved = if (dockRow) DOCK_EXTRA + BOTTOM_ROOM + (if (title) TITLE_ROOM else 0f) else TOP_ROOM + COMPACT_BOTTOM
-            val tileH = (GRID_H - reserved) / (rows + 1) - (if (dockRow) ITEM_EXTRA else COMPACT_EXTRA)
+            val tileH = (gridH - reserved) / (rows + 1) - (if (dockRow) ITEM_EXTRA else COMPACT_EXTRA)
             max(max(80f, w0 * MIN_HEIGHT_FIT), min(w0, tileH * 180f / 101f))
         }
     }
@@ -218,13 +240,13 @@ private class TvLayout(look: TvLook) {
     // app_library off), so rows that do not fit at the smallest tile run off the bottom.
     private val padTop: Float = when {
         !dockRow -> TOP_ROOM
-        title && rows > 0 -> max(GRID_H - (itemH + DOCK_EXTRA) - itemH * rows - BOTTOM_ROOM, TITLE_ROOM)
-        else -> max(0f, GRID_H - (itemH + DOCK_EXTRA) - itemH * rows - BOTTOM_ROOM)
-    }
+        title && rows > 0 -> max(gridH - (itemH + DOCK_EXTRA) - itemH * rows - BOTTOM_ROOM, TITLE_ROOM)
+        else -> max(0f, gridH - (itemH + DOCK_EXTRA) - itemH * rows - BOTTOM_ROOM)
+    } + if (look.oneRow && !look.names) ONE_ROW_DROP else 0f
     // The dock's tiles; the k-th grid row under the dock (from 1); the r-th row of the plain grid (from 0).
-    val dockTop = GRID_TOP + padTop + 6f + 8f
-    fun rowTop(k: Int) = GRID_TOP + padTop + itemH + DOCK_EXTRA + (k - 1) * itemH + 8f
-    fun gridTop(r: Int) = GRID_TOP + padTop + 4f + r * itemH
+    val dockTop = gridTop + padTop + 6f + 8f
+    fun rowTop(k: Int) = gridTop + padTop + itemH + DOCK_EXTRA + (k - 1) * itemH + 8f
+    fun gridTop(r: Int) = gridTop + padTop + 4f + r * itemH
     fun x(i: Int) = GRID_LEFT + cell * i + (cell - w) / 2f
     val corner = tileCorner(w)
 }
@@ -357,21 +379,33 @@ private fun Header(look: TvLook, tv: Tv) {
         else -> ""
     }
     Box(Modifier.fillMaxSize().graphicsLayer { alpha = if (look.crop) 0.6f else 1f }) {
-        if (greeting.isNotEmpty()) {
+        // show_greeting false: the greeting is GONE (MainActivity.java:467 at b06ab21), so the clock moves up.
+        if (greeting.isNotEmpty() && look.greetingShown) {
             // A festival's greeting is its accent a quarter of the way to white (liftTowardsWhite).
             val colour = if (accent != null && festive) lerp(accent, WHITE, 0.25f) else WHITE.copy(alpha = 0x8C / 255f)
             Text(greeting.uppercase(), Modifier.offset(tv.u(60f), tv.u(26f)), maxLines = 1, style = tv.text(12f, FontWeight.Medium, colour, em = 0.22f))
         }
-        Row(Modifier.bottomAt(tv, 56f, CLOCK_BOTTOM), verticalAlignment = Alignment.Bottom) {
+        val clockBottom = clockBottom(look)
+        // header_white (MainActivity.java:468-472 at b06ab21): the date and the line before it in full white.
+        val dateColour = if (look.brightDate) WHITE else WHITE.copy(alpha = 0xA6 / 255f)
+        Row(Modifier.bottomAt(tv, 56f, clockBottom), verticalAlignment = Alignment.Bottom) {
             Text(look.clock, maxLines = 1, style = tv.text(52f, FontWeight.Light, em = -0.04f))
             if (look.minuteOfDay >= 0) {
                 Text(stringResource(if (look.minuteOfDay < 720) R.string.cyt_tv_am else R.string.cyt_tv_pm), Modifier.padding(start = tv.u(6f), bottom = tv.u(8f)),
                     maxLines = 1, style = tv.text(15f, FontWeight.Medium, WHITE.copy(alpha = 0xB3 / 255f), em = 0.08f))
             }
-            if (look.date.isNotEmpty()) {
-                Box(Modifier.padding(start = tv.u(16f), end = tv.u(16f), bottom = tv.u(8f)).width(tv.u(1f)).height(tv.u(26f)).background(WHITE.copy(alpha = 0x33 / 255f)))
-                Text(look.date, Modifier.padding(bottom = tv.u(9f)), maxLines = 1, style = tv.text(14f, color = WHITE.copy(alpha = 0xA6 / 255f), em = 0.14f))
+            if (look.date.isNotEmpty() && !look.dateBelow) {
+                Box(Modifier.padding(start = tv.u(16f), end = tv.u(16f), bottom = tv.u(8f)).width(tv.u(1f)).height(tv.u(26f))
+                    .background(if (look.brightDate) WHITE else WHITE.copy(alpha = 0x33 / 255f)))
+                Text(look.date, Modifier.padding(bottom = tv.u(9f)), maxLines = 1, style = tv.text(14f, color = dateColour, em = 0.14f))
             }
+        }
+        // date_below_clock (MainActivity.moveDateBelowClock, MainActivity.java:2296-2312 at b06ab21): the
+        // date's column moves under the clock row with a 4 dp top margin, at the clock's left, and the
+        // line before it goes; same size and colour.
+        if (look.date.isNotEmpty() && look.dateBelow) {
+            Text(look.date, Modifier.offset(tv.u(56f), tv.u(clockBottom + 4f + (DATE_LINE - 14f * OUTFIT_LINE) / 2f)), maxLines = 1,
+                style = tv.text(14f, color = dateColour, em = 0.14f))
         }
         Buttons(look, tv)
     }
@@ -379,6 +413,21 @@ private fun Header(look: TvLook, tv: Tv) {
 
 // The clock row's bottom: 26 dp, the greeting's line and the 52 sp clock.
 private const val CLOCK_BOTTOM = 108f
+
+// Home screen 3.0's header (activity_main.xml:160-323 at b06ab21). The greeting's line is what
+// CLOCK_BOTTOM keeps above the clock (52 sp of Outfit at its 1.26 line, includeFontPadding false);
+// the date's line (14 sp, with the TextView's font padding) is that line at 14 sp. Hiding the greeting
+// lifts the clock, the buttons (topButtons aligns to leftBlock's bottom, 6 dp up) and the grid by its
+// line; the date under the clock adds 4 dp and its line to leftBlock, so they all move down. The
+// dock keeps its place: MainActivity pushes it down from the grid's bottom.
+private const val OUTFIT_LINE = 1.26f
+private const val GREETING_LINE = CLOCK_BOTTOM - 26f - 52f * OUTFIT_LINE
+private const val DATE_LINE = GREETING_LINE * 14f / 12f
+
+private fun clockBottom(look: TvLook) = CLOCK_BOTTOM - if (look.greetingShown) 0f else GREETING_LINE
+
+// leftBlock's bottom less the 2.7 one: how far the buttons and the grid move.
+private fun headerShift(look: TvLook) = clockBottom(look) + (if (look.dateBelow) 4f + DATE_LINE else 0f) - CLOCK_BOTTOM
 
 // The launcher's day parts for the greeting (MainActivity.updateGreeting, the default hours).
 private fun dayPart(minute: Int): Int = when (minute / 60) {
@@ -398,7 +447,8 @@ private fun Buttons(look: TvLook, tv: Tv) {
     // A festival on (Festival.java, applyFestiveSkin): a bell for Inputs, a diya for the network and
     // a marigold for Settings, in their own colours.
     val festive = look.accent != null && look.greeting.isNotEmpty()
-    Row(Modifier.bottomEndAt(tv, TV_W - 56f, if (menu) 86f else CLOCK_BOTTOM - 6f), horizontalArrangement = Arrangement.spacedBy(tv.u(10f))) {
+    val bottom = if (menu) 86f + clockBottom(look) - CLOCK_BOTTOM else CLOCK_BOTTOM + headerShift(look) - 6f
+    Row(Modifier.bottomEndAt(tv, TV_W - 56f, bottom), horizontalArrangement = Arrangement.spacedBy(tv.u(10f))) {
         if (menu) {
             Pill(TvIcons.gear, null, icon, tv, if (festive) FestiveIcon.MARIGOLD else null)
         } else {
@@ -449,6 +499,10 @@ private fun Dock(look: TvLook, tv: Tv) {
     val all = look.dock + look.others
     val docked: List<String?> = List(g.n) { if (look.emptyDockSlots) look.dock.getOrNull(it) else all.getOrNull(it) }
     val grid = if (look.emptyDockSlots) look.dock.drop(g.n) + look.others else all.drop(g.n)
+    // Each app's colour (icon tiles), in the same order.
+    val allColours = look.dockColours + look.otherColours
+    val dockedColours: List<Color?> = List(g.n) { if (look.emptyDockSlots) look.dockColours.getOrNull(it) else allColours.getOrNull(it) }
+    val gridColours = if (look.emptyDockSlots) look.dockColours.drop(g.n) + look.otherColours else allColours.drop(g.n)
     val chrome = if (look.crop) 0.7f else 1f
 
     // The big name (hero): 48 sp light, its bottom 26 dp above the band; on the cinematic shelf 68 sp,
@@ -467,14 +521,22 @@ private fun Dock(look: TvLook, tv: Tv) {
             }
         }
     }
-    Band(look, g, tv)
+    // dock_band false (DockDecoration.java:90 at b06ab21): no band and no edge; the tiles stay put.
+    if (look.band != PreviewBand.NONE) Band(look, g, tv, more = grid.isNotEmpty())
     val ring = ringColour(look)
-    for (i in 0 until g.n) docked[i]?.let { Tile(it, i == 0, look, ring, g.x(i), g.dockTop, g, tv, label = look.names, compact = false) }
+    for (i in 0 until g.n) docked[i]?.let { Tile(it, i == 0, look, ring, g.x(i), g.dockTop, g, tv, label = look.names, compact = false, colour = dockedColours[i]) }
+    // single_row (MainActivity.java:522-523 and AppAdapter.java:420 at b06ab21): one sideways row, a
+    // cell of the dock's width each, the dock apps first and then the others. The wrapper clips at the
+    // grid's edge (activity_main.xml:374-379), and the next cell's tile starts past it, so at rest the
+    // row shows the dock's own tiles and nothing under them (Down is swallowed, MainActivity.java:2242-2246).
+    if (look.oneRow) return
     // The rows under the dock and the next row peeking at the bottom edge.
     for (k in 1..g.rows + 1) {
         val y = g.rowTop(k)
         if (y >= TV_H) break
-        for (i in 0 until g.n) grid.getOrNull((k - 1) * g.n + i)?.let { Tile(it, false, look, ring, g.x(i), y, g, tv, label = look.names, compact = false) }
+        for (i in 0 until g.n) grid.getOrNull((k - 1) * g.n + i)?.let {
+            Tile(it, false, look, ring, g.x(i), y, g, tv, label = look.names, compact = false, colour = gridColours.getOrNull((k - 1) * g.n + i))
+        }
     }
 }
 
@@ -484,12 +546,15 @@ private fun Dock(look: TvLook, tv: Tv) {
 private fun Grid(look: TvLook, tv: Tv) {
     val g = TvLayout(look)
     val all = look.dock + look.others
+    val colours = look.dockColours + look.otherColours
     val ring = ringColour(look)
     var r = 0
     while (g.gridTop(r) < TV_H) {
         for (i in 0 until g.n) {
             val focused = r == 0 && i == 0
-            all.getOrNull(r * g.n + i)?.let { Tile(it, focused, look, ring, g.x(i), g.gridTop(r), g, tv, label = look.names || focused, compact = true) }
+            all.getOrNull(r * g.n + i)?.let {
+                Tile(it, focused, look, ring, g.x(i), g.gridTop(r), g, tv, label = look.names || focused, compact = true, colour = colours.getOrNull(r * g.n + i))
+            }
         }
         r++
     }
@@ -502,19 +567,36 @@ private fun ringColour(look: TvLook): Color = look.accent ?: if (look.ring) look
 // and 14 dp above and below with 26 dp corners, or the same padding all round with corners
 // concentric with the tiles'; 22 dp taller with names. Solid #141416 at dock_opacity, the light
 // glass (white 14% to 5%) or the cinematic shelf's own #121014 at 55%.
+// Home screen 3.0 (DockDecoration.java:90-140 at b06ab21): in one row the sides keep their full 22 dp
+// (even padding: only the room above limits it) and the band stops 1 dp inside the grid's edges
+// with its rounded end; Band behind every app takes in every laid out cell, and the grid lays out
+// the next cell in its end padding (clipToPadding false), so with more apps than the dock's the band
+// runs to the grid's right edge.
 @Composable
-private fun Band(look: TvLook, g: TvLayout, tv: Tv) {
+private fun Band(look: TvLook, g: TvLayout, tv: Tv, more: Boolean = false) {
     val left = g.x(0)
     val right = g.x(g.n - 1) + g.w
     val inGridLeft = left - 56f
     val inGridRight = GRID_WIDTH - (right - 56f)
     val (padX, padY, corner) = if (look.evenPadding) {
-        val room = min(g.dockTop - GRID_TOP, min(inGridLeft, inGridRight)) - 1f
+        val room = (if (look.oneRow) g.dockTop - g.gridTop else min(g.dockTop - g.gridTop, min(inGridLeft, inGridRight))) - 1f
         val even = max(0f, min(g.cell - g.w, room))
         Triple(even, even, g.corner + even)
     } else {
-        Triple(max(0f, min(BAND_SIDE, min(inGridLeft, inGridRight) - 1f)), BAND_PAD, 26f)
+        Triple(if (look.oneRow) BAND_SIDE else max(0f, min(BAND_SIDE, min(inGridLeft, inGridRight) - 1f)), BAND_PAD, 26f)
     }
+    if (look.oneRow) {
+        val l = max(left - padX, 57f)
+        val r = if (look.bandAll && more) 56f + GRID_WIDTH - 1f else min(right + padX, 56f + GRID_WIDTH - 1f)
+        BandBox(look, g, tv, l, r - l, padY, corner)
+        return
+    }
+    BandBox(look, g, tv, left - padX, right - left + 2 * padX, padY, corner)
+}
+
+// The band itself: from `x`, `width` wide, around the dock's tiles.
+@Composable
+private fun BandBox(look: TvLook, g: TvLayout, tv: Tv, x: Float, width: Float, padY: Float, corner: Float) {
     val shape = RoundedCornerShape(tv.u(corner))
     val glass = look.band == PreviewBand.GLASS
     val fill: Brush = when {
@@ -531,7 +613,7 @@ private fun Band(look: TvLook, g: TvLayout, tv: Tv) {
     }
     val h = g.h + 2 * padY + if (look.names) NAMES_ROOM else 0f
     Box(
-        Modifier.offset(tv.u(left - padX), tv.u(g.dockTop - padY)).size(tv.u(right - left + 2 * padX), tv.u(h))
+        Modifier.offset(tv.u(x), tv.u(g.dockTop - padY)).size(tv.u(width), tv.u(h))
             .background(fill, shape).border(tv.u(1f).coerceAtLeast(0.5.dp), edge, shape),
     )
 }
@@ -540,29 +622,53 @@ private fun Band(look: TvLook, g: TvLayout, tv: Tv) {
 // by the movement, with its ring and soft glow, raised 4 dp with a shadow with Lift and zoom. The
 // name under it: 14 sp, 7 dp under the tile (4 dp in the plain grid), a little lower when focused,
 // at 75% when every tile has its name.
+// Home screen 3.0: with icon tiles (uniform_tiles, AppAdapter.java at b06ab21) the card is the
+// app's colour top to bottom (backdrop, AppAdapter.java:714-725) with the icon centred at 62% of the
+// tile's height (ICON_SHARE, AppAdapter.java:421-427, 669) and no name inside it (AppAdapter.java:491);
+// the name under it keeps its own rule (AppAdapter.java:463-466): none in the dock or a single row
+// unless every app has its name (the big name names the app you are on), under the focused tile
+// in the grid. The phone has no icons, so the icon is a light rounded square with the app's first
+// letter. The highlight
+// (glass_style, GlassView.java at b06ab21): glass as 2.7 draws it; rim only a 2 dp edge, no glow,
+// panel or shine (GlassView.java:66-68, 104-106); halo the same edge with the glow at half its
+// strength (GlassView.java:92-95). The edge is white at 80%, or the ring's colour two thirds of the
+// way to white at 90% (GlassView.java:48-60). `colour`: the app's colour, for its icon card.
 @Composable
-private fun Tile(name: String, focused: Boolean, look: TvLook, ring: Color, x: Float, y: Float, g: TvLayout, tv: Tv, label: Boolean, compact: Boolean) {
+private fun Tile(name: String, focused: Boolean, look: TvLook, ring: Color, x: Float, y: Float, g: TvLayout, tv: Tv, label: Boolean, compact: Boolean,
+    colour: Color? = null) {
     val w = g.w
     val h = g.h
     val shape = RoundedCornerShape(tv.u(g.corner))
     val scale = if (focused) look.focusScale else 1f
     val raise = if (focused && look.lift) 4f else 0f
+    val icons = look.iconTiles && !look.crop
+    val card = if (icons) iconCard(colour) else null
+    val plain: Modifier = if (card != null) Modifier.background(Brush.verticalGradient(listOf(card.first, card.second)), shape) else Modifier.background(Color(0xFF1C1C1E), shape)
+    val glow = when (look.highlight) { HighlightChoice.GLASS -> 1f; HighlightChoice.HALO -> 0.5f; HighlightChoice.RIM -> 0f }
     Box(
         Modifier.offset(tv.u(x), tv.u(y - raise)).size(tv.u(w), tv.u(h))
             .graphicsLayer { scaleX = scale; scaleY = scale }
-            .then(if (focused && !look.crop) Modifier.drawBehind { focusGlow(ring, g.corner * tv.s * density, tv.s * density, look.lift) } else Modifier)
+            .then(if (focused && !look.crop) Modifier.drawBehind { focusGlow(ring, g.corner * tv.s * density, tv.s * density, look.lift, glow) } else Modifier)
             .then(
                 when {
                     look.crop -> Modifier.border(tv.u(if (focused) 3f else 1f), WHITE.copy(alpha = if (focused) 0.9f else 0.4f), shape)
+                    focused && look.highlight != HighlightChoice.GLASS -> plain.border(tv.u(2f), rimColour(ring), shape)
+                    focused && card != null -> plain.background(Brush.verticalGradient(listOf(WHITE.copy(alpha = 0x3D / 255f), WHITE.copy(alpha = 0x12 / 255f))), shape)
+                        .border(tv.u(2.5f), ring.copy(alpha = 0.95f), shape)
                     focused -> Modifier.background(Brush.verticalGradient(0f to Color(0xFF606066), 0.55f to Color(0xFF2A2A2E), 1f to Color(0xFF1C1C1F)), shape)
                         .border(tv.u(2.5f), ring.copy(alpha = 0.95f), shape)
-                    else -> Modifier.background(Color(0xFF1C1C1E), shape)
+                    else -> plain
                 },
             )
-            .padding(horizontal = tv.u(6f)),
+            .then(if (icons) Modifier else Modifier.padding(horizontal = tv.u(6f))),
         contentAlignment = Alignment.Center,
     ) {
-        if (!look.crop) {
+        if (card != null) {
+            val icon = (h * ICON_SHARE).roundToInt().toFloat()
+            Box(Modifier.size(tv.u(icon)).background(WHITE.copy(alpha = 0.92f), RoundedCornerShape(tv.u(icon * 0.22f))), contentAlignment = Alignment.Center) {
+                Text(name.take(1).uppercase(), maxLines = 1, style = tv.text(icon * 0.5f, FontWeight.Medium, card.first))
+            }
+        } else if (!look.crop) {
             Text(name, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
                 style = tv.text(15f, color = WHITE.copy(alpha = if (focused) 1f else 0.8f)))
         }
@@ -585,7 +691,7 @@ private fun Tile(name: String, focused: Boolean, look: TvLook, ring: Color, x: F
 
 // The highlight's soft glow around the tile (stronger in a colour than in white) and, with Lift and
 // zoom, the shadow under the raised tile. `corner` and `unit` are in pixels (unit: one TV dp).
-private fun DrawScope.focusGlow(ring: Color, corner: Float, unit: Float, lift: Boolean) {
+private fun DrawScope.focusGlow(ring: Color, corner: Float, unit: Float, lift: Boolean, glow: Float = 1f) {
     if (lift) {
         for (i in 1..6) {
             val grow = i * 2.2f * unit
@@ -593,13 +699,46 @@ private fun DrawScope.focusGlow(ring: Color, corner: Float, unit: Float, lift: B
                 cornerRadius = CornerRadius(corner + grow))
         }
     }
-    val strength = if (ring == WHITE) 0.28f else 0.6f
+    if (glow <= 0f) return
+    val strength = (if (ring == WHITE) 0.28f else 0.6f) * glow
     val steps = 6
     for (i in 1..steps) {
         val grow = i * 3f * unit
         drawRoundRect(ring.copy(alpha = strength * (1f - i / (steps + 1f)) / 2f), topLeft = Offset(-grow, -grow), size = Size(size.width + 2 * grow, size.height + 2 * grow),
             cornerRadius = CornerRadius(corner + grow), style = Stroke(width = max(1f, 3f * unit)))
     }
+}
+
+// The icon's share of the tile's height (AppAdapter.ICON_SHARE at b06ab21).
+private const val ICON_SHARE = 0.62f
+
+// The rim of rim and halo (GlassView.java:48-60 at b06ab21): white at 0xCC, or a colour two thirds
+// of the way to white at 0xE6.
+private fun rimColour(ring: Color): Color =
+    if (ring == WHITE) WHITE.copy(alpha = 0xCC / 255f) else lerp(ring, WHITE, 2f / 3f).copy(alpha = 0xE6 / 255f)
+
+// An icon card's two colours, top and bottom (AppAdapter.backdrop, AppAdapter.java:714-725 at
+// b06ab21): the app's colour with a yellow turned amber (hue 42 to 70 with some colour goes to 36),
+// its value at most 0.62, the bottom at 60% of that. An app with no colour of its own (the phone's
+// neutral grey, or none) is the launcher's grey #6E6E73.
+private fun iconCard(colour: Color?): Pair<Color, Color> {
+    val c = colour?.takeUnless { it == Color(AppColours.NEUTRAL) } ?: Color(0xFF6E6E73)
+    val r = c.red
+    val gr = c.green
+    val b = c.blue
+    val mx = max(r, max(gr, b))
+    val mn = min(r, min(gr, b))
+    val d = mx - mn
+    var hue = when {
+        d == 0f -> 0f
+        mx == r -> 60f * (((gr - b) / d) % 6f)
+        mx == gr -> 60f * ((b - r) / d + 2f)
+        else -> 60f * ((r - gr) / d + 4f)
+    }.let { if (it < 0f) it + 360f else it }
+    val sat = if (mx == 0f) 0f else d / mx
+    if (hue in 42f..70f && sat > 0.3f) hue = 36f
+    val v = min(mx, 0.62f)
+    return Color.hsv(hue, sat, v) to Color.hsv(hue, sat, v * 0.6f)
 }
 
 // The header's icons: launcher 2.7's own vectors (ic_input, ic_wifi, ic_settings), 24 x 24, white, tinted.

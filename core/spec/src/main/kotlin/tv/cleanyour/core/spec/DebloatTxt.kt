@@ -16,60 +16,131 @@ import java.security.MessageDigest
 // stock launcher, Live TV app and quirks), then groups. A group is a run of package lines; its
 // title is the first line of the comment block directly above the run. A package line is a name
 // with an optional trailing "# note"; an indented comment right under it continues the note.
-// Commented-out packages are kept by the owner and are not part of the profile.
+// A commented-out package line ("# com.a.b   # why it stays on") is kept by the owner and is not
+// part of the profile. Inside a run it neither ends the run nor starts a title, and above a run it
+// is never the title; the comment lines right under it that are indented (or that carry a second
+// '#', as "#      # more") continue its note, not the previous entry's. Scan.kept records these
+// packages with their notes, except one the same file also lists as active.
+// A curated entry may leave active lines out of the profile (FolderMeta.leftOut); they are then
+// treated as if commented out.
+// Any other unindented comment inside a run still ends the run, and the packages after it open a
+// group titled with that comment.
+// A file with no blank line between its header and the first group: the header ends at the last
+// empty "#" line above the first package, so the first title is that group's own heading and not
+// the model line (tcl-ak30a5 at b06ab21).
 class DebloatTxtException(val folder: String, val line: Int, detail: String) : IllegalArgumentException("$folder/debloat.txt:$line: $detail")
 
 internal object DebloatTxt {
     data class Entry(val pkg: PackageName, var note: String?)
     data class Group(val title: String, val entries: MutableList<Entry> = mutableListOf())
-    data class Scan(val header: List<String>, val groups: List<Group>)
+    // kept: the commented-out packages below the header, with their notes (C2). keptOnlyTitles: the
+    // lines of packages whose comment block above held only kept lines, so they joined the group
+    // before them; the converter reports each one, since the list may have meant a new group.
+    data class Scan(val header: List<String>, val groups: List<Group>, val kept: Map<PackageName, String?> = emptyMap(), val keptOnlyTitles: List<Int> = emptyList())
 
     private val PACKAGE_LINE = Regex("^\\s*([A-Za-z][A-Za-z0-9_]*(?:\\.[A-Za-z0-9_]+)+)\\s*(?:#\\s?(.*))?$")
     private val DECORATION = Regex("^[-=*\\s]+|[-=*\\s]+$")
 
     fun commentText(line: String): String = line.trimStart().removePrefix("#").trim()
 
-    private fun title(block: List<String>): String =
-        block.asSequence().map { commentText(it).replace(DECORATION, "") }.firstOrNull { it.isNotEmpty() } ?: ""
+    private fun title(block: List<String>, skip: Set<Int> = emptySet()): String =
+        block.asSequence().filterIndexed { i, _ -> i !in skip }.map { commentText(it).replace(DECORATION, "") }.firstOrNull { it.isNotEmpty() } ?: ""
+
+    private fun indented(line: String) = line[0] == ' ' || line[0] == '\t'
+
+    // An unindented comment whose text is a package line: a package the owner keeps on.
+    private fun keptLine(line: String): Entry? {
+        if (line[0] != '#') return null
+        val m = PACKAGE_LINE.matchEntire(commentText(line)) ?: return null
+        val pkg = runCatching { PackageName(m.groupValues[1]) }.getOrNull() ?: return null
+        return Entry(pkg, m.groupValues[2].trim().ifEmpty { null })
+    }
+
+    // A comment line right under a kept line that continues its note: indented, or "#    # more" (a
+    // second '#' after spaces, so a "## heading" is not a continuation).
+    private val SECOND_HASH = Regex("^#\\s+#")
+    private fun keptContinuation(line: String) = indented(line) || SECOND_HASH.containsMatchIn(line)
+
+    private fun addNote(e: Entry, line: String) {
+        val more = commentText(line).removePrefix("#").trim()
+        if (more.isNotEmpty()) e.note = listOfNotNull(e.note, more).joinToString(" ")
+    }
+
+    private fun splitGluedHeader(block: MutableList<String>, blockKept: MutableList<Pair<Int, Entry>>, notTitle: MutableSet<Int>, header: MutableList<String>) {
+        val cut = block.indexOfLast { it.trim() == "#" }
+        if (cut < 0 || (cut + 1 until block.size).none { it !in notTitle && commentText(block[it]).replace(DECORATION, "").isNotEmpty() }) return
+        header += block.subList(0, cut + 1)
+        val rest = block.subList(cut + 1, block.size).toList()
+        val keptRest = blockKept.filter { it.first > cut }.map { (it.first - cut - 1) to it.second }
+        val skipRest = notTitle.filter { it > cut }.map { it - cut - 1 }
+        block.clear(); block += rest
+        blockKept.clear(); blockKept += keptRest
+        notTitle.clear(); notTitle += skipRest
+    }
 
     fun scan(text: String, folder: String): Scan {
         val header = mutableListOf<String>()
         val groups = mutableListOf<Group>()
         val block = mutableListOf<String>()
+        // Kept lines in the pending comment block, and the block lines that are not its title.
+        val blockKept = mutableListOf<Pair<Int, Entry>>()
+        val notTitle = mutableSetOf<Int>()
+        val kept = mutableListOf<Entry>()
+        val keptOnlyTitles = mutableListOf<Int>()
+        var lastKept: Entry? = null
         var inPackages = false
         var seenPackage = false
+        fun endBlock(toHeader: Boolean) {
+            if (toHeader) header += block else blockKept.forEach { kept += it.second }
+            block.clear(); blockKept.clear(); notTitle.clear()
+        }
         text.split('\n').forEachIndexed { i, raw ->
             val line = raw.removeSuffix("\r")
             if (line.isBlank()) {
-                if (!seenPackage) header += block
-                block.clear(); inPackages = false
+                endBlock(toHeader = !seenPackage)
+                inPackages = false; lastKept = null
                 return@forEachIndexed
             }
             if (line.trimStart().startsWith("#")) {
-                if (inPackages && (line[0] == ' ' || line[0] == '\t')) {
-                    val last = groups.last().entries.last()
-                    val more = commentText(line)
-                    if (more.isNotEmpty()) last.note = listOfNotNull(last.note, more).joinToString(" ")
-                    return@forEachIndexed
+                val k = lastKept
+                if (inPackages) {
+                    if (k != null && keptContinuation(line)) { addNote(k, line); return@forEachIndexed }
+                    if (indented(line)) { addNote(groups.last().entries.last(), line); return@forEachIndexed }
+                    val kl = keptLine(line)
+                    if (kl != null) { kept += kl; lastKept = kl; return@forEachIndexed }
+                    inPackages = false; endBlock(toHeader = false)
                 }
-                if (inPackages) { inPackages = false; block.clear() }
+                // Above a run (or in the header): the line stays in the block, so a header keep
+                // list still reads it, but a kept line and its continuation are never the title.
                 block += line
+                val kl = keptLine(line)
+                when {
+                    kl != null -> { blockKept += (block.size - 1) to kl; notTitle += block.size - 1; lastKept = kl }
+                    k != null && keptContinuation(line) -> { addNote(k, line); notTitle += block.size - 1 }
+                    else -> lastKept = null
+                }
                 return@forEachIndexed
             }
+            lastKept = null
             val m = PACKAGE_LINE.matchEntire(line) ?: throw DebloatTxtException(folder, i + 1, "neither a package nor a comment")
             val pkg = runCatching { PackageName(m.groupValues[1]) }.getOrElse { throw DebloatTxtException(folder, i + 1, "invalid package name ${m.groupValues[1]}") }
             if (!inPackages) {
+                if (!seenPackage && header.isEmpty()) splitGluedHeader(block, blockKept, notTitle, header)
                 when {
-                    block.isNotEmpty() -> groups += Group(title(block))
+                    block.size > notTitle.size -> groups += Group(title(block, notTitle))
                     groups.isEmpty() -> groups += Group("")
+                    block.isNotEmpty() -> keptOnlyTitles += i + 1
                 }
                 if (!seenPackage) seenPackage = true
-                block.clear(); inPackages = true
+                endBlock(toHeader = false); inPackages = true
             }
             groups.last().entries += Entry(pkg, m.groupValues[2].trim().ifEmpty { null })
         }
-        if (!seenPackage) header += block
-        return Scan(header, groups)
+        endBlock(toHeader = !seenPackage)
+        val active = groups.flatMap { g -> g.entries.map { it.pkg } }.toSet()
+        val keptMap = linkedMapOf<PackageName, String?>()
+        for (e in kept) if (e.pkg !in active && e.pkg !in keptMap) keptMap[e.pkg] = e.note
+        return Scan(header, groups, keptMap, keptOnlyTitles)
     }
 
     fun sha256(text: String): Sha256 =
@@ -155,14 +226,17 @@ internal object DebloatTxt {
         for (g in scan.groups) {
             val (gc, gask) = meta?.groups?.get(g.title)?.let { ProfileCategory.of(it.category) to it.ask } ?: ProfileCategory.guess(g.title)
             for (e in g.entries) {
+                if (meta != null && e.pkg.value in meta.leftOut) continue
                 if (!seen.add(e.pkg)) continue
                 if (e.pkg == KnownLaunchers.SETUPWRAITH && meta?.setupWraithStaysOn == true) { keptWizard = true; continue }
                 if (e.pkg == KnownLaunchers.SETUPWRAITH) { setupWraith = e.pkg; quirks += Quirk.HOME_TAKEOVER_SETUPWRAITH; continue }
                 if (e.pkg in KnownLaunchers.byPackage) { stockPkgs += e.pkg; continue }
                 val override = meta?.packages?.get(e.pkg.value)
                 val (c, ask) = when {
-                    override != null -> ProfileCategory.of(override.category) to override.ask
+                    // Issue #111: an owner's-choice package stays an ask row, whatever the override says.
+                    override != null -> ProfileCategory.of(override.category) to (override.ask || ProfileCategory.isOwnersChoice(e.pkg))
                     ProfileCategory.isUpdater(e.pkg) -> ProfileCategory.UPDATES to true
+                    ProfileCategory.isOwnersChoice(e.pkg) -> gc to true
                     else -> gc to gask
                 }
                 placed += Placed(c, ask, PackageEntry(e.pkg, e.note))

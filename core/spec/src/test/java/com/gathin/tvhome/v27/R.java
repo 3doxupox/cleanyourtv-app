@@ -1,7 +1,7 @@
 package com.gathin.tvhome.v27;
 
 // Test stub: the resource ids launcher 2.7's Config.java and the classes it calls read. Values come
-// from config.xml at 3e34f40 by name (V27ConfigBridge); the festival and race strings are never read
+// from the submodule's config.xml by name (V27ConfigBridge); the festival and race strings are never read
 // by Config.load.
 public final class R {
     private R() {}
