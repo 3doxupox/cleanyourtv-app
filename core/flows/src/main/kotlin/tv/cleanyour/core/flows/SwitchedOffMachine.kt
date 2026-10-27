@@ -112,7 +112,7 @@ class SwitchedOffMachine(
         profileGroups = groups
         val placed = HashSet<PackageName>()
         // Only what this list shows as switched off by us, and PutBackAdvice's own rule on top.
-        val advice = PutBackAdvice.offers(tv.profileId, latest, d.ledger.changes(tvId)).filter { it.pkg in off }
+        val advice = PutBackAdvice.offers(tv.profileId, latest, d.ledger.changes(tvId), profile).filter { it.pkg in off }
         val better = advice.distinctBy { it.pkg }.map { e -> row(e.pkg, true).copy(reason = e.reason) }
         val atTop = better.map { it.pkg }.toSet()
         placed += atTop

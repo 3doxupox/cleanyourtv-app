@@ -89,7 +89,8 @@ class ManageMachine(
                         restorePointAtMs = latest?.takenAtMs, debugging = tv.debugging,
                         helpAddTv = tv.profileId == null && latest != null,
                         ownHome = tv.launcher == null && latest != null && Launcher.pkg !in latest.packages,
-                        betterBackOn = PutBackAdvice.offers(tv.profileId, latest, d.ledger.changes(tv.id)).map { it.pkg }.distinct().count { it in offPkgs },
+                        betterBackOn = if (PutBackAdvice.forProfile(tv.profileId).isEmpty()) 0
+                            else PutBackAdvice.offers(tv.profileId, latest, d.ledger.changes(tv.id), d.profileOf(tv)).map { it.pkg }.distinct().count { it in offPkgs },
                     )
                 }
                 send(Loaded(cards))

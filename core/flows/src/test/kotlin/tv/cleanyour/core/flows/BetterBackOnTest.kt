@@ -96,6 +96,35 @@ class BetterBackOnTest {
         }
     }
 
+    // Kalley R10G (HOME_TAKEOVER_SETUPWRAITH): while our home screen is in charge the planner refuses
+    // the wizard's put back, so its row is never offered; the stock home's row stays, since putting
+    // launcherx back alone ends the restart risk. With the TV's own home screen in charge both show.
+    @Test fun aWizardRowThePlannerWouldRefuseIsNotOffered() = runTest(timeout = 30.seconds) {
+        val launcherx = PackageName("com.google.android.apps.tv.launcherx")
+        val wizard = PackageName("com.google.android.tungsten.setupwraith")
+        val kalley = tv.cleanyour.core.spec.BundledProfileSource.bundled.profiles.single { it.id == "kalley-r10g" }
+        val ours = tv.cleanyour.core.model.HomeResolution(Launcher.home, listOf(tv.cleanyour.core.model.HomeClaimant(Launcher.home, 2)))
+        val theirs = tv.cleanyour.core.model.HomeResolution(Samples.stockLauncher, listOf(tv.cleanyour.core.model.HomeClaimant(Samples.stockLauncher, 2)))
+        for ((home, expected) in listOf(ours to listOf(launcherx), theirs to listOf(launcherx, wizard))) {
+            val h = Harness()
+            val t = h.knownTv().copy(profileId = kalley.id)
+            h.tvs.upsert(t)
+            val off = PackageState(EnabledState.DISABLED_USER, true, 1, null, false, false, null, false)
+            h.snapshots.save(Samples.snapshot(reason = SnapshotReason.POST_PLAN, takenAtMs = Samples.NOW_MS + 1_000, home = home,
+                packages = Samples.miTvPackages() + mapOf(launcherx to off, wizard to off)))
+            h.ranDisable(t, listOf(launcherx, wizard))
+            val deps = h.manageDeps(profiles = tv.cleanyour.testing.fixtures.FakeProfileSource(listOf(miProfile, kalley)))
+            val m = SwitchedOffMachine(deps, backgroundScope, t.id)
+            settle()
+            val name = if (home === ours) "ours is Home" else "the TV's own is Home"
+            assertEquals(expected, betterOf(m)?.rows?.map { it.pkg }, name)
+            assertEquals(PutBackAdvice.REASON_BOOT_LOOP, betterOf(m)!!.rows.first().reason)
+            val manage = ManageMachine(deps, backgroundScope, t.id)
+            settle()
+            assertEquals(expected.size, cardOf(manage, t).betterBackOn, name)
+        }
+    }
+
     // "Switch back on" is the existing PutBack: exactly one PutBack plan for that package, nothing
     // planned before the tap, and the restore point is written after it.
     @Test fun tappingPlansExactlyOnePutBack() = runTest(timeout = 30.seconds) {

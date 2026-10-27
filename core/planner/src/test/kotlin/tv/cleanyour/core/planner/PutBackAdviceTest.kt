@@ -55,6 +55,28 @@ class PutBackAdviceTest {
         assertEquals(1, PutBackAdvice.offers(g10, tv(EnabledState.DISABLED_USER), since + change(2, Op.Disable(mic), Prior(packageState = EnabledState.ENABLED))).size)
     }
 
+    // The wizard rule is the planner's own: where putBack refuses the wizard (our home screen in
+    // charge on a HOME_TAKEOVER_SETUPWRAITH TV), wizardHeldBack holds the row back, and nowhere else.
+    @Test fun theWizardIsHeldBackExactlyWhereThePutBackIsRefused() {
+        val wizard = PlannerFixtures.wizard
+        val quirky = PlannerFixtures.profile(quirks = setOf(tv.cleanyour.core.model.Quirk.HOME_TAKEOVER_SETUPWRAITH), setupWraith = wizard)
+        val source = object : tv.cleanyour.core.spec.ProfileSource {
+            override suspend fun all() = listOf(quirky)
+            override suspend fun resolve(facts: tv.cleanyour.core.model.DeviceFacts) = tv.cleanyour.core.spec.ProfileResolution.Exact(quirky)
+        }
+        val journal = listOf(change(0, Op.Disable(wizard), Prior(packageState = EnabledState.ENABLED)))
+        for (oursHome in listOf(true, false)) {
+            val base = if (oursHome) snapshot(home = PlannerFixtures.launcher, claimants = listOf(PlannerFixtures.launcher, PlannerFixtures.stock), extra = mapOf(PlannerFixtures.installedLauncher()))
+                else snapshot()
+            val s = base.copy(packages = base.packages + (wizard to PackageState(EnabledState.DISABLED_USER, true, 1, null, false, false, null, false)))
+                .let { it.copy(contentHash = tv.cleanyour.core.store.SnapshotCodec.hash(it)) }
+            val refused = PlannerFixtures.planner(profiles = source).plan(PlanRequest.PutBack(wizard), s, PlannerFixtures.facts, journal) is PlanResult.Refused
+            assertEquals(oursHome, refused, "ours Home: $oursHome")
+            assertEquals(refused, PutBackAdvice.wizardHeldBack(wizard, quirky, s))
+            assertEquals(false, PutBackAdvice.wizardHeldBack(wizard, PlannerFixtures.profile(setupWraith = wizard), s), "no quirk: never held back")
+        }
+    }
+
     // The tap is the ordinary PutBack: exactly one step, the inverse of our switch-off (Enable, or
     // DefaultState for a package that was DEFAULT before us), with its prior. The remote mic service
     // is on the static denylist now, so the renderer refuses a DefaultState for it: it goes back on

@@ -4,7 +4,9 @@ import tv.cleanyour.core.model.ChangeRecord
 import tv.cleanyour.core.model.EnabledState
 import tv.cleanyour.core.model.Op
 import tv.cleanyour.core.model.PackageName
+import tv.cleanyour.core.model.Profile
 import tv.cleanyour.core.model.Snapshot
+import tv.cleanyour.core.ops.Denylist
 
 // "Better back on" (WP4, C6): packages an earlier list switched off that upstream's list for the
 // same TV now keeps on, each with our reason. After the b06ab21 bump they are commented-out (kept)
@@ -37,14 +39,25 @@ object PutBackAdvice {
 
     // The entries to offer on this TV now. `profileId` is the TV's exact profile (Tv.profileId, null
     // without one); `snapshot` the latest read of the TV (null: unknown, nothing is offered);
-    // `changes` this app's change records for the TV.
-    fun offers(profileId: String?, snapshot: Snapshot?, changes: List<ChangeRecord>): List<Entry> {
+    // `changes` this app's change records for the TV; `profile` that profile itself, for the rule
+    // below (null: not known, nothing is held back).
+    //
+    // A row whose tap the planner is known to refuse is never offered: on a TV whose setup wizard
+    // takes the Home button back (the HOME_TAKEOVER_SETUPWRAITH quirk), DefaultPlanner.putBack
+    // refuses the wizard while our home screen is in charge. On Kalley R10G that leaves the stock
+    // home's row, and putting launcherx back alone already ends the restart risk, which needs both off.
+    fun offers(profileId: String?, snapshot: Snapshot?, changes: List<ChangeRecord>, profile: Profile? = null): List<Entry> {
         if (snapshot == null) return emptyList()
         return forProfile(profileId).filter { e ->
             val off = snapshot.packages[e.pkg]?.enabled.let { it == EnabledState.DISABLED_USER || it == EnabledState.DISABLED }
-            off && lastChangeIsOurDisable(e.pkg, changes)
+            off && lastChangeIsOurDisable(e.pkg, changes) && !wizardHeldBack(e.pkg, profile, snapshot)
         }
     }
+
+    // DefaultPlanner.putBack's wizard rule (R1 R-3), the same facts: the wizard comes back on only
+    // with the TV's own home screen, never under the new one.
+    fun wizardHeldBack(pkg: PackageName, profile: Profile?, snapshot: Snapshot): Boolean =
+        profile != null && Denylist.isWizardAllowed(pkg, profile) && snapshot.home.resolved?.pkg == SwitchOffRule.OUR_LAUNCHER
 
     private fun lastChangeIsOurDisable(pkg: PackageName, changes: List<ChangeRecord>): Boolean {
         val last = changes.filter { c ->
