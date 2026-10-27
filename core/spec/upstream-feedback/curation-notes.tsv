@@ -297,6 +297,7 @@ prismplus-q65-ultra-r10g	com.realtek.dtmb	the unused broadcast tuners are TV inp
 redmi-mitv-mftp0	(home)	clean-up only: the header says keep com.mitv.tvhome enabled (Home is a package allowlist); never-disable and not a known launcher
 redmi-mitv-mftp0	(match)	the TV reports brand and maker xiaomi (issue #670), not Redmi
 redmi-mitv-mftp0	com.xiaomi.gamecenter.sdk.service.mibox	Xiaomi store games may need it for sign-in; ask row as on xiaomi-mitv-astp1
+redmi-mitv-mftp0	(header)	the Deliberately NOT disabled names (codec updater, app store, media explorer, USB video player, Mi account) are in the curated never-disable list, as on xiaomi-mitv-astp0
 sanyo-atv-r2	com.realtek.leanbacklauncher.partnercustomizer	ask row: compac-atv-r2 (the same SCBC build, v2.5.0) found it supplies the Inputs button on the stock home
 sharp-2t-c32gh3000i	(match)	shares device beomil with motorola-swtv-24ae-fhd; the brand key (SHARP) keeps them apart
 sharp-2t-c32gh3000i	com.amazon.amazonvideo.livingroom	off by the owner's choice; streaming ask row

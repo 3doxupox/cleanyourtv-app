@@ -1858,7 +1858,7 @@
       "liveTv": "com.xiaomi.mitv.tvplayer",
       "setupWraith": null,
       "quirks": [],
-      "neverDisable": ["com.mitv.tvhome", "mitv.service", "com.xiaomi.mitv.tvplayer", "com.xiaomi.mitv.settings", "com.xiaomi.mitv.systemui", "com.mediatek.tvinput", "com.sohu.inputmethod.sogou.tv", "com.xiaomi.mitv.tvpush.tvpushservice", "com.xiaomi.mitv.smartpanel"],
+      "neverDisable": ["com.mitv.tvhome", "mitv.service", "com.xiaomi.mitv.tvplayer", "com.xiaomi.mitv.settings", "com.xiaomi.mitv.systemui", "com.mediatek.tvinput", "com.sohu.inputmethod.sogou.tv", "com.xiaomi.mitv.tvpush.tvpushservice", "com.xiaomi.mitv.smartpanel", "com.mitv.codec.update", "com.xiaomi.mitv.appstore", "com.xiaomi.mitv.mediaexplorer", "com.mitv.videoplayer", "com.xiaomi.account"],
       "suggestedDock": [],
       "tested": { "by": "shaoxyz (PR #631)", "firmware": "23.2.10.6129", "daysLivedWith": null, "rebootTested": false },
       "groups": {
