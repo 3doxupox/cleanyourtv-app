@@ -4,7 +4,8 @@
 # bundled APKs removed, the gradle-wrapper jars removed (gradlew-fdroid from the image builds), the
 # recipe's prebuild sed on the launcher's signingConfig line, Debian JDK 21.0.12.1, apksigcopier 1.1.1
 # from Debian (the recipe's sudo step). Then :core:trust:verifyLauncherPin and verifyCurtainPin in the
-# same container. Tree: branch up300-launcher at 39d8f04 (submodule at b06ab21). Filtered output.
+# same container. Tree: branch up300-launcher at 39d8f04 (before the rebase on WP0; submodule at b06ab21).
+# Filtered output.
 ==> image registry.gitlab.com/fdroid/fdroidserver:buildserver-trixie@sha256:1ea8bef1820bff06c2974e31b4fc4c79c364cd24231b86e71fa4b926797e0dac
 ==> launcher: assembleRelease in a copy of third_party/cleanyourtv/launcher (unsigned)
 Found 8.9 via distributionUrl

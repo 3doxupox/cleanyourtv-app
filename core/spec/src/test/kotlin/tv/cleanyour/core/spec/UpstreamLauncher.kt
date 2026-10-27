@@ -249,8 +249,8 @@ object Agreement {
                         ours.doc
                     }
                     is DecodeResult.Rejected -> {
-                        // The codec answers for the bundled 2.7: a file only 2.7 crashes on is read by
-                        // older launchers, and is not compared there.
+                        // The codec answers for the bundled 3.0 (and 2.7, which crashes the same way): a
+                        // file only they crash on is read by older launchers, and is not compared there.
                         if (!up.reads27 && ours.reason == ConfigCodecImpl.CRASH_27_NON_FINITE && u.overlayApplied) {
                             t.crashOn27Only++
                             return null

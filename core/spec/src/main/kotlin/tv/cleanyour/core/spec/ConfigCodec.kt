@@ -54,9 +54,9 @@ internal object ConfigCodecImpl {
     val BUNDLED_BANNERS: Set<String> = setOf("banner_tv")
     // Keys with a LauncherConfigDoc field: all of Config.java's keys.
     val MODELLED: Set<String> = KEY_ORDER.toSet()
-    // Keys the bundled launcher 2.7 reads (config.xml and Config.load) that have no LauncherConfigDoc
-    // field, which is frozen: the looks set them, so they are carried in `unknown` as is, with no
-    // warning, since the TV does read them; LauncherKeys reads them the way Config.java does. A TV
+    // Keys launcher 2.7 and the bundled 3.0 read (config.xml and Config.load) that have no
+    // LauncherConfigDoc field, which is frozen: the looks set them, so they are carried in `unknown`
+    // as is, with no warning, since the TV does read them; LauncherKeys reads them the way Config.java does. A TV
     // still on 2.5 or older ignores them. ambient_glow false keeps the background plain (no glow in
     // the focused app's colour); cinematic_scrim and cinematic_art (0 to 100) are how much the
     // cinematic shelf's scrim and the app's art cover a look's picture. look2 (spec 7.2, 7.3): the

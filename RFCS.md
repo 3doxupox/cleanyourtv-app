@@ -105,6 +105,6 @@ without a warning; no frozen type changes.
   single_row and-ed with dock_row and adds top_bar_apps to the hidden list; `effective()` does not
   model the second (the app never writes top_bar_apps), and the differential applies both.
 - `UpstreamLauncher.Version.V30` is the bundled one; V27, V25 and V20 stay for TVs not updated.
-  On 3.0: the 288,000 build look cross product (43,050 distinct docs, 0 codec warnings), the
+  On 3.0: the 288,500 build look cross product (43,050 distinct docs, 0 codec warnings), the
   10,000 file fuzz with the 25 keys in valid and out of range values, the theme fixtures (retro
   and nature-calm included), the encoded docs and the TV choices; the 2.7 runs stay beside them.

@@ -9,7 +9,7 @@ class LookGatesTest {
     private val all = listOf(StyleId.CLASSIC, StyleId.GLASS, StyleId.SPOTLIGHT, StyleId.ALL_APPS, StyleId.CALM)
 
     // Launcher 2.7 is versionCode 8: below it only Classic and no 2.7 rows; 8, later or not known
-    // (the bundled 2.7) gets all five styles.
+    // (the bundled launcher, 3.0 at versionCode 9) gets all five styles.
     @Test fun byVersionCode() {
         for ((vc, styles, reads) in listOf(
             Triple(5L, listOf(StyleId.CLASSIC), false),
