@@ -311,7 +311,7 @@ class HomeSwitchRiskTest {
             check(r0Tv(f), "an exact profile with the wizard quirk", profile = quirk, risk = when (w) {
                 WizardWifi.OWNER -> Risk.WIZARD_WIFI; WizardWifi.UNKNOWN -> Risk.WIZARD_WIFI_UNKNOWN; WizardWifi.NOT_OWNER -> null })
             val candidate = PlannerFixtures.profile().copy(tested = TestedInfo("candidate", null, null, rebootTested = false, candidate = true))
-            check(r0Tv(f), "a candidate list", profile = candidate)
+            releaseRule { check(r0Tv(f), "a candidate list", profile = candidate) }
         }
         // The planner refuses a switch asked for anyway on a set where the wizard claims Home.
         val claims = r0Tv(axso1, listOf(HomeClaimant(tvlauncher, 2), HomeClaimant(recovery, 0), HomeClaimant(fallback, -1000)))
@@ -341,7 +341,9 @@ class HomeSwitchRiskTest {
                     "tvlauncher switched off" to r0Tv(f, disabled = setOf(tvlauncher.pkg.value)),
                 )) assertEquals(blocked, HomeSwitchRisk.of(f, null, s, w, anyBrand = true), "$brand $w, test build: $why")
                 val candidate = PlannerFixtures.profile().copy(tested = TestedInfo("candidate", null, null, rebootTested = false, candidate = true))
-                assertEquals(blocked, HomeSwitchRisk.of(f, candidate, r0Tv(f), w, anyBrand = true), "$brand $w, test build: a candidate list")
+                // A candidate list gets R0 in the test build (aCandidateListGetsR0OnlyInTheWidenedTestBuild), never in a release.
+                assertNull(HomeSwitchRisk.of(f, candidate, r0Tv(f), w, anyBrand = true), "$brand $w, test build: a candidate list")
+                assertEquals(blocked, HomeSwitchRisk.of(f, candidate, r0Tv(f), w, anyBrand = false), "$brand $w, release: a candidate list")
             }
         }
         // The other risks are untouched: the MOKA family and Google's hardware keep theirs.
@@ -349,6 +351,32 @@ class HomeSwitchRiskTest {
         assertEquals(Risk.BOOT_LOOP, HomeSwitchRisk.of(moka, null, r0Tv(moka), WizardWifi.NOT_OWNER, anyBrand = true))
         val boreal = axso1.copy(brand = "google", manufacturer = "Google", device = "boreal")
         assertEquals(Risk.CASTING, HomeSwitchRisk.of(boreal, null, r0Tv(boreal), WizardWifi.NOT_OWNER, anyBrand = true))
+    }
+
+    // 0.4.6: in a test build with R0 widened to every brand, a candidate list gets R0 too, since the
+    // volunteers who try one are the ones checking it. Issue #258: a OnePlus C00 (Cebu) on Android 11
+    // with the candidate list oneplus-tv-c00-cebu, claimants tvlauncher (priority 2) and FallbackHome,
+    // setupwraith on and no claimant, was blocked WIZARD_WIFI. A release keeps the rule as it was,
+    // and a candidate whose wizard claims Home stays blocked either way.
+    @Test fun aCandidateListGetsR0OnlyInTheWidenedTestBuild() {
+        val cebu = axso1.copy(brand = "OnePlus", manufacturer = "OnePlus", model = "OnePlus TV C00", device = "cebu", sdk = 30, release = "11",
+            fingerprint = "OnePlus/cebu/cebu:11/x:user/release-keys")
+        val candidate = PlannerFixtures.profile().copy(id = "oneplus-tv-c00-cebu", tested = TestedInfo("candidate, issue #258", null, null, rebootTested = false, candidate = true))
+        val s = r0Tv(cebu)
+        for (w in WizardWifi.entries) {
+            val blocked = if (w == WizardWifi.OWNER) Risk.WIZARD_WIFI else Risk.WIZARD_STAYS_ON
+            assertNull(HomeSwitchRisk.of(cebu, candidate, s, w, anyBrand = true), "test build $w")
+            assertEquals(blocked, HomeSwitchRisk.of(cebu, candidate, s, w, anyBrand = false), "release $w")
+            val claims = r0Tv(cebu, listOf(HomeClaimant(tvlauncher, 2), HomeClaimant(recovery, 0), HomeClaimant(fallback, -1000)))
+            assertEquals(blocked, HomeSwitchRisk.of(cebu, candidate, claims, w, anyBrand = true), "test build, the wizard claims Home, $w")
+            assertEquals(blocked, HomeSwitchRisk.of(cebu, candidate, claims, w, anyBrand = false), "release, the wizard claims Home, $w")
+            // An exact list keeps its own rule in the test build too (here one whose switch would
+            // switch the wizard off while it may own the Wi-Fi).
+            val exact = PlannerFixtures.profile(quirks = setOf(Quirk.HOME_TAKEOVER_SETUPWRAITH), setupWraith = wizard)
+            assertEquals(HomeSwitchRisk.of(cebu, exact, s, w, anyBrand = false), HomeSwitchRisk.of(cebu, exact, s, w, anyBrand = true), "exact $w")
+        }
+        // On a Xiaomi a release still never gives a candidate R0.
+        for (w in WizardWifi.entries) assertTrue(HomeSwitchRisk.of(axso1, candidate, r0Tv(axso1), w, anyBrand = false) != null, "xiaomi release $w")
     }
 }
 

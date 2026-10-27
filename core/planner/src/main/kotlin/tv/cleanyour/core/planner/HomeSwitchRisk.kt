@@ -87,9 +87,13 @@ object HomeSwitchRisk {
         isGoogleHardware(facts) || profile?.id in CASTING_PROFILES -> Risk.CASTING
         profile?.id in REMOTE_BUTTON_PROFILES -> Risk.REMOTE_BUTTONS
         // Test build: a candidate list was never tried with the switch, so for the setup wizard it
-        // counts as no profile at all (a wizard that is on stays on, so no switch). 0.4.6: R0 is for
-        // a TV no list knows at all, so a candidate list keeps that rule as it was.
-        else -> wizardWifiRisk(profile?.takeUnless { it.isCandidate }, snapshot, wizardWifi, r0 = profile == null && wizardStaysOnSafely(facts, snapshot, anyBrand))
+        // counts as no profile at all (a wizard that is on stays on, so no switch). 0.4.6: in a
+        // release R0 is for a TV no list knows at all. In a test build with R0 widened to every brand
+        // (anyBrand) it applies to a candidate list too, since the volunteers who try one are the
+        // ones checking R0 on their brand (issue #258, a OnePlus C00 on its candidate list, was
+        // blocked WIZARD_WIFI there); every other R0 condition holds, and an exact list keeps its own rule.
+        else -> wizardWifiRisk(profile?.takeUnless { it.isCandidate }, snapshot, wizardWifi,
+            r0 = (profile == null || (anyBrand && profile.isCandidate)) && wizardStaysOnSafely(facts, snapshot, anyBrand))
     }
 
     fun isXiaomi(f: DeviceFacts): Boolean = XIAOMI_MAKERS.any { it.equals(f.brand, ignoreCase = true) || it.equals(f.manufacturer, ignoreCase = true) }
