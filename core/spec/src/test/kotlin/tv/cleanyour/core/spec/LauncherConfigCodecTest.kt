@@ -215,6 +215,36 @@ class LauncherConfigCodecTest {
         assertEquals(all.unknown, decoded.doc.unknown)
     }
 
+    // The drift check above finds keys as string literals. So neither vendored reader may read the
+    // parsed config.json (`json` in Config.load, `o` in its helpers) with a key that is not one: a
+    // read through a constant or a variable would slip past it. Allowed: the six helpers' own
+    // o.opt(key), whose callers pass literals (checked here too), moods' optJSONArray(mood) on the
+    // nested wallpaper_moods object (WallpaperMood.ALL), json.toString() for the kept copy, and
+    // raceCalendar(json), which reads race_calendar by its literal.
+    @Test fun everyLauncherReadHasALiteralKey() {
+        for (version in listOf("v27", "v30")) {
+            val text = java.io.File(Fixtures.repoRoot, "core/spec/src/test/java/com/gathin/tvhome/$version/Config.java").readText()
+            val literal = Regex("^\\s*\"[a-z_0-9]+\"")
+            val methods = Regex("\\b(json|o)\\.(\\w+)\\(([^)]*)\\)").findAll(text).toList()
+            assertTrue(methods.size > 5, "$version: the reads were found")
+            for (m in methods) {
+                val (receiver, method, args) = m.destructured
+                val ok = literal.containsMatchIn(args) || (receiver == "o" && method == "opt" && args == "key") ||
+                    (receiver == "o" && method == "optJSONArray" && args == "mood") || (receiver == "json" && method == "toString" && args.isEmpty())
+                assertTrue(ok, "$version: ${m.value} reads config.json with a key that is not a literal")
+            }
+            assertEquals(6, methods.count { it.value == "o.opt(key)" }, "$version: the six helpers")
+            // Every call that hands the parsed file to a helper names the key as a literal.
+            for (m in Regex("\\(\\s*(json|o)\\s*,\\s*([^,)]+)").findAll(text)) {
+                assertTrue(literal.containsMatchIn(m.groupValues[2]), "$version: ${m.value} passes a key that is not a literal")
+            }
+            // And the whole file goes nowhere else but raceCalendar.
+            for (m in Regex("\\b(\\w+)\\(\\s*json\\s*\\)").findAll(text)) {
+                assertEquals("raceCalendar", m.groupValues[1], "$version: ${m.value} reads config.json by itself")
+            }
+        }
+    }
+
     // Every carried key round trips with no warning, in every value LookKeys writes.
     @Test fun everyCarriedKeyRoundTripsWithoutAWarning() {
         assertEquals(16, ConfigCodecImpl.CARRIED_27.size)
