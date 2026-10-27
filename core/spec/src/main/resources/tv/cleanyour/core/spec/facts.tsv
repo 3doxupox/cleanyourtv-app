@@ -271,6 +271,7 @@ com.creative.fastscreen.tv	FastScreen mirroring	Screen mirroring receiver	castin
 com.crunchyroll.crunchyroid	Crunchyroll	Anime streaming app	streaming
 com.ctc	Media processor demo	Factory media demo app	demo
 com.curiosity.curiositystream.androidtv	CuriosityStream	Documentary streaming app	streaming
+com.cvte.dssshare.dlna	DLNA renderer	Plays media pushed from phones over DLNA	casting
 com.cvte.fac.menu	CVTE factory menu	Hidden factory settings menu	demo
 com.cvte.haier.tv.appmanager	Haier app manager	Manages Haier apps at startup	brand
 com.cvte.startpartnertv	Partner TV app	Preloaded partner TV app	preloads
@@ -474,6 +475,7 @@ com.kick.mobile	Kick	Live streaming app	streaming
 com.king.candycrushsaga	Candy Crush Saga	Preloaded game	preloads
 com.limelight	Moonlight	Game streaming from a PC	streaming
 com.mautilus.tvgames.portal.androidtv	TV games portal	Preloaded game portal	preloads
+com.maxhub.screenshare.server.tv	MHshare	Screen sharing receiver	casting
 com.mediatek.AirplayAPK	AirPlay (MediaTek)	Receives AirPlay from Apple devices	casting
 com.mediatek.MtkDemo	MediaTek demo	MediaTek's store demo app	demo
 com.mediatek.airplaydaemon	AirPlay service	Background service for AirPlay	casting
@@ -613,7 +615,9 @@ com.realtek.tv.atsc	ATSC tuner	North American TV tuner input	other
 com.realtek.tv.isdb	ISDB tuner	Japanese and South American tuner input	other
 com.rkgames.basisgame	RK Games game	Preloaded game	preloads
 com.rtk.engmenu	Realtek engineering menu	Factory menu, needed by the system	system
+com.salute.star	Salute smart home	Smart home app	brand
 com.sbs.ondemand.tv	SBS On Demand	SBS catch-up TV (Australia)	streaming
+com.screenshare.platform	ScreenShare platform	Helper for MHshare screen sharing	casting
 com.sdmc.facTest	SDMC factory test	Factory test menu	demo
 com.sdmc.hwinfo	SDMC hardware info	Hardware info and diagnostics	brand
 com.sdmc.leakbackcustomer	SDMC partner service	Partner customer service, purpose unclear	other
@@ -1030,6 +1034,28 @@ paskov.biz.happyfruits	Happy Fruits	Preloaded game	preloads
 ro.pontes.forinaline	Four in a Line	Preloaded game	preloads
 rocks.funkykarts	Funky Karts	Preloaded game	preloads
 ru.ivi.client	ivi	Russian streaming app	streaming
+ru.sberdevices.bugreporter	Sber bug reporter	Sends bug reports to Sber	tracking
+ru.sberdevices.gamepad.service	Sber gamepad service	Gamepad support service	other
+ru.sberdevices.huaweicast	Huawei Cast Plus	Screen sharing from Huawei phones	casting
+ru.sberdevices.music	Zvuk	Sber music app	streaming
+ru.sberdevices.openbeta	Sber beta programme	Beta software sign-up	brand
+ru.sberdevices.parentcontrol	Sber parental control	Parental control	other
+ru.sberdevices.rcfupdater	Sber remote updater	Updates the remote's firmware	updates
+ru.sberdevices.sberplay	SberPlay	Sber games	preloads
+ru.sberdevices.smarthome.promo	Sber smart home promo	Smart home adverts	ads
+ru.sberdevices.starbrowser	Salute browser	Built-in web browser	preloads
+ru.sberdevices.starcleaner	StarCleaner	Memory cleaning screen	preloads
+ru.sberdevices.starkidsroom.prod	Sber kids room	Kids section	preloads
+ru.sberdevices.starlauncher	Salute TV home	The stock Salute TV home screen	launcher
+ru.sberdevices.starlivetv	StarLiveTv	Sber online channels	streaming
+ru.sberdevices.starmarket	Sber app catalogue	Sber app store	brand
+ru.sberdevices.starprofile	Sber profiles	User profiles	brand
+ru.sberdevices.starscreensaver	Sber screensaver	Photo screensaver	screensaver
+ru.sberdevices.startube	Sber YouTube	Sber's YouTube wrapper	streaming
+ru.sberdevices.subscriptions	SberPrime	Subscriptions	brand
+ru.sberdevices.survey	Sber surveys	Surveys	tracking
+ru.sberdevices.tv	Sber TV providers	TV provider setup for the guide	other
+ru.sberdevices.videos	Sber Video	Video catalogue	streaming
 screnmirroring.com	Screen mirroring	Miracast receiver	casting
 tunein.player	TuneIn Radio	Radio streaming app	streaming
 tv.airtel.xstream.tvapp	Airtel Xstream	Airtel streaming app (India)	streaming

@@ -89,4 +89,12 @@ class Promotions045Test {
         facts("C00", "Cebu", "OnePlus", 29, "OnePlus/OnePlusTV/Cebu:10/QTG3.201207.001/2302040008:user/release-keys") to "oneplus-tv-cebu", // #1243
         facts("C00", "Cebu", "OnePlus", 30, "OnePlus/OnePlusTV/Cebu:11/RTM8.240401.135/2408080101:user/release-keys") to null, // #973
     )
+
+    // The at30a6 board on StarOS for Android 13; the Android 9 StarOS sets and the SberBox are other platforms.
+    @Test fun sberSaluteTvAt30a6() = check(
+        facts("SaluteTV", "at30a6", "SaluteTV", 33, "SaluteTV/SaluteTV/at30a6:13/TP1A.220905.004.A2/eng.tuz_st.20260621.122138:user/release-keys") to "sber-salute-tv-at30a6", // #1177
+        facts("SaluteTV", "m7332_eu", "SaluteTV", 28, "MediaTek/m7332_eu/m7332_eu:9/PPR2.180905.006.A1/tuz_starosfw_jenkins06212153:user/release-keys") to null, // #1048
+        facts("SaluteTV", "m5621", "SaluteTV", 28, "MediaTek/m5621/m5621:9/PPR2.180905.006.A1/tuz_starosfw_jenkins06181401:user/release-keys") to null, // #1052
+        facts("SBDV-00006", "sberbox_y4", "SberDevices", 33, "SberDevices/sberbox_y4/sberbox_y4:13/TQ3A.230901.001.C3/x", manufacturer = "HiMedia") to null, // #213
+    )
 }

@@ -123,6 +123,7 @@ object SureSetGenerator {
         "oneplus-tv-dosa",
         "philips-google-tv-ta1",
         "philips-google-tv-ta7",
+        "sber-salute-tv-at30a6",
         "sony-bravia-vu1",
         "tcl-50dp660",
         "tcl-g08-eu-android12",

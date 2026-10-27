@@ -1963,6 +1963,41 @@
         "com.realtek.leanbacklauncher.partnercustomizer": { "category": "brand", "ask": true }
       }
     },
+    "sber-salute-tv-at30a6": {
+      "match": { "models": [], "devices": ["at30a6"], "brand": "SaluteTV", "sdkMin": 33, "sdkMax": 33, "fingerprintPrefix": "SaluteTV/SaluteTV/at30a6:13/" },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": [],
+      "liveTv": null,
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["ru.sberdevices.starlauncher", "ru.sberdevices.services", "ru.sberdevices.services.core", "ru.sberdevices.assistant", "ru.sberdevices.updater", "ru.sberdevices.tvinputs", "ru.sberdevices.app.starkeyboard", "ru.sberdevices.webview", "ru.sberdevices.systemui", "ru.sberdevices.SberDevicesServiceSystem", "ru.sberdevices.location.provider", "ru.sberdevices.app.setup", "ru.sberdevices.settings", "com.sberbank.settings"],
+      "suggestedDock": [],
+      "tested": { "by": "tryconn (PR #1197)", "firmware": "TP1A.220905.004.A2 (StarOS 1.101.84-B28350)", "daysLivedWith": 2, "rebootTested": true },
+      "groups": {
+        "Sber content apps and preloads": { "category": "preloads", "ask": true },
+        "Sber screensaver: point screensaver_components at another dream first (README), or it comes back enabled": { "category": "screensaver", "ask": true },
+        "Sber background services": { "category": "tracking", "ask": false },
+        "Screen sharing receivers (Chromecast is not part of this firmware)": { "category": "casting", "ask": true },
+        "Stock launcher, replaced by launcher/ (disable.sh skips it while it still owns Home)": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "ru.sberdevices.music": { "category": "streaming", "ask": true },
+        "ru.sberdevices.starlivetv": { "category": "streaming", "ask": true },
+        "ru.sberdevices.startube": { "category": "streaming", "ask": true },
+        "ru.sberdevices.videos": { "category": "streaming", "ask": true },
+        "ru.sberdevices.sberplay": { "category": "preloads", "ask": false },
+        "ru.sberdevices.subscriptions": { "category": "brand", "ask": true },
+        "ru.sberdevices.parentcontrol": { "category": "other", "ask": true },
+        "ru.sberdevices.starprofile": { "category": "brand", "ask": true },
+        "ru.sberdevices.smarthome.promo": { "category": "ads", "ask": false },
+        "com.salute.star": { "category": "brand", "ask": true },
+        "ru.sberdevices.starmarket": { "category": "brand", "ask": true },
+        "ru.sberdevices.tv": { "category": "other", "ask": true },
+        "ru.sberdevices.openbeta": { "category": "brand", "ask": false },
+        "ru.sberdevices.starcleaner": { "category": "preloads", "ask": false },
+        "ru.sberdevices.gamepad.service": { "category": "other", "ask": true }
+      }
+    },
     "sharp-aquos-tve21f": {
       "match": { "models": ["AQUOS-TVE21F"], "devices": ["banqiao"], "brand": "SHARP", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
       "platform": "ANDROID_TV",

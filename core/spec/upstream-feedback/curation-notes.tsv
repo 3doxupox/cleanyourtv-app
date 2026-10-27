@@ -309,6 +309,12 @@ prismplus-q65-ultra-r10g	com.apps.wifihotspot	a Wi-Fi hotspot service; network s
 prismplus-q65-ultra-r10g	com.mk.tv.meeting.service	purpose not documented; ask row
 prismplus-q65-ultra-r10g	com.realtek.dtmb	the unused broadcast tuners are TV input drivers, so with com.realtek.tv.isdb and com.realtek.tv.atsc they are in the curated never-disable list (they stay ask rows in the file; RF-LAUNCHER-250 F1)
 sanyo-atv-r2	com.realtek.leanbacklauncher.partnercustomizer	ask row: compac-atv-r2 (the same SCBC build, v2.5.0) found it supplies the Inputs button on the stock home
+sber-salute-tv-at30a6	(header)	the Keep names, the platform service, its core, the assistant and the commented updater lines are never-disable; the com.droidlogic and com.cvte stacks are protected by name or never listed
+sber-salute-tv-at30a6	(launcher)	the clean-up only: the home is Sber's ru.sberdevices.starlauncher, not a launcher this app knows
+sber-salute-tv-at30a6	(match)	device at30a6 with the brand SaluteTV the set reports (issue #1177; the header says Sber); no model key, since the Android 9 StarOS sets (m7332_eu, m5621) report the same model SaluteTV
+sber-salute-tv-at30a6	ru.sberdevices.parentcontrol	a parental control; ask row, as Amazon Kids on amazon-fire-tv-afttiff43
+sber-salute-tv-at30a6	ru.sberdevices.starlivetv	Sber's online channels; ask row, with ru.sberdevices.tv (the channel guide's provider setup)
+sber-salute-tv-at30a6	ru.sberdevices.starmarket	the only app store on this firmware; the owner rule never puts a store default-off
 sharp-aquos-tve21f	(header)	the Kept on purpose list (TV inputs, Live TV, channel scan, USB media, Freeview Play, remote hot keys, picture and brightness services, the disclaimer, TTS) is in the curated never-disable list, since the keep-list reader only reacts to keep wording
 sharp-aquos-tve21f	(launcher)	the stock tvlauncher was already disabled when the list was applied
 sharp-aquos-tve21f	(match)	model AQUOS-TVE21F and device banqiao from the header (a CVTE build)

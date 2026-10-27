@@ -99,4 +99,12 @@ class Promotions045SafetyTest {
         keeps("oneplus-tv-cebu", "com.oneplus.tv.launcher", "com.heytap.tv.remotediagnosing", "com.mediatek.android.leanbacklauncher.partnercustomizer", "com.oneplus.tv.remote",
             "com.mstar.netflixobserver", "com.heytap.tv.livetv")
     }
+
+    @Test fun sberSaluteTvAt30a6() {
+        val pr = defaultsPass("sber-salute-tv-at30a6")
+        // Its home is Sber's own launcher, not one this app knows: the clean-up only.
+        assertEquals(emptyList(), pr.stockLaunchers)
+        keeps("sber-salute-tv-at30a6", "ru.sberdevices.starlauncher", "ru.sberdevices.services", "ru.sberdevices.tvinputs", "ru.sberdevices.app.starkeyboard", "ru.sberdevices.updater")
+        for (s in listOf("ru.sberdevices.starmarket", "ru.sberdevices.parentcontrol", "ru.sberdevices.rcfupdater", "ru.sberdevices.starlivetv")) assertTrue(p(s) !in defaultOff("sber-salute-tv-at30a6"), s)
+    }
 }
