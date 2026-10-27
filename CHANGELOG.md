@@ -95,6 +95,15 @@ your TV, Manage now says so under "Better back on" and offers to switch it back 
   asks you to press only Home and not open anything else (#629).
 - When reading the TV fails, the log line now says what the app found, for example "getprop has
   no ro.product.model", instead of only the step that failed (#788, #1112).
+- When the home screen check timed out and the TV put its old home screen back, Try again now
+  reads the TV and runs the switch again, and OK keeps the old home screen. Before, the two buttons
+  were swapped, so Try again ended on "Your TV is ready" with nothing switched. The last screen now
+  says when the home screen stayed and why, and counts only what is really switched off.
+- Stop here, and a home screen check that puts the old home screen back, now remove the app's
+  full-screen page from the TV instead of leaving it running.
+- When the TV changed since the app last read it, a paused change says so ("changed since we last
+  read it", nothing was changed) and Check again reads the TV and plans from that, instead of
+  pausing again.
 
 ## 0.4.0 (2026-10-26)
 
