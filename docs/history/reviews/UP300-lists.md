@@ -76,6 +76,9 @@ com.tcl.xian.StartandroidService is a Software updates row (D22) on ffalcon-65s5
 from tcl-g03-google-tv's header at b06ab21 (TCL's updater reads the device number through it). Their lists
 did not change.
 
+com.tcl.ffeducation and com.tcl.ffkaraoke are ask rows on the same two lists, from tcl-ak30a5's header at
+b06ab21 (the TCL China stock desktop, which stays Home, hands its kids and music rows to them).
+
 ## The now-kept packages
 
 com.tcl.xian.StartandroidService, com.tcl.versionUpdateApp, com.google.android.tv.remote.service,
