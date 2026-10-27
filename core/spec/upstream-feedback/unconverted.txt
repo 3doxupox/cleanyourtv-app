@@ -29,7 +29,6 @@ coocaa-k3-pro-90p3d-max    # parked at v2.7.0: no device codename in the header 
 dcolor-gd2    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 dialog-viu-sei103dl    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 eko-4k-bangbae    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
-epson-ls800    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 ffalcon-r34a0-cn    # refused at v2.7.0: Android 5.1.1 (SDK 22); the firmware refuses pm disable for the shell and the list uses pm hide, as redmi-mitv-antl0
 formovie-laser-4k-hanlla    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 formovie-mprojm05    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
@@ -49,7 +48,6 @@ jvc-uk-4k-sadang    # parked at b06ab21 (after v3.0.0): not curated yet; a profi
 kogan-g7    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 ktc-4k-smart-tv-hongkong    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 liberton-ltv-24h01at    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
-lumio-vision-7    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 magcubic-hy300-pro    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 master-g-mga3200    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 motorola-mt4310    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
@@ -57,9 +55,6 @@ next-start-pro-4k    # parked at b06ab21 (after v3.0.0): not curated yet; a prof
 noblex-shinjuku    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 nokia-streaming-box-8000    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 nokia-streaming-box-8010    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
-nvidia-shield-tv-2017    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
-oneplus-tv-cebu    # parked at v2.7.0: switches off the stock home com.oneplus.tv.launcher and com.heytap.tv.remotediagnosing by default, which this app keeps on; it is the Android 10 build, the reported Cebu sets run SDK 30
-oneplus-tv-dosa    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 panasonic-kowloon    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 panavox-google-tv    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 peaq-ptv43aqu-5023c    # parked at v2.7.0: the Changhong device dundas reports the model AI PONT, which would catch every AI PONT set; match on the device alone once curated
@@ -70,8 +65,6 @@ philips-65oled706    # parked at b06ab21 (after v3.0.0): not curated yet; a prof
 philips-65oled907    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 philips-65pml9506    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 philips-65pus9435    # parked at v2.7.0: same device PH9M_EA_5599 as philips-75pus8505, the reason philips-tpm191e was refused; needs a fingerprint key
-philips-google-tv-ta1    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
-philips-google-tv-ta7    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 philips-tpm191e    # refused: same board, firmware and fingerprint as philips-75pus8505 (Philips/PH9M_EA_5599/PH9M_EA_5599:12/STT2.230526.001/4215, model TPM191E), so the app could only ever pick one of the two; 75pus8505 is kept because every entry was checked on the TV with dumpsys and its header adds the SOURCES key (org.droidtv.fastip) and USB media keep list; the extra apps this list switches off (Prime Video, Google TV, Play Music, Play Games, TalkBack, DLNA) are owner choices, and DLNA is kept on 75pus8505 because the USB media app binds it (contributed by amadr-95, PR #334)
 portronics-beem-470    # refused: the firmware reports the generic Allwinner ADT-3 identity and the header says to match on a build string; the app matches on brand, model, device, SDK and fingerprint, so a profile would either never match or catch every device with that identity; v2.5.0 adds a vendor accessibility helper to the list (upstream #372), which does not change this
 rca-2k-android-tv-lasalle    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
@@ -82,7 +75,6 @@ rocktek-gb1    # parked at v2.7.0: no device codename in the header or README, s
 rocktek-gx1    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 sankey-smart-tv-hi3751v350    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 sankey-smart2ktvse    # parked at v2.7.0: no device codename in the header or README, so a profile could match on a model string only; ask the contributor for getprop (RF-PROFILES-63 P8)
-sber-salute-tv-at30a6    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 seleco-tv39020hda9smart    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 sharp-2t-c32gh3000i    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 sharp-aquos-tve23a    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
@@ -95,8 +87,6 @@ skyworth-swtv-24ae-4k-nf    # parked at v2.7.0: device eleonas is shared with ph
 skyworth-xiaopai-p3    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 sony-bravia-4k-vh21-eu    # parked at v2.7.0: ties with the shipped sony-bravia-4k-vh21 on BRAVIA_VH21; needs a fingerprint prefix on one of them
 sony-bravia-ae1    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
-sony-bravia-vu1    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
-sony-bravia-vu3    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 sony-kd-43x8000g    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 sony-kd-49x8307c    # parked: same model string (BRAVIA 4K 2015), device (SVP-DTV15) and Android 7.0 as sony-kd-55x8509c, with only the firmware different (NRD91N.S44 here, S34 there); the app resolves one profile per TV and only the build fingerprint could tell the two lists apart, which the header does not give, so this list would take the shipped one's TVs by name order; ask the contributor for ro.build.fingerprint (contributed by Nunu00, PR #325)
 sony-kd-55x7500-cn    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
@@ -123,7 +113,6 @@ tcl-43p725    # parked at b06ab21 (after v3.0.0): not curated yet; a profile nee
 tcl-43s450f-ca    # parked at v2.7.0: the Fire OS TCL edition of the AFTDEC012E (ginza), same model, device and build as amazon-fire-tv-aftdec012e; the reported ginza sets say brand Amazon, so a TCL list needs a fingerprint key first
 tcl-43s5400a    # parked at v2.7.0: device C06 at SDK 30 already resolves to tcl-40s5400a and hitachi-cdh-le32smart21 (RF-PROFILES-63 P8)
 tcl-50c725k    # parked at v2.7.0: device BeyondTV4 at SDK 30 is shared with tcl-65c725 and tcl-g03-google-tv; needs fingerprint keys
-tcl-50dp660    # parked at v2.7.0: no device codename in the header or README, so a profile could match on a model string only; ask the contributor for getprop (RF-PROFILES-63 P8)
 tcl-50j7000a    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 tcl-50p615    # parked at v2.7.0: device BeyondTV at SDK 30 carries several new lists that tie with each other; needs fingerprint keys
 tcl-50p735    # parked at v2.7.0: no device codename in the header or README, so a profile could match on a model string only; ask the contributor for getprop (RF-PROFILES-63 P8)
@@ -151,8 +140,7 @@ tcl-beyondtv4-uk    # parked at b06ab21 (after v3.0.0): not curated yet; a profi
 tcl-c635    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 tcl-c845x2-google-tv    # parked at v2.7.0: device G08 at SDK 34 carries eight new lists plus the shipped tcl-c755-google-tv and tcl-qm6k-google-tv; only fingerprint prefixes could tell them apart
 tcl-c89b-google-tv    # parked at v2.7.0: device G08 at SDK 34 carries eight new lists plus the shipped tcl-c755-google-tv and tcl-qm6k-google-tv; only fingerprint prefixes could tell them apart
-tcl-g08-au-android12    # parked at v2.7.0: ties with tcl-g08-eu-android12 on device G08 at SDK 31; needs fingerprint keys (AU and EU products)
-tcl-g08-eu-android12    # parked at v2.7.0: ties with tcl-g08-au-android12 on device G08 at SDK 31; needs fingerprint keys (AU and EU products)
+tcl-g08-au-android12    # parked: the same fingerprint as tcl-g08-eu-android12 (TCL/G08_4K_GB/G08:12/STT2.221228.001/AS34), so an AU set resolves to the EU list, whose packages the AU list also switches off (the AirPlay daemon is an ask row there); promoting this one needs a key that tells AU and EU sets apart
 tcl-g08-us-google-tv    # parked at v2.7.0: device G08 at SDK 34 carries eight new lists plus the shipped tcl-c755-google-tv and tcl-qm6k-google-tv; only fingerprint prefixes could tell them apart
 tcl-l40s66e    # parked: same device, product, software (LF1V030) and AR14 fingerprint as hitachi-cdh-le32smart21, which wins every tie by id, so this profile could never be picked; unpark if the resolver gains an explicit supersedes (RF-PROFILES-63 ruling 1) and the owner prefers this list for AR14 sets (contributed by lucasfarfa, PR #508)
 tcl-mt9655-cn-android14    # refused: network ADB opens only after adb tcpip 5555 from a computer over a USB cable and closes again at every reboot (the firmware's own switch offers TLS only, with no pairing), so the app could neither reach the TV nor undo its changes later without a computer; the firmware also refuses every APK install, so there is no new home screen either (contributed by moqilin258-commits, PR #498)

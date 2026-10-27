@@ -25,7 +25,7 @@ class ProfilesTest {
 
     @Test fun everyConvertedUpstreamExampleParsesWithCuratedMetadata() {
         assertEquals(316, upstream.size)
-        assertEquals(148, examples.size)
+        assertEquals(160, examples.size)
         for (e in examples) {
             val profile = DebloatTxtParser.parse(e.debloatTxt, e.folder)
             assertEquals(e.folder, profile.id)
@@ -65,7 +65,7 @@ class ProfilesTest {
     @Test fun theUnconvertedListIsPinnedToTheSubmodule() {
         val meta = ProfileMeta.decode(File(Fixtures.repoRoot, "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json").readText())
         assertEquals(upstream.map { it.folder }.filter { it !in meta.profiles }.toSet(), unconverted)
-        assertEquals(168, unconverted.size)
+        assertEquals(156, unconverted.size)
         val listed = unconvertedFile.readLines().filter { it.isNotBlank() && !it.startsWith("#") }
         assertEquals(listed.sorted(), listed, "one folder per line, sorted")
         assertTrue('\u2014' !in unconvertedFile.readText() && "-".repeat(2) !in unconvertedFile.readText())
@@ -230,8 +230,9 @@ class ProfilesTest {
     @Test fun theProfilesWithNoKnownStockLauncher() {
         val none = BundledProfileSource.bundled.profiles.filter { it.stockLaunchers.isEmpty() && it.platform != Platform.FIRE_OS && it.platform != Platform.TCL_CN }
         // xiaomi-mitv-mftr0 (0.3.7): China firmware whose home is com.mitv.tvhome, not a known launcher.
+        // sber-salute-tv-at30a6 (0.4.5): StarOS, whose home is Sber's ru.sberdevices.starlauncher.
         assertEquals(setOf("challenger-32t22bt", "freebox-player-pop", "google-tv-streamer-4k-kirkwood", "hisense-e5q-pro", "kalley-43g200",
-            "stellamore-t950s", "verizon-stream-tv", "vidda-mt9653", "xiaomi-mitv-ansp0", "xiaomi-mitv-astp1", "xiaomi-mitv-mffu0", "xiaomi-mitv-mftr0"), none.map { it.id }.toSet())
+            "sber-salute-tv-at30a6", "stellamore-t950s", "verizon-stream-tv", "vidda-mt9653", "xiaomi-mitv-ansp0", "xiaomi-mitv-astp1", "xiaomi-mitv-mffu0", "xiaomi-mitv-mftr0"), none.map { it.id }.toSet())
     }
 
     // RF-PROFILES-63 P8: where two profiles score the same for a TV, the longer fingerprint prefix wins
@@ -254,6 +255,8 @@ class ProfilesTest {
             facts("Smart TV Pro", "G05", "TCL", 30, "TCL/G05_4K_US/G05:11/x") to "tcl-g05-google-tv",
             facts("Smart TV Pro", "G08", "TCL", 34, "TCL/G08_4K_GB/G08:14/x") to "tcl-c755-google-tv",
             facts("Smart TV Pro", "G08", "TCL", 34, "TCL/G08_4K_US/G08:14/x") to "tcl-qm6k-google-tv",
+            // An AU G08 on Android 12 reports the EU list's fingerprint, so it gets that list (0.4.5).
+            facts("Smart TV Pro", "G08", "TCL", 31, "TCL/G08_4K_GB/G08:12/STT2.221228.001/AS34:user/release-keys") to "tcl-g08-eu-android12",
             facts("Smart TV Pro", "BeyondTV4", "TCL", 30) to "tcl-65c725",
             facts("UnionTV", "UnionTV", "TCL", 28) to "tcl-uniontv-latin-america",
             facts("UnionTV", "UnionTV", "Thomson", 28) to "thomson-32he5800",

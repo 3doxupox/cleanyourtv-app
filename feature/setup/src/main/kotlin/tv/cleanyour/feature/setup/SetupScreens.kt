@@ -275,6 +275,7 @@ fun FoundScreen(
                 HomeBlock.WIZARD_WIFI_UNKNOWN -> stringResource(R.string.found_home_wizard_wifi_unknown)
                 HomeBlock.CASTING -> stringResource(R.string.found_home_casting)
                 HomeBlock.BOOT_LOOP -> stringResource(R.string.found_home_boot_loop)
+                HomeBlock.REMOTE_BUTTONS -> stringResource(R.string.found_home_remote_buttons)
                 HomeBlock.WIZARD_STAYS_ON -> stringResource(R.string.found_home_wizard_stays_on)
                 // Issue #2: a Fire TV Edition set is named for Fire OS, not its panel's brand.
                 else -> msg(R.string.stop_tv_refuses_home_body, "brand" to (if (extras.fireTv) stringResource(R.string.fire_tv_name) else extras.tvName ?: ""))

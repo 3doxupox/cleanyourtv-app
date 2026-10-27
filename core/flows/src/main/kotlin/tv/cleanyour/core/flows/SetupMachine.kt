@@ -104,8 +104,9 @@ enum class Finishing { SWITCHING, DONE }
 // five after UNKNOWN_HOME are the switches skipped up front for safety (RF-SAFETY-250, HomeSwitchRisk).
 // HOME_CHANGED (0.3.3, issue #8): HOME answers to a home screen app the person installed and the
 // TV's own is not among the claimants, so the person's choice stays.
+// REMOTE_BUTTONS (0.4.5): the remote's app buttons need the TV's own home screen (HomeSwitchRisk).
 enum class HomeBlock { NONE, TV_REFUSES, OLD_ANDROID, UNKNOWN_HOME, WIZARD_WIFI, WIZARD_WIFI_UNKNOWN, CASTING, BOOT_LOOP,
-    WIZARD_STAYS_ON, HOME_CHANGED }
+    WIZARD_STAYS_ON, HOME_CHANGED, REMOTE_BUTTONS }
 
 // Why a run changed nothing, for Done's body (0.3.3): nothing was planned to switch off (on a TV
 // without an exact list, nothing we were sure about), every planned switch-off stayed on (the TV
@@ -808,6 +809,7 @@ class SetupMachine(
             f.sdk < DefaultPlanner.TV_MIN_SDK -> HomeBlock.OLD_ANDROID
             risk == HomeSwitchRisk.Risk.BOOT_LOOP -> HomeBlock.BOOT_LOOP
             risk == HomeSwitchRisk.Risk.CASTING -> HomeBlock.CASTING
+            risk == HomeSwitchRisk.Risk.REMOTE_BUTTONS -> HomeBlock.REMOTE_BUTTONS
             anotherKey || (stockUnknown && StockHome.changedByPerson(snap, stocks)) -> HomeBlock.HOME_CHANGED
             (p != null && p.stockLaunchers.isEmpty()) || stockUnknown -> HomeBlock.UNKNOWN_HOME
             risk == HomeSwitchRisk.Risk.WIZARD_WIFI -> HomeBlock.WIZARD_WIFI
