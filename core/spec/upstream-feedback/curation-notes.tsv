@@ -296,6 +296,16 @@ redmi-mitv-mftp0	(home)	clean-up only: the header says keep com.mitv.tvhome enab
 redmi-mitv-mftp0	(match)	the TV reports brand and maker xiaomi (issue #670), not Redmi
 redmi-mitv-mftp0	com.xiaomi.gamecenter.sdk.service.mibox	Xiaomi store games may need it for sign-in; ask row as on xiaomi-mitv-astp1
 sanyo-atv-r2	com.realtek.leanbacklauncher.partnercustomizer	ask row: compac-atv-r2 (the same SCBC build, v2.5.0) found it supplies the Inputs button on the stock home
+sharp-2t-c32gh3000i	(match)	shares device beomil with motorola-swtv-24ae-fhd; the brand key (SHARP) keeps them apart
+sharp-2t-c32gh3000i	com.amazon.amazonvideo.livingroom	off by the owner's choice; streaming ask row
+sharp-2t-c32gh3000i	com.apple.atve.androidtv.appletv	off by the owner's choice; streaming ask row
+sharp-2t-c32gh3000i	com.google.android.apps.mediashell	Chromecast, off by the owner's choice; casting ask row
+sharp-2t-c32gh3000i	com.google.android.apps.tv.dreamx	the screensaver; ask row
+sharp-2t-c32gh3000i	com.google.android.play.games	off by the owner's choice; ask row
+sharp-2t-c32gh3000i	com.google.android.youtube.tvmusic	off by the owner's choice; streaming ask row
+sharp-2t-c32gh3000i	com.smartdevice.dtv.icast	AirPlay and DLNA mirroring, off by the owner's choice; casting ask row
+sharp-2t-c32gh3000i	com.smartdevice.leanbacklauncher.customizer	ask row, as on motorola-swtv-24ae-fhd (same platform)
+sharp-2t-c32gh3000i	com.tencent.qqlivei18n	off by the owner's choice; streaming ask row
 sharp-aquos-tve21f	(header)	the Kept on purpose list (TV inputs, Live TV, channel scan, USB media, Freeview Play, remote hot keys, picture and brightness services, the disclaimer, TTS) is in the curated never-disable list, since the keep-list reader only reacts to keep wording
 sharp-aquos-tve21f	(launcher)	the stock tvlauncher was already disabled when the list was applied
 sharp-aquos-tve21f	(match)	model AQUOS-TVE21F and device banqiao from the header (a CVTE build)

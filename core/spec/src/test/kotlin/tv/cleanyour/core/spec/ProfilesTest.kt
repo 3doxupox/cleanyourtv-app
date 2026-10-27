@@ -25,7 +25,7 @@ class ProfilesTest {
 
     @Test fun everyConvertedUpstreamExampleParsesWithCuratedMetadata() {
         assertEquals(316, upstream.size)
-        assertEquals(157, examples.size)
+        assertEquals(158, examples.size)
         for (e in examples) {
             val profile = DebloatTxtParser.parse(e.debloatTxt, e.folder)
             assertEquals(e.folder, profile.id)
@@ -62,7 +62,7 @@ class ProfilesTest {
     @Test fun theUnconvertedListIsPinnedToTheSubmodule() {
         val meta = ProfileMeta.decode(File(Fixtures.repoRoot, "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json").readText())
         assertEquals(upstream.map { it.folder }.filter { it !in meta.profiles }.toSet(), unconverted)
-        assertEquals(159, unconverted.size)
+        assertEquals(158, unconverted.size)
         val listed = unconvertedFile.readLines().filter { it.isNotBlank() && !it.startsWith("#") }
         assertEquals(listed.sorted(), listed, "one folder per line, sorted")
         assertTrue('\u2014' !in unconvertedFile.readText() && "-".repeat(2) !in unconvertedFile.readText())
@@ -330,6 +330,8 @@ class ProfilesTest {
             f("Haier", "Haier", "Haier MatrixTV EE", "omonia", 34, "Haier/HR9676EU/omonia:14/UKN5.251016.114/14643368:user/release-keys") to "aqua-matrixtv-ee-50",   // #822
             f("Haier", "Haier", "Haier MatrixTV DE", "omonia", 34, "Haier/HR9676EUF/omonia:14/UKN2.241219.053/13043114:user/release-keys") to "aqua-matrixtv-ee-50",   // #926
             f("JVC", "MTC", "SA 4K Android TV", "seocho", 30, "JVC/MTCMSD6886SA/seocho:11/RTO8.250904.001/14050644:user/release-keys") to "jvc-lt55mb508",   // #127
+            f("Sharp", "skyworth", "SHARP 2K Smart TV-A", "beomil", 34, "Sharp/SW11_SHARP_APEU/beomil:14/UKN6.260116.061/15165694:user/release-keys") to "sharp-2t-c32gh3000i",   // #793
+            f("skyworth", "skyworth", "SWTV-24AE-FHD", "beomil", 34, "skyworth/SW11_TG/beomil:14/UKN7.260716.011/15978261:user/release-keys") to null,   // #108, neither SHARP nor Motorola
         )
         for ((facts, id) in reports) assertEquals(id, (source.resolveNow(facts) as? ProfileResolution.Exact)?.profile?.id, "${facts.model} ${facts.fingerprint}")
         for (id in cleanUpOnlyPart2) {

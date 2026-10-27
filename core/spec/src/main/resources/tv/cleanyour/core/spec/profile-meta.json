@@ -1875,6 +1875,40 @@
         "com.realtek.leanbacklauncher.partnercustomizer": { "category": "brand", "ask": true }
       }
     },
+    "sharp-2t-c32gh3000i": {
+      "match": { "models": ["SHARP 2K Smart TV-A"], "devices": ["beomil"], "brand": "SHARP", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
+      "platform": "GOOGLE_TV",
+      "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
+      "liveTv": "com.cltv.hybrid",
+      "setupWraith": "com.google.android.tungsten.setupwraith",
+      "quirks": ["HOME_TAKEOVER_SETUPWRAITH", "WIRELESS_DEBUG_PAIRING_REQUIRED"],
+      "neverDisable": ["com.cltv.hybrid", "com.mediatek.tvinput", "com.smartdevice.global.service", "com.smartdevice.dailyshortcut", "com.tianci.localmedia", "com.google.android.tv.googletvremotepairer", "com.smartdevice.factory", "com.google.android.tv.remote.service"],
+      "suggestedDock": [],
+      "tested": { "by": "ariwisnu (PR #1160)", "firmware": "UKN6.260116.061", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Skyworth telemetry and activation": { "category": "tracking", "ask": false },
+        "Android ad and personalisation services": { "category": "tracking", "ask": false },
+        "Skyworth content and recommendations": { "category": "ads", "ask": false },
+        "Bloatware / cleaners / manuals / unused": { "category": "preloads", "ask": false },
+        "Stock Google TV home and setup wizard": { "category": "home", "ask": false },
+        "Memory pass: the set has ~1 GB RAM and was swapping": { "category": "other", "ask": false }
+      },
+      "packages": {
+        "com.android.adservices.api": { "category": "ads", "ask": false },
+        "com.smartdevice.leanbacklauncher.customizer": { "category": "ads", "ask": true },
+        "com.smartdevice.dailymanage": { "category": "brand", "ask": false },
+        "com.smartdevice.myapp": { "category": "brand", "ask": false },
+        "com.google.android.play.games": { "category": "preloads", "ask": true },
+        "com.amazon.amazonvideo.livingroom": { "category": "streaming", "ask": true },
+        "com.google.android.apps.mediashell": { "category": "casting", "ask": true },
+        "com.smartdevice.dtv.icast": { "category": "casting", "ask": true },
+        "com.google.android.apps.tv.dreamx": { "category": "screensaver", "ask": true },
+        "com.google.android.partnersetup": { "category": "tracking", "ask": false },
+        "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": true },
+        "com.tencent.qqlivei18n": { "category": "streaming", "ask": true },
+        "com.apple.atve.androidtv.appletv": { "category": "streaming", "ask": true }
+      }
+    },
     "sharp-aquos-tve21f": {
       "match": { "models": ["AQUOS-TVE21F"], "devices": ["banqiao"], "brand": "SHARP", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
       "platform": "ANDROID_TV",

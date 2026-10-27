@@ -81,7 +81,6 @@ sankey-smart-tv-hi3751v350    # parked at b06ab21 (after v3.0.0): not curated ye
 sankey-smart2ktvse    # parked at v2.7.0: no device codename in the header or README, so a profile could match on a model string only; ask the contributor for getprop (RF-PROFILES-63 P8)
 sber-salute-tv-at30a6    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 seleco-tv39020hda9smart    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
-sharp-2t-c32gh3000i    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 sharp-aquos-tve23a    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 siragon-4k-smart-tv-elliniko    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 skyworth-65a3f    # parked at v2.7.0: no device codename in the header or README, so a profile could match on a model string only; ask the contributor for getprop (RF-PROFILES-63 P8)
