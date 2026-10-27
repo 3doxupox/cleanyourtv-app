@@ -218,6 +218,7 @@ nvidia-shield-tv-2019	com.android.hotspot2.osulogin	Passpoint hotspot sign-in is
 nvidia-shield-tv-2019	com.google.android.tv	Live Channels hosts network tuner inputs; ask row
 nvidia-shield-tv-2019	com.nvidia.KeyComboOta	the owner's choice; updaters stay Software updates (the Pro list keeps it on)
 nvidia-shield-tv-2019	com.nvidia.tegraprofiler.security	purpose not documented beyond profiler permissions; ask row
+ok-ai-pont-ikebukuro	(groups)	b06ab21, batch 5: switched off on the second unit (Nikkei DVB91NK, same device and firmware) and reboot-checked; partner setup (telemetry) and the print spooler (one of the six reviewed packages) are default-off rows, the other Android extras and the USB file and photo players stay ask rows (2.7 bump rule)
 oneplus-tv-y1	(header)	the Kept on purpose names (Assistant, Chromecast) and the Live TV app are in the curated never-disable list
 oneplus-tv-y1	(match)	the same Skyworth device shibuya as panasonic-th-40hs550k; the brand OnePlus from the header's vendor fingerprint keeps them apart; confirm the brand string with getprop (a wrong one fails closed)
 oneplus-tv-y1	com.android.providers.calendar	calendar storage for apps is an ask row, as on hisense-u75-hengshan and panasonic-4ktv-jup
@@ -525,5 +526,7 @@ xiaomi-mitv-mffu0	(match)	model MiTV-MFFU0 and device finch from the header; Hyp
 xiaomi-mitv-mffu0	com.mitv.alarmcenter	reminders and alarms set with XiaoAI voice; ask row
 xiaomi-mitv-mffu0	com.xiaomi.gamecenter.sdk.service.mibox	Xiaomi store games may need it for sign-in, so it is an ask row as on xiaomi-mitv-astp1
 xiaomi-mitv-mosr4	fusion.android.tv.demo	ask row: on MediaTek MTC builds this retail display app also handles the Input key and remote pairing (hitachi-65qledsm20), and this header did not check either with it off (RF-PROFILES-63 P6)
+xiaomi-mitv-mssp1	(groups)	b06ab21, the verified extras: switched off on the same MSSP1 unit and reboot-checked with an empty crash log, so the two telemetry uploaders and the partner auto-installer are default-off rows; the screensavers, TV Manager, the Google apps and the media and accessibility rows stay ask rows (2.7 bump rule)
+xiaomi-mitv-mssp1	com.google.android.marvin.talkback	b06ab21 lists TalkBack with the media leftovers; an accessibility ask row, and the denylist never switches it off
 xiaomi-mitv-mssp3-android9	(header)	v2.5.0 notes for the older PI.4663 firmware (upstream #494, alessandrodauria): no package change; there the old leanback home is installed next to tvlauncher, and the home screen switch turns off only the one that holds Home
 xiaomi-mitv-mssp3-android9	com.google.android.katniss	the header says the firmware turns it back on at every boot (REENABLED_AT_BOOT)

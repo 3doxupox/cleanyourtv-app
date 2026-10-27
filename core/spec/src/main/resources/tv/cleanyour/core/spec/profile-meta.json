@@ -1278,7 +1278,9 @@
         "com.google.android.videos": { "category": "streaming", "ask": true },
         "com.google.android.youtube.tvmusic": { "category": "streaming", "ask": true },
         "com.google.android.katniss": { "category": "voice", "ask": true },
-        "com.google.android.backdrop": { "category": "screensaver", "ask": true }
+        "com.google.android.backdrop": { "category": "screensaver", "ask": true },
+        "com.google.android.partnersetup": { "category": "tracking", "ask": false },
+        "com.android.printspooler": { "category": "preloads", "ask": false }
       }
     },
     "oneplus-tv-dubai": {
@@ -4061,15 +4063,16 @@
         "Xiaomi telemetry": { "category": "tracking", "ask": false },
         "PatchWall and Xiaomi content add-ons": { "category": "ads", "ask": false },
         "Stock-home recommendation feeds": { "category": "ads", "ask": false },
-        "Error-report and feedback uploaders (pure telemetry, nothing user-facing)": { "category": "tracking", "ask": true },
-        "Partner auto-installer: pushes sponsored apps through Play on fresh accounts": { "category": "ads", "ask": true },
+        "Error-report and feedback uploaders (pure telemetry, nothing user-facing)": { "category": "tracking", "ask": false },
+        "Partner auto-installer: pushes sponsored apps through Play on fresh accounts": { "category": "ads", "ask": false },
         "Heavy screensavers. REASSIGN THE SCREENSAVER FIRST (e.g. the launcher's ClockDream via": { "category": "screensaver", "ask": true },
         "Xiaomi \"TV Manager\" rocket-cleaner app": { "category": "brand", "ask": true },
         "Preinstalled Google apps that reinstall freely from Play whenever wanted": { "category": "preloads", "ask": true },
         "Xiaomi media leftovers and accessibility suite. The gallery doubles as the photo screensaver,": { "category": "preloads", "ask": true }
       },
       "packages": {
-        "com.xiaomi.floatingframe": { "category": "brand", "ask": false }
+        "com.xiaomi.floatingframe": { "category": "brand", "ask": false },
+        "com.google.android.marvin.talkback": { "category": "accessibility", "ask": true }
       }
     },
     "xiaomi-mitv-mssp3": {
