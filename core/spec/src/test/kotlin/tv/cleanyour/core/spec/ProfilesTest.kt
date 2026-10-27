@@ -304,6 +304,30 @@ class ProfilesTest {
         assertEquals("note more note", bom.groups.single().packages.first().note)
     }
 
+    // C2 (0.4.5): a commented-out package line is a package the owner keeps on. Inside a run it
+    // neither ends the run nor titles a group, and the comments indented under it are its own note.
+    @Test fun keptPackageLinesNeitherEndARunNorTitleAGroup() {
+        val mid = DebloatTxt.scan("# ==== 1. Telemetry ====\ncom.a.b   # one\n# com.k.kept   # stays on\ncom.c.d   # two\n", "x")
+        assertEquals(listOf("1. Telemetry"), mid.groups.map { it.title })
+        assertEquals(listOf("com.a.b", "com.c.d"), mid.groups.single().entries.map { it.pkg.value })
+        assertEquals(mapOf(p("com.k.kept") to "stays on"), mid.kept)
+        // The indented continuation of a kept line is the kept line's note, not the previous entry's.
+        val cont = DebloatTxt.scan("# Group\ncom.a.b   # note\n# com.k.kept   # first part\n    # second part\n#        # third part\ncom.c.d\n", "x")
+        assertEquals("note", cont.groups.single().entries.first().note)
+        assertEquals(null, cont.groups.single().entries.last().note)
+        assertEquals("first part second part third part", cont.kept[p("com.k.kept")])
+        // A kept line right under the title: the title stays, the run starts after it.
+        val first = DebloatTxt.scan("# Header\n\n# Preloads\n# com.k.kept\n    # why\ncom.a.b\n", "x")
+        assertEquals(listOf("Preloads"), first.groups.map { it.title })
+        assertEquals(mapOf(p("com.k.kept") to "why"), first.kept)
+        // Any other comment inside a run still ends it; a package also listed as active is not kept,
+        // and header lines are never kept.
+        val two = DebloatTxt.scan("#   com.h.header\n\n# One\ncom.a.b\n# Two\n# com.a.b\ncom.c.d\n", "x")
+        assertEquals(listOf("One", "Two"), two.groups.map { it.title })
+        assertEquals(emptyMap(), two.kept)
+        assertTrue(p("com.h.header") in DebloatTxt.keepListIn(listOf("# Keep:") + two.header))
+    }
+
     @Test fun bundledProfilesEqualAFreshParse() {
         // Test build: the candidate lists (CandidatesTest) come after the upstream profiles.
         val bundle = BundledProfileSource.bundled.let { b -> b.copy(profiles = b.profiles.filter { !it.isCandidate }) }
