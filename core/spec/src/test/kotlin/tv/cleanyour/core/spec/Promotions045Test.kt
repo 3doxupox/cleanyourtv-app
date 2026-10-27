@@ -104,4 +104,8 @@ class Promotions045Test {
         facts("LUMIO VISION", "khardi", "LUMIO", 34, "LUMIO/KTC_LUMIO_4K_EU_23GV1/khardi:14/UKRA.251202.026/14713808:user/release-keys", manufacturer = "KTC") to "lumio-vision-7", // #958
         facts("LUMIO VISION", "templeton", "LUMIO", 34, "LUMIO/KTC_LUMIO_4K_EU_25GV2/templeton:14/UKN6.260116.151/15819936:user/release-keys", manufacturer = "KTC") to null, // #1107
     )
+
+    @Test fun epsonLs800() = check(
+        facts("HA90", "sti6202d101", "Epson", 34, "Epson/sti6202d101/sti6202d101:14/UKG3.250826.001/20260615:user/release-keys", manufacturer = "Askey") to "epson-ls800", // #836
+    )
 }

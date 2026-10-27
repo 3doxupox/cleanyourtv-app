@@ -114,4 +114,12 @@ class Promotions045SafetyTest {
         keeps("lumio-vision-7", "com.realtek.tv", "com.realtek.tv.passthrough", "com.google.android.apps.mediashell")
         for (s in listOf("com.google.android.katniss", "com.hk.gingaplayer.huangs")) assertTrue(p(s) !in defaultOff("lumio-vision-7"), s)
     }
+
+    @Test fun epsonLs800() {
+        val pr = defaultsPass("epson-ls800")
+        // setupwraith owns the saved Wi-Fi here and is not a Home claimant: the profile never names it.
+        assertEquals(null, pr.setupWraith)
+        keeps("epson-ls800", "com.epson", "com.epson.logcollection", "com.droidlogic.tv.extras", "com.droidlogic.tvinput", "com.google.android.youtube.tvmusic",
+            "com.google.android.tungsten.setupwraith")
+    }
 }

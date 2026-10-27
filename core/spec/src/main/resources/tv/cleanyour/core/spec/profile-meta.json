@@ -472,6 +472,27 @@
         "com.google.android.katniss": { "category": "voice", "ask": true }
       }
     },
+    "epson-ls800": {
+      "match": { "models": ["HA90"], "devices": ["sti6202d101"], "brand": "Epson", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": null,
+      "setupWraith": null,
+      "quirks": ["WIRELESS_DEBUG_PAIRING_REQUIRED"],
+      "neverDisable": ["com.epson", "com.epson.droidsettings", "com.epson.flexiblepicture", "com.epson.installation", "com.epson.visualization", "com.epson.warningui", "com.epson.bizmodeui", "com.epson.logcollection", "com.droidlogic.tv.extras", "com.droidlogic.tvinput", "com.droidlogic.android.tv", "com.droidlogic.tv.settings", "com.epson.fwupdate", "com.droidlogic.updater", "com.askey.autousbota", "com.google.android.youtube.tvmusic", "com.google.android.tungsten.setupwraith"],
+      "suggestedDock": [],
+      "tested": { "by": "Adam Hansen (PR #784)", "firmware": "UKG3.250826.001", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Batch 1: telemetry": { "category": "tracking", "ask": false },
+        "Batch 2: ads and content plumbing": { "category": "ads", "ask": false },
+        "Batch 3: preloaded / unused apps (owner's choice)": { "category": "preloads", "ask": true }
+      },
+      "packages": {
+        "com.android.printspooler": { "category": "preloads", "ask": false },
+        "com.google.android.play.games": { "category": "preloads", "ask": false },
+        "tv.pluto.android": { "category": "streaming", "ask": true }
+      }
+    },
     "ffalcon-65s585c-pro": {
       "match": { "models": [], "devices": ["tcl_mt5879_cn"], "brand": "FFalcon", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
       "platform": "TCL_CN",

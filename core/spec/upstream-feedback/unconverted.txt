@@ -29,7 +29,6 @@ coocaa-k3-pro-90p3d-max    # parked at v2.7.0: no device codename in the header 
 dcolor-gd2    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 dialog-viu-sei103dl    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 eko-4k-bangbae    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
-epson-ls800    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 ffalcon-r34a0-cn    # refused at v2.7.0: Android 5.1.1 (SDK 22); the firmware refuses pm disable for the shell and the list uses pm hide, as redmi-mitv-antl0
 formovie-laser-4k-hanlla    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 formovie-mprojm05    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review

@@ -118,6 +118,7 @@ object SureSetGenerator {
     // The upstream b06ab21 lists promoted in 0.4.5 (first part), held back from the brand sets the same
     // way: with them NVIDIA and OnePlus would get full sets and the Sony, Philips and TCL sets would move.
     val PROMOTED_045: Set<String> = setOf(
+        "epson-ls800",
         "lumio-vision-7",
         "nvidia-shield-tv-2017",
         "oneplus-tv-cebu",

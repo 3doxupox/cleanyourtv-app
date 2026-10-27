@@ -4,6 +4,7 @@ air.com.vudu.air.DownloaderTablet	Vudu (Fandango at Home)	Movie rental and purch
 android.autoinstalls.config.JVC	JVC partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.OnePlus	OnePlus partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.SW	Skyworth partner installs	Installs partner apps without asking	ads
+android.autoinstalls.config.askey.tvbox	Askey partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.google.gtvpai	Google TV partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.haier.hanyang	Haier partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.hisense	Hisense partner installs	Installs partner apps without asking	ads
@@ -302,6 +303,7 @@ com.duokan.factorytest	Xiaomi factory test	Factory test app that also claims Hom
 com.duokan.videodaily	Video Daily	Daily promoted video picks	ads
 com.ecloud.emedia	eMedia (DLNA)	DLNA receiver for media from phones	casting
 com.emotn.browser	Emotn browser	Preloaded web browser	preloads
+com.epson.onlinemeetings	Epson Online Meetings	Video conferencing app	preloads
 com.eros.mitv	Eros Now	Streaming app	streaming
 com.espn.gtv	ESPN	Sports streaming app	streaming
 com.espn.score_center	ESPN	Sports streaming app	streaming
@@ -454,6 +456,7 @@ com.hungama.movies	Hungama	Streaming app	streaming
 com.iflytek.xiri.translate	iFlytek translate	Voice translation helper	voice
 com.imdb.livingroom.firetv	IMDb	Film and TV database app	preloads
 com.imdbtv.livingroom	Freevee	Amazon's free streaming app (IMDb TV)	streaming
+com.instagram.airwave	Instagram	Instagram for TV	preloads
 com.internet.tvbrowser	TV browser	Preloaded web browser	preloads
 com.iplayer.android.webview	Extra WebView	A second web view the TV does not use	other
 com.iqiyi.i18n.tv	iQIYI	Asian drama and film streaming app	streaming

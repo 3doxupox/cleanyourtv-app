@@ -103,6 +103,10 @@ eko-2k-google-tv-tennoji	(match)	the brand EKO and device tennoji come from the 
 eko-2k-google-tv-tennoji	com.google.android.tungsten.setupwraith	the header says it owned the Wi-Fi saved at setup (forget and re-join first); the takeover's Wi-Fi guard skips it while it owns the network
 eko-2k-google-tv-tennoji	com.google.android.videos	the Google TV app holds purchased films; ask row (streaming)
 eko-2k-google-tv-tennoji	com.mstar.android.tv.disclaimercustomization	the hisense-hg9 list keeps it (first-boot legal text); ask row
+epson-ls800	(launcher)	after the home screen switch the remote's Apps button does nothing (the firmware sends it only to a system launcher); every other button works
+epson-ls800	(match)	model HA90 and board sti6202d101 with the brand Epson; Askey, the module maker, is the manufacturer (issue #836)
+epson-ls800	com.google.android.tungsten.setupwraith	owns the saved Wi-Fi here but claims no Home, so the profile never names it and it stays on; never-disable
+epson-ls800	com.google.android.youtube.tvmusic	never-disable: the firmware hard-codes the remote's YouTube button to it
 ffalcon-65s585c-pro	(header)	the header says to wait at least 10 seconds after the clean-up before a reboot, or the states revert (SETTLE_BEFORE_REBOOT)
 ffalcon-65s585c-pro	(launcher)	TCL China firmware: the home screen is TCL's own (com.tcl.cyberui) and the firmware refuses other home screens and sideloading; the clean-up only
 ffalcon-65s585c-pro	(match)	device tcl_mt5879_cn, the same device and build as tcl-q10g-pro, told apart by the brand: a set that reports TCL gets tcl-q10g-pro, one that reports FFalcon (as brand or maker) gets this list; the tie is pinned in ProfilesTest
