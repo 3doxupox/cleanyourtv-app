@@ -3,6 +3,7 @@ package tv.cleanyour.core.spec
 import android.content.MemoryPreferences
 import com.gathin.tvhome.pinned.PinnedConfigBridge
 import com.gathin.tvhome.v27.V27ConfigBridge
+import com.gathin.tvhome.v30.V30ConfigBridge
 import com.gathin.tvhome.previous.PreviousConfigBridge
 import tv.cleanyour.core.spec.upstream.UpstreamConfig
 import tv.cleanyour.testing.fixtures.Fixtures
@@ -14,28 +15,34 @@ import kotlin.test.assertTrue
 import kotlin.test.fail
 
 // Runs the real upstream Config.java against a folder that plays the launcher's external files
-// dir, with resource values read from the matching config.xml. Three launchers:
-// - 2.7 (v2.7.0, 3e34f40, versionCode 8), the one the app bundles and the pinned reader:
-//   Config.java and the classes it calls vendored in com.gathin.tvhome.v27, frozen by digest in
+// dir, with resource values read from the matching config.xml. Four launchers:
+// - 3.0 (the submodule at b06ab21, upstream main after v3.0.0, versionCode 9), the one the app
+//   bundles and the reader the codec and the looks are checked against (RFC-UP300-1): Config.java
+//   and the classes it calls vendored in com.gathin.tvhome.v30, checked against the submodule by
 //   LookDifferentialTest;
+// - 2.7 (v2.7.0, 3e34f40, versionCode 8, com.gathin.tvhome.v27), frozen by digest in
+//   LookDifferentialTest: a TV updated to 2.7 and not since;
 // - 2.5 (v2.5.0, 9071ec8, com.gathin.tvhome.pinned, RFC-UP037-1), kept for the keys it reads: a TV
 //   updated once and not since;
 // - 2.0 (main 1bbf0c9, com.gathin.tvhome.previous), the model of a TV that has not been updated yet.
-// 2.5 and 2.7 read the same config.xml here (the submodule's); 2.5's R has only the ids it reads.
+// 2.5, 2.7 and 3.0 read the same config.xml here (the submodule's, 3.0's, whose values for the
+// older keys are 2.7's); each R has only the ids its launcher reads.
 class UpstreamLauncher(val version: Version, private val dir: File) {
-    enum class Version(val label: String) { V20("2.0"), V25("2.5"), V27("2.7") }
+    enum class Version(val label: String) { V20("2.0"), V25("2.5"), V27("2.7"), V30("3.0") }
 
     // The launcher reads the keys v2.4.0 and v2.5.0 added (UpstreamConfig.v24 and v25).
     val pinned: Boolean get() = version != Version.V20
     // The launcher reads the carried 2.7 look keys (UpstreamConfig.v27).
-    val reads27: Boolean get() = version == Version.V27
+    val reads27: Boolean get() = version == Version.V27 || version == Version.V30
+    // The launcher reads the 25 keys 3.0 added (UpstreamConfig.v30).
+    val reads30: Boolean get() = version == Version.V30
 
     val values: Map<String, Any> = parseConfigXml(
         if (pinned) File(Fixtures.upstreamDir, "launcher/app/src/main/res/values/config.xml")
         else File(javaClass.getResource("/upstream/config-1bbf0c9.xml")!!.toURI()),
     )
 
-    // Launcher 2.7's private files dir, where it keeps a copy of the last config.json it read.
+    // Launcher 2.7's and 3.0's private files dir, where it keeps a copy of the last config.json it read.
     private val privateDir: File by lazy { File(dir.parentFile, dir.name + ".private").also { it.mkdirs() } }
 
     // The launcher's private launcher_settings (v2.4.0 and later): the choices made on the TV. It lives as
@@ -65,6 +72,7 @@ class UpstreamLauncher(val version: Version, private val dir: File) {
     // Starts the launcher again on the files as they are (Home restarted on the TV, no push).
     fun restart(): Outcome = try {
         Outcome.Loaded(when (version) {
+            Version.V30 -> V30ConfigBridge.load(dir, privateDir, values, choices)
             Version.V27 -> V27ConfigBridge.load(dir, privateDir, values, choices)
             Version.V25 -> PinnedConfigBridge.load(dir, values, choices)
             Version.V20 -> PreviousConfigBridge.load(dir, values)
@@ -120,7 +128,42 @@ class UpstreamLauncher(val version: Version, private val dir: File) {
         )
     }
 
+    // The 25 keys of 3.0 with no overlay, from config.xml as launcher 3.0's Config.load reads them
+    // (lunar_utc_offset is not in config.xml: -1 without a config.json).
+    fun keys30Defaults(): Keys30 {
+        check(reads30) { "launcher ${version.label} does not read the 3.0 keys" }
+        fun b(k: String) = values.getValue(k) as Boolean
+        @Suppress("UNCHECKED_CAST")
+        fun list(k: String) = (values.getValue(k) as Array<String>).toList()
+        return Keys30(
+            inputSources = list("input_sources"), lunarDate = b("lunar_date"), lunarUtcOffset = -1,
+            openOnStartChoice = b("open_on_start_choice"), showLibraryPill = b("show_library_pill"),
+            libraryOkOpens = b("library_ok_opens"), uniformTiles = b("uniform_tiles"), consumeVolumeKeys = b("consume_volume_keys"),
+            powerOnHome = b("power_on_home"), homeLongPressHome = b("home_long_press_home"), powerOnHomeAlways = b("power_on_home_always"),
+            dockBand = b("dock_band"), wifiStatusWarnings = b("wifi_status_warnings"), dateBelowClock = b("date_below_clock"),
+            vpnPill = b("vpn_pill"), locale = (values.getValue("locale") as String).javaTrim(), topBarApps = list("top_bar_apps"),
+            showGreeting = b("show_greeting"), headerWhite = b("header_white"), clockWallpaper = b("clock_wallpaper"),
+            clockWallpaperDim = values.getValue("clock_wallpaper_dim") as Int, clockGlow = b("clock_glow"),
+            singleRow = b("single_row"), dockBandAll = b("dock_band_all"),
+            glassStyle = LauncherKeys.glassStyle(values.getValue("glass_style") as String),
+        )
+    }
+
     companion object {
+        // The real 3.0 Config's new fields as a Keys30, for the field by field comparison. Config
+        // keeps single_row and-ed with dock_row; Agreement and-s ours the same way.
+        fun keys30(v: UpstreamConfig.V30): Keys30 = Keys30(
+            inputSources = v.inputSources, lunarDate = v.lunarDate, lunarUtcOffset = v.lunarUtcOffset,
+            openOnStartChoice = v.openOnStartChoice, showLibraryPill = v.showLibraryPill, libraryOkOpens = v.libraryOkOpens,
+            uniformTiles = v.uniformTiles, consumeVolumeKeys = v.consumeVolumeKeys, powerOnHome = v.powerOnHome,
+            homeLongPressHome = v.homeLongPressHome, powerOnHomeAlways = v.powerOnHomeAlways, dockBand = v.dockBand,
+            wifiStatusWarnings = v.wifiStatusWarnings, dateBelowClock = v.dateBelowClock, vpnPill = v.vpnPill,
+            locale = v.locale, topBarApps = v.topBarApps, showGreeting = v.showGreeting, headerWhite = v.headerWhite,
+            clockWallpaper = v.clockWallpaper, clockWallpaperDim = v.clockWallpaperDim, clockGlow = v.clockGlow,
+            singleRow = v.singleRow, dockBandAll = v.dockBandAll,
+            glassStyle = when (v.glassStyle) { "glass" -> GlassStyle.GLASS; "rim" -> GlassStyle.RIM; "halo" -> GlassStyle.HALO; else -> error("glass_style ${v.glassStyle}") },
+        )
+
         // The real 2.7 Config's look fields as a LookConfig, for the field by field comparison.
         fun look(v: UpstreamConfig.V27): LookConfig = LookConfig(
             ambientGlow = v.ambientGlow,
@@ -156,13 +199,14 @@ class UpstreamLauncher(val version: Version, private val dir: File) {
 }
 
 // One file through the codec and a real launcher, field by field: every modelled field of
-// LauncherConfigCodec.effective against the launcher's Config (the keys that launcher reads), and on
-// 2.7 every LookConfig field of LauncherKeys.look against the real Config field. Used by
+// LauncherConfigCodec.effective against the launcher's Config (the keys that launcher reads), on 2.7
+// and 3.0 every LookConfig field of LauncherKeys.look against the real Config field, and on 3.0
+// every Keys30 field of LauncherKeys.keys30. Used by
 // ConfigDifferentialTest and LookDifferentialTest.
 object Agreement {
     class Tally {
         var applied = 0; var ignored = 0; var crashed = 0; var withWarnings = 0; var warnings = 0
-        // Files an older launcher reads that 2.7 crashes on (not compared).
+        // Files an older launcher reads that 2.7 and 3.0 crash on (not compared).
         var crashOn27Only = 0
         // Files where every compared field agreed (all of them, or the test failed).
         var agreed = 0
@@ -216,8 +260,12 @@ object Agreement {
                     }
                 }
                 val e = LauncherConfigCodec.effective(doc, up.defaults())
+                val keys30 = LauncherKeys.keys30(doc)
+                // Launcher 3.0 moves the top-bar apps out of the grid: Config adds them to the hidden list.
+                val hidden = if (!up.reads30) e.hiddenApps
+                    else e.hiddenApps + keys30.topBarApps.filter(::validPkg).distinct().filter { it !in e.hiddenApps }
                 val mine = listOf(
-                    e.dockApps, e.hiddenApps, e.liveTvPackage, e.liveTvAction, e.sourcePanelService, e.sourcePanelAction,
+                    e.dockApps, hidden, e.liveTvPackage, e.liveTvAction, e.sourcePanelService, e.sourcePanelAction,
                     e.columns, e.rowsBelowDock, e.shamsiDate, e.vpnApp, e.showHomeSettingsShortcut, e.backgroundColorArgb,
                     e.wallpaper && wallpaper, e.inputAction, e.moduleCards,
                 ) + if (up.pinned) listOf(
@@ -245,6 +293,11 @@ object Agreement {
                     val look = LauncherKeys.look(doc)
                     val real = UpstreamLauncher.look(u.v27)
                     if (look != real) fail("2.7 look keys differ for ${ctx()}\n ours:     $look\n upstream: $real")
+                }
+                if (up.reads30) {
+                    val ours30 = keys30.copy(singleRow = keys30.singleRow && e.dockRow)
+                    val real = UpstreamLauncher.keys30(u.v30)
+                    if (ours30 != real) fail("3.0 keys differ for ${ctx()}\n ours:     $ours30\n upstream: $real")
                 }
                 t.agreed++
                 return doc

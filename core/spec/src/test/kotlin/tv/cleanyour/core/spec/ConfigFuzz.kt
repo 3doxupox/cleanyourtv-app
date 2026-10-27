@@ -9,7 +9,8 @@ import kotlin.random.Random
 class ConfigFuzz(seed: Long) {
     private val r = Random(seed)
 
-    private val listKeys = listOf("dock_apps", "hidden_apps")
+    // top_bar_apps (launcher 3.0) is a package list too, carried in `unknown`.
+    private val listKeys = listOf("dock_apps", "hidden_apps", "top_bar_apps")
     private val stringKeys = listOf("live_tv_package", "live_tv_action", "source_panel_service", "source_panel_action", "vpn_app", "input_action", "greeting_name")
     private val intKeys = listOf("columns", "rows_below_dock")
     private val boolKeys = listOf(
@@ -26,12 +27,20 @@ class ConfigFuzz(seed: Long) {
         "icon_only_inputs", "top_menu", "wifi_status_color", "focus_overshoot", "cinematic_white_focus", "cinematic_dots",
     )
     private val carriedIntKeys = listOf("dock_opacity", "cinematic_scrim", "cinematic_art")
+    // launcher 3.0, carried in `unknown` (ConfigCodecImpl.CARRIED_30): read by LauncherKeys.keys30.
+    private val carried30BoolKeys = listOf(
+        "lunar_date", "open_on_start_choice", "show_library_pill", "library_ok_opens", "uniform_tiles",
+        "consume_volume_keys", "power_on_home", "home_long_press_home", "power_on_home_always", "dock_band",
+        "wifi_status_warnings", "date_below_clock", "vpn_pill", "show_greeting", "header_white", "clock_wallpaper",
+        "clock_glow", "single_row", "dock_band_all",
+    )
+    private val carried30OtherKeys = listOf("input_sources", "lunar_utc_offset", "locale", "top_bar_apps", "clock_wallpaper_dim", "glass_style")
     private val textListKeys = listOf("launch_actions", "app_labels", "app_banners", "app_keys")
     private val festivalKeys = listOf("festival", "festival_until", "greeting", "accent_color")
     private val knownKeys = listKeys + stringKeys + intKeys + boolKeys + festivalKeys +
         listOf("background_color", "sky_intensity", "settings_key_keycodes") + textListKeys +
         listOf("input_key_keycodes", "wallpaper_rotation_minutes", "wallpaper_dim", "race_calendar") +
-        carriedBoolKeys + carriedIntKeys + "glow_style"
+        carriedBoolKeys + carriedIntKeys + "glow_style" + carried30BoolKeys + (carried30OtherKeys - "top_bar_apps")
     private val packages = listOf(
         "com.netflix.ninja", "com.google.android.youtube.tv", "com.amazon.amazonvideo.livingroom", "in.startv.hotstar",
         "com.mediatek.wwtv.tvcenter", "com.android.tv", "a.b", "com.x_y.z9", "android",
@@ -206,7 +215,24 @@ class ConfigFuzz(seed: Long) {
             "wallpaper_rotation_minutes" -> pick("0", "1", "30", "1440", "1441", "-1", "30.9", "\"30\"", "4294967326", "true")
             "wallpaper_dim" -> pick("0", "40", "90", "91", "-1", "89.9", "\"40\"", "null")
             "race_calendar" -> raceCalendar()
-            in carriedBoolKeys -> pick("true", "false", "TRUE", "\"true\"", "1", "null", "\"false\"")
+            in carriedBoolKeys, in carried30BoolKeys -> pick("true", "false", "TRUE", "\"true\"", "1", "null", "\"false\"")
+            "lunar_utc_offset" -> pick("-2", "-1", "0", "7", "8", "14", "15", "7.9", "-1.5", "\"7\"", "4294967303", "1e1", "null", "true")
+            "clock_wallpaper_dim" -> pick("0", "40", "50", "90", "91", "-1", "89.9", "90.9", "\"50\"", "4294967346", "1e2", "null")
+            "locale" -> lenientStr(pick("vi", "pt-BR", " zh-CN ", "", "   ", "en_US", "\u0001x", "x".repeat(40), "de\u0000"), lenient)
+                .let { if (r.nextInt(6) == 0) pick("5", "true", "null", "[\"vi\"]") else it }
+            "glass_style" -> lenientStr(pick("glass", "rim", "halo", "RIM", " Halo ", "neon", "", " ", "rim\u0000", "rim halo"), lenient)
+                .let { if (r.nextInt(6) == 0) pick("5", "true", "null", "[\"rim\"]") else it }
+            "input_sources" -> {
+                val items = (0 until r.nextInt(0, 5)).map {
+                    when (r.nextInt(8)) {
+                        in 0..4 -> str(pick("HW5=23", "HW6=24", "HW8=-", " HW2=2 ", "HW3=", "=5", "x", "", "   "))
+                        5 -> pick("1", "null", "true", "{}", "[\"HW5=23\"]")
+                        6 -> if (lenient) "" else str("HW7=25")
+                        else -> lenientStr("HW4", lenient)
+                    }
+                }
+                "[" + items.joinToString(if (lenient && r.nextBoolean()) ";" else ", ") + "]"
+            }
             "dock_opacity" -> pick("29", "30", "50", "70", "100", "101", "45.7", "29.9", "100.9", "-1", "4294967346", "1e2", "\"50\"", "true", "null")
             "cinematic_scrim", "cinematic_art" -> pick("0", "20", "45", "50", "100", "101", "-1", "99.9", "-0.5", "\"45\"", "4294967341", "1e400")
             "glow_style" -> lenientStr(pick("radial", "horizon", "HORIZON", " Horizon ", "top", "", " ", "horizon\u0000", "radial horizon"), lenient)
