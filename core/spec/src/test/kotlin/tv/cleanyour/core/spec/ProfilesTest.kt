@@ -346,6 +346,43 @@ class ProfilesTest {
         assertTrue(p("com.h.header") in DebloatTxt.keepListIn(listOf("# Keep:") + two.header))
     }
 
+    // Packages under a block of kept lines only join the group before them, which the converter
+    // reports; a "## heading" under a kept line is a heading, not the kept line's note.
+    @Test fun keptOnlyBlocksAreReportedAndHeadingsStayHeadings() {
+        val joined = DebloatTxt.scan("# One\ncom.a.b\n\n# com.k.kept   # stays on\n    # why\ncom.c.d\n", "x")
+        assertEquals(listOf("One"), joined.groups.map { it.title })
+        assertEquals(listOf("com.a.b", "com.c.d"), joined.groups.single().entries.map { it.pkg.value })
+        assertEquals(listOf(6), joined.keptOnlyTitles)
+        assertEquals(mapOf(p("com.k.kept") to "stays on why"), joined.kept)
+        assertEquals(emptyList(), DebloatTxt.scan("# com.k.kept\ncom.a.b\n", "x").keptOnlyTitles, "no group before: an untitled group, as before")
+        val above = DebloatTxt.scan("# One\ncom.a.b\n\n# com.k.kept   # stays on\n## Two\ncom.c.d\n", "x")
+        assertEquals(listOf("One", "# Two"), above.groups.map { it.title })
+        assertEquals(mapOf(p("com.k.kept") to "stays on"), above.kept)
+        assertEquals(emptyList(), above.keptOnlyTitles)
+        val inRun = DebloatTxt.scan("# One\ncom.a.b\n# com.k.kept   # stays on\n## Two\ncom.c.d\n", "x")
+        assertEquals(listOf("One", "# Two"), inRun.groups.map { it.title })
+        assertEquals(mapOf(p("com.k.kept") to "stays on"), inRun.kept)
+        assertEquals(ProfileConverter.keptOnly("x", 6), "x/debloat.txt:6: the comment block above holds only commented-out packages, so these packages join the group before it")
+    }
+
+    // A header with no blank line before the first group ends at the last empty "#" line above it,
+    // when a title line follows; otherwise the block stays one title block, as before.
+    @Test fun aGluedHeaderEndsAtItsLastEmptyCommentLine() {
+        val cut = DebloatTxt.scan("# Model line\n# Keep: com.x.y\n#\n# Telemetry\ncom.a.b\n", "x")
+        assertEquals(listOf("Telemetry"), cut.groups.map { it.title })
+        assertEquals(listOf("# Model line", "# Keep: com.x.y", "#"), cut.header)
+        assertEquals(setOf(p("com.x.y")), DebloatTxt.keepListIn(cut.header))
+        val nothingAfter = DebloatTxt.scan("# Model line\n#\n# com.k.kept\ncom.a.b\n", "x")
+        assertEquals(listOf("Model line"), nothingAfter.groups.map { it.title })
+        assertEquals(emptyList(), nothingAfter.header)
+        assertEquals(mapOf(p("com.k.kept") to null), nothingAfter.kept)
+        val blank = DebloatTxt.scan("# Model line\n\n# Title\n#\n# More about it\ncom.a.b\n", "x")
+        assertEquals(listOf("Title"), blank.groups.map { it.title })
+        assertEquals(listOf("# Model line"), blank.header)
+        val noEmpty = DebloatTxt.scan("# Model line\n# Telemetry\ncom.a.b\n", "x")
+        assertEquals(listOf("Model line"), noEmpty.groups.map { it.title })
+    }
+
     // The real lists that split a group at a kept line before the fix, and every upstream folder:
     // no group title is a package line. tcl-g09-google-tv opens two groups with a prose note that
     // starts with a package name; both are curated ask groups and stay as they are.
