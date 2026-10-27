@@ -1,6 +1,8 @@
 package tv.cleanyour.buildlogic.apifixture
 
 import java.io.InputStream
+import java.io.OutputStream
+import java.io.PrintStream
 import java.math.BigInteger
 
 // Compiled classes the AndroidApiCheckTest feeds to the checker. Each uses one platform member.
@@ -36,4 +38,14 @@ object UsesLambdaAndConcat {
         val f = { x: Int -> "n=$x" }
         return f(n) + " done $n"
     }
+}
+
+// javax.xml.stream (StAX) is in the JDK but not in Android.
+object UsesStax {
+    fun factory(): Any = javax.xml.stream.XMLInputFactory.newInstance()
+}
+
+// A PrintStream member Android lacks, reached through our own subclass.
+class OwnPrintStream(out: OutputStream) : PrintStream(out) {
+    fun raw(b: ByteArray) = writeBytes(b)
 }

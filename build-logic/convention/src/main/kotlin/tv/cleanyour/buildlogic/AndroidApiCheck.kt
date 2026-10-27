@@ -193,7 +193,7 @@ class AndroidApiChecker(
                     found.member.removed != null ->
                         out += "$who uses $what, which Android removed in API ${found.member.removed}"
                 }
-                Missing -> if (isPlatform(ref.owner)) out += "$who uses $what, which Android does not have"
+                Missing -> out += "$who uses $what, which Android does not have"
                 Ours -> Unit
             }
         }
@@ -220,16 +220,26 @@ class AndroidApiChecker(
         if (isPlatform(owner)) return Missing
         val ours = lookup(owner) ?: return Ours
         if (key in (if (ref.isField) ours.fields else ours.methods)) return Ours
+        var reachedPlatform = false
         for (s in listOfNotNull(ours.superName) + ours.interfaces) {
             val r = resolve(s, ref, seen)
             if (r !is Missing) return r
+            reachedPlatform = true
         }
-        // Declared nowhere we can see (a synthetic or a dependency we cannot read): not ours to judge.
-        return Ours
+        // The chain ended at the platform without the member: Android does not have it (our own
+        // PrintStream subclass calling a JDK-only PrintStream method). Declared nowhere we can see
+        // otherwise (a synthetic or a dependency we cannot read): not ours to judge.
+        return if (reachedPlatform) Missing else Ours
     }
 
-    private fun isPlatform(c: String): Boolean =
-        c.startsWith("java/") || c.substringBeforeLast('/', "") in db.packages
+    // A platform class: one the database lists, or one in a JDK or Android package (java, javax,
+    // jdk, sun, com.sun, org.ietf, org.omg, org.w3c, org.xml, or any package the database has) that no
+    // dependency on the classpath provides (javax.inject from a library is not the platform).
+    private fun isPlatform(c: String): Boolean {
+        if (c in db.classes) return true
+        val named = PLATFORM_PREFIXES.any { c.startsWith(it) } || c.substringBeforeLast('/', "") in db.packages
+        return named && lookup(c) == null
+    }
 
     private fun elementClass(raw: String): String? {
         if (!raw.startsWith("[")) return raw
@@ -241,6 +251,7 @@ class AndroidApiChecker(
 
     companion object {
         private const val OBJECT = "java/lang/Object"
+        private val PLATFORM_PREFIXES = listOf("java/", "javax/", "jdk/", "sun/", "com/sun/", "org/ietf/", "org/omg/", "org/w3c/", "org/xml/")
 
         // invokedynamic bootstraps the dexer (D8) rewrites at build time: lambdas, string
         // concatenation, record and switch helpers. They never run on the phone.

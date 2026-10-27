@@ -29,6 +29,19 @@ class AndroidApiCheckTest {
                 <extends name="java/lang/Object"/>
                 <method name="of(Ljava/lang/Object;Ljava/lang/Object;)Ljava/util/List;" since="30"/>
             </class>
+            <class name="java/io/OutputStream" since="1">
+                <extends name="java/lang/Object"/>
+                <method name="&lt;init>()V"/>
+            </class>
+            <class name="java/io/FilterOutputStream" since="1">
+                <extends name="java/io/OutputStream"/>
+                <method name="&lt;init>(Ljava/io/OutputStream;)V"/>
+            </class>
+            <class name="java/io/PrintStream" since="1">
+                <extends name="java/io/FilterOutputStream"/>
+                <method name="&lt;init>(Ljava/io/OutputStream;)V"/>
+                <method name="write([BII)V"/>
+            </class>
             <class name="java/io/InputStream" since="1">
                 <extends name="java/lang/Object"/>
                 <method name="&lt;init>()V"/>
@@ -82,6 +95,32 @@ class AndroidApiCheckTest {
         assertTrue(p.toString(), p.any { "readAllBytes()[B, which Android has only from API 33" in it })
         // The caller names our class, whose own method is fine.
         assertEquals(emptyList<String>(), problems("UsesOwnStream"))
+    }
+
+    @Test
+    fun `a javax class Android does not have is reported`() {
+        val p = problems("UsesStax")
+        assertTrue(p.toString(), p.any { "javax.xml.stream.XMLInputFactory, which Android does not have" in it })
+        assertTrue(p.toString(), p.any { "javax.xml.stream.XMLInputFactory.newInstance()Ljavax/xml/stream/XMLInputFactory;, which Android does not have" in it })
+    }
+
+    @Test
+    fun `a member the platform chain lacks, reached through our own subclass, is reported`() {
+        val p = problems("OwnPrintStream")
+        assertTrue(p.toString(), p.any { "OwnPrintStream.writeBytes([B)V, which Android does not have" in it })
+        // The constructor the platform has passes.
+        assertTrue(p.toString(), p.none { "<init>" in it })
+    }
+
+    @Test
+    fun `a platform-named class a dependency provides is not the platform`() {
+        val dep = ClassInfo("javax/inject/Provider", "java/lang/Object", emptyList(), emptySet(), setOf("get()Ljava/lang/Object;"), emptySet(), emptyList())
+        val user = ClassInfo("tv/cleanyour/x/User", "java/lang/Object", emptyList(), emptySet(), emptySet(),
+            setOf("javax/inject/Provider"), listOf(MemberRef("javax/inject/Provider", "get", "()Ljava/lang/Object;", false)))
+        val withDep = AndroidApiChecker(db, 28) { n -> if (n == dep.name) dep else null }
+        assertEquals(emptyList<String>(), withDep.check(user))
+        val without = AndroidApiChecker(db, 28) { null }
+        assertTrue(without.check(user).any { "javax.inject.Provider, which Android does not have" in it })
     }
 
     @Test
