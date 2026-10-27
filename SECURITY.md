@@ -42,6 +42,32 @@ updating in place is always safe; the release certificate SHA-256 is in
 The app installs one launcher build, pinned by its SHA-256 (core/trust `PinnedLauncher`). Each
 upstream bump is reviewed against the previous pin; the changes in the manifest are listed here.
 
+Launcher 3.0 (upstream main after v3.0.0, commit b06ab21, versionCode 9; was 2.7, v2.7.0,
+versionCode 8). The manifest at this commit is the same as at the v3.0.0 tag:
+
+- New exported activity `AppLaunchActivity` for `VIEW` with `BROWSABLE` on `market://launch?id=<package>`,
+  with `Theme.NoDisplay`. It opens an installed app by its package name (its TV launch entry, else
+  its phone one) and closes; it takes no other data. It serves the "open app" request of the
+  Android TV Remote service, which the stock launcher normally answers. This app never sends it.
+- New notification listener `GuardRevival` (behind `BIND_NOTIFICATION_LISTENER_SERVICE`). It reads
+  no notification; the system only binds it after `cmd notification allow_listener
+  com.gathin.tvhome/.GuardRevival`, and then rebinds it after a force stop, which brings Home back
+  on firmware that kills it. **This app never sends that command**, so on a TV set up with this
+  app the listener stays unbound.
+- New receiver `GuardConfig` for `com.gathin.tvhome.GUARD`, protected by `WRITE_SECURE_SETTINGS`:
+  only a sender holding that permission (the ADB shell) can reach it. It switches the opt-in "leave
+  the home helper off in standby", and acting on it needs the launcher itself to hold
+  `WRITE_SECURE_SETTINGS`. **This app never grants that** (`pm grant`) and never sends the broadcast.
+- New package visibility query for `android.settings.APPLICATION_DETAILS_SETTINGS` (scheme
+  `package`): the tile menu and the app library offer App info only where it resolves. It grants
+  nothing.
+- No new `uses-permission`. Everything else is as in 2.7.
+
+The core/ops `RendererPropertyTest.noOpApprovesGrantsOrSwitchesOnTheLaunchersHelpers` pins these
+statements: no op renders `cmd notification`, `pm grant`, `WRITE_SECURE_SETTINGS` or a broadcast to
+the launcher, and the only accessibility writes are the two accessibility settings with the op's
+own value, which the planner uses only to put back the list the TV had.
+
 Launcher 2.7 (upstream v2.7.0, commit 3e34f40, versionCode 8; was 2.5, v2.5.0, versionCode 6):
 
 - New permission `android.permission.WRITE_SECURE_SETTINGS`. It is a protected permission that
