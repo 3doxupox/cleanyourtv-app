@@ -74,8 +74,9 @@ data class PictureKeys(
 // The look2 key writer: spec 7.1 end to end, from a resolved LookSpec and PictureKeys to the
 // whole doc a push sends. Every key is written outright (a style's value, the launcher default
 // included), so nothing of the last look stays behind on the TV. The 2.7 keys LauncherConfigDoc
-// has no field for go in `unknown` (ConfigCodecImpl.CARRIED_27); LookDifferentialTest holds the
-// result to launcher 2.7's own Config.java.
+// has no field for go in `unknown` (ConfigCodecImpl.CARRIED_27), and so do the 3.0 extras
+// (CARRIED_30). LookDifferentialTest holds the result to the bundled launcher's own Config.java
+// (3.0, b06ab21) and to 2.7's, for TVs not updated; LookExtrasDifferentialTest holds the extras to 3.0's.
 object LookKeys {
     // Spec 7.2 rows, in table order; every style writes each of them (or removes it when the
     // table says "not written").
@@ -158,7 +159,16 @@ object LookKeys {
     //
     // Values out of the launcher's range are brought into it rather than refused: See-through 30
     // to 100 (dock_opacity), dim 0 to 90, sky 0 to 100, columns 1 to 8.
-    fun build(spec: LookSpec, picture: PictureKeys, columns: Int, dock: List<PackageName>, cards: Boolean): LauncherConfigDoc {
+    //
+    // 0.4.5 (plan WP5 step 4): after steps 8 and 9, the 3.0 extras go in doc.unknown (CARRIED_30),
+    // each only when it differs from the launcher's default and only where it takes effect
+    // (LookExtrasKeys.applying: one row and no band need the dock row, the band behind every app
+    // needs one row and a band, the internet warnings need Green Wi-Fi and the pill on screen). DEFAULT adds
+    // nothing, so every look keeps its 0.4.0 bytes (Look2BytesTest). The rules give DEFAULT to a TV
+    // below 3.0, so a 2.7 TV never gets a 3.0 key. One row also writes rows_below_dock 0 (see below);
+    // without it the rows are the dock's again, as DockLayers cuts them.
+    fun build(spec: LookSpec, picture: PictureKeys, columns: Int, dock: List<PackageName>, cards: Boolean,
+        extras: LookExtras = LookExtras.DEFAULT): LauncherConfigDoc {
         val style = spec.style
         val spot = style == StyleId.SPOTLIGHT
         val k = LinkedHashMap(styleKeys(style, picture.wallpaper))   // step 2
@@ -242,6 +252,16 @@ object LookKeys {
             unknown = unknown,
         )
         // Steps 8 and 9.
-        return DockLayers.applyTo(doc, dock).copy(moduleCards = cards)
+        val built = DockLayers.applyTo(doc, dock).copy(moduleCards = cards)
+        if (extras == LookExtras.DEFAULT) return built
+        val applied = LookExtrasKeys.applying(extras, dockRow = built.dockRow == true,
+            wifiStatusColor = k["wifi_status_color"] == true, topMenu = k["top_menu"] == true)
+        val withKeys = built.copy(unknown = LinkedHashMap(built.unknown).apply { putAll(LookExtrasKeys.keys(applied)) })
+        // One row: every app is in the dock's row and nothing is under it, but the launcher still
+        // sizes the tiles and lifts the row by rows_below_dock (MainActivity.java:608-628 and
+        // AppAdapter.tileWidthPx at b06ab21), so it goes to 0, and the big name the three-row rule
+        // took away (DockLayers) comes back: the row has the room, and its title names the app.
+        if (!applied.oneRow) return withKeys
+        return withKeys.copy(rowsBelowDock = withKeys.rowsBelowDock?.let { 0 }, dockTitle = k["dock_title"] as Boolean)
     }
 }

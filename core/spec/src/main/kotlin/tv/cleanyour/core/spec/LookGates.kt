@@ -3,10 +3,11 @@ package tv.cleanyour.core.spec
 import kotlin.math.roundToInt
 
 // What the Look editor offers on a given TV: by the home screen's version (launcher 2.7 is
-// versionCode 8, the first to read the look2 keys; the bundled launcher is 3.0, versionCode 9) and
-// by its memory (spec 6.5, 8.1).
+// versionCode 8, the first to read the look2 keys; launcher 3.0 is versionCode 9, the first to read
+// the LookExtras keys, and the bundled one) and by its memory (spec 6.5, 8.1).
 object LookGates {
     const val FIRST_27_VERSION_CODE = 8L
+    const val FIRST_30_VERSION_CODE = 9L
     const val LOW_RAM_MB = 1536
     const val LIFT_MIN_RAM_MB = 2048
 
@@ -15,6 +16,10 @@ object LookGates {
 
     // The TV's home screen reads the 2.7 keys (names and the 2.7 rows of More options).
     fun reads27(versionCode: Long?): Boolean = versionCode == null || versionCode >= FIRST_27_VERSION_CODE
+
+    // The TV's home screen reads the 3.0 keys (LookExtras), with the same "unknown means bundled"
+    // rule: a versionCode not known is the launcher this app bundles, 3.0 from 0.4.5 on.
+    fun reads30(versionCode: Long?): Boolean = versionCode == null || versionCode >= FIRST_30_VERSION_CODE
 
     // Spec 8.1: QUICK at 1536 MB or less, otherwise LIVELY (memory not known: LIVELY).
     fun defaultMovement(ramMb: Int?): Movement = if (ramMb != null && ramMb <= LOW_RAM_MB) Movement.QUICK else Movement.LIVELY

@@ -184,6 +184,67 @@ class LauncherConfigCodecTest {
         for (k in ConfigCodecImpl.CARRIED_27) assertTrue("(json, \"$k\"" in reader, "Config.load reads $k from config.json")
     }
 
+    // Drift check (0.4.5): every key a vendored launcher reader takes from config.json (launcher 2.7
+    // at 3e34f40 and 3.0 at b06ab21, the copies the vendored tests hold to the submodule) is modelled
+    // or carried, so no key the TV reads is ever called ignored, and a new upstream key fails here.
+    // Keys are found as Config.load reads them: a helper on the parsed file, bool(json, "k") and the
+    // like, or json.optJSONObject("k") and its kin. CARRIED_READ holds only keys both versions read,
+    // CARRIED_30 only keys 2.7 does not read, and every carried key is one a reader takes.
+    @Test fun everyKeyALauncherReadsIsKnown() {
+        fun keys(version: String): Set<String> {
+            val text = java.io.File(Fixtures.repoRoot, "core/spec/src/test/java/com/gathin/tvhome/$version/Config.java").readText()
+            return (Regex("\\((?:json|o), \"([a-z_0-9]+)\"").findAll(text) +
+                Regex("\\b(?:json|o)\\.(?:opt\\w*|get\\w*|has|isNull)\\(\"([a-z_0-9]+)\"").findAll(text)).map { it.groupValues[1] }.toSet()
+        }
+        val v27 = keys("v27")
+        val v30 = keys("v30")
+        assertTrue(v27.size > 70 && v30.size > 95, "the readers were found: ${v27.size} and ${v30.size} keys")
+        val known = ConfigCodecImpl.MODELLED + ConfigCodecImpl.CARRIED_27 + ConfigCodecImpl.CARRIED_30 + ConfigCodecImpl.CARRIED_READ
+        assertEquals(emptySet(), v27 - known, "keys launcher 2.7 reads that the codec would call ignored")
+        assertEquals(emptySet(), v30 - known, "keys launcher 3.0 reads that the codec would call ignored")
+        assertEquals(emptySet(), known - v27 - v30, "known keys no launcher reads")
+        assertEquals(emptySet(), ConfigCodecImpl.CARRIED_READ - (v27 intersect v30), "CARRIED_READ keys not read by both")
+        assertEquals(emptySet(), ConfigCodecImpl.CARRIED_30 intersect v27, "CARRIED_30 keys 2.7 reads too")
+        assertEquals(emptySet(), v27 - v30, "keys 2.7 reads that 3.0 dropped")
+        val sets = listOf(ConfigCodecImpl.MODELLED, ConfigCodecImpl.CARRIED_27, ConfigCodecImpl.CARRIED_30, ConfigCodecImpl.CARRIED_READ)
+        assertEquals(sets.sumOf { it.size }, known.size, "the sets do not overlap")
+        // A file with every read key, each as a boolean, never says one is ignored.
+        val all = LauncherConfigDoc(unknown = (v30 - ConfigCodecImpl.MODELLED).associateWith { JsonPrimitive(true) })
+        val decoded = ok(LauncherConfigCodec.encode(all).decodeToString())
+        assertEquals(emptyList(), decoded.warnings.filter { "ignores it" in it })
+        assertEquals(all.unknown, decoded.doc.unknown)
+    }
+
+    // The drift check above finds keys as string literals. So neither vendored reader may read the
+    // parsed config.json (`json` in Config.load, `o` in its helpers) with a key that is not one: a
+    // read through a constant or a variable would slip past it. Allowed: the six helpers' own
+    // o.opt(key), whose callers pass literals (checked here too), moods' optJSONArray(mood) on the
+    // nested wallpaper_moods object (WallpaperMood.ALL), json.toString() for the kept copy, and
+    // raceCalendar(json), which reads race_calendar by its literal.
+    @Test fun everyLauncherReadHasALiteralKey() {
+        for (version in listOf("v27", "v30")) {
+            val text = java.io.File(Fixtures.repoRoot, "core/spec/src/test/java/com/gathin/tvhome/$version/Config.java").readText()
+            val literal = Regex("^\\s*\"[a-z_0-9]+\"")
+            val methods = Regex("\\b(json|o)\\.(\\w+)\\(([^)]*)\\)").findAll(text).toList()
+            assertTrue(methods.size > 5, "$version: the reads were found")
+            for (m in methods) {
+                val (receiver, method, args) = m.destructured
+                val ok = literal.containsMatchIn(args) || (receiver == "o" && method == "opt" && args == "key") ||
+                    (receiver == "o" && method == "optJSONArray" && args == "mood") || (receiver == "json" && method == "toString" && args.isEmpty())
+                assertTrue(ok, "$version: ${m.value} reads config.json with a key that is not a literal")
+            }
+            assertEquals(6, methods.count { it.value == "o.opt(key)" }, "$version: the six helpers")
+            // Every call that hands the parsed file to a helper names the key as a literal.
+            for (m in Regex("\\(\\s*(json|o)\\s*,\\s*([^,)]+)").findAll(text)) {
+                assertTrue(literal.containsMatchIn(m.groupValues[2]), "$version: ${m.value} passes a key that is not a literal")
+            }
+            // And the whole file goes nowhere else but raceCalendar.
+            for (m in Regex("\\b(\\w+)\\(\\s*json\\s*\\)").findAll(text)) {
+                assertEquals("raceCalendar", m.groupValues[1], "$version: ${m.value} reads config.json by itself")
+            }
+        }
+    }
+
     // Every carried key round trips with no warning, in every value LookKeys writes.
     @Test fun everyCarriedKeyRoundTripsWithoutAWarning() {
         assertEquals(16, ConfigCodecImpl.CARRIED_27.size)
@@ -223,9 +284,12 @@ class LauncherConfigCodecTest {
             "locale" to JsonPrimitive("pt-BR"),
             "glass_style" to JsonPrimitive("rim"),
         )
-        val all = LauncherConfigDoc(dockRow = true, unknown = ConfigCodecImpl.CARRIED_30.associateWith { k -> values[k] ?: JsonPrimitive(true) })
+        // app_library and wifi_status_color on, as library_ok_opens and wifi_status_warnings need them
+        // (Launcher30CodecTest has the warnings without them).
+        val all = LauncherConfigDoc(dockRow = true, appLibrary = true,
+            unknown = ConfigCodecImpl.CARRIED_30.associateWith { k -> values[k] ?: JsonPrimitive(true) } + ("wifi_status_color" to JsonPrimitive(true)))
         val text = LauncherConfigCodec.encode(all).decodeToString()
-        assertEquals(listOf("dock_row") + ConfigCodecImpl.CARRIED_30.sorted(), Regex("^  \"([a-z_0-9]+)\":", RegexOption.MULTILINE).findAll(text).map { it.groupValues[1] }.toList())
+        assertEquals(listOf("dock_row", "app_library") + (ConfigCodecImpl.CARRIED_30 + "wifi_status_color").sorted(), Regex("^  \"([a-z_0-9]+)\":", RegexOption.MULTILINE).findAll(text).map { it.groupValues[1] }.toList())
         assertEquals(emptyList(), ok(text).warnings)
         assertEquals(all, ok(text).doc)
         // Next to an unknown key, only that one warns.

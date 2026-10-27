@@ -30,6 +30,15 @@ class LookGatesTest {
         assertEquals(true, LookGates.reads27(vc))
     }
 
+    // Launcher 3.0 is versionCode 9: the LookExtras keys are read from 9 on, or when the version is
+    // not known (the bundled launcher); 2.7 (8) and older never get them.
+    @Test fun reads30ByVersionCode() {
+        for ((vc, reads) in listOf(5L to false, 7L to false, 8L to false, 9L to true, 10L to true, null to true)) {
+            assertEquals(reads, LookGates.reads30(vc), "versionCode $vc")
+        }
+        assertEquals(9L, LookGates.FIRST_30_VERSION_CODE)
+    }
+
     // Movement: Quick at 1.5 GB or less, else Lively; Lift and zoom shown from 2 GB, when the
     // memory is not known, or when it is already on.
     @Test fun byMemory() {
