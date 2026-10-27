@@ -47,6 +47,7 @@ com.mipay.wallet.tv	purpose from the package name and the group title (Chinese p
 com.mitv.ABUpdateStatus	purpose from the package name; the list files it under firmware updates
 com.mitv.toolhouse	purpose from the package name
 com.mk.tv.meeting.service	purpose from the package name
+com.mstar.android.media.tests	purpose from the list's comment only ("media test cases")
 com.nvidia.developerwidget	purpose from the list's short comment only
 com.pomelogames.MarsGame	name from the package name
 com.qjy.browser	purpose from the list's comment only
@@ -78,9 +79,11 @@ com.vision.aibook	purpose from the list's comment only (AI picture book)
 com.vt.tv.interactive	purpose from the package name and its group (broadcast middleware)
 com.wrcplus.release	whether it is a rally game or the WRC+ video app
 com.xiaomi.account.auth	purpose from the package name
+com.xiaomi.android.TV.audio	purpose from the list's comment only ("audio debug tool")
 com.xiaomi.gamecenter.sdk.service.mibox	purpose from the package name; the list only says game SDK
 com.xiaomi.mi_connect_service	purpose from the package name; not described in the list
 com.xiaomi.mitv.calendar	purpose from the list's comment only
+com.xiaomi.mitv.debug	purpose from the list's comment only ("DebugService: log collection")
 com.xiaomi.mitv.health	purpose from the list's comment only
 com.xiaomi.mitv.karaoke.service	purpose from the list's comment only
 com.xiaomi.mitv.light	purpose from the list's comment only
