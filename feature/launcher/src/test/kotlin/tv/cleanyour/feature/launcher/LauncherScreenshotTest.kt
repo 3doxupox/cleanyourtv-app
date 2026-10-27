@@ -42,8 +42,11 @@ import tv.cleanyour.core.flows.LookNoteKind
 import tv.cleanyour.core.flows.WayBack
 import tv.cleanyour.core.spec.BandChoice
 import tv.cleanyour.core.spec.GlowChoice
+import tv.cleanyour.core.spec.HighlightChoice
+import tv.cleanyour.core.spec.LookExtras
 import tv.cleanyour.core.spec.Movement
 import tv.cleanyour.core.spec.StyleId
+import tv.cleanyour.core.spec.TilesChoice
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import tv.cleanyour.ui.design.component.PhotoPicker
@@ -177,6 +180,20 @@ object LauncherShots {
             LookShot(lookSheet(LookFixtures.draft(details = LookDetails(band = BandChoice.SEE_THROUGH, seeThrough = 30), keyNames = true)), LookPage.ADVANCED)
         },
         Shot("look_advanced_low_memory", 1700.dp) { LookShot(lookSheet(LookFixtures.draft(lift = true, ramMb = 1536)), LookPage.ADVANCED) },
+        // Home screen 3.0 (0.4.5): on a TV that reads 3.0, Every app in one row (on, with its note)
+        // on the Look page; More options with the band's None, the greeting and date rows, Warn
+        // when the internet is down (greyed until Green Wi-Fi) and the Tiles; Advanced's Highlight.
+        // On a TV below 3.0 with the update offered, More options ends with the footer line.
+        Shot("look_main_30", 1300.dp) { LookShot(lookSheet(LookFixtures.draft(reads30 = true, extras = LookExtras(oneRow = true)))) },
+        Shot("look_more_30", 3400.dp) {
+            LookShot(lookSheet(LookFixtures.draft(reads30 = true, extras = LookExtras(noBand = true, dateBelow = true, tiles = TilesChoice.ICONS))), LookPage.MORE)
+        },
+        Shot("look_more_30_names", 3600.dp) {
+            LookShot(lookSheet(LookFixtures.draft(reads30 = true, keyNames = true, details = LookDetails(greenWifi = true),
+                extras = LookExtras(hideGreeting = true, brightDate = true, wifiWarnings = true))), LookPage.MORE)
+        },
+        Shot("look_advanced_30", 1900.dp) { LookShot(lookSheet(LookFixtures.draft(reads30 = true, extras = LookExtras(highlight = HighlightChoice.RIM))), LookPage.ADVANCED) },
+        Shot("look_more_older_footer", 3000.dp) { LookShot(lookSheet(LookFixtures.draft()) { it.copy(updateTo = "3.0") }, LookPage.MORE) },
         // "Your photo": Cancel at the top, the style's glow over the photo, the Darken line.
         Shot("home_photo_crop", 900.dp) {
             Column(Modifier.fillMaxSize().background(CytTheme.colors.bg).padding(20.dp)) {

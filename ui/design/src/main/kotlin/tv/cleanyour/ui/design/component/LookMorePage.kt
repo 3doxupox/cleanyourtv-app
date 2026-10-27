@@ -31,8 +31,10 @@ import tv.cleanyour.core.flows.LookRow
 import tv.cleanyour.core.spec.BandChoice
 import tv.cleanyour.core.spec.ButtonsChoice
 import tv.cleanyour.core.spec.GlowChoice
+import tv.cleanyour.core.spec.HighlightChoice
 import tv.cleanyour.core.spec.LookGates
 import tv.cleanyour.core.spec.Movement
+import tv.cleanyour.core.spec.TilesChoice
 import tv.cleanyour.ui.design.R
 import tv.cleanyour.ui.design.icon.CytIcons
 import tv.cleanyour.ui.design.theme.CytTheme
@@ -41,9 +43,14 @@ import tv.cleanyour.ui.design.theme.CytTheme
 // across the top), Top of the screen, Picture, "Use {style}'s own settings" with its count, then
 // the Advanced link. Every row comes from the flows' LookRows: a disabled row shows the value the
 // TV will really use, checked, with the reason, and never a "You changed this" line (owner).
+// Home screen 3.0 (ExtraRows): None for the dock band, the greeting and
+// date rows, Warn when the internet is down under Green Wi-Fi and the Tiles section; on a TV below
+// 3.0 with the update offered, the footer line and its link instead.
 @Composable
-internal fun ColumnScope.LookMorePage(state: LookEditorState, onEdit: (LookEdit) -> Unit, onAdvanced: () -> Unit) {
+internal fun ColumnScope.LookMorePage(state: LookEditorState, onEdit: (LookEdit) -> Unit, onAdvanced: () -> Unit,
+    onUpdateHomeScreen: (() -> Unit)? = null) {
     val keys = state.keyNames
+    val x = ExtraRows(state)
     LookSection(stringResource(R.string.cyt_look_more_movement), Modifier.padding(top = 0.dp))
     val lowRam = state.ramMb?.takeIf { it <= LookGates.LOW_RAM_MB }
     val suggested = lowRam?.let { lookMsg(R.string.cyt_look_motion_suggested, "size" to memoryWords(it)) }
@@ -102,18 +109,50 @@ internal fun ColumnScope.LookMorePage(state: LookEditorState, onEdit: (LookEdit)
     }
     if (r.band.visible) {
         LookSublabel(stringResource(R.string.cyt_look_band))
+        // Home screen 3.0 adds None (dock_band false); choosing a band again turns it back on.
+        val none = RadioChoice(ExtraRows.BAND_NONE, stringResource(R.string.cyt_look_band_none), stringResource(R.string.cyt_look_band_none_desc))
+            .takeIf { x.bandOffered }
         LookRadioList(
-            listOf(
+            listOfNotNull(
                 RadioChoice(BandChoice.SOLID.id, stringResource(R.string.cyt_look_band_solid), stringResource(R.string.cyt_look_band_solid_desc)),
                 RadioChoice(BandChoice.SEE_THROUGH.id, stringResource(R.string.cyt_look_band_see), stringResource(R.string.cyt_look_band_see_desc)),
                 RadioChoice(BandChoice.GLASS.id, stringResource(R.string.cyt_look_band_glass), stringResource(R.string.cyt_look_band_glass_desc)),
+                none,
             ),
-            r.band.value?.id, { id -> BandChoice.of(id)?.let { onEdit(LookEdit.SetBand(it)) } },
-            enabled = r.band.enabled, reason = r.band.reason?.let { reasonText(it) }, keyName = KEY_NAMES["band"].takeIf { keys },
+            if (x.noBandOn) ExtraRows.BAND_NONE else r.band.value?.id,
+            { id ->
+                if (id == ExtraRows.BAND_NONE) {
+                    x.edit(onEdit) { copy(noBand = true) }
+                } else {
+                    if (x.noBandOn) x.edit(onEdit) { copy(noBand = false) }
+                    BandChoice.of(id)?.let { onEdit(LookEdit.SetBand(it)) }
+                }
+            },
+            enabled = r.band.enabled, reason = r.band.reason?.let { reasonText(it) },
+            keyName = KEY_NAMES[if (x.bandOffered) "band30" else "band"].takeIf { keys },
         )
     }
 
     LookSection(stringResource(R.string.cyt_look_more_top))
+    if (x.header) {
+        val e = x.extras
+        ListGroup(Modifier.padding(bottom = 4.dp)) {
+            LookSwitchRow(
+                stringResource(R.string.cyt_look_greeting), !e.hideGreeting, { on -> x.edit(onEdit) { copy(hideGreeting = !on) } },
+                description = stringResource(R.string.cyt_look_greeting_desc), keyName = KEY_NAMES["greeting"].takeIf { keys },
+            )
+            ListDivider()
+            LookSwitchRow(
+                stringResource(R.string.cyt_look_date_below), e.dateBelow, { on -> x.edit(onEdit) { copy(dateBelow = on) } },
+                description = stringResource(R.string.cyt_look_date_below_desc), keyName = KEY_NAMES["dateBelow"].takeIf { keys },
+            )
+            ListDivider()
+            LookSwitchRow(
+                stringResource(R.string.cyt_look_bright_date), e.brightDate, { on -> x.edit(onEdit) { copy(brightDate = on) } },
+                description = stringResource(R.string.cyt_look_bright_date_desc), keyName = KEY_NAMES["brightDate"].takeIf { keys },
+            )
+        }
+    }
     if (r.buttons.visible) {
         LookSublabel(stringResource(R.string.cyt_look_buttons))
         LookRadioList(
@@ -133,7 +172,29 @@ internal fun ColumnScope.LookMorePage(state: LookEditorState, onEdit: (LookEdit)
                 description = stringResource(R.string.cyt_look_wifi_green_desc), enabled = r.greenWifi.enabled,
                 lines = reasons(r.greenWifi), keyName = KEY_NAMES["wifi"].takeIf { keys },
             )
+            if (x.wifiWarn) {
+                ListDivider()
+                val why = if (x.menu) R.string.cyt_look_wifi_green_menu else R.string.cyt_look_wifi_warn_needs
+                LookSwitchRow(
+                    stringResource(R.string.cyt_look_wifi_warn), x.wifiWarnEnabled && x.extras.wifiWarnings, { on -> x.edit(onEdit) { copy(wifiWarnings = on) } },
+                    description = stringResource(R.string.cyt_look_wifi_warn_desc), enabled = x.wifiWarnEnabled,
+                    lines = listOfNotNull(stringResource(why).takeUnless { x.wifiWarnEnabled }), keyName = KEY_NAMES["wifiWarn"].takeIf { keys },
+                )
+            }
         }
+    }
+
+    if (x.tiles) {
+        LookSection(stringResource(R.string.cyt_look_more_tiles))
+        LookSublabel(stringResource(R.string.cyt_look_tiles))
+        LookRadioList(
+            listOf(
+                RadioChoice(TilesChoice.ART.id, stringResource(R.string.cyt_look_tiles_art), stringResource(R.string.cyt_look_tiles_art_desc)),
+                RadioChoice(TilesChoice.ICONS.id, stringResource(R.string.cyt_look_tiles_icons), stringResource(R.string.cyt_look_tiles_icons_desc)),
+            ),
+            x.extras.tiles.id, { id -> TilesChoice.entries.firstOrNull { it.id == id }?.let { t -> x.edit(onEdit) { copy(tiles = t) } } },
+            keyName = KEY_NAMES["tiles"].takeIf { keys },
+        )
     }
 
     LookSection(stringResource(R.string.cyt_look_more_picture))
@@ -166,6 +227,11 @@ internal fun ColumnScope.LookMorePage(state: LookEditorState, onEdit: (LookEdit)
     }
     ListGroup(Modifier.padding(top = 14.dp)) {
         ListRow(stringResource(R.string.cyt_look_advanced), subtitle = stringResource(R.string.cyt_look_advanced_desc), onClick = onAdvanced)
+    }
+    // A TV below home screen 3.0, with the update offered: one line and the update route.
+    if (!state.reads30 && onUpdateHomeScreen != null) {
+        LookBody(stringResource(R.string.cyt_look_needs_30), Modifier.padding(top = 16.dp, start = 4.dp, end = 4.dp))
+        TertiaryButton(stringResource(R.string.cyt_look_needs_30_action), onUpdateHomeScreen, Modifier.padding(start = 4.dp))
     }
 }
 
@@ -203,6 +269,10 @@ internal val KEY_NAMES = mapOf(
     "bigName" to "dock_title", "glow" to "ambient_glow, glow_style", "ring" to "app_glow, cinematic_white_focus",
     "band" to "dock_glass, dock_opacity", "buttons" to "icon_only_buttons, icon_only_inputs, top_menu", "wifi" to "wifi_status_color",
     "dim" to "wallpaper_dim", "sky" to "sky_intensity", "lift" to "advanced_effects", "see" to "dock_opacity", "skyStr" to "sky_intensity",
+    // Home screen 3.0.
+    "oneRow" to "single_row", "band30" to "dock_glass, dock_opacity, dock_band", "greeting" to "show_greeting",
+    "dateBelow" to "date_below_clock", "brightDate" to "header_white", "wifiWarn" to "wifi_status_warnings", "tiles" to "uniform_tiles",
+    "highlight" to "glass_style",
 )
 
 // A launcher key name under a row, in mono and always left to right.

@@ -24,7 +24,10 @@ import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.spec.BandChoice
 import tv.cleanyour.core.spec.BundledThemeSource
 import tv.cleanyour.core.spec.ButtonsChoice
+import tv.cleanyour.core.flows.PreviewBand
+import tv.cleanyour.core.spec.LookExtras
 import tv.cleanyour.core.spec.LookGates
+import tv.cleanyour.core.spec.TilesChoice
 import tv.cleanyour.core.spec.LookKeys
 import tv.cleanyour.core.spec.Movement
 import tv.cleanyour.core.spec.Picture
@@ -204,12 +207,13 @@ object LookFixtures {
         movement: Movement = Movement.LIVELY, lift: Boolean = false, dock: List<AppChoice> = dock4, waiting: Int = 0,
         reads27: Boolean = true, ramMb: Int? = 2048, wayBack: WayBack = WayBack.NONE, changed: Boolean = false, newPhoto: Boolean = false,
         note: LookNote? = null, keyNames: Boolean = false, tvChanged: Boolean = false, movementPicked: Boolean = false, resettable: Int = 0,
-        previews: Boolean = true,
+        previews: Boolean = true, reads30: Boolean = false, extras: LookExtras = LookExtras.DEFAULT,
     ): LookDraft {
+        val e = if (reads30) extras else LookExtras.DEFAULT
         val ch = choice(style, picture, columns, details, names, movement, lift, dock)
         val full = LookSamples.push(LookSample("shot", ch, ch.dock), source, source).second.decodeToString()
         return LookDraft(
-            "default", picture, preview = if (previews) preview(style, picture, columns, details, names, movement, lift, dock) else null,
+            "default", picture, preview = if (previews) with30(preview(style, picture, columns, details, names, movement, lift, dock), e) else null,
             columns = columns, lookColumns = columns, style = style, names = names, movement = movement, movementPicked = movementPicked, lift = lift,
             details = details,
             styleCards = StyleId.entries.map { s ->
@@ -218,6 +222,19 @@ object LookFixtures {
             rows = rows(style, details, picture, reads27, ramMb, movement, lift, names, resettable), changed = changed, newPhoto = newPhoto,
             wayBack = wayBack, note = note, styles = if (reads27) StyleId.entries else listOf(StyleId.CLASSIC), reads27 = reads27, ramMb = ramMb,
             keyNames = keyNames, settingsFile = SETTINGS, fullFile = full, apps = dock.size + waiting, waiting = waiting, tvChanged = tvChanged,
+            reads30 = reads30, extras = e,
+        )
+    }
+
+    // Stand-in until up300-look-model writes the 3.0 keys (LookKeys.build with extras): the preview
+    // with the fields the bytes would give, by the launcher's rules (single_row only with a dock row).
+    fun with30(p: LookPreview, e: LookExtras): LookPreview {
+        if (e == LookExtras.DEFAULT) return p
+        val oneRow = e.oneRow && p.dockRow
+        return p.copy(
+            oneRow = oneRow, bandAll = oneRow && e.bandAll, rowsBelowDock = if (oneRow) 0 else p.rowsBelowDock,
+            band = if (e.noBand && p.dockRow) PreviewBand.NONE else p.band, greetingShown = !e.hideGreeting, dateBelow = e.dateBelow,
+            brightDate = e.brightDate, iconTiles = e.tiles == TilesChoice.ICONS, highlight = e.highlight,
         )
     }
 

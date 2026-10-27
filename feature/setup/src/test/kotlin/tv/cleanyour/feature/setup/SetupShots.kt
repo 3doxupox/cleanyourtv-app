@@ -259,8 +259,14 @@ private fun look2Rows(style: StyleId, picture: String): LookRows {
         resettable = 0, festiveRing = false, liftSlowRamMb = null,
     )
 }
-private fun look2Draft(style: StyleId = StyleId.CLASSIC, picture: String = "mist", columns: Int = 5, newPhoto: Boolean = false, waiting: Int = 0) = LookDraft(
-    "default", picture, preview = look2Preview(style, if (newPhoto) "mist" else picture, columns), columns = columns, lookColumns = columns, style = style,
+private fun look2Draft(style: StyleId = StyleId.CLASSIC, picture: String = "mist", columns: Int = 5, newPhoto: Boolean = false, waiting: Int = 0,
+    oneRow: Boolean? = null) = LookDraft(
+    "default", picture,
+    // oneRow: a TV that reads 3.0, with Every app in one row as given (the preview as its bytes will read
+    // once up300-look-model writes single_row: one row, no rows under it).
+    preview = look2Preview(style, if (newPhoto) "mist" else picture, columns).let { if (oneRow == true) it.copy(oneRow = true, rowsBelowDock = 0) else it },
+    columns = columns, lookColumns = columns, style = style,
+    reads30 = oneRow != null, extras = tv.cleanyour.core.spec.LookExtras(oneRow = oneRow == true),
     styleCards = StyleId.entries.map { StyleCard(it, look2Preview(it, if (newPhoto) "mist" else picture, columns), true) },
     rows = look2Rows(style, picture), newPhoto = newPhoto, settingsFile = "{\n  \"columns\": $columns\n}", apps = dockApps.size + waiting, waiting = waiting,
 )
@@ -426,6 +432,10 @@ object SetupShots {
         // next to the one kept for the TV ("Your photo").
         Shot("theme_sheet", 1100.dp) {
             LookFrame({ Setup(found()) }) { nav -> ThemeContent(look2Step(look2Draft()), NoSetupActions, PhotoPicker {}, pictureFiles, nav = nav) }
+        },
+        // Home screen 3.0 (0.4.5): the same step on a TV that reads 3.0, with Every app in one row on.
+        Shot("theme_sheet_30", 1300.dp) {
+            LookFrame({ Setup(found()) }) { nav -> ThemeContent(look2Step(look2Draft(oneRow = true)), NoSetupActions, PhotoPicker {}, pictureFiles, nav = nav) }
         },
         Shot("theme_sheet_more", 1700.dp) {
             LookFrame({ Setup(found()) }, LookPage.MORE) { nav -> ThemeContent(look2Step(look2Draft(StyleId.GLASS)), NoSetupActions, PhotoPicker {}, pictureFiles, nav = nav) }

@@ -62,6 +62,7 @@ import tv.cleanyour.core.flows.LookPreview
 import tv.cleanyour.core.flows.LookRows
 import tv.cleanyour.core.flows.StyleCard
 import tv.cleanyour.core.flows.WayBack
+import tv.cleanyour.core.spec.LookExtras
 import tv.cleanyour.core.spec.LookGates
 import tv.cleanyour.core.spec.Movement
 import tv.cleanyour.core.spec.StyleId
@@ -125,6 +126,9 @@ data class LookEditorState(
     val settingsFile: String = "",
     val fullFile: String = "",
     val tvChanged: Boolean = false,
+    // Home screen 3.0: its rows show only with `reads30`; `extras` the person's choice of them.
+    val reads30: Boolean = false,
+    val extras: LookExtras = LookExtras.DEFAULT,
 ) {
     // A photo of the person's (kept, new or the earlier look's) rather than a gallery picture.
     val photo: Boolean get() = picture == MINE || picture == NEW || picture == EARLIER
@@ -271,7 +275,7 @@ fun LookEditor(
                                 state, edit, onMore = { nav.open(LookPage.MORE) },
                                 onPick = photos?.let { p -> { p.pick { picked = it } } }, pictures = pictures, onUpdateHomeScreen = onUpdateHomeScreen,
                             )
-                            LookPage.MORE -> LookMorePage(state, edit, onAdvanced = { nav.open(LookPage.ADVANCED) })
+                            LookPage.MORE -> LookMorePage(state, edit, onAdvanced = { nav.open(LookPage.ADVANCED) }, onUpdateHomeScreen = onUpdateHomeScreen)
                             LookPage.ADVANCED -> LookAdvancedPage(state, edit, onCopied = { line -> snack.note(line, null, null) })
                         }
                     }
