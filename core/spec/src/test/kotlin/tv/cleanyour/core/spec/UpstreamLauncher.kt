@@ -15,9 +15,9 @@ import kotlin.test.fail
 
 // Runs the real upstream Config.java against a folder that plays the launcher's external files
 // dir, with resource values read from the matching config.xml. Three launchers:
-// - 2.7 (the submodule at 3e34f40, versionCode 8), the one the app bundles and the pinned reader:
-//   Config.java and the classes it calls vendored in com.gathin.tvhome.v27, checked against the
-//   submodule by LookDifferentialTest;
+// - 2.7 (v2.7.0, 3e34f40, versionCode 8), the one the app bundles and the pinned reader:
+//   Config.java and the classes it calls vendored in com.gathin.tvhome.v27, frozen by digest in
+//   LookDifferentialTest;
 // - 2.5 (v2.5.0, 9071ec8, com.gathin.tvhome.pinned, RFC-UP037-1), kept for the keys it reads: a TV
 //   updated once and not since;
 // - 2.0 (main 1bbf0c9, com.gathin.tvhome.previous), the model of a TV that has not been updated yet.

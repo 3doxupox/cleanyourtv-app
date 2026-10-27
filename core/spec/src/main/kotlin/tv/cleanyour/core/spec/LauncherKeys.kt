@@ -34,7 +34,8 @@ data class LookConfig(
 // their LauncherConfigDoc fields and LauncherConfigCodec.effective. Not modelled: the dock band
 // opacity chosen on the TV (Launcher settings), which wins until the next push.
 object LauncherKeys {
-    // res/values/config.xml at 3e34f40 (launcher 2.7), checked by LauncherKeysTest, which parses it.
+    // res/values/config.xml of launcher 2.7 (3e34f40), checked by LauncherKeysTest, which parses the
+    // submodule's: at b06ab21 the 2.7 keys keep these defaults.
     // dock_opacity is not in config.xml: Config.load reads it from config.json alone, default 100.
     val DEFAULTS_27: LookConfig = LookConfig(
         ambientGlow = true, glowStyle = GlowStyle.RADIAL, appGlow = false, dockGlass = false, dockOpacity = 100,

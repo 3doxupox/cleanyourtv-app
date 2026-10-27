@@ -18,7 +18,8 @@ class LauncherKeysTest {
     private fun decoded(json: String): LauncherConfigDoc = assertIs<DecodeResult.Ok>(LauncherConfigCodec.decode(json.encodeToByteArray()), json).doc
     private fun doc(vararg pairs: Pair<String, JsonElement>) = LauncherConfigDoc(unknown = mapOf(*pairs))
 
-    // DEFAULTS_27 is res/values/config.xml of the submodule (launcher 2.7, 3e34f40), parsed here.
+    // DEFAULTS_27 is res/values/config.xml of launcher 2.7 (3e34f40); the submodule's, parsed here,
+    // keeps those values for the 2.7 keys at b06ab21.
     @Test fun defaultsAreConfigXml27() {
         val xml = UpstreamLauncher.parseConfigXml(File(Fixtures.upstreamDir, "launcher/app/src/main/res/values/config.xml"))
         fun b(k: String) = xml.getValue(k) as Boolean

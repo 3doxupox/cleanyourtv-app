@@ -8,7 +8,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import tv.cleanyour.core.model.PackageName
 
 // The body of LauncherConfigCodec: the launcher's Config.java read path, key by key. The pinned
-// reader is launcher 2.7 (the submodule at 3e34f40, versionCode 8), the launcher this app bundles;
+// reader is launcher 2.7 (v2.7.0, 3e34f40, versionCode 8), the launcher this app bundles;
 // its reading of the modelled keys is unchanged since v2.5.0 (9071ec8). 1bbf0c9 added input_action
 // and module_cards (RFC-W4-1); v2.4.0 added seventeen more keys (RFC-W4-2) and v2.5.0 nine more
 // (RFC-W4-3), which a TV still on an older launcher ignores; 2.7's look keys have no field and are
