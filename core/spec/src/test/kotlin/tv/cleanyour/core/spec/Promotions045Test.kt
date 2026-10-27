@@ -79,4 +79,8 @@ class Promotions045Test {
         facts("SHIELD Android TV", "mdarcy", "NVIDIA", 30) to "nvidia-shield-tv-pro-2019",
         facts("SHIELD Android TV", "sif", "NVIDIA", 30) to "nvidia-shield-tv-2019",
     )
+
+    @Test fun oneplusTvDosa() = check(
+        facts("Oneplus_Dosa_IN", "Oneplus_Dosa_IN", "Oneplus", 30, "Oneplus/Oneplus_Dosa_IN/Oneplus_Dosa_IN:11/RTM5.220609.299/2312290405:user/release-keys") to "oneplus-tv-dosa", // #1162
+    )
 }

@@ -1307,6 +1307,32 @@
         "com.google.android.backdrop": { "category": "screensaver", "ask": true }
       }
     },
+    "oneplus-tv-dosa": {
+      "match": { "models": [], "devices": ["Oneplus_Dosa_IN"], "brand": "OnePlus", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.oneplus.tv.android.livetv",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.mediatek.tvinput", "com.mediatek.tv.agent", "com.mediatek.tvinputservice.arbitratorservice", "com.oneplus.tv.android.livetv", "com.oneplus.tv.remote", "com.mediatek.hotkey.dispatcher", "com.android.tv.optvsettingsmanager", "com.oneplus.tv.quicksettings", "com.oneplus.tv.systemupgrade", "com.heytap.oprcupgradeservice", "com.google.android.katniss", "com.google.android.apps.mediashell", "mediatek.factorymenu.ui", "com.mediatek.tv.factory", "com.google.android.leanbacklauncher.partnercustomizer", "com.oneplus.tv.launcher", "com.oneplus.oobe.tv"],
+      "suggestedDock": [],
+      "tested": { "by": "Quickfever (PR #1404)", "firmware": "RTM5.220609.299", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "Telemetry and background services": { "category": "tracking", "ask": false },
+        "OnePlus content, recommendation rows and auto-installs": { "category": "ads", "ask": false }
+      },
+      "packages": {
+        "com.google.android.syncadapters.calendar": { "category": "other", "ask": false },
+        "com.android.providers.calendar": { "category": "other", "ask": true },
+        "com.google.android.boot.appsplashscreen": { "category": "other", "ask": true },
+        "com.oneplus.oobe.tv": { "category": "other", "ask": true },
+        "com.oneplus.tv.launcher": { "category": "brand", "ask": true },
+        "com.google.android.leanbacklauncher.partnercustomizer": { "category": "other", "ask": true },
+        "com.oneplus.tv.userguide": { "category": "preloads", "ask": false },
+        "com.oneplus.tv.imagewall": { "category": "preloads", "ask": false },
+        "com.google.android.play.games": { "category": "preloads", "ask": false }
+      }
+    },
     "oneplus-tv-dubai": {
       "match": { "models": ["D00"], "devices": ["Dubai"], "brand": "OnePlus", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
       "platform": "GOOGLE_TV",

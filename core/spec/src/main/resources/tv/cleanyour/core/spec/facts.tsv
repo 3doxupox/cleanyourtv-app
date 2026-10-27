@@ -2,6 +2,7 @@
 air.ITVMobilePlayer	ITVX	UK ITV streaming app	streaming
 air.com.vudu.air.DownloaderTablet	Vudu (Fandango at Home)	Movie rental and purchase app	streaming
 android.autoinstalls.config.JVC	JVC partner installs	Installs partner apps without asking	ads
+android.autoinstalls.config.OnePlus	OnePlus partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.SW	Skyworth partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.google.gtvpai	Google TV partner installs	Installs partner apps without asking	ads
 android.autoinstalls.config.haier.hanyang	Haier partner installs	Installs partner apps without asking	ads
@@ -374,6 +375,7 @@ com.haier.yudee.tv	Haier share	Shares phone media to the TV	casting
 com.haierubic.usmartdevice	Haier smart device	Haier smart device service	brand
 com.hbo.hbonow	HBO Max	Streaming app	streaming
 com.hbo_android_tv	HBO (old app)	Older HBO app, replaced by Max	streaming
+com.heytap.mcs	HeyTap push service	Push messages and analytics	tracking
 com.heytap.olink	OnePlus Connect	Links the TV to the OnePlus phone app	brand
 com.heytap.oprcupgradeservice	OnePlus remote updates	Updates the remote's firmware	system
 com.heytap.optvfactory	OnePlus factory app	Factory test app, left alone	system
@@ -569,8 +571,11 @@ com.oem.qa	Box factory test	Factory test app	demo
 com.oemservice	Remote management agent	Lets the vendor manage the device remotely	tracking
 com.onehundredpics.onehundredpicsquiz	100 Pics Quiz	Quiz game	preloads
 com.onemainstream.sonyliv.android	SonyLIV	Streaming app	streaming
+com.oneplus.oobe.tv	OnePlus first-run setup	First-run setup screens	system
 com.oneplus.tv.factory	OnePlus TV factory app	Factory test app, left alone	system
+com.oneplus.tv.imagewall	OnePlus Image wall	Picture wall app	preloads
 com.oneplus.tv.launcher	OnePlus launcher page	OnePlus content page	brand
+com.oneplus.tv.userguide	OnePlus user guide	Built-in user guide	preloads
 com.opera.sdk.example	Opera TV sample app	Opera TV SDK sample app	preloads
 com.osn.go	OSN+	Middle East series and film streaming app	streaming
 com.panasonic.demomode	Panasonic demo mode	Store demo mode	demo

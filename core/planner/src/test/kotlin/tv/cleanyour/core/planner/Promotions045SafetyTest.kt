@@ -86,4 +86,10 @@ class Promotions045SafetyTest {
         assertEquals(listOf(KnownLaunchers.TVLAUNCHER), pr.stockLaunchers)
         assertTrue(p("com.android.bluetoothmidiservice") !in defaultOff("nvidia-shield-tv-2017"))
     }
+
+    @Test fun oneplusTvDosa() {
+        defaultsPass("oneplus-tv-dosa")
+        keeps("oneplus-tv-dosa", "com.oneplus.tv.launcher", "com.oneplus.oobe.tv", "com.google.android.leanbacklauncher.partnercustomizer", "com.oneplus.tv.remote",
+            "com.mediatek.hotkey.dispatcher", "com.oneplus.tv.android.livetv")
+    }
 }
