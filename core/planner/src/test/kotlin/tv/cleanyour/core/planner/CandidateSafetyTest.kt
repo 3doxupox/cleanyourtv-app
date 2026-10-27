@@ -34,7 +34,11 @@ class CandidateSafetyTest {
         assertEquals(Risk.WIZARD_WIFI, HomeSwitchRisk.of(tv.facts, candidate, tv, WizardWifi.OWNER))
         assertEquals(Risk.WIZARD_STAYS_ON, HomeSwitchRisk.of(tv.facts, candidate, tv, WizardWifi.UNKNOWN))
         assertEquals(Risk.WIZARD_STAYS_ON, HomeSwitchRisk.of(tv.facts, candidate, tv, WizardWifi.NOT_OWNER))
-        for (w in WizardWifi.entries) assertEquals(HomeSwitchRisk.of(tv.facts, null, tv, w), HomeSwitchRisk.of(tv.facts, candidate, tv, w), "$w")
+        // 0.4.6: the same as no profile on a TV that does not meet R0 (the reference TV under another
+        // maker). On the Xiaomi itself R0 lifts the rule for no profile only: a candidate keeps it.
+        val acme = PlannerFixtures.otherMaker(tv)
+        for (w in WizardWifi.entries) assertEquals(HomeSwitchRisk.of(acme.facts, null, acme, w), HomeSwitchRisk.of(acme.facts, candidate, acme, w), "$w")
+        for (w in WizardWifi.entries) assertNull(HomeSwitchRisk.of(tv.facts, null, tv, w), "R0, $w")
         // The planner refuses a switch asked for anyway, and plans the clean-up alone.
         assertEquals(listOf(Risk.WIZARD_STAYS_ON.reason), refused(setup(profile = candidate, choices = choices(wizardWifi = WizardWifi.NOT_OWNER))))
         plan(setup(profile = candidate, choices = choices(installLauncher = false, takeover = false, wizardWifi = WizardWifi.NOT_OWNER)))

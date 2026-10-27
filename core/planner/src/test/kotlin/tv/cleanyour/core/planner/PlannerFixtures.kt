@@ -100,6 +100,11 @@ object PlannerFixtures {
             is PlanResult.Refused -> r.reasons
         }
 
+    // 0.4.6 (R0): the reference TV is a Xiaomi with Google's Android TV home and its wizard no Home
+    // claimant, so with no profile its switch goes ahead with the wizard on. The rule for every other
+    // TV no profile knows is tested on the same TV under another maker.
+    fun otherMaker(s: Snapshot): Snapshot = s.copy(facts = s.facts.copy(brand = "Acme", manufacturer = "Acme")).let { it.copy(contentHash = SnapshotCodec.hash(it)) }
+
     fun change(step: Int, op: Op, prior: Prior?, atMs: Long = Samples.NOW_MS + step) = ChangeRecord(tv.cleanyour.core.model.PlanId("01FAKEPLAN0000000000000001"), step, op, prior, atMs)
 }
 

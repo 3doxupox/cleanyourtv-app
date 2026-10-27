@@ -217,10 +217,18 @@ class WhatWeFoundMatchesThePlanTest {
         assertEquals(1, plan.summary.switchOffCount)
     }
 
+    // 0.4.6 (R0): an unknown Xiaomi whose only claimant is Google's Android TV home gets the switch
+    // with its setup wizard on (before, the clean-up alone): the wizard is left as it is.
     @Test fun unknownXiaomiModelWithTheBrandSureSet() {
         val facts = Samples.miTvFacts().copy(model = "MiTV-UNKNOWN", device = "unknown")
-        assertTheCleanUpAlone(Samples.snapshot(facts = facts, packages = Samples.miTvPackages(emptySet())))
-        val (plan, res) = plan(Samples.snapshot(facts = facts, packages = Samples.miTvPackages(emptySet())).withoutWizard())
+        val withWizard = Samples.snapshot(facts = facts, packages = Samples.miTvPackages(emptySet()))
+        assertTrue(wizard in withWizard.packages)
+        val (switched, sure) = plan(withWizard)
+        assertIs<ProfileResolution.BrandSureSet>(sure)
+        assertS3AgreesWithThePlan(switched)
+        assertEquals(1, switched.sections.size)
+        assertTrue(switched.steps.none { (it.op as? Op.Disable)?.pkg == wizard || (it.op as? Op.Enable)?.pkg == wizard })
+        val (plan, res) = plan(withWizard.withoutWizard())
         assertIs<ProfileResolution.BrandSureSet>(res)
         assertS3AgreesWithThePlan(plan)
     }
