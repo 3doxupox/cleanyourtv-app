@@ -30,6 +30,8 @@ import tv.cleanyour.core.spec.BandChoice
 import tv.cleanyour.core.spec.ButtonsChoice
 import tv.cleanyour.core.spec.DockLayers
 import tv.cleanyour.core.spec.GlowChoice
+import tv.cleanyour.core.spec.HighlightChoice
+import tv.cleanyour.core.spec.LookExtras
 import tv.cleanyour.core.spec.LookKeys
 import tv.cleanyour.core.spec.Movement
 import tv.cleanyour.core.spec.StyleId
@@ -38,6 +40,7 @@ import tv.cleanyour.core.spec.Looks
 import tv.cleanyour.core.spec.PictureSource
 import tv.cleanyour.core.spec.ProfileSource
 import tv.cleanyour.core.spec.ThemeSource
+import tv.cleanyour.core.spec.TilesChoice
 import tv.cleanyour.core.store.BlobStore
 import tv.cleanyour.core.store.Clock
 import tv.cleanyour.core.store.DocumentStore
@@ -140,10 +143,12 @@ class ManageDeps(
 // are the person's changes over the style's and the picture's own; `previousPicture` ("prevpic=") is
 // the picture before a dated one (Diwali), which is theirs again once it ends. In the new form
 // `picture` is never null and `columns` is always written.
+// 0.4.5: `extras` (the "x." lines) are the home screen 3.0 switches, each line written only when it
+// is not the launcher's own, so a 0.4.0 file loads as DEFAULT and saves again byte for byte.
 data class HomeChoice(val dock: List<PackageName>, val themeId: String?, val cards: Boolean? = null, val previousThemeId: String? = null,
     val picture: String? = null, val dim: Int? = null, val columns: Int? = null,
     val style: String? = null, val movement: String? = null, val lift: Boolean? = null, val names: Boolean? = null,
-    val details: LookDetails = LookDetails(), val previousPicture: String? = null) {
+    val details: LookDetails = LookDetails(), val previousPicture: String? = null, val extras: LookExtras = LookExtras.DEFAULT) {
     // The look that is this TV's on `today`: the saved one, or once a dated look has ended, the one
     // before it (null, the Default look, when that one has ended too or there was none).
     fun lookOn(today: LocalDate): String? = when {
@@ -180,7 +185,8 @@ fun Clock.today(): LocalDate = Instant.ofEpochMilli(nowMs()).atZone(ZoneId.syste
 
 // tvs/<id>/home.txt, one "key=value" line each. Every line is optional, and a value that does not
 // read loads as null, so a file of any version loads: 0.3.x (dock, theme, cards, previous), 0.4.0
-// (picture, dim, columns) and look2 (style, movement, lift, names, prevpic and the "d." details).
+// (picture, dim, columns), look2 (style, movement, lift, names, prevpic and the "d." details) and
+// 0.4.5 (the "x." extras, only those not at the launcher's own).
 class HomePrefs(private val store: DocumentStore) {
     private fun path(id: TvId) = "tvs/${id.value}/home.txt"
 
@@ -204,9 +210,17 @@ class HomePrefs(private val store: DocumentStore) {
                 "d.bigname" to d.bigName, "d.glow" to d.glow?.id, "d.spotcolour" to d.spotColour, "d.ring" to d.ring,
                 "d.band" to d.band?.id, "d.see" to d.seeThrough, "d.buttons" to d.buttons?.id, "d.wifi" to d.greenWifi,
                 "d.dim" to d.dim, "d.sky" to d.sky, "d.skystr" to d.skyStrength,
-            )
+            ) + extrasLines(choice.extras)
             return lines.filter { (k, v) -> v != null || k == "dock" || k == "theme" }.joinToString("") { (k, v) -> "$k=$v\n" }
         }
+
+        // The "x." lines, each only when it is not LookExtras.DEFAULT's value (null leaves it out).
+        private fun extrasLines(e: LookExtras): List<Pair<String, Any?>> = listOf(
+            "x.onerow" to "1".takeIf { e.oneRow }, "x.bandall" to "1".takeIf { e.bandAll }, "x.noband" to "1".takeIf { e.noBand },
+            "x.nogreeting" to "1".takeIf { e.hideGreeting }, "x.datebelow" to "1".takeIf { e.dateBelow },
+            "x.brightdate" to "1".takeIf { e.brightDate }, "x.wifiwarn" to "1".takeIf { e.wifiWarnings },
+            "x.tiles" to e.tiles.takeIf { it != TilesChoice.ART }?.id, "x.highlight" to e.highlight.takeIf { it != HighlightChoice.GLASS }?.id,
+        )
 
         fun decode(text: String): HomeChoice {
             val map = text.lines().filter { '=' in it }.associate { it.substringBefore('=') to it.substringAfter('=') }
@@ -224,6 +238,13 @@ class HomePrefs(private val store: DocumentStore) {
                 str("theme"), bool("cards"), str("previous"), str("picture"), int("dim", 0..90), int("columns", OFFERED),
                 style = StyleId.of(map["style"])?.id, movement = Movement.of(map["movement"])?.id, lift = bool("lift"), names = bool("names"),
                 details = details, previousPicture = str("prevpic"),
+                extras = LookExtras(
+                    oneRow = map["x.onerow"] == "1", bandAll = map["x.bandall"] == "1", noBand = map["x.noband"] == "1",
+                    hideGreeting = map["x.nogreeting"] == "1", dateBelow = map["x.datebelow"] == "1", brightDate = map["x.brightdate"] == "1",
+                    wifiWarnings = map["x.wifiwarn"] == "1",
+                    tiles = TilesChoice.entries.firstOrNull { it.id == map["x.tiles"] } ?: TilesChoice.ART,
+                    highlight = HighlightChoice.entries.firstOrNull { it.id == map["x.highlight"] } ?: HighlightChoice.GLASS,
+                ),
             )
         }
     }

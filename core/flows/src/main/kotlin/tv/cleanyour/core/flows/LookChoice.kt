@@ -6,6 +6,7 @@ import tv.cleanyour.core.spec.BandChoice
 import tv.cleanyour.core.spec.ButtonsChoice
 import tv.cleanyour.core.spec.DockLayers
 import tv.cleanyour.core.spec.GlowChoice
+import tv.cleanyour.core.spec.LookExtras
 import tv.cleanyour.core.spec.LookGates
 import tv.cleanyour.core.spec.LookKeys
 import tv.cleanyour.core.spec.LookSpec
@@ -114,6 +115,8 @@ sealed interface LookEdit {
     data class NoteAction(val id: Long) : LookEdit
     data class NoteSeen(val id: Long) : LookEdit
     data class SetKeyNames(val on: Boolean) : LookEdit
+    // Home screen 3.0's switches (LookExtras), all at once: the editor sends the whole new set.
+    data class SetExtras(val extras: LookExtras) : LookEdit
 }
 
 // The Look editor's choice while it is open (the Look sheet and Setup's look step). Nothing reaches
@@ -163,6 +166,11 @@ data class LookDraft(
     val apps: Int = 0,
     val waiting: Int = 0,
     val tvChanged: Boolean = false,
+    // 0.4.5: home screen 3.0 (LookGates.reads30): the 3.0 rows show, and `extras` is the person's
+    // choice of them (DEFAULT on a TV below 3.0). The bytes take only what acts in this look
+    // (LookRules.extras); `rows.resettable` counts those.
+    val reads30: Boolean = false,
+    val extras: LookExtras = LookExtras.DEFAULT,
 )
 
 // The parts of a choice the rules read, from a draft or a saved choice: every value concrete.
@@ -177,6 +185,7 @@ internal data class LookParts(
     val details: LookDetails = LookDetails(),
     val movementPicked: Boolean = false,
     val legacyThemeId: String? = null,
+    val extras: LookExtras = LookExtras.DEFAULT,
 )
 
 // A picture as the rules and a push see it: its file (null: no picture), its background colour,
@@ -224,6 +233,8 @@ internal object LookRules {
         val own = LookKeys.own(style)
         val d = p.details
         val older = !LookGates.reads27(tv.versionCode)
+        // One row has nothing under the dock, so the three-row rule does not take the big name.
+        val oneRow = extras(p, tv).oneRow
         val need = if (older) LookReason.NEEDS_UPDATE else null
         val spot = style == StyleId.SPOTLIGHT
         val all = style == StyleId.ALL_APPS
@@ -234,7 +245,7 @@ internal object LookRules {
         val bigName = when {
             all -> LookRow(false, false, LookReason.ALL_APPS_NO_BIG_NAME)
             spot -> LookRow(true, false, LookReason.SPOTLIGHT_BIG_NAME)
-            threeRows(style, p.columns, apps) -> LookRow(false, false, LookReason.THREE_ROWS)
+            !oneRow && threeRows(style, p.columns, apps) -> LookRow(false, false, LookReason.THREE_ROWS)
             else -> row(d.bigName, own.bigName, true, null)
         }
         val glow = if (spot) LookRow<GlowChoice>(null, false, null, visible = false) else row(d.glow, own.glow, !older, need)
@@ -262,14 +273,53 @@ internal object LookRules {
             changed(seeThrough, d.seeThrough, LookKeys.SEE_THROUGH_DEFAULT) + changed(dim, d.dim, pic.ownDim) +
             changed(sky, d.sky, pic.sky > 0) + changed(skyStrength, d.skyStrength, pic.sky.takeIf { it > 0 } ?: LookKeys.SKY_STRENGTH_DEFAULT) +
             (if (p.movement != LookGates.defaultMovement(tv.ramMb)) 1 else 0) + (if (p.lift) 1 else 0)
+        val rowsSoFar = LookRows(
+            names = names, bigName = bigName, glow = glow, spotColour = spotColour, ring = ring, band = band, buttons = buttons,
+            greenWifi = greenWifi, dim = dim, sky = sky, lift = lift, seeThrough = seeThrough, skyStrength = skyStrength,
+            resettable = 0, festiveRing = false, liftSlowRamMb = null,
+        )
+        val extrasCount = extrasChanged(extras(p, rowsSoFar, tv))
 
         return LookRows(
             names = names, bigName = bigName, glow = glow, spotColour = spotColour, ring = ring, band = band, buttons = buttons,
             greenWifi = greenWifi, dim = dim, sky = sky, lift = lift, seeThrough = seeThrough, skyStrength = skyStrength,
-            resettable = resettable, festiveRing = pic.festival != null,
+            resettable = resettable + extrasCount, festiveRing = pic.festival != null,
             liftSlowRamMb = tv.ramMb?.takeIf { p.lift && it < LookGates.LIFT_MIN_RAM_MB },
             dimChanged = changed(dim, d.dim, pic.ownDim) > 0, skyChanged = changed(sky, d.sky, pic.sky > 0) > 0,
         )
+    }
+
+    // 0.4.5 (plan WP5 step 5): the person's 3.0 switches as this look takes them. A TV below 3.0
+    // gets DEFAULT, so it never gets a 3.0 key. All apps has no dock row: no one row and no band
+    // choice. Spotlight's band is the shelf's own, which the More options page does not offer to
+    // change, so no band is not taken there (one row and the band behind every app are: they act
+    // on the cinematic shelf at b06ab21). The band behind every app needs one row and a band; the
+    // internet warnings need Green Wi-Fi and the Wi-Fi pill (not One menu button).
+    fun extras(p: LookParts, rows: LookRows, tv: LookTv): LookExtras {
+        if (!LookGates.reads30(tv.versionCode)) return LookExtras.DEFAULT
+        val e = p.extras
+        val dock = p.style != StyleId.ALL_APPS
+        val oneRow = e.oneRow && dock
+        val noBand = e.noBand && dock && p.style != StyleId.SPOTLIGHT
+        return e.copy(
+            oneRow = oneRow,
+            noBand = noBand,
+            bandAll = e.bandAll && oneRow && !noBand,
+            wifiWarnings = e.wifiWarnings && rows.greenWifi.value == true && rows.buttons.value != ButtonsChoice.MENU,
+        )
+    }
+
+    // The same for the switches that need no row: one row (the big name's three-row rule asks).
+    private fun extras(p: LookParts, tv: LookTv): LookExtras =
+        if (!LookGates.reads30(tv.versionCode) || p.style == StyleId.ALL_APPS) LookExtras.DEFAULT else LookExtras(oneRow = p.extras.oneRow)
+
+    // How many of the 3.0 switches differ from the launcher's own ("Use {style}'s own settings"
+    // puts them back, and counts them in its changes).
+    fun extrasChanged(e: LookExtras): Int {
+        val d = LookExtras.DEFAULT
+        return listOf(e.oneRow != d.oneRow, e.bandAll != d.bandAll, e.noBand != d.noBand, e.hideGreeting != d.hideGreeting,
+            e.dateBelow != d.dateBelow, e.brightDate != d.brightDate, e.wifiWarnings != d.wifiWarnings, e.tiles != d.tiles,
+            e.highlight != d.highlight).count { it }
     }
 
     // The resolved spec: what each row really gives (a disabled row its style's own).

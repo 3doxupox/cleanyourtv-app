@@ -7,9 +7,12 @@ import tv.cleanyour.core.spec.AppColours
 import tv.cleanyour.core.spec.DecodeResult
 import tv.cleanyour.core.spec.EffectiveConfig
 import tv.cleanyour.core.spec.GlowStyle
+import tv.cleanyour.core.spec.HighlightChoice
 import tv.cleanyour.core.spec.LauncherConfigCodec
 import tv.cleanyour.core.spec.LauncherConfigDoc
 import tv.cleanyour.core.spec.LauncherKeys
+import tv.cleanyour.core.spec.LookExtrasKeys
+import tv.cleanyour.core.spec.TilesChoice
 import tv.cleanyour.core.spec.Movement
 
 // 0.4.0: the phone's picture of the TV's home screen for the Look sheet's choice, read back from
@@ -30,6 +33,12 @@ import tv.cleanyour.core.spec.Movement
 // dock without cinematic_white_focus), `band` (NONE without the dock row), `bandOpacity`
 // (dock_opacity), `evenPadding`, `buttons`, `roundInputs`, `wifiGreen`, `inputs` (the TV has an
 // Inputs pill to show), `dots`, `scrim` and `art` (the cinematic shelf's dots, shade and art).
+// 0.4.5 (home screen 3.0, read from the same bytes through LookExtrasKeys.shown, so only what the TV
+// shows): `oneRow` (single_row with the dock row), `bandAll` (the band behind every app), `band`
+// NONE for dock_band false too, `greetingShown` (show_greeting), `dateBelow` (date_below_clock),
+// `brightDate` (header_white), `iconTiles` (uniform_tiles), `highlight` (glass_style), and
+// `dockArgb` and `othersArgb`, each app's colour (AppColours) in `dock` and `others` order, for the
+// icon cards. The internet warnings have nothing to draw while online.
 data class LookPreview(
     val backgroundArgb: Int,
     val picturePath: String?,
@@ -65,6 +74,15 @@ data class LookPreview(
     val dots: Boolean = true,
     val scrim: Int = 100,
     val art: Int = 50,
+    val oneRow: Boolean = false,
+    val bandAll: Boolean = false,
+    val greetingShown: Boolean = true,
+    val dateBelow: Boolean = false,
+    val brightDate: Boolean = false,
+    val iconTiles: Boolean = false,
+    val highlight: HighlightChoice = HighlightChoice.GLASS,
+    val dockArgb: List<Int> = emptyList(),
+    val othersArgb: List<Int> = emptyList(),
 ) {
     companion object {
         // 0.4.0, removed after look2 merges: the dock as names only.
@@ -110,6 +128,7 @@ data class LookPreview(
             val doc = decode(bytes)
             val e = LauncherConfigCodec.effective(doc, LauncherConfigCodec.builtInDefaults)
             val k = LauncherKeys.look(doc)
+            val x = LookExtrasKeys.shown(doc)
             val apps = (dock + others).distinctBy { it.pkg }
             val names = apps.associate { it.pkg.value to it.name }
             val docked = doc.dockApps?.map { it.value }?.let { d -> if (names.isEmpty()) d else d.filter { it in names } } ?: dock.map { it.pkg.value }
@@ -137,7 +156,7 @@ data class LookPreview(
                 },
                 ring = k.appGlow || e.cinematicHome && !k.cinematicWhiteFocus,
                 band = when {
-                    !e.dockRow -> PreviewBand.NONE
+                    !e.dockRow || x.noBand -> PreviewBand.NONE
                     k.dockGlass -> PreviewBand.GLASS
                     e.cinematicHome || k.dockOpacity < 100 -> PreviewBand.SEE_THROUGH
                     else -> PreviewBand.SOLID
@@ -155,6 +174,15 @@ data class LookPreview(
                 dots = k.cinematicDots,
                 scrim = k.cinematicScrim,
                 art = k.cinematicArt,
+                oneRow = x.oneRow,
+                bandAll = x.bandAll,
+                greetingShown = !x.hideGreeting,
+                dateBelow = x.dateBelow,
+                brightDate = x.brightDate,
+                iconTiles = x.tiles == TilesChoice.ICONS,
+                highlight = x.highlight,
+                dockArgb = docked.map { AppColours.of(it) },
+                othersArgb = rest.map { AppColours.of(it.pkg.value) },
             )
         }
 

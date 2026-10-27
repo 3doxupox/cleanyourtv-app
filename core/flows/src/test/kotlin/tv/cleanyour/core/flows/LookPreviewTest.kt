@@ -203,7 +203,7 @@ class LookPreviewTest {
         assertEquals(p.copy(minuteOfDay = 600), preview(b, minute = 600))
         assertEquals(p.copy(today = today.plusDays(1)), preview(b, day = today.plusDays(1)))
         val q = preview(b, others = emptyList())
-        assertEquals(p.copy(others = emptyList()), q)
+        assertEquals(p.copy(others = emptyList(), othersArgb = emptyList()), q)
         // Bytes the TV would not read draw what the TV draws for an empty file: its defaults.
         assertEquals(preview(LauncherConfigCodec.encode(LauncherConfigDoc())).copy(dock = dock4.map { it.name }), preview("{".toByteArray()))
     }
@@ -222,6 +222,7 @@ class LookPreviewTest {
         val b = bytes(LookKeys.spec(StyleId.CLASSIC))
         val old = LookPreview.of(b, null, dock4.map { it.name }, today, evening)
         val new = preview(b)
-        assertEquals(old.copy(others = new.others, focusArgb = new.focusArgb, inputs = new.inputs, today = new.today), new.copy(movement = old.movement, lift = old.lift))
+        assertEquals(old.copy(others = new.others, focusArgb = new.focusArgb, inputs = new.inputs, today = new.today,
+            dockArgb = new.dockArgb, othersArgb = new.othersArgb), new.copy(movement = old.movement, lift = old.lift))
     }
 }
