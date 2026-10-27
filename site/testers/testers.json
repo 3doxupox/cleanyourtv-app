@@ -414,6 +414,69 @@
    "issue": 1067,
    "foundBug": false,
    "joined": 45
+  },
+  {
+   "login": "bharadwajk1",
+   "tv": "NOKIA R4",
+   "brand": "Nokia",
+   "what": "Confirmed the new home screen works on a Nokia set with its own vendor start-up screen.",
+   "issue": 512,
+   "foundBug": false,
+   "joined": 46
+  },
+  {
+   "login": "Davitrindade",
+   "tv": "PHILCO 4K Smart TV",
+   "brand": "PHILCO",
+   "what": "Tried the 0.4.6 test build and confirmed everything works, and asked for Portuguese in the app.",
+   "issue": 1175,
+   "foundBug": false,
+   "joined": 47
+  },
+  {
+   "login": "muamfi",
+   "tv": "TCL Q6C",
+   "brand": "TCL",
+   "what": "Followed the Wi-Fi steps on a TCL Google TV and confirmed the new home screen.",
+   "issue": 1157,
+   "foundBug": false,
+   "joined": 48
+  },
+  {
+   "login": "Birdfodo",
+   "tv": "Skyworth TV Stick",
+   "brand": "Skyworth",
+   "what": "Tried the 0.4.6 test build and confirmed it works.",
+   "issue": 341,
+   "foundBug": false,
+   "joined": 49
+  },
+  {
+   "login": "nbalakumar2005",
+   "tv": "Xiaomi Mi TV 4i",
+   "brand": "Xiaomi",
+   "what": "Tried the 0.4.6 test build on an eight year old Mi TV 4i: new home screen and customising both work.",
+   "issue": 1008,
+   "foundBug": false,
+   "joined": 50
+  },
+  {
+   "login": "demoncska14-collab",
+   "tv": "Xiaomi MiTV-MSSP0",
+   "brand": "Xiaomi",
+   "what": "Confirmed everything worked on the first try.",
+   "issue": 543,
+   "foundBug": false,
+   "joined": 51
+  },
+  {
+   "login": "sfe667",
+   "tv": "Sony BRAVIA 4K GB ATV3",
+   "brand": "Sony",
+   "what": "Checked the new home screen held through a restart and found an app missing from the app list.",
+   "issue": 1219,
+   "foundBug": true,
+   "joined": 52
   }
  ]
 }
