@@ -3959,7 +3959,8 @@
         "com.xiaomi.mitv.smartpanel": { "category": "brand", "ask": true },
         "com.mitv.screensaver": { "category": "screensaver", "ask": true },
         "com.xiaomi.mibox.lockscreen": { "category": "other", "ask": true },
-        "com.xiaomi.smarthome.tv": { "category": "brand", "ask": true }
+        "com.xiaomi.smarthome.tv": { "category": "brand", "ask": true },
+        "com.xiaomi.mitv.tvpush.tvpushservice": { "category": "tracking", "ask": true }
       }
     },
     "xiaomi-mitv-astp1": {

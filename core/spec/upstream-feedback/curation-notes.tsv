@@ -537,6 +537,7 @@ xiaomi-mitv-astp0	com.xiaomi.mitv.remotecontroller.service	phone remote relay: t
 xiaomi-mitv-astp0	com.xiaomi.mitv.smartpanel	the Menu-button panel on this family (MiTV-MFFU0); ask row as on xiaomi-mitv-astp1
 xiaomi-mitv-astp0	com.xiaomi.mitv.tvmanager	XiaoAI "open app" can need it (MiTV-MFFU0, MiTV-MFTR0); ask row
 xiaomi-mitv-astp0	com.xiaomi.wakeupservice	the voice assistant wake word goes with it; voice ask row
+xiaomi-mitv-astp0	com.xiaomi.mitv.tvpush.tvpushservice	on this family it also fetches the installer allowlist (redmi-mitv-mftp0 header); ask row, as on xiaomi-mitv-mteq0
 xiaomi-mitv-astp1	com.mitv.tvhome	the stock home (PatchWall) on this China build; not a known launcher to the app, so it is never-disable and the home screen switch leaves it alone
 xiaomi-mitv-astp1	com.xiaomi.gamecenter.sdk.service.mibox	listed under background services; Xiaomi store games may need it for sign-in, so it is an ask row
 xiaomi-mitv-astp1	com.xiaomi.mitv.settings	never-disable: the header says it is the only settings app on this firmware
