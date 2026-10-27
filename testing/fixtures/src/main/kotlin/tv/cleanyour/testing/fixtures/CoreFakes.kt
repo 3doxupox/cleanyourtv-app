@@ -79,7 +79,8 @@ class FakeProfileSource(
 ) : HomeAwareProfileSource {
     override suspend fun all(): List<Profile> = profiles
     override suspend fun resolve(facts: DeviceFacts): ProfileResolution = resolver(facts, profiles)
-    override suspend fun resolve(facts: DeviceFacts, home: HomeResolution?): ProfileResolution = homeResolver?.invoke(facts, home) ?: resolver(facts, profiles)
+    override suspend fun resolve(facts: DeviceFacts, home: HomeResolution?, packages: Map<PackageName, tv.cleanyour.core.model.PackageState>?): ProfileResolution =
+        homeResolver?.invoke(facts, home) ?: resolver(facts, profiles)
 }
 
 class MapFactsTable(private val facts: Map<PackageName, PackageFacts> = emptyMap()) : FactsTable {

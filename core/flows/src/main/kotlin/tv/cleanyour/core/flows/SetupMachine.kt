@@ -696,7 +696,7 @@ class SetupMachine(
             snapshot = snap
             // Issue #114: resolved with the Home the snapshot read, as the planner and the engine's
             // live check resolve it, so a list that does not fit this TV's home screen is not used.
-            val res = deps.profiles.resolveFor(facts, snap.home)
+            val res = deps.profiles.resolveFor(facts, snap.home, snap.packages)
             resolution = res
             // Finding 3: one read-only call for the apps a launcher would show; on any failure the
             // dock sheet falls back to its own rule.
@@ -706,7 +706,7 @@ class SetupMachine(
             val record = upsertTv(s, facts, res)
             tv = record
             // Test build: a list not tested yet waits for the person's answer on the card.
-            val candidate = deps.candidates?.offer(facts, snap.home)
+            val candidate = deps.candidates?.offer(facts, snap.home, snap.packages)
             if (candidate != null) {
                 deps.log.line("setup: candidate list ${candidate.id} offered")
                 mutableExtras.update { it.copy(candidate = CandidateOffer.of(candidate), candidateTried = false) }
@@ -731,7 +731,7 @@ class SetupMachine(
             .onFailure { deps.log.line("setup: candidate choice not saved ${LogCodes.of(it)}") }
         deps.log.line("setup: candidate list ${offer.profileId}: " + if (tryIt) "trying the test list" else "careful brand set instead")
         val ok = attempt {
-            val res = deps.profiles.resolveFor(facts, snapshot?.home)
+            val res = deps.profiles.resolveFor(facts, snapshot?.home, snapshot?.packages)
             resolution = res
             deps.log.line("setup: profile ${LogCodes.profile(res)}")
             mutableExtras.update { it.copy(candidateTried = (res as? ProfileResolution.Exact)?.profile?.isCandidate == true) }

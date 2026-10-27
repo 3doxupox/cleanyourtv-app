@@ -126,8 +126,8 @@ class ManageDeps(
     // Google TV set; Setup clears it on the next connect, Manage already leaves it out).
     suspend fun profileOf(tv: Tv): Profile? {
         val profile = tv.profileId?.let { id -> attempt { profiles.all() }.getOrNull()?.firstOrNull { it.id == id } } ?: return null
-        val home = attempt { snapshots.latest(tv.id) }.getOrNull()?.home
-        return profile.takeIf { HomeFit.fits(it, home) }
+        val latest = attempt { snapshots.latest(tv.id) }.getOrNull()
+        return profile.takeIf { HomeFit.fits(it, latest?.home, latest?.packages) }
     }
 
     fun nameOf(pkg: PackageName, label: String? = null): String = AppNames.of(pkg, facts, label)

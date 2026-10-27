@@ -4,6 +4,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Test
 import tv.cleanyour.core.model.Component
 import tv.cleanyour.core.model.DeviceFacts
+import tv.cleanyour.core.model.EnabledState
 import tv.cleanyour.core.model.GroupDefault
 import tv.cleanyour.core.model.HomeClaimant
 import tv.cleanyour.core.model.HomeResolution
@@ -82,6 +83,26 @@ class HomeFitTest {
             override suspend fun resolve(facts: DeviceFacts) = source.resolveNow(facts)
         }
         assertEquals("exact tcl-65c725", name(runBlocking { plain.resolveFor(Issue114.snapshot()) }))
+    }
+
+    // After the home screen switch the Google TV set's launcherx is switched off by the user and no
+    // longer claims Home. It still counts, so the TV does not flip back to the Android TV list.
+    @Test fun aSwitchedOffGoogleTvHomeStillCounts() = runBlocking<Unit> {
+        val tcl65 = tested.single { it.id == "tcl-65c725" }
+        val ours = Component(PackageName("com.gathin.tvhome"), ".MainActivity")
+        val after = home(ours, ours, setupwraith)
+        val before = Issue114.snapshot()
+        val off = before.packages + (Issue114.launcherx.pkg to before.packages.getValue(Issue114.launcherx.pkg).copy(enabled = EnabledState.DISABLED_USER))
+        assertFalse(HomeFit.fits(tcl65, after, off))
+        assertEquals("brand set TCL", name(source.resolveNow(Issue114.facts(), home = after, packages = off)))
+        assertEquals("brand set TCL", name(source.resolveFor(before.copy(home = after, packages = off))))
+        // Installed and on but not claiming Home, or not installed at all: the Home alone decides.
+        assertTrue(HomeFit.fits(tcl65, after, before.packages))
+        assertTrue(HomeFit.fits(tcl65, after, before.packages - Issue114.launcherx.pkg))
+        val disabled = before.packages + (Issue114.launcherx.pkg to before.packages.getValue(Issue114.launcherx.pkg).copy(enabled = EnabledState.DISABLED))
+        assertTrue(HomeFit.fits(tcl65, after, disabled))
+        // No Home read keeps the facts rule, whatever the packages say.
+        assertTrue(HomeFit.fits(tcl65, null, off))
     }
 
     // Every shipped list, asked with its own keys: with no Home, the Android TV home screen or the

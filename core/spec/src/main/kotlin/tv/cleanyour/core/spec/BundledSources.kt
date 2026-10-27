@@ -4,6 +4,7 @@ import tv.cleanyour.core.model.BlobRef
 import tv.cleanyour.core.model.DeviceFacts
 import tv.cleanyour.core.model.HomeResolution
 import tv.cleanyour.core.model.PackageName
+import tv.cleanyour.core.model.PackageState
 import tv.cleanyour.core.model.Profile
 import tv.cleanyour.core.model.Sha256
 import java.security.MessageDigest
@@ -29,25 +30,25 @@ class BundledProfileSource(private val bundle: ProfileBundle = bundled, private 
 
     override suspend fun resolve(facts: DeviceFacts): ProfileResolution = resolve(facts, null)
 
-    override suspend fun resolve(facts: DeviceFacts, home: HomeResolution?): ProfileResolution {
-        val candidate = candidateFor(facts, home)
-        return resolveNow(facts, tryCandidate = candidate != null && consent?.tries(candidate.id) == true, home = home)
+    override suspend fun resolve(facts: DeviceFacts, home: HomeResolution?, packages: Map<PackageName, PackageState>?): ProfileResolution {
+        val candidate = candidateFor(facts, home, packages)
+        return resolveNow(facts, tryCandidate = candidate != null && consent?.tries(candidate.id) == true, home = home, packages = packages)
     }
 
     fun sureSets(): List<SureSet> = bundle.sureSets
 
     // The candidate list this TV would get, or null: a tested list matches, or none of either does, or
     // the candidate does not fit the TV's Home (HomeFit).
-    fun candidateFor(facts: DeviceFacts, home: HomeResolution? = null): Profile? =
-        if (best(facts, candidates = false) != null) null else best(facts, candidates = true)?.takeIf { HomeFit.fits(it, home) }
+    fun candidateFor(facts: DeviceFacts, home: HomeResolution? = null, packages: Map<PackageName, PackageState>? = null): Profile? =
+        if (best(facts, candidates = false) != null) null else best(facts, candidates = true)?.takeIf { HomeFit.fits(it, home, packages) }
 
     private fun best(facts: DeviceFacts, candidates: Boolean): Profile? =
         bundle.profiles.filter { it.isCandidate == candidates }.mapNotNull { p -> score(p, facts)?.let { it to p } }
             .sortedWith(compareByDescending<Pair<Int, Profile>> { it.first }.thenByDescending { specificity(it.second) }.thenBy { it.second.id })
             .firstOrNull()?.second
 
-    fun resolveNow(facts: DeviceFacts, tryCandidate: Boolean = false, home: HomeResolution? = null): ProfileResolution {
-        val exact = (best(facts, candidates = false) ?: if (tryCandidate) best(facts, candidates = true) else null)?.takeIf { HomeFit.fits(it, home) }
+    fun resolveNow(facts: DeviceFacts, tryCandidate: Boolean = false, home: HomeResolution? = null, packages: Map<PackageName, PackageState>? = null): ProfileResolution {
+        val exact = (best(facts, candidates = false) ?: if (tryCandidate) best(facts, candidates = true) else null)?.takeIf { HomeFit.fits(it, home, packages) }
         if (exact != null) return ProfileResolution.Exact(exact)
         val sure = bundle.sureSets.firstOrNull { it.brand.equals(facts.brand, ignoreCase = true) || it.brand.equals(facts.manufacturer, ignoreCase = true) }
         if (sure != null) return ProfileResolution.BrandSureSet(sure.brand, sure.groups, sure.stockLaunchers)
