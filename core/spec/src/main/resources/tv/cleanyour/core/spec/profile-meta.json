@@ -1901,7 +1901,7 @@
       }
     },
     "sharp-2t-c32gh3000i": {
-      "match": { "models": ["SHARP 2K Smart TV-A"], "devices": ["beomil"], "brand": "SHARP", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
+      "match": { "models": [], "devices": ["beomil"], "brand": "SHARP", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": "Sharp/SW11_SHARP_APEU/beomil:14/" },
       "platform": "GOOGLE_TV",
       "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
       "liveTv": "com.cltv.hybrid",
