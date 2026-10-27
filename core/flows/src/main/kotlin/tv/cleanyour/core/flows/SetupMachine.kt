@@ -713,7 +713,7 @@ class SetupMachine(
             } else replan(record)
         }
         ok.exceptionOrNull()?.let { e ->
-            deps.log.line("setup: probe failed ${LogCodes.of(e)}")
+            deps.log.line("setup: probe failed ${LogCodes.withDetail(e)}")
             val case = if (e is AdbException) StopCase.CONNECTION_LOST else StopCase.PROBE_FAILED
             send(Ev.Stop(tvId, card(case, null, args = mapOf("done" to 0, "total" to 0))))
         }
@@ -740,7 +740,7 @@ class SetupMachine(
             replan(record)
         }
         ok.exceptionOrNull()?.let { e ->
-            deps.log.line("setup: probe failed ${LogCodes.of(e)}")
+            deps.log.line("setup: probe failed ${LogCodes.withDetail(e)}")
             val case = if (e is AdbException) StopCase.CONNECTION_LOST else StopCase.PROBE_FAILED
             send(Ev.Stop(s.tvId, card(case, null, args = mapOf("done" to 0, "total" to 0))))
         }

@@ -29,6 +29,8 @@ All notable changes to the app. Versions follow [semantic versioning](https://se
   TV (the new home screen's network or Settings button, or the remote's Settings button), the card
   now says so: nothing is wrong with the TV, try again and press only Home. The check screen also
   asks you to press only Home and not open anything else (#629).
+- When reading the TV fails, the log line now says what the app found, for example "getprop has
+  no ro.product.model", instead of only the step that failed (#788, #1112).
 
 ### TV lists
 - A TV that shows Google TV's home screen no longer gets a list written for the Android TV version
