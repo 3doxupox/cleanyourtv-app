@@ -31,6 +31,7 @@ import tv.cleanyour.core.ops.OpRenderer
 import tv.cleanyour.core.ops.RenderRefused
 import tv.cleanyour.core.ops.Rendered
 import tv.cleanyour.core.ops.UndoOrder
+import tv.cleanyour.core.ops.Watchdog
 import tv.cleanyour.core.spec.AppNames
 import tv.cleanyour.core.spec.FactsTable
 import tv.cleanyour.core.spec.ProfileCategory
@@ -731,7 +732,8 @@ class DefaultPlanner(
                         if (pkg == launcher.pkg && snapshot.home.resolved == launcher && (originalHome == null || originalHome == launcher)) {
                             refuse("the new home screen is still in charge; the TV's own home screen must come back first"); continue
                         }
-                        step(Op.Uninstall(pkg), Prior(present = true), GROUP_UNDO, "Removing ${name(pkg)} from the TV", FailurePolicy.CONTINUE)
+                        val removed = step(Op.Uninstall(pkg), Prior(present = true), GROUP_UNDO, "Removing ${name(pkg)} from the TV", FailurePolicy.CONTINUE)
+                        if (pkg == launcher.pkg && removed >= 0) tidyWatchdogFiles(changes + journals)
                     }
                     is UndoOrder.Target.File -> {
                         // Only files in the launcher's folder that did not exist before us; a file that
@@ -752,6 +754,27 @@ class DefaultPlanner(
             if (clearedLook) {
                 step(Op.RestartHome(launcher), null, GROUP_UNDO, "Restarting the home screen", FailurePolicy.CONTINUE)
                 restoreAccessibility(GROUP_UNDO)
+            }
+        }
+
+        // QA 0.4.5-beta1: the home switch leaves two small files of ours in /data/local/tmp/cleanyourtv,
+        // the token file that defused the watchdog and the watchdog's log (empty unless it fired).
+        // When the undo removes the new home screen they have no use left, so they go with it: one
+        // RemoveFile (`rm -f` of that one file, nothing broader) per file name the watchdog template
+        // writes, for the run tokens of our ArmHomeWatchdog and ConfirmHome records, skipping a file
+        // an earlier undo already removed. The folder itself stays (there is no op that removes one).
+        fun tidyWatchdogFiles(records: List<ChangeRecord>) {
+            val tokens = records.sortedWith(UndoOrder.CHRONOLOGICAL).mapNotNull { c ->
+                when (val op = c.op) { is Op.ArmHomeWatchdog -> op.token; is Op.ConfirmHome -> op.token; else -> null }
+            }.distinct()
+            val gone = records.mapNotNull { (it.op as? Op.RemoveFile)?.path }.toSet()
+            var first = true
+            for (token in tokens) {
+                for (file in listOf(Watchdog.tokenFileName(token), Watchdog.logFileName(token))) {
+                    val path = RemotePath(RemoteDir.TMP, listOf(file))
+                    if (path in gone) continue
+                    if (step(Op.RemoveFile(path), null, GROUP_UNDO, if (first) "Tidying up" else "", FailurePolicy.CONTINUE) >= 0) first = false
+                }
             }
         }
 
