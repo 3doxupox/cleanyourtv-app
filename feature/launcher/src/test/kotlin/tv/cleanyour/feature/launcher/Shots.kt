@@ -25,6 +25,7 @@ import tv.cleanyour.core.spec.BandChoice
 import tv.cleanyour.core.spec.BundledThemeSource
 import tv.cleanyour.core.spec.ButtonsChoice
 import tv.cleanyour.core.flows.PreviewBand
+import tv.cleanyour.core.spec.LauncherConfigCodec
 import tv.cleanyour.core.spec.LookExtras
 import tv.cleanyour.core.spec.LookGates
 import tv.cleanyour.core.spec.TilesChoice
@@ -213,8 +214,12 @@ object LookFixtures {
         previews: Boolean = true, reads30: Boolean = false, extras: LookExtras = LookExtras.DEFAULT,
     ): LookDraft {
         val e = if (reads30) extras else LookExtras.DEFAULT
-        val ch = choice(style, picture, columns, details, names, movement, lift, dock)
-        val full = LookSamples.push(LookSample("shot", ch, ch.dock), source, source).second.decodeToString()
+        val ch = choice(style, picture, columns, details, names, movement, lift, dock, e)
+        // A TV that reads 3.0: the push and Advanced's settings file as the flows make them (the look
+        // keys without dock_apps and module_cards), so the file shows the 3.0 keys the look writes.
+        val pushed = LookSamples.push(if (reads30) LookSample("shot", ch, ch.dock, LookTv(9L, 2048, false)) else LookSample("shot", ch, ch.dock), source, source)
+        val full = pushed.second.decodeToString()
+        val settings = if (reads30) LauncherConfigCodec.encode(pushed.first.copy(dockApps = null, moduleCards = null)).decodeToString() else SETTINGS
         return LookDraft(
             "default", picture, preview = if (previews) preview(style, picture, columns, details, names, movement, lift, dock, e) else null,
             columns = columns, lookColumns = columns, style = style, names = names, movement = movement, movementPicked = movementPicked, lift = lift,
@@ -224,7 +229,7 @@ object LookFixtures {
             },
             rows = rows(style, details, picture, reads27, ramMb, movement, lift, names, resettable), changed = changed, newPhoto = newPhoto,
             wayBack = wayBack, note = note, styles = if (reads27) StyleId.entries else listOf(StyleId.CLASSIC), reads27 = reads27, ramMb = ramMb,
-            keyNames = keyNames, settingsFile = SETTINGS, fullFile = full, apps = dock.size + waiting, waiting = waiting, tvChanged = tvChanged,
+            keyNames = keyNames, settingsFile = settings, fullFile = full, apps = dock.size + waiting, waiting = waiting, tvChanged = tvChanged,
             reads30 = reads30, extras = e,
             actingExtras = if (reads30) acting(style, rows(style, details), e) else LookExtras.DEFAULT,
             offeredExtras = if (reads30) acting(style, rows(style, details), ALL_ON) else LookExtras.DEFAULT,

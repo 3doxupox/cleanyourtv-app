@@ -124,8 +124,7 @@ internal fun ColumnScope.LookMorePage(state: LookEditorState, onEdit: (LookEdit)
                 if (id == ExtraRows.BAND_NONE) {
                     x.edit(onEdit) { copy(noBand = true) }
                 } else {
-                    if (x.noBandOn) x.edit(onEdit) { copy(noBand = false) }
-                    BandChoice.of(id)?.let { onEdit(LookEdit.SetBand(it)) }
+                    BandChoice.of(id)?.let { onEdit(if (x.noBandOn) LookEdit.SetBandBack(it) else LookEdit.SetBand(it)) }
                 }
             },
             enabled = r.band.enabled, reason = r.band.reason?.let { reasonText(it) },

@@ -176,6 +176,9 @@ object TvShots {
         add(TvCase("icon_tiles_allapps", LookKeys.spec(StyleId.ALL_APPS), dock = dock15, extras = d.copy(tiles = TilesChoice.ICONS)))
         add(TvCase("rim", LookKeys.spec(StyleId.CLASSIC), extras = d.copy(highlight = HighlightChoice.RIM)))
         add(TvCase("halo", LookKeys.spec(StyleId.CLASSIC), extras = d.copy(highlight = HighlightChoice.HALO)))
+        // With Ring in the app's colour the glow is coloured, so halo's half glow shows beside rim's none.
+        add(TvCase("rim_ring", classic { it.copy(ring = true) }, extras = d.copy(highlight = HighlightChoice.RIM)))
+        add(TvCase("halo_ring", classic { it.copy(ring = true) }, extras = d.copy(highlight = HighlightChoice.HALO)))
     }
 
     private val today = LocalDate.of(2026, 10, 26)

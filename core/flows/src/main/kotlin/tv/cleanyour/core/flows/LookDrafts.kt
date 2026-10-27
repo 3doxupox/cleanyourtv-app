@@ -226,6 +226,7 @@ internal class LookDrafts(
             }
             is LookEdit.SetKeyNames -> p
             is LookEdit.SetExtras -> if (LookGates.reads30(ctx.tv.versionCode)) touched(p.copy(extras = edit.extras)) else p
+            is LookEdit.SetBandBack -> if (rows.band.enabled) touched(p.copy(details = p.details.copy(band = edit.band), extras = p.extras.copy(noBand = false))) else p
         }
         if (next == p && note == draft.note && ctx.keyNames == draft.keyNames) return draft
         return fill(next, ctx, note)

@@ -237,4 +237,15 @@ class LookPagesTest {
         compose.waitForIdle()
         compose.onAllNodesWithText("More choices come with home screen 3.0.").assertCountEquals(0)
     }
+
+    @Test fun aBandAfterNoneIsOneEdit() {
+        val nav = LookEditorNav()
+        val hits = mutableListOf<HomeScreenIntent>()
+        compose.showColumn { LookContent(sheet(LookFixtures.draft(previews = false, reads30 = true, extras = LookExtras(noBand = true))), { hits += it }, nav = nav) }
+        compose.runOnIdle { nav.open(LookPage.MORE) }
+        compose.waitForIdle()
+        compose.onNodeWithText("A light frosted band.").performScrollTo().performClick()
+        compose.waitForIdle()
+        assertEquals(listOf<HomeScreenIntent>(HomeScreenIntent.Look(LookEdit.SetBandBack(tv.cleanyour.core.spec.BandChoice.GLASS))), hits)
+    }
 }

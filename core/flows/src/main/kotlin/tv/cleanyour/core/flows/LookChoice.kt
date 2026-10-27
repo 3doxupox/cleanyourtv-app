@@ -117,6 +117,9 @@ sealed interface LookEdit {
     data class SetKeyNames(val on: Boolean) : LookEdit
     // Home screen 3.0's switches (LookExtras), all at once: the editor sends the whole new set.
     data class SetExtras(val extras: LookExtras) : LookEdit
+    // A dock band chosen while the band's None (home screen 3.0, dock_band false) is on: the band and
+    // the band back on, as one edit.
+    data class SetBandBack(val band: BandChoice) : LookEdit
 }
 
 // The Look editor's choice while it is open (the Look sheet and Setup's look step). Nothing reaches

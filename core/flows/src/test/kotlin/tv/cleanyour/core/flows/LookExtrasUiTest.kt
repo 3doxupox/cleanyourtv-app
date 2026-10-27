@@ -1,6 +1,7 @@
 package tv.cleanyour.core.flows
 
 import tv.cleanyour.core.model.PackageName
+import tv.cleanyour.core.spec.BandChoice
 import tv.cleanyour.core.spec.BundledThemeSource
 import tv.cleanyour.core.spec.ButtonsChoice
 import tv.cleanyour.core.spec.HighlightChoice
@@ -55,5 +56,18 @@ class LookExtrasUiTest {
         val d = open(StyleId.CLASSIC, all, tv = LookTv(8L, 2048, true))
         assertEquals(LookExtras.DEFAULT, d.actingExtras)
         assertEquals(LookExtras.DEFAULT, d.offeredExtras)
+    }
+
+    // Choosing a band while None is on is one edit: the band, and the band back on.
+    @Test fun aBandAfterNoneIsOneEdit() {
+        val tv = LookTv(9L, 2048, true)
+        val d = open(StyleId.CLASSIC, LookExtras(noBand = true))
+        assertEquals(true, d.actingExtras.noBand)
+        val e = drafts.edit(d, LookEdit.SetBandBack(BandChoice.GLASS), LookContext(apps, tv = tv))
+        assertEquals(false, e.extras.noBand)
+        assertEquals(BandChoice.GLASS, e.details.band)
+        // Spotlight keeps its own band: nothing changes.
+        val s = open(StyleId.SPOTLIGHT, LookExtras(noBand = true))
+        assertEquals(s, drafts.edit(s, LookEdit.SetBandBack(BandChoice.GLASS), LookContext(apps, tv = tv)))
     }
 }
