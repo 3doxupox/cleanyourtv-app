@@ -160,10 +160,12 @@ object HomeSwitchRisk {
 
     // beta3: a home screen app the person installed, by the snapshot's own package info: listed, not
     // a system app, not a wizard or a vendor home by name. One the snapshot does not list, or lists
-    // as a system app, is not (a vendor home ships as one).
+    // as a system app, is not (a vendor home ships as one). The probe falls back to the install path
+    // when it could not read a package's flags, and to "not a system app" when it read neither; a
+    // version code of 0 is that case (its details were not read), so it does not count either.
     fun installedHome(p: PackageName, snapshot: Snapshot): Boolean {
         val state = snapshot.packages[p] ?: return false
-        return !state.system && !isWizard(p) && p.value !in Denylist.vendorHomes && p !in KnownLaunchers.byPackage
+        return !state.system && state.versionCode > 0 && !isWizard(p) && p.value !in Denylist.vendorHomes && p !in KnownLaunchers.byPackage
     }
 
     // Any first-run wizard by name: Google's, a vendor's, AOSP's provision, or one named like setupwraith.

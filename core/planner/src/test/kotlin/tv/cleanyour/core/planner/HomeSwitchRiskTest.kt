@@ -415,6 +415,8 @@ class HomeSwitchRiskTest {
             fun other(snap: Snapshot, why: String) = assertEquals(Risk.OTHER_HOME, HomeSwitchRisk.of(mitv4i, null, snap, w, anyBrand = false), "$w: $why")
             other(r0Tv(mitv4i, three), "the app is not listed")
             other(withTheirs(r0Tv(mitv4i, three), system = true), "a system app")
+            other(withTheirs(r0Tv(mitv4i, three)).let { x -> x.copy(packages = x.packages + (theirs.pkg to x.packages.getValue(theirs.pkg).copy(versionCode = 0))) },
+                "its details were not read")
             other(withTheirs(r0Tv(mitv4i, listOf(HomeClaimant(tvlauncher, 2), HomeClaimant(theirs, 1), HomeClaimant(fallback, -1000)))), "priority 1")
             val wraith = Component(PackageName("person.setupwraith"), ".Main")
             check(withTheirs(r0Tv(mitv4i, listOf(HomeClaimant(tvlauncher, 2), HomeClaimant(wraith, 0))), pkg = wraith.pkg), "named like a wizard")
