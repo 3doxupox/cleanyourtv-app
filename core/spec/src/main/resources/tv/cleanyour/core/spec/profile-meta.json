@@ -3726,7 +3726,6 @@
         "Setup wizard, takes Home after the stock launcher is disabled": { "category": "home", "ask": false }
       },
       "packages": {
-        "com.google.android.tv.remote.service": { "category": "other", "ask": true },
         "com.xiaomi.mitv.smartshare": { "category": "casting", "ask": true },
         "com.xiaomi.wfdsinkhelperservice": { "category": "casting", "ask": true },
         "com.xiaomi.mi_connect_service": { "category": "casting", "ask": true },
@@ -3958,8 +3957,7 @@
         "com.xiaomo.tv.milegal": { "category": "other", "ask": false },
         "com.mstar.android.tv.disclaimercustomization": { "category": "other", "ask": false },
         "com.mediatek.wwtv.webview": { "category": "other", "ask": false },
-        "fusion.android.tv.demo": { "category": "demo", "ask": false },
-        "com.google.android.leanbacklauncher": { "category": "home", "ask": false }
+        "fusion.android.tv.demo": { "category": "demo", "ask": false }
       }
     },
     "xiaomi-mitv-mooq2": {
