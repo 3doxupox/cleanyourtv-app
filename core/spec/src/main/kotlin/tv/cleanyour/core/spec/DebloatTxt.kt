@@ -21,6 +21,8 @@ import java.security.MessageDigest
 // is never the title; the comment lines right under it that are indented (or that carry a second
 // '#', as "#      # more") continue its note, not the previous entry's. Scan.kept records these
 // packages with their notes, except one the same file also lists as active.
+// A curated entry may leave active lines out of the profile (FolderMeta.leftOut); they are then
+// treated as if commented out.
 // Any other unindented comment inside a run still ends the run, and the packages after it open a
 // group titled with that comment.
 // A file with no blank line between its header and the first group: the header ends at the last
@@ -224,6 +226,7 @@ internal object DebloatTxt {
         for (g in scan.groups) {
             val (gc, gask) = meta?.groups?.get(g.title)?.let { ProfileCategory.of(it.category) to it.ask } ?: ProfileCategory.guess(g.title)
             for (e in g.entries) {
+                if (meta != null && e.pkg.value in meta.leftOut) continue
                 if (!seen.add(e.pkg)) continue
                 if (e.pkg == KnownLaunchers.SETUPWRAITH && meta?.setupWraithStaysOn == true) { keptWizard = true; continue }
                 if (e.pkg == KnownLaunchers.SETUPWRAITH) { setupWraith = e.pkg; quirks += Quirk.HOME_TAKEOVER_SETUPWRAITH; continue }

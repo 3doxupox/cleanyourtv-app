@@ -40,6 +40,7 @@ object ProfileConverter {
                 (titles - m.groups.keys).forEach { problems += "${dir.name}: group title not in profile-meta.json: $it" }
                 (m.groups.keys - titles).forEach { problems += "${dir.name}: profile-meta.json names a group that is not there: $it" }
                 scan.keptOnlyTitles.forEach { problems += keptOnly(dir.name, it) }
+                staleLeftOut(scan, m).forEach { problems += "${dir.name}: profile-meta.json leaves out a package that is not an active line: $it" }
             }
             DebloatTxt.parse(text, dir.name, m)
         }
@@ -49,6 +50,12 @@ object ProfileConverter {
     }
 
     const val FACTS_FILE = "facts.tsv"
+
+    // FolderMeta.leftOut entries that name no active package line of the list.
+    internal fun staleLeftOut(scan: DebloatTxt.Scan, meta: FolderMeta): List<String> {
+        val active = scan.groups.flatMap { g -> g.entries.map { it.pkg.value } }.toSet()
+        return meta.leftOut.keys.filter { it !in active }
+    }
 
     // C2: packages under a comment block of kept lines only join the group before them; the list may
     // have meant a new group, so a curated folder with one fails until the list (or its curation) says.
@@ -72,6 +79,7 @@ object ProfileConverter {
                     (titles - m.groups.keys).forEach { problems += "candidate ${d.name}: group title not in candidate-meta.json: $it" }
                     (m.groups.keys - titles).forEach { problems += "candidate ${d.name}: candidate-meta.json names a group that is not there: $it" }
                     scan.keptOnlyTitles.forEach { problems += "candidate " + keptOnly(d.name, it) }
+                    staleLeftOut(scan, m).forEach { problems += "candidate ${d.name}: candidate-meta.json leaves out a package that is not an active line: $it" }
                     DebloatTxt.parse(text, d.name, m)
                 }
             }

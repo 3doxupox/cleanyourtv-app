@@ -38,9 +38,12 @@ class ProfilesTest {
             val scanned = DebloatTxt.scan(e.debloatTxt, e.folder).groups.flatMap { g -> g.entries.map { it.pkg } }.toSet()
             val inGroups = profile.groups.flatMap { g -> g.packages.map { it.name } }
             assertEquals(inGroups.size, inGroups.toSet().size, "${e.folder}: a package is in two groups")
-            // A wizard the curated takeover keeps on (setupWraithStaysOn) is never-disable instead.
+            // A wizard the curated takeover keeps on (setupWraithStaysOn) is never-disable instead, and a
+            // line the curated entry leaves out (leftOut) is in no place, as if commented out.
+            val leftOut = ProfileMeta.bundled.profiles.getValue(e.folder).leftOut.keys.map(::p).toSet()
             val placed = inGroups.toSet() + profile.stockLaunchers.map { it.pkg } + listOfNotNull(profile.setupWraith) +
-                profile.neverDisable.filter { it == KnownLaunchers.SETUPWRAITH }
+                profile.neverDisable.filter { it == KnownLaunchers.SETUPWRAITH } + leftOut
+            assertTrue(inGroups.none { it in leftOut }, "${e.folder}: a left-out line is in a group")
             assertEquals(emptySet(), scanned - placed, "${e.folder}: packages lost")
             assertTrue(inGroups.all { it in scanned }, e.folder)
         }
@@ -387,6 +390,27 @@ class ProfilesTest {
         assertEquals(listOf("# Model line"), blank.header)
         val noEmpty = DebloatTxt.scan("# Model line\n# Telemetry\ncom.a.b\n", "x")
         assertEquals(listOf("Model line"), noEmpty.groups.map { it.title })
+    }
+
+    // FolderMeta.leftOut: an active line the curated entry leaves out is in no group, as if it were
+    // commented out, and an entry that names no active line fails the conversion.
+    @Test fun leftOutLinesAreNotInTheProfile() {
+        val text = "# One\ncom.a.b\ncom.c.d   # left out\n\n# Two\ncom.e.f\n"
+        fun meta(leftOut: Map<String, String>) = FolderMeta(
+            match = MatchMeta(models = listOf("X"), brand = "B"), platform = "ANDROID_TV",
+            groups = mapOf("One" to CategoryMeta("tracking"), "Two" to CategoryMeta("ads")), leftOut = leftOut,
+        )
+        val all = DebloatTxt.parse(text, "x", meta(emptyMap())).groups.flatMap { g -> g.packages.map { it.name.value } }
+        assertEquals(listOf("com.a.b", "com.c.d", "com.e.f").sorted(), all.sorted())
+        val out = DebloatTxt.parse(text, "x", meta(mapOf("com.c.d" to "not tested off")))
+        assertEquals(listOf("com.a.b", "com.e.f").sorted(), out.groups.flatMap { g -> g.packages.map { it.name.value } }.sorted())
+        assertTrue(out.neverDisable.none { it.value == "com.c.d" })
+        val scan = DebloatTxt.scan(text, "x")
+        assertEquals(emptyList(), ProfileConverter.staleLeftOut(scan, meta(mapOf("com.c.d" to "r"))))
+        assertEquals(listOf("com.k.gone"), ProfileConverter.staleLeftOut(scan, meta(mapOf("com.c.d" to "r", "com.k.gone" to "r"))))
+        // A kept (commented-out) line is not an active line either.
+        val kept = DebloatTxt.scan("# One\ncom.a.b\n# com.c.d\n", "x")
+        assertEquals(listOf("com.c.d"), ProfileConverter.staleLeftOut(kept, meta(mapOf("com.c.d" to "r"))))
     }
 
     // The real lists that split a group at a kept line before the fix, and every upstream folder:
