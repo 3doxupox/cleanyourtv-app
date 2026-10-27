@@ -2,6 +2,8 @@
 
 ## RFC-UP037-1: the config differential test keeps launcher 2.5's reader
 
+(History: the app now bundles launcher 3.0 at b06ab21; see RFC-UP300-1.)
+
 The app bundles launcher 2.7 (v2.7.0, 3e34f40). ConfigDifferentialTest compared the codec with the
 upstream Config.java of the pinned submodule, copied in at build time. Launcher 2.7's Config.java
 reads 67 new keys and needs Android stubs (android.os.Environment) and resources (R entries for
@@ -37,6 +39,9 @@ under the editor. No layer, allowlist or feature rule changes; a feature still s
 new shared module (a new layer and a rule 3 change) or `:core:flows` (it cannot see `:ui:design`).
 
 ## RFC-LOOK2-ENGINE: the codec reads with launcher 2.7's own Config.java
+
+(History: since RFC-UP300-1 the pinned reader is launcher 3.0 at b06ab21, and the 2.7 reader is
+kept, frozen by digest, beside it.)
 
 Launcher 2.7 (3e34f40, versionCode 8) is now the pinned reader of `LauncherConfigCodec`: its
 Config.java (and the files it needs) is vendored under `core/spec/src/test/java/com/gathin/tvhome/v27`

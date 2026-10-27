@@ -11,8 +11,8 @@ import java.util.List;
 import java.util.Map;
 import tv.cleanyour.core.spec.upstream.UpstreamConfig;
 
-// Runs launcher 2.7's own Config.load (v2.7.0, 3e34f40, versionCode 8), the launcher the
-// app bundles. Config.java and the classes it calls are vendored in this package, launcher 2.7's
+// Runs launcher 2.7's own Config.load (v2.7.0, 3e34f40, versionCode 8), frozen: a TV updated to
+// 2.7 and not since (the app bundles 3.0, V30ConfigBridge). Config.java and the classes it calls are vendored in this package, launcher 2.7's
 // files with only the package line changed (LookDifferentialTest pins their digests). Every resource id in
 // R is answered from config.xml by its name. `privateDir` plays the app's private files dir, where
 // 2.7 keeps a copy of the last config.json it read; `prefs` plays launcher_settings (the choices

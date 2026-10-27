@@ -39,8 +39,9 @@ updating in place is always safe; the release certificate SHA-256 is in
 
 ## The bundled launcher: what it asks the TV for
 
-The app installs one launcher build, pinned by its SHA-256 (core/trust `PinnedLauncher`). Each
-upstream bump is reviewed against the previous pin; the changes in the manifest are listed here.
+The app installs one launcher build, pinned by its SHA-256 (core/trust `PinnedLauncher`): launcher
+3.0 (upstream main after v3.0.0, commit b06ab21, versionCode 9) since 0.4.5. Each upstream bump is
+reviewed against the previous pin; the changes in the manifest are listed here, newest first.
 
 Launcher 3.0 (upstream main after v3.0.0, commit b06ab21, versionCode 9; was 2.7, v2.7.0,
 versionCode 8). The manifest at this commit is the same as at the v3.0.0 tag:
