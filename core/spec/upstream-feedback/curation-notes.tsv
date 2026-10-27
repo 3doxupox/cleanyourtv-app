@@ -536,3 +536,11 @@ xiaomi-mitv-mosr4	fusion.android.tv.demo	ask row: on MediaTek MTC builds this re
 xiaomi-mitv-mssp2	com.google.android.videos	a streaming app in the preloaded group; ask row, as on the other Xiaomi lists
 xiaomi-mitv-mssp3-android9	(header)	v2.5.0 notes for the older PI.4663 firmware (upstream #494, alessandrodauria): no package change; there the old leanback home is installed next to tvlauncher, and the home screen switch turns off only the one that holds Home
 xiaomi-mitv-mssp3-android9	com.google.android.katniss	the header says the firmware turns it back on at every boot (REENABLED_AT_BOOT)
+xiaomi-mitv-mteq0	(home)	clean-up only: Home takes only allowlisted apps and with com.mitv.tvhome off the TV shows a black FallbackHome (its header); com.mitv.tvhome never-disable and not a known launcher
+xiaomi-mitv-mteq0	com.mitv.screensaver	the stock screensaver; ask row
+xiaomi-mitv-mteq0	com.xiaomi.gamecenter.sdk.service.mibox	Xiaomi store games may need it for sign-in; ask row as on xiaomi-mitv-astp1
+xiaomi-mitv-mteq0	com.xiaomi.mitv.appstore	the only app store on this set (no Google services); in the updates ask group with the OTA updater
+xiaomi-mitv-mteq0	com.xiaomi.mitv.smartpanel	the long-press Menu panel; ask row
+xiaomi-mitv-mteq0	com.xiaomi.mitv.tvpush.tvpushservice	on this family it also fetches the installer allowlist (redmi-mitv-mftp0 header); ask row
+xiaomi-mitv-mteq0	com.xiaomi.setupwizard	vendor first-run wizard, protected by the denylist; ask row (the planner keeps it on in any case)
+xiaomi-mitv-mteq0	fusion.android.tv.demo	ask row: on MediaTek builds this retail display app can also handle the Input key and remote pairing (hitachi-65qledsm20, xiaomi-mitv-mosr4)

@@ -37,6 +37,7 @@ com.hisense.platformreport	purpose from the package name
 com.hisense.tv.fitmirror	purpose from the list's comment only (fitness mirror)
 com.joxdev.orbia	what the app is (taken for a game from the list's games group)
 com.mautilus.tvgames.portal.androidtv	what the app is (taken for a game portal from the name and group)
+com.mediatek.TimeMeasurementAgent	purpose from the package name; the list says only that it is persistent
 com.mediatek.androidbox	what it is on each set: the Miracast receiver on the Hisense and Haier lists, a test app on the AiPro2K
 com.mediatek.tv.factory	purpose from the list's comment only
 com.mediatek.tv.freeviewplay	purpose from the lists' comments only
@@ -76,6 +77,7 @@ com.vestel.smartlogger	purpose from the list's comment only
 com.vision.aibook	purpose from the list's comment only (AI picture book)
 com.vt.tv.interactive	purpose from the package name and its group (broadcast middleware)
 com.wrcplus.release	whether it is a rally game or the WRC+ video app
+com.xiaomi.account.auth	purpose from the package name
 com.xiaomi.gamecenter.sdk.service.mibox	purpose from the package name; the list only says game SDK
 com.xiaomi.mi_connect_service	purpose from the package name; not described in the list
 com.xiaomi.mitv.calendar	purpose from the list's comment only

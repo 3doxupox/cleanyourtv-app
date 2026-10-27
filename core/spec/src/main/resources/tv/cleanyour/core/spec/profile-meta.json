@@ -4222,6 +4222,36 @@
       },
       "packages": {}
     },
+    "xiaomi-mitv-mteq0": {
+      "match": { "models": ["MiTV-MTEQ0"], "devices": ["baymax"], "brand": "Xiaomi", "sdkMin": 29, "sdkMax": 29, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.mitv.tvhome"],
+      "liveTv": "com.xiaomi.mitv.tvplayer",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.mitv.tvhome", "mitv.service", "com.xiaomi.mitv.tvplayer", "com.xiaomi.mitv.settings", "com.xiaomi.mitv.systemui", "com.xiaomi.mitv.providers.settings", "com.mediatek.backgrounddetection", "com.mediatek.tvinput", "com.sohu.inputmethod.sogou.tv", "com.xiaomi.setupwizard"],
+      "suggestedDock": [],
+      "tested": { "by": "Gấu Coder (PR #612)", "firmware": "23.6.26.4028 (QQ2A.200305.004.A1)", "daysLivedWith": 1, "rebootTested": true },
+      "groups": {
+        "Xiaomi telemetry, diagnostics and log upload": { "category": "tracking", "ask": false },
+        "Push, cloud control, ads and promoted content": { "category": "ads", "ask": false },
+        "Shopping, payment and Mi account": { "category": "brand", "ask": true },
+        "Updates and app store": { "category": "updates", "ask": true },
+        "Cleaners, panels and first-run setup": { "category": "brand", "ask": false },
+        "Casting (off by choice)": { "category": "casting", "ask": true },
+        "Smart home / IoT": { "category": "brand", "ask": true },
+        "XiaoAI voice assistant. The remote's mic key only reaches com.xiaomi.voicecontrol (no key event),": { "category": "voice", "ask": true },
+        "Preloaded apps (off by choice)": { "category": "preloads", "ask": true }
+      },
+      "packages": {
+        "com.xiaomi.mitv.tvpush.tvpushservice": { "category": "tracking", "ask": true },
+        "com.mitv.screensaver": { "category": "screensaver", "ask": true },
+        "fusion.android.tv.demo": { "category": "demo", "ask": true },
+        "com.xiaomi.gamecenter.sdk.service.mibox": { "category": "brand", "ask": true },
+        "com.xiaomi.mitv.smartpanel": { "category": "brand", "ask": true },
+        "com.xiaomi.setupwizard": { "category": "other", "ask": true }
+      }
+    },
     "xiaomi-tv-a-pro-2026": {
       "match": { "models": ["MiTV-MZTU0"], "devices": ["river"], "brand": "Xiaomi", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
       "platform": "GOOGLE_TV",

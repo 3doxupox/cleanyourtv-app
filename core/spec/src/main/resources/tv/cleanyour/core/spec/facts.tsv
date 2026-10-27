@@ -462,6 +462,7 @@ com.limelight	Moonlight	Game streaming from a PC	streaming
 com.mautilus.tvgames.portal.androidtv	TV games portal	Preloaded game portal	preloads
 com.mediatek.AirplayAPK	AirPlay (MediaTek)	Receives AirPlay from Apple devices	casting
 com.mediatek.MtkDemo	MediaTek demo	MediaTek's store demo app	demo
+com.mediatek.TimeMeasurementAgent	MediaTek timing agent	MediaTek measurement service	tracking
 com.mediatek.airplaydaemon	AirPlay service	Background service for AirPlay	casting
 com.mediatek.android.leanbacklauncher.partnercustomizer	Home screen partner config	Partner rows; some MediaTek TVs need it for the TV service at boot	system
 com.mediatek.androidbox	Screen sharing	Miracast receiver (Wi-Fi Display)	casting
@@ -516,6 +517,7 @@ com.miui.hybrid.tv	Xiaomi quick apps	Runs Xiaomi mini apps and promotions	brand
 com.miui.misightservice	Xiaomi MiSight	Remote diagnostics and log upload to Xiaomi	tracking
 com.miui.tv.analytics	Xiaomi Analytics	Reports what you watch to Xiaomi	tracking
 com.mk.tv.meeting.service	Meeting service	Vendor video meeting service	brand
+com.mstar.android.media.tests	MStar media tests	Factory media test cases	other
 com.mstar.android.tv.disclaimercustomization	Vendor disclaimer	Disclaimer screen	other
 com.mstar.netflixobserver	Netflix button helper	Runs the remote's Netflix button; turns Netflix back on at startup	other
 com.mxtech.videoplayer.television	MX Player	Video player and streaming app	streaming
@@ -866,8 +868,11 @@ com.xgimi.minitvfactory	XGIMI factory menu	Factory menu and test services	demo
 com.xgimi.ota.accessories	XGIMI accessory updates	Firmware updates for the remote, speaker and other accessories	updates
 com.xgimi.screensaver	XGIMI screensaver	Atmosphere screensaver and ambient scenes	screensaver
 com.xgimi.upgrade	XGIMI updater	XGIMI firmware updates	updates
+com.xiaomi.account	Mi account	Xiaomi account, for Xiaomi's paid content	brand
+com.xiaomi.account.auth	Mi account sign-in	Sign-in service for the Xiaomi account	brand
 com.xiaomi.aitranslate	Xiaomi AI translation	Translates subtitles with AI	preloads
 com.xiaomi.amazon.alexa	Xiaomi Alexa bridge	Alexa integration	voice
+com.xiaomi.android.TV.audio	Audio debug tool	Xiaomi audio debugging tool	other
 com.xiaomi.android.tvsetup.partnercustomizer	Xiaomi setup helper	Remote pairing and shortcut keys	system
 com.xiaomi.eetv.litehome	Xiaomi office mode	A second home screen for office use	preloads
 com.xiaomi.floatingframe	Xiaomi floating frame	Floating promo overlay	ads
@@ -877,8 +882,10 @@ com.xiaomi.mibox.lockscreen	Child lock	Child mode and privacy lock screen	other
 com.xiaomi.mico.mqtt.service.application.tv	Xiao Ai speaker link	Lets a Xiao Ai speaker control the TV	voice
 com.xiaomi.mimusic2	Mi Music	Xiaomi music app	preloads
 com.xiaomi.miplay	MiPlay	Casting from Xiaomi phones	casting
+com.xiaomi.mitv.appstore	Xiaomi app store	Xiaomi's own app store (China)	brand
 com.xiaomi.mitv.calendar	Mi Calendar	Xiaomi calendar app	preloads
 com.xiaomi.mitv.csi	Xiaomi after-sales assistant	Uploads satisfaction surveys to Xiaomi	tracking
+com.xiaomi.mitv.debug	Xiaomi debug service	Collects logs for Xiaomi	tracking
 com.xiaomi.mitv.handbook	Mi handbook	On-screen user manual	preloads
 com.xiaomi.mitv.health	MiHealth	Xiaomi health app	preloads
 com.xiaomi.mitv.healthdiagnosis	Xiaomi health check	Xiaomi health app add-on	preloads
@@ -902,6 +909,7 @@ com.xiaomi.mitv.tvvideocall	MiTime video calls	Video calling app	preloads
 com.xiaomi.mitv.updateservice	Xiaomi updater	Firmware and PatchWall updates	updates
 com.xiaomi.mitv.upgrade	Xiaomi updater	Downloads and installs firmware updates	updates
 com.xiaomi.screenrecorder	Screen recorder	Records the TV screen	preloads
+com.xiaomi.setupwizard	Xiaomi setup	The TV's first-run setup	other
 com.xiaomi.smarthome.tv	Mi Home	Xiaomi smart home app; also lets a Xiao Ai speaker control the TV	voice
 com.xiaomi.statistic	Xiaomi statistics	Sends usage statistics to Xiaomi	tracking
 com.xiaomi.tv.gallery	Xiaomi Pictorial	Wallpaper and photo app with advert code	preloads
