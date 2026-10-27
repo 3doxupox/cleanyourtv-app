@@ -508,7 +508,7 @@
         "com.tcl.playskill": { "category": "brand", "ask": false },
         "com.tcl.repairguide": { "category": "brand", "ask": false },
         "com.tcl.useragreement": { "category": "other", "ask": false },
-        "com.tcl.xian.StartandroidService": { "category": "other", "ask": true }
+        "com.tcl.xian.StartandroidService": { "category": "updates", "ask": true }
       }
     },
     "freebox-player-pop": {
@@ -3154,7 +3154,7 @@
         "com.tcl.playskill": { "category": "brand", "ask": false },
         "com.tcl.repairguide": { "category": "brand", "ask": false },
         "com.tcl.useragreement": { "category": "other", "ask": false },
-        "com.tcl.xian.StartandroidService": { "category": "other", "ask": true },
+        "com.tcl.xian.StartandroidService": { "category": "updates", "ask": true },
         "com.tcl.versionUpdateApp": { "category": "updates", "ask": true },
         "com.tcl.UpdatePeripheral": { "category": "updates", "ask": true },
         "com.tcl.usercenter": { "category": "other", "ask": true },

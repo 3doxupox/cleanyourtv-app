@@ -112,7 +112,7 @@ ffalcon-65s585c-pro	(match)	device tcl_mt5879_cn, the same device and build as t
 ffalcon-65s585c-pro	(match)	brand inferred, confirm with getprop: FFalcon; a wrong guess fails closed (the set gets tcl-q10g-pro, the list for the same firmware)
 ffalcon-65s585c-pro	com.tcl.appreciate.art	art screensaver content; screensavers are ask rows
 ffalcon-65s585c-pro	com.tcl.useragreement	default-off as on tcl-q10g-pro, the same firmware, where the header checked a full reboot
-ffalcon-65s585c-pro	com.tcl.xian.StartandroidService	listed as a reporting service, but six TCL lists keep it as a needed system service; ask row as on tcl-q10g-pro
+ffalcon-65s585c-pro	com.tcl.xian.StartandroidService	listed as a reporting service, but six TCL lists keep it as a needed system service, and tcl-g03-google-tv's header at b06ab21 says TCL's updater gets the device number through it (the network update check fails with it off): a Software updates row (D22), as on tcl-q10g-pro
 freebox-player-pop	(header)	factory test apps; other brands keep their factory menus, so the group is an ask row (camera2 and the print spooler stay default-off)
 freebox-player-pop	(header)	the header's leave-alone list: OQEE and its TV app, the DVB-T tuner input and its database, the Bluetooth remote, IR learning, remote keys, key provisioning, Free's billing and customisation services, and the firmware and remote updaters kept by choice
 freebox-player-pop	(launcher)	the stock home is OQEE (net.oqee.launcher), not one of the home screens the app knows, so the app gives the clean-up only and leaves OQEE as Home
@@ -435,6 +435,7 @@ tcl-g09-google-tv	com.tcl.usercenter	the TCL account; ask row as on the other TC
 tcl-g10-google-tv	com.google.android.marvin.talkback	accessibility helpers are ask rows (safety rule 8; the accessibility category asks already, the row now says so)
 tcl-g10-google-tv	com.google.android.tv.remote.service	since b06ab21 the list keeps it on (the remote mic's bridge, #1441), so it is no row and needs no entry; the denylist never switches it off
 tcl-g10-google-tv	com.tcl.channelplus	TCL Live registers a TV input (tcl-g07 header); TV inputs are never default-off, so it is an ask row here too and leaves the TCL sure set (0.2.0 safety review)
+tcl-q10g-pro	com.tcl.xian.StartandroidService	a Software updates row (D22): tcl-g03-google-tv's header at b06ab21 says TCL's updater gets the device number through it, and with it off the network update check fails
 tcl-qm6k-google-tv	com.tcl.channelplus	TCL Live registers a TV input (tcl-g07 header); TV inputs are never default-off, so it is an ask row here too and leaves the TCL sure set (0.2.0 safety review)
 tcl-uniontv-latin-america	com.tcl.appmarket2	TCL's app store, carries a package installer service (tcl-beyondtv-rt2851 header); ask row
 tcl-uniontv-latin-america	com.tcl.common.terminalmanagerplus	device management that watches installs; tcl-beyondtv2 and the Thomson list keep it; ask row
