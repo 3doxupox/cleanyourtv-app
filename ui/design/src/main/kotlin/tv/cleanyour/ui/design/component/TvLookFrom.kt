@@ -36,5 +36,7 @@ fun LookPreview.toTvLook(picture: ImageBitmap?, crop: Boolean = false): TvLook {
         dots = dots, scrim = scrim, art = art, lift = lift, crop = crop, others = others,
         date = today.format(DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.getDefault())).uppercase(Locale.getDefault()),
         minuteOfDay = minuteOfDay,
+        oneRow = oneRow, bandAll = bandAll, greetingShown = greetingShown, dateBelow = dateBelow, brightDate = brightDate,
+        iconTiles = iconTiles, highlight = highlight, dockColours = dockArgb.map { Color(it) }, otherColours = othersArgb.map { Color(it) },
     )
 }

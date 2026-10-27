@@ -9,10 +9,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import tv.cleanyour.core.flows.LookEdit
+import tv.cleanyour.core.spec.HighlightChoice
 import tv.cleanyour.core.spec.LookKeys
 import tv.cleanyour.ui.design.R
 
-// Advanced (prototype pageAdv): Lift and zoom (shown per LookGates.liftShown), the See-through
+// Advanced (prototype pageAdv): Lift and zoom (shown per LookGates.liftShown), the Highlight
+// (home screen 3.0, glass_style), the See-through
 // amount, Sky strength, Show launcher names, the settings file with Copy (the full file, dock apps
 // too) and the "Not in this app" line. Everything here goes to the TV with the look; a tap only
 // chooses.
@@ -32,6 +34,19 @@ internal fun ColumnScope.LookAdvancedPage(state: LookEditorState, onEdit: (LookE
                     keyName = KEY_NAMES["lift"].takeIf { keys },
                 )
             }
+        }
+        val x = ExtraRows(state)
+        if (x.highlight) {
+            LookSublabel(stringResource(R.string.cyt_look_highlight))
+            LookRadioList(
+                listOf(
+                    RadioChoice(HighlightChoice.GLASS.id, stringResource(R.string.cyt_look_highlight_glass), stringResource(R.string.cyt_look_highlight_glass_desc)),
+                    RadioChoice(HighlightChoice.RIM.id, stringResource(R.string.cyt_look_highlight_rim), stringResource(R.string.cyt_look_highlight_rim_desc)),
+                    RadioChoice(HighlightChoice.HALO.id, stringResource(R.string.cyt_look_highlight_halo), stringResource(R.string.cyt_look_highlight_halo_desc)),
+                ),
+                x.acting.highlight.id, { id -> HighlightChoice.entries.firstOrNull { it.id == id }?.let { h -> x.edit(onEdit) { copy(highlight = h) } } },
+                keyName = KEY_NAMES["highlight"].takeIf { keys },
+            )
         }
         val seeTitle = stringResource(R.string.cyt_look_see_amount)
         LookSublabel(seeTitle)

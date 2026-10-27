@@ -30,6 +30,9 @@ import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.spec.BandChoice
 import tv.cleanyour.core.spec.ButtonsChoice
 import tv.cleanyour.core.spec.GlowChoice
+import tv.cleanyour.core.spec.HighlightChoice
+import tv.cleanyour.core.spec.LookExtras
+import tv.cleanyour.core.spec.TilesChoice
 import tv.cleanyour.core.spec.LauncherConfigCodec
 import tv.cleanyour.core.spec.LookKeys
 import tv.cleanyour.core.spec.LookSpec
@@ -93,6 +96,7 @@ class TvCase(
     val inputs: Boolean = false,
     val crop: Boolean = false,
     val rtl: Boolean = false,
+    val extras: LookExtras = LookExtras.DEFAULT,
 ) {
     override fun toString() = name
 }
@@ -161,12 +165,26 @@ object TvShots {
         add(TvCase("crop-classic", LookKeys.spec(StyleId.CLASSIC), crop = true))
         add(TvCase("crop-spotlight", spot, crop = true))
         add(TvCase("rtl-glass-mist", LookKeys.spec(StyleId.GLASS), rtl = true))
+        // Home screen 3.0 (0.4.5): each switch on Classic with Mist, from the bytes it writes.
+        val d = LookExtras.DEFAULT
+        add(TvCase("one_row", LookKeys.spec(StyleId.CLASSIC), dock = dock15, extras = d.copy(oneRow = true)))
+        add(TvCase("one_row_spotlight", spot, dock = dock15, extras = d.copy(oneRow = true)))
+        add(TvCase("no_band", LookKeys.spec(StyleId.CLASSIC), extras = d.copy(noBand = true)))
+        add(TvCase("header_variants", LookKeys.spec(StyleId.CLASSIC), extras = d.copy(hideGreeting = true, dateBelow = true, brightDate = true)))
+        add(TvCase("icon_tiles", LookKeys.spec(StyleId.CLASSIC), dock = dock15, extras = d.copy(tiles = TilesChoice.ICONS)))
+        // All apps: the focused app's name under its card, as the grid shows it (AppAdapter.java:463-466).
+        add(TvCase("icon_tiles_allapps", LookKeys.spec(StyleId.ALL_APPS), dock = dock15, extras = d.copy(tiles = TilesChoice.ICONS)))
+        add(TvCase("rim", LookKeys.spec(StyleId.CLASSIC), extras = d.copy(highlight = HighlightChoice.RIM)))
+        add(TvCase("halo", LookKeys.spec(StyleId.CLASSIC), extras = d.copy(highlight = HighlightChoice.HALO)))
+        // With Ring in the app's colour the glow is coloured, so halo's half glow shows beside rim's none.
+        add(TvCase("rim_ring", classic { it.copy(ring = true) }, extras = d.copy(highlight = HighlightChoice.RIM)))
+        add(TvCase("halo_ring", classic { it.copy(ring = true) }, extras = d.copy(highlight = HighlightChoice.HALO)))
     }
 
     private val today = LocalDate.of(2026, 10, 26)
 
     fun preview(case: TvCase): LookPreview {
-        val bytes = LauncherConfigCodec.encode(LookKeys.build(case.spec, case.picture.keys, case.columns, case.dock.map { it.pkg }, cards = true))
+        val bytes = LauncherConfigCodec.encode(LookKeys.build(case.spec, case.picture.keys, case.columns, case.dock.map { it.pkg }, cards = true, extras = case.extras))
         return LookPreview.of(bytes, null, case.dock, others.filter { o -> case.dock.none { it.pkg == o.pkg } }, today, case.minute, case.inputs)
     }
 

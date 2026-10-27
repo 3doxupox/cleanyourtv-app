@@ -226,6 +226,7 @@ internal class LookDrafts(
             }
             is LookEdit.SetKeyNames -> p
             is LookEdit.SetExtras -> if (LookGates.reads30(ctx.tv.versionCode)) touched(p.copy(extras = edit.extras)) else p
+            is LookEdit.SetBandBack -> if (rows.band.enabled) touched(p.copy(details = p.details.copy(band = edit.band), extras = p.extras.copy(noBand = false))) else p
         }
         if (next == p && note == draft.note && ctx.keyNames == draft.keyNames) return draft
         return fill(next, ctx, note)
@@ -352,6 +353,8 @@ internal class LookDrafts(
             tvChanged = ctx.tvChanged,
             reads30 = LookGates.reads30(tv.versionCode),
             extras = if (LookGates.reads30(tv.versionCode)) p.extras else LookExtras.DEFAULT,
+            actingExtras = LookRules.extras(p, rows, tv),
+            offeredExtras = LookRules.extras(p.copy(extras = ALL_ON), rows, tv),
         )
     }
 
@@ -411,6 +414,10 @@ internal class LookDrafts(
 
     companion object {
         val OFFERED = DockLayers.MIN_OFFERED_COLUMNS..DockLayers.MAX_OFFERED_COLUMNS
+
+        // Every 3.0 switch on, for offeredExtras.
+        private val ALL_ON = LookExtras(oneRow = true, bandAll = true, noBand = true, hideGreeting = true, dateBelow = true, brightDate = true,
+            wifiWarnings = true, tiles = tv.cleanyour.core.spec.TilesChoice.ICONS, highlight = tv.cleanyour.core.spec.HighlightChoice.RIM)
 
         private const val BIG_NAME = "bigName"
         private const val GLOW = "glow"
