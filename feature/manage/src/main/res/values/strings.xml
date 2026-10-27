@@ -44,6 +44,7 @@
     <string name="manage_row_cards_none">No cards yet</string>
     <string name="manage_row_switched_off">{count, plural, other {Switched off (#)}}</string>
     <string name="manage_row_switched_off_sub">Put any of them back</string>
+    <string name="manage_row_better_back_on">{count, plural, one {# app is better switched back on} other {# apps are better switched back on}}</string>
     <string name="manage_row_leftovers">Check for leftovers</string>
     <string name="manage_row_leftovers_sub">After a TV software update</string>
     <string name="manage_row_restore">Restore point</string>
@@ -87,6 +88,10 @@
     <string name="switchedoff_group_other">Chosen under Customise</string>
     <string name="switchedoff_put_back">Put back</string>
     <string name="switchedoff_put_back_cd">Put {name} back</string>
+    <string name="switchedoff_group_better">Better back on</string>
+    <string name="switchedoff_better_kept">The list for this TV now keeps it on.</string>
+    <string name="switchedoff_switch_back_on">Switch back on</string>
+    <string name="switchedoff_switch_back_on_cd">Switch {name} back on</string>
     <string name="switchedoff_snackbar">{name} is back on.</string>
     <string name="switchedoff_empty">Nothing is switched off right now.</string>
     <string name="switchedoff_empty_sub">Everything on the TV is switched on.</string>

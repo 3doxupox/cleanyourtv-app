@@ -36,6 +36,7 @@ import tv.cleanyour.core.flows.Confirmations
 import tv.cleanyour.core.flows.OpenWrite
 import tv.cleanyour.core.flows.OpenWriteAction
 import tv.cleanyour.core.flows.Reach
+import tv.cleanyour.core.flows.OffGroup
 import tv.cleanyour.core.flows.SwitchedOffIntent
 import tv.cleanyour.core.flows.SwitchedOffState
 import tv.cleanyour.core.flows.TvSettingsIntent
@@ -139,6 +140,11 @@ fun ManageScreen(state: ManageState, onIntent: (ManageIntent) -> Unit, modifier:
                 // STORES-PLAN 1: the Play build has no add-ons, so no row that leads to them.
                 if (state.addOns) {
                     ListRow(stringResource(R.string.manage_row_cards), onClick = { onIntent(ManageIntent.Open(ManageSection.MODULES)) })
+                    ListDivider()
+                }
+                // WP4 (C6): what the list for this TV now keeps on, as one line into Switched off.
+                if (tv.betterBackOn > 0) {
+                    ListRow(msg(R.string.manage_row_better_back_on, "count" to tv.betterBackOn), onClick = { onIntent(ManageIntent.Open(ManageSection.SWITCHED_OFF)) })
                     ListDivider()
                 }
                 ListRow(msg(R.string.manage_row_switched_off, "count" to tv.switchedOff), subtitle = stringResource(R.string.manage_row_switched_off_sub),
@@ -250,6 +256,8 @@ fun SwitchedOffScreen(state: SwitchedOffState, onIntent: (SwitchedOffIntent) -> 
             Lead(stringResource(R.string.switchedoff_intro), Modifier.padding(top = 12.dp))
         }
         state.groups.forEach { g ->
+            // WP4 (C6): "Better back on" at the top, each row with our reason and the ordinary PutBack.
+            if (g.id == OffGroup.BETTER_BACK_ON) { BetterBackOnGroup(g, state.busy, onIntent); return@forEach }
             SectionLabel(g.title.ifEmpty { stringResource(R.string.switchedoff_group_other) })
             ListGroup {
                 g.rows.forEachIndexed { i, r ->
@@ -272,6 +280,23 @@ fun SwitchedOffScreen(state: SwitchedOffState, onIntent: (SwitchedOffIntent) -> 
             )
         }
         Gap(24.dp)
+    }
+}
+
+@Composable
+private fun BetterBackOnGroup(g: OffGroup, busy: PackageName?, onIntent: (SwitchedOffIntent) -> Unit) {
+    SectionLabel(stringResource(R.string.switchedoff_group_better))
+    ListGroup {
+        g.rows.forEachIndexed { i, r ->
+            if (i > 0) ListDivider()
+            val cd = msg(R.string.switchedoff_switch_back_on_cd, "name" to r.name)
+            val kept = stringResource(R.string.switchedoff_better_kept)
+            ListRow(r.name, subtitle = listOfNotNull(r.reason, kept).joinToString(" "), trailing = {
+                if (busy == r.pkg) Box(Modifier.padding(horizontal = 16.dp)) { Spinner() }
+                else TertiaryButton(stringResource(R.string.switchedoff_switch_back_on), { onIntent(SwitchedOffIntent.PutBack(r.pkg)) },
+                    Modifier.semantics { contentDescription = cd }, enabled = busy == null)
+            })
+        }
     }
 }
 

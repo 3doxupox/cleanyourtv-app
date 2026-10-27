@@ -7,6 +7,7 @@ import tv.cleanyour.core.engine.RunState
 import tv.cleanyour.core.model.DebugState
 import tv.cleanyour.core.model.Level
 import tv.cleanyour.core.model.TvId
+import tv.cleanyour.core.planner.PutBackAdvice
 import tv.cleanyour.core.spec.DockLayers
 
 // M1, the app's home once a TV exists (UX 4.11 case A).
@@ -28,6 +29,9 @@ data class TvCard(
     // 0.3.3 D2: the new home screen is not on this TV (HomeScreenMachine says why), so the Home
     // screen row says the TV keeps its own instead of naming a dock.
     val ownHome: Boolean = false,
+    // WP4 (C6): apps this phone switched off that the list for this TV now keeps on (PutBackAdvice);
+    // Manage shows one line for them that opens the Switched off list.
+    val betterBackOn: Int = 0,
 )
 
 data class ManageState(
@@ -73,7 +77,8 @@ class ManageMachine(
             combine(d.tvs.tvs, d.sessions.states) { tvs, states -> tvs to states }.collect { (tvs, states) ->
                 val cards = tvs.sortedByDescending { it.lastSeenAt }.map { tv ->
                     val run = d.engine.runState(tv.id).value
-                    val off = d.ledger.switchedOffByUs(tv.id).size
+                    val offPkgs = d.ledger.switchedOffByUs(tv.id)
+                    val off = offPkgs.size
                     val home = d.homePrefs.load(tv.id)
                     val latest = d.snapshots.latest(tv.id)
                     TvCard(
@@ -84,6 +89,7 @@ class ManageMachine(
                         restorePointAtMs = latest?.takenAtMs, debugging = tv.debugging,
                         helpAddTv = tv.profileId == null && latest != null,
                         ownHome = tv.launcher == null && latest != null && Launcher.pkg !in latest.packages,
+                        betterBackOn = PutBackAdvice.offers(tv.profileId, latest, d.ledger.changes(tv.id)).map { it.pkg }.distinct().count { it in offPkgs },
                     )
                 }
                 send(Loaded(cards))

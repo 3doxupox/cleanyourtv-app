@@ -9,14 +9,24 @@ import tv.cleanyour.core.model.PackageGroup
 import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.model.TvId
 import tv.cleanyour.core.planner.PlanRequest
+import tv.cleanyour.core.planner.PutBackAdvice
 import tv.cleanyour.core.spec.ProfileCategory
 
 // M4 "Switched off (23)": rows by group with "Put back" (one op, 5 s undo snackbar, UX 4.13); the
 // Custom level adds the profile's `ask` groups with Off / Kept pills (D2). In a build whose updaters
 // always stay on (StoreRules.updatesOff false, the Google Play build) an updater gets no pill and
 // putting one back offers no Undo, so "updates go off" is never offered (RF-STORES-030 M2).
-data class OffRow(val pkg: PackageName, val name: String, val description: String?, val off: Boolean)
-data class OffGroup(val id: String, val title: String, val rows: List<OffRow>)
+//
+// "Better back on" (WP4, C6): a group at the top for what this app switched off that the list for
+// this TV now keeps on (PutBackAdvice). Each row carries our `reason`; its button is the ordinary
+// PutBack. Nothing runs until the person taps.
+data class OffRow(val pkg: PackageName, val name: String, val description: String?, val off: Boolean, val reason: String? = null)
+data class OffGroup(val id: String, val title: String, val rows: List<OffRow>) {
+    companion object {
+        const val BETTER_BACK_ON = "better_back_on"
+        const val BETTER_BACK_ON_TITLE = "Better back on"
+    }
+}
 
 data class SwitchedOffState(
     val tvName: String = "",
@@ -95,17 +105,24 @@ class SwitchedOffMachine(
         val tv = d.tv(tvId) ?: return
         val off = d.ledger.switchedOffByUs(tvId)
         val profile = d.profileOf(tv)
-        val labels = d.snapshots.latest(tvId)?.packages.orEmpty()
+        val latest = d.snapshots.latest(tvId)
+        val labels = latest?.packages.orEmpty()
         fun row(p: PackageName, isOff: Boolean) = OffRow(p, d.nameOf(p, labels[p]?.label), d.facts.lookup(p)?.description, isOff)
         val groups = profile?.groups.orEmpty()
         profileGroups = groups
         val placed = HashSet<PackageName>()
+        // Only what this list shows as switched off by us, and PutBackAdvice's own rule on top.
+        val advice = PutBackAdvice.offers(tv.profileId, latest, d.ledger.changes(tvId)).filter { it.pkg in off }
+        val better = advice.distinctBy { it.pkg }.map { e -> row(e.pkg, true).copy(reason = e.reason) }
+        val atTop = better.map { it.pkg }.toSet()
+        placed += atTop
         val byGroup = groups.mapNotNull { g ->
-            val rows = g.packages.map { it.name }.filter { it in off }.map { placed += it; row(it, true) }
+            val rows = g.packages.map { it.name }.filter { it in off && it !in atTop }.map { placed += it; row(it, true) }
             if (rows.isEmpty()) null else OffGroup(g.id, g.title, rows)
         }
         val rest = off.filterNot { it in placed }.map { row(it, true) }
-        val all = byGroup + listOfNotNull(if (rest.isEmpty()) null else OffGroup("other", "", rest))
+        val top = if (better.isEmpty()) null else OffGroup(OffGroup.BETTER_BACK_ON, OffGroup.BETTER_BACK_ON_TITLE, better)
+        val all = listOfNotNull(top) + byGroup + listOfNotNull(if (rest.isEmpty()) null else OffGroup("other", "", rest))
         val ask = if (tv.level == Level.CUSTOM) groups.filter { it.default == GroupDefault.ASK }.map { g ->
             OffGroup(g.id, g.title, g.packages.filter { labels.containsKey(it.name) && !keptOn(it.name) }.map { row(it.name, it.name in off) })
         }.filter { it.rows.isNotEmpty() } else emptyList()

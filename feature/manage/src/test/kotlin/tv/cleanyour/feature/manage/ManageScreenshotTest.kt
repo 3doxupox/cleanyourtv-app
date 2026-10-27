@@ -178,6 +178,12 @@ private val playSettings = appSettings().copy(updateCheck = false, addOns = fals
 private val playOffGroups = offGroups.dropLast(1) + OffGroup("updates", "Software updates", listOf(
     off("com.mitv.otaextra", "Update helper", "Checks for new TV software"),
 )) + offGroups.last()
+private val betterGroups = listOf(
+    OffGroup(OffGroup.BETTER_BACK_ON, OffGroup.BETTER_BACK_ON_TITLE, listOf(
+        off("com.tcl.xian.StartandroidService", "TCL start service", null).copy(reason = "TCL's software update needs this to find your TV."),
+        off("com.google.android.tv.remote.service", "Remote service", "Lets a phone work as the remote").copy(reason = "Your remote's mic button needs this."),
+    )),
+)
 private val playAskGroups = askGroups.filter { it.id != "updates" }
 
 object ManageShots {
@@ -195,6 +201,8 @@ object ManageShots {
         Shot("manage_help_add_tv", tall) { ManageScreen(manage(card().copy(helpAddTv = true)), {}) },
         // 0.3.3 D2 (issue #3): the new home screen isn't on this TV; the Home screen row says so.
         Shot("manage_own_home", tall) { ManageScreen(manage(card().copy(helpAddTv = true, ownHome = true, dockNames = emptyList())), {}) },
+        // WP4 (C6): one line for the apps the list for this TV now keeps on.
+        Shot("manage_better_back_on", tall) { ManageScreen(manage(card().copy(betterBackOn = 2)), {}) },
         Shot("manage_two_tvs", tall) {
             val other = card().copy(id = TvId("1111222233334444"), name = "Bedroom Chromecast", room = "Bedroom")
             ManageScreen(manage(others = listOf(other)), {})
@@ -226,6 +234,8 @@ object ManageShots {
         Shot("switchedoff_groups", tall) { SwitchedOffScreen(switchedOff(), {}, {}) },
         Shot("switchedoff_busy", tall) { SwitchedOffScreen(switchedOff(busy = "com.glance.tv"), {}, {}) },
         Shot("switchedoff_custom", tall) { SwitchedOffScreen(switchedOff(Level.CUSTOM, ask = askGroups), {}, {}) },
+        // WP4 (C6): "Better back on" at the top, each row with its reason and "Switch back on".
+        Shot("switchedoff_better_back_on", tall) { SwitchedOffScreen(switchedOff(groups = betterGroups + offGroups, count = 8), {}, {}) },
         Shot("switchedoff_empty") { SwitchedOffScreen(switchedOff(groups = emptyList(), count = 0), {}, {}) },
         Shot("switchedoff_loading") { SwitchedOffScreen(SwitchedOffState(), {}, {}) },
 
