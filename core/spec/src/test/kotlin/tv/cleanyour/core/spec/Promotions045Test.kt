@@ -28,4 +28,15 @@ class Promotions045Test {
         facts("unknown", "BRAVIA_BF1_4K_A", "Sony", 31) to null,
         facts("BRAVIA BF1", "BRAVIA_BF1", "Sony", 34, "Sony/BRAVIA_BF1_4K_A/BRAVIA_BF1:14/x") to null,
     )
+
+    // The README's second unit ran Android 11 (RTM7.230903.136) with the same list; the SKYWORTH and SHARP
+    // badges of the umeda board report the maker skyworth, which the brand key matches.
+    @Test fun skyworthSwtv22aeFhdOnAndroid11() = check(
+        facts("SWTV-22AE-FHD", "umeda", "skyworth", 30, "skyworth/SW7_TG/umeda:11/RTM7.230903.136/11261145:user/release-keys") to "skyworth-swtv-22ae-fhd", // #608
+        facts("SWTV-22AE-FHD", "umeda", "skyworth", 30, "skyworth/SW7_TG/umeda:11/RTM5.220609.088/8986834:user/release-keys") to "skyworth-swtv-22ae-fhd", // #955
+        facts("SWTV-22NA-FHD", "umeda", "skyworth", 30, "skyworth/SW7_N/umeda:11/RTM5.220609.171/9213794:user/release-keys") to "skyworth-swtv-22ae-fhd", // #860
+        facts("SHARP 2K Smart TV", "umeda", "SHARP", 30, "SHARP/SW7_SHARP_APEU/umeda:11/RTMA.250416.075/13648504:user/release-keys", manufacturer = "skyworth") to "skyworth-swtv-22ae-fhd", // #1033
+        facts("SWTV-22AE-FHD", "umeda", "skyworth", 34, "skyworth/SW7_TG/umeda:14/UKNV.260211.001/14872057:user/release-keys") to "skyworth-swtv-22ae-fhd", // #526
+        facts("SWTV-22AE-FHD", "umeda", "skyworth", 29) to null,
+    )
 }

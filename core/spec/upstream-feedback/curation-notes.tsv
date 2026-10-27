@@ -302,6 +302,7 @@ sharp-aquos-tve21f	fusion.android.tv.demo	ask row: the header read each package 
 skyworth-swtv-21ae	(match)	brand inferred, confirm with getprop: Skyworth (the header gives the manufacturer skyworth); a wrong guess fails closed (the profile never matches)
 skyworth-swtv-21ae	com.cltv.fast	FAST channels register a TV input (hitachi-65qledsm20 header); ask row
 skyworth-swtv-21ae	fusion.android.tv.demo	ask row: on MediaTek MTC builds this retail display app also handles the Input key and remote pairing (hitachi-65qledsm20), and this header did not check either with it off (RF-PROFILES-63 P6)
+skyworth-swtv-22ae-fhd	(match)	SDK 30 to 34 (0.4.5): the folder's README records a second unit on Android 11 (RTM7.230903.136) that applied the same list with the launcher as Home; issue #608 runs that build. Its reports show the same Home claimants as the tested SDK 34 set (launcherx, then the setup wizard), so the switch decision is the same. No SDK 31 to 33 build is known or reported
 skyworth-swtv-24na-4k-nf	(match)	brand inferred, confirm with getprop: Skyworth; a wrong guess fails closed (the profile never matches)
 skyworth-swtv-24na-4k-nf	com.google.android.tungsten.setupwraith	the header reports it deleted the Wi-Fi saved at setup; the takeover's Wi-Fi guard skips it when it owns the network
 skyworth-swtv-24na-4k-nf	tv.mopa.ginga	default-off as listed: Brazilian interactive TV, unused on this US set (the U75 and C755 lists keep it where it is used)

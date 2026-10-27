@@ -1888,7 +1888,7 @@
       }
     },
     "skyworth-swtv-22ae-fhd": {
-      "match": { "models": [], "devices": ["umeda"], "brand": "Skyworth", "sdkMin": 34, "sdkMax": 34, "fingerprintPrefix": null },
+      "match": { "models": [], "devices": ["umeda"], "brand": "Skyworth", "sdkMin": 30, "sdkMax": 34, "fingerprintPrefix": null },
       "platform": "GOOGLE_TV",
       "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
       "liveTv": "com.mediatek.wwtv.tvcenter",
