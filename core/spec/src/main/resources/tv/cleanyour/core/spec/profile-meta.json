@@ -1732,7 +1732,6 @@
       "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
       "liveTv": null,
       "setupWraith": null,
-      "setupWraithStaysOn": true,
       "quirks": [],
       "neverDisable": ["com.realtek.dtv", "com.realtek.tv.atv", "com.realtek.dtmb", "com.realtek.tv.atsc", "com.realtek.tv.isdb"],
       "suggestedDock": [],
@@ -1752,8 +1751,14 @@
         "com.apps.scast": { "category": "casting", "ask": true },
         "com.apps.esticker3": { "category": "demo", "ask": false },
         "com.android.printspooler": { "category": "preloads", "ask": false },
-        "com.wbd.stream": { "category": "streaming", "ask": true },
-        "com.android.tv.feedbackconsent": { "category": "tracking", "ask": true }
+        "com.wbd.stream": { "category": "streaming", "ask": true }
+      },
+      "leftOut": {
+        "com.android.tv.feedbackconsent": "b06ab21 lists it (upstream PR #1146), but the header does not record the set tested with it off and rebooted (the PR #1146 thread does); left out as in 0.4.0 until it does",
+        "com.android.adservices.api": "b06ab21 lists it (upstream PR #1146), but the header does not record the set tested with it off and rebooted (the PR #1146 thread does); left out as in 0.4.0 until it does",
+        "com.android.federatedcompute.services": "b06ab21 lists it (upstream PR #1146), but the header does not record the set tested with it off and rebooted (the PR #1146 thread does); left out as in 0.4.0 until it does",
+        "com.android.ondevicepersonalization.services": "b06ab21 lists it (upstream PR #1146), but the header does not record the set tested with it off and rebooted (the PR #1146 thread does); left out as in 0.4.0 until it does",
+        "com.google.android.tungsten.setupwraith": "b06ab21 switches the wizard off (upstream PR #1146); left out as in 0.4.0, where the list kept it on: the home screen switch is skipped for the MOKA family (HomeSwitchRisk.BOOT_LOOP), the denylist keeps a wizard the profile does not name on, and kalley-r10g (same R10G board) boot-looped with it and launcherx off (upstream #1807)"
       }
     },
     "rca-ai-pont": {

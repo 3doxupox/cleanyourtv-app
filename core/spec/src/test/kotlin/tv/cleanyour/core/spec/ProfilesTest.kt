@@ -114,8 +114,8 @@ class ProfilesTest {
 
     // b06ab21: the R10G lists of the MOKA family. kalley-r10g keeps launcherx and the setup wizard on
     // (upstream #1807: with both off, system_server crashed in a boot loop), and prismplus-q65-ultra-r10g,
-    // whose list switches the wizard off, keeps it on too (setupWraithStaysOn): the home screen switch is
-    // skipped for the family (HomeSwitchRisk.BOOT_LOOP), so neither profile switches either one off.
+    // whose list switches the wizard off, leaves that line out (leftOut), as in 0.4.0: the home screen
+    // switch is skipped for the family (HomeSwitchRisk.BOOT_LOOP), so neither profile switches either one off.
     // kalley-r10g still names its wizard with the takeover quirk, so a TV that has it off gets it back
     // only with the TV's own home screen in charge (DefaultPlanner.putBack, PutBackAdvice); both are
     // never-disable as well.
@@ -124,11 +124,12 @@ class ProfilesTest {
             val pr = profile(id)
             val inGroups = pr.groups.flatMap { g -> g.packages.map { it.name } }
             for (pkg in listOf(KnownLaunchers.LAUNCHERX.pkg, KnownLaunchers.SETUPWRAITH)) assertTrue(pkg !in inGroups, "$id $pkg")
-            assertTrue(KnownLaunchers.SETUPWRAITH in pr.neverDisable, id)
         }
         val prism = profile("prismplus-q65-ultra-r10g")
         assertEquals(null, prism.setupWraith)
         assertTrue(Quirk.HOME_TAKEOVER_SETUPWRAITH !in prism.quirks)
+        assertTrue(KnownLaunchers.SETUPWRAITH.value in ProfileMeta.bundled.profiles.getValue("prismplus-q65-ultra-r10g").leftOut)
+        assertTrue(KnownLaunchers.SETUPWRAITH in profile("kalley-r10g").neverDisable)
         val kalley = profile("kalley-r10g")
         assertTrue(KnownLaunchers.LAUNCHERX.pkg in kalley.neverDisable && Quirk.STOCK_LAUNCHER_KEEP_ENABLED in kalley.quirks)
         assertEquals(KnownLaunchers.SETUPWRAITH, kalley.setupWraith)
@@ -515,22 +516,19 @@ class ProfilesTest {
         assertEquals(six, SureSetGenerator.CAREFUL_PACKAGES)
         val union = careful.flatMap { s -> s.groups.flatMap { g -> g.packages.map { it.name } } }.toSet()
         assertTrue(six.containsAll(union), "careful sets hold only the reviewed packages: ${union - six}")
-        // b06ab21: prismplus-q65-ultra-r10g asks first for com.android.tv.feedbackconsent and the three
-        // Privacy Sandbox packages (its header does not say they were tested off), so rule 2 leaves them
-        // out of every careful set. docs/history/reviews/UP300-sure-sets.txt has the per brand diff.
-        assertEquals(setOf(p("com.google.android.feedback"), p("com.android.printspooler")), union, "the reviewed packages no list asks for first")
+        assertEquals(six, union, "every reviewed package is in some careful set")
         assertEquals(careful.map { it.brand.lowercase() }.sorted(), careful.map { it.brand.lowercase() })
         fun pkgs(vararg names: String) = names.map(::p).toSet()
         // The brands of the reported TVs the change is for (docs/lists-0.3.5, the per-brand table).
         val reported = mapOf(
-            "Skyworth" to pkgs("com.google.android.feedback"),
-            "SHARP" to pkgs("com.google.android.feedback"),
+            "Skyworth" to pkgs("com.google.android.feedback", "com.android.tv.feedbackconsent"),
+            "SHARP" to pkgs("com.google.android.feedback", "com.android.tv.feedbackconsent"),
             "OnePlus" to pkgs("com.google.android.feedback"),
-            "onn" to pkgs("com.google.android.feedback", "com.android.printspooler"),
+            "onn" to pkgs("com.google.android.feedback", "com.android.tv.feedbackconsent", "com.android.printspooler"),
             "Haier" to pkgs("com.google.android.feedback"),
-            "google" to pkgs("com.google.android.feedback"),
-            "Expressluck" to pkgs("com.google.android.feedback"),
-            "SkyworthDigital" to pkgs("com.google.android.feedback", "com.android.printspooler"),
+            "google" to pkgs("com.google.android.feedback", "com.android.tv.feedbackconsent"),
+            "Expressluck" to six - p("com.android.printspooler"),
+            "SkyworthDigital" to six,
             "MOKA" to pkgs("com.android.printspooler"),
         )
         for ((brand, want) in reported) assertEquals(want, careful.single { it.brand == brand }.groups.flatMap { g -> g.packages.map { it.name } }.toSet(), brand)
@@ -563,7 +561,7 @@ class ProfilesTest {
         val sharp = source.resolve(mi.copy(brand = "SHARP", manufacturer = "SHARP", model = "AQUOS_TVE19A", device = "sindang", sdk = 30))
         assertTrue(sharp is ProfileResolution.BrandSureSet && sharp.brand == "SHARP", sharp.toString())
         assertEquals(KnownLaunchers.generic, sharp.stockLaunchers)
-        assertEquals(setOf(p("com.google.android.feedback")), sharp.sureSet.flatMap { g -> g.packages.map { it.name } }.toSet())
+        assertEquals(setOf(p("com.google.android.feedback"), p("com.android.tv.feedbackconsent")), sharp.sureSet.flatMap { g -> g.packages.map { it.name } }.toSet())
         // A brand with a full set keeps it when its maker also has a careful set.
         val sonyBySkyworth = source.resolve(mi.copy(brand = "Sony", manufacturer = "Skyworth", model = "X1", device = "x1"))
         assertTrue(sonyBySkyworth is ProfileResolution.BrandSureSet && sonyBySkyworth.brand == "Sony", sonyBySkyworth.toString())

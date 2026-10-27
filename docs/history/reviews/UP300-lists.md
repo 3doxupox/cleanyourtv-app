@@ -35,7 +35,7 @@ shipped lists) or a new setup wizard, so `ProfileCategories.kt` and `Denylist.kt
 | philips-50pud7406 | third unit (55PUS7906), one evening; its candidates stay comments | header only |
 | philips-50pus8517 | second unit (70PUS8505), one day | header only |
 | philips-r8g-google-tv | standby light link | header only |
-| prismplus-q65-ultra-r10g | Privacy Sandbox group, feedbackconsent and setupwraith off (PR #1146; the reboot check is in the PR thread, not the header) | the four rows are ask rows, since the header does not say the set was tested with them off; setupwraith kept on (setupWraithStaysOn), since the switch is skipped for the MOKA family and the same board boot-looped with it off |
+| prismplus-q65-ultra-r10g | Privacy Sandbox group, feedbackconsent and setupwraith off (PR #1146; the reboot check is in the PR thread, not the header) | the five lines are left out of the profile (leftOut), so it is the 0.4.0 profile (only the list digest differs): the Privacy Sandbox rows until the header records the tested-off reboot, the wizard because the switch is skipped for the MOKA family and the same board boot-looped with it off |
 | rca-ai-pont | CHiQ and ERGO variants, with "Keep X" notes | no package change; the header keep notes add the OTA, USB media, mirroring and TTS packages to never-disable, so com.homwee.mmp.fileexplorer is in the protected report (never switched off) |
 | skyworth-sw-22sa | Undo line | header only |
 | sony-bravia-4k-vh2 | third, fourth and fifth units, two Asia-Pacific groups | the Asia-Pacific groups stay ask rows: the unit that tested them resolves to sony-kd-55x85j, this profile matches the EU fingerprint |
@@ -64,10 +64,9 @@ shipped lists) or a new setup wizard, so `ProfileCategories.kt` and `Denylist.kt
 
 ## Brand sets
 
-The full sets keep their rows; three notes in the Amazon set now come from amazon-fire-tv-afttiff43. The
-MOKA careful set is the 0.4.0 one. prismplus-q65-ultra-r10g asks first for com.android.tv.feedbackconsent
-and the three Privacy Sandbox packages, so the careful-set rule leaves them out of every careful set: the
-careful sets now hold com.google.android.feedback and, where they had it, com.android.printspooler.
+The full sets keep their rows; three notes in the Amazon set now come from amazon-fire-tv-afttiff43. Every
+careful set is the 0.4.0 one, row for row: prismplus-q65-ultra-r10g leaves its new Privacy Sandbox and
+feedbackconsent lines out, so it neither switches them off nor asks for them first.
 `UP300-sure-sets.txt` has the per brand detail.
 
 ## Other lists
