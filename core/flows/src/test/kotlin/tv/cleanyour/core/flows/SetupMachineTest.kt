@@ -1278,9 +1278,13 @@ class SetupMachineTest {
             add(Case("unknown TV without a setup wizard", null, acme, others, HomeBlock.NONE, wizardOn = false))
             // 0.4.6 (R0): an unknown Xiaomi whose only Home claimant is Google's Android TV home: the
             // wizard is on but claims no Home, so the switch goes ahead whatever the Wi-Fi answer.
-            add(Case("unknown Xiaomi, wizard owns the Wi-Fi", null, base, owns, HomeBlock.NONE))
-            add(Case("unknown Xiaomi, Wi-Fi saved by others", null, base, others, HomeBlock.NONE))
-            add(Case("unknown Xiaomi, the Wi-Fi read failed", null, base, SavedWifi(false, 0, emptySet()), HomeBlock.NONE))
+            // beta4: on Android 9 to 11 only, in a release.
+            val eleven = base.copy(sdk = 30, release = "11")
+            add(Case("unknown Xiaomi, wizard owns the Wi-Fi", null, eleven, owns, HomeBlock.NONE))
+            add(Case("unknown Xiaomi, Wi-Fi saved by others", null, eleven, others, HomeBlock.NONE))
+            add(Case("unknown Xiaomi, the Wi-Fi read failed", null, eleven, SavedWifi(false, 0, emptySet()), HomeBlock.NONE))
+            add(Case("unknown Xiaomi on Android 14, wizard owns the Wi-Fi", null, base, owns, HomeBlock.WIZARD_WIFI))
+            add(Case("unknown Xiaomi on Android 14, Wi-Fi saved by others", null, base, others, HomeBlock.WIZARD_STAYS_ON))
             add(Case("Philips R8G, made by MOKA but not this family", null, facts("whitefield", "Philips", "MOKA"), others, HomeBlock.NONE, wizardOn = false))
         }
         for (c in cases) {

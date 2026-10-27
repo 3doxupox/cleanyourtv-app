@@ -75,6 +75,17 @@ object HomeSwitchRisk {
     // either brand never meet the rest of the rule, their Home is com.mitv.tvhome.
     val XIAOMI_MAKERS: Set<String> = setOf("Xiaomi", "Redmi")
 
+    // beta4, after the incident of 0.4.6-beta2: a release gives R0 only on Android 9, 10 and 11, the
+    // versions the Xiaomi evidence covers (AXSO0, MiTV4I, MSSP0 on 9; AESP0 on 10; MOOQ1, MOOQ3, AYFR0
+    // and upstream's AXFR0 and AXFR1 on 11). The test build keeps every version.
+    val RELEASE_SDKS: IntRange = 28..30
+
+    // Held out of R0 in every build, by device and Android version, until the owner of the TV that
+    // failed answers: the Xiaomi MiTV-AXSO2 (dangalUHD) on Android 11 (issue #945), whose brand set
+    // path has not been seen on Android 11.
+    val HELD_OUT: Set<Pair<String, Int>> = setOf("dangalUHD" to 30)
+    fun heldOut(f: DeviceFacts): Boolean = HELD_OUT.any { (device, sdk) -> device.equals(f.device, ignoreCase = true) && f.sdk == sdk }
+
     // Test build only (-Pcyt.wizardStaysAnyBrand=true, core/planner/build.gradle.kts): R0 without its
     // brand test. 233 more reports from other brands (Sony, OnePlus, Philips, Mecool, Skyworth,
     // Hisense, Realme, Haier, TCL and others) show the same claimants with the wizard on; a volunteer
@@ -117,8 +128,9 @@ object HomeSwitchRisk {
     }
 
     // beta3: what keeps a TV from R0, the first that applies (null: R0 lets it switch).
-    // beta4: VENDOR_PLACEHOLDER, a FallbackHome claimant R0 does not take (r0Placeholder).
-    enum class R0Blocker { NOT_THIS_PATH, BRAND, WIZARD_CLAIMS_HOME, NO_TVLAUNCHER, VENDOR_PLACEHOLDER, OTHER_HOME }
+    // beta4: VENDOR_PLACEHOLDER, a FallbackHome claimant R0 does not take (r0Placeholder); SCOPE, an
+    // Android version a release does not give R0 (RELEASE_SDKS) or a set held out (HELD_OUT).
+    enum class R0Blocker { NOT_THIS_PATH, BRAND, SCOPE, WIZARD_CLAIMS_HOME, NO_TVLAUNCHER, VENDOR_PLACEHOLDER, OTHER_HOME }
 
     // beta4, incident of 0.4.6-beta2 (issue #825): a Thomson SPPL 2K (sauve, Android 11, Realtek) with
     // claimants tvlauncher (2), com.realtek.keyintercept/.fallbackhome.FallbackHome (-999) and Settings'
@@ -168,7 +180,8 @@ object HomeSwitchRisk {
     // builds (launcherx), China PatchWall (com.mitv.tvhome) and any vendor home fail the last test.
     // The wizard is never switched off on this path and the Wi-Fi is never touched, so the Wi-Fi
     // answer does not matter. Manage checks the claimants again on every connect (WizardHome).
-    // `anyBrand` (a test build, ANY_BRAND_BUILD) drops the brand test and keeps every other one.
+    // `anyBrand` (a test build, ANY_BRAND_BUILD) drops the brand test and the Android versions of a
+    // release (RELEASE_SDKS, beta4) and keeps every other one, the sets held out (HELD_OUT) among them.
     // beta3 (issue #1119, a MiTV4I with a home screen app the person installed): a claimant may also
     // be an app the person installed (installedHome). Android caps the HOME priority of an app that
     // is not a system app at 0, so with tvlauncher off it ties with ours and the set-home preference
@@ -180,6 +193,7 @@ object HomeSwitchRisk {
 
     fun r0Blocker(facts: DeviceFacts, snapshot: Snapshot, anyBrand: Boolean = anyBrandNow): R0Blocker? {
         if (!anyBrand && !isXiaomi(facts)) return R0Blocker.BRAND
+        if ((!anyBrand && facts.sdk !in RELEASE_SDKS) || heldOut(facts)) return R0Blocker.SCOPE
         fun on(p: PackageName) = snapshot.packages[p]?.enabled.let { it != EnabledState.DISABLED_USER && it != EnabledState.DISABLED }
         val claimants = snapshot.home.claimants.map { it.component }
         // A setup wizard among the claimants that is on, by any name (a placeholder that is a wizard too).

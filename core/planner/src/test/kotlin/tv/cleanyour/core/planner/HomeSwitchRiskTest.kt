@@ -521,4 +521,35 @@ class HomeSwitchRiskTest {
             assertNull(HomeSwitchRisk.of(axso1, null, r0Tv(axso1, home = chooser), w, anyBrand = false), "the chooser $w")
         }
     }
+
+    // beta4, after the incident of 0.4.6-beta2: a release gives R0 to Xiaomi and Redmi with no list
+    // on Android 9, 10 and 11 only, and holds out the MiTV-AXSO2 (dangalUHD) on Android 11 (issue
+    // #945) until its owner answers. The test build keeps every brand and Android version, and holds
+    // that set out too.
+    @Test fun r0InAReleaseIsAndroid9To11AndTheAxso2OnAndroid11IsHeldOut() {
+        val axso2 = reported("MiTV-AXSO2", "dangalUHD", 30, "Xiaomi/dangalUHD/dangalUHD:11/RTT0.211201.001/1150:user/release-keys")
+        val axso2On9 = reported("MiTV-AXSO2", "dangalUHD", 28, "Xiaomi/dangalUHD/dangalUHD:9/PI/6432:user/release-keys")
+        for (w in WizardWifi.entries) {
+            val blocked = if (w == WizardWifi.OWNER) Risk.WIZARD_WIFI else Risk.WIZARD_STAYS_ON
+            for (sdk in 26..35) {
+                val f = axso1.copy(sdk = sdk, release = "$sdk")
+                if (sdk in 28..30) assertNull(HomeSwitchRisk.of(f, null, r0Tv(f), w, anyBrand = false), "release SDK $sdk $w")
+                else {
+                    assertEquals(blocked, HomeSwitchRisk.of(f, null, r0Tv(f), w, anyBrand = false), "release SDK $sdk $w")
+                    assertEquals(HomeSwitchRisk.R0Blocker.SCOPE, HomeSwitchRisk.r0Blocker(f, r0Tv(f), anyBrand = false), "SDK $sdk")
+                }
+                assertNull(HomeSwitchRisk.of(f, null, r0Tv(f), w, anyBrand = true), "test build SDK $sdk $w")
+                // Another brand in the test build, on any version.
+                val sony = f.copy(brand = "Sony", manufacturer = "Sony", device = "unknown")
+                assertNull(HomeSwitchRisk.of(sony, null, r0Tv(sony), w, anyBrand = true), "test build Sony SDK $sdk $w")
+            }
+            for (anyBrand in listOf(false, true)) {
+                assertEquals(blocked, HomeSwitchRisk.of(axso2, null, r0Tv(axso2), w, anyBrand = anyBrand), "AXSO2 on Android 11, anyBrand=$anyBrand $w")
+                assertEquals(blocked, HomeSwitchRisk.of(axso2.copy(device = "dangaluhd"), null, r0Tv(axso2), w, anyBrand = anyBrand), "case does not matter")
+                assertNull(HomeSwitchRisk.of(axso2On9, null, r0Tv(axso2On9), w, anyBrand = anyBrand), "AXSO2 on Android 9, anyBrand=$anyBrand $w")
+            }
+        }
+        assertTrue(source.resolveNow(axso2) is ProfileResolution.BrandSureSet, "the AXSO2 on Android 11 has no list in a release")
+        releaseRule { assertEquals(listOf(Risk.WIZARD_STAYS_ON.reason), refused(setup(profile = null, choices = choices(wizardWifi = WizardWifi.NOT_OWNER)), snapshot = r0Tv(axso2))) }
+    }
 }
