@@ -262,6 +262,7 @@ com.cltv.fast	FAST channels	Free ad-supported TV channels	ads
 com.cltv.hybrid	CanaliTV Live TV	Live TV app for this set	system
 com.cltv.mal	CanaliTV helper	Live TV support service	system
 com.cnn.mobile.android.tv	CNN	News app	streaming
+com.coloros.relax.tv	OnePlus Relax	Ambient sounds app with tracking	preloads
 com.community.newroom	Community Newroom	Preloaded app of unclear use	preloads
 com.community.oneroom	Community OneRoom	Preloaded app of unclear use	preloads
 com.coocaa.demonow.lightining	Demo Now	Skyworth retail demo mode	demo
@@ -290,6 +291,7 @@ com.dazn	DAZN	Sports streaming app	streaming
 com.ddnational.prasarbharati	DD National	Indian TV channel app	streaming
 com.demo	Hisense demo	Retail demo app	demo
 com.discoveryplus.mitv	discovery+	Streaming app	streaming
+com.discoveryplus.tv.android	discovery+	Streaming app	streaming
 com.disney.disneyplus	Disney+	Streaming app	streaming
 com.disneyplus.mea	Disney+ (Middle East)	Disney's streaming app for the Middle East	streaming
 com.disneyplus.ph	Disney+	Disney streaming app (Philippines)	streaming
@@ -375,14 +377,22 @@ com.haier.yudee.tv	Haier share	Shares phone media to the TV	casting
 com.haierubic.usmartdevice	Haier smart device	Haier smart device service	brand
 com.hbo.hbonow	HBO Max	Streaming app	streaming
 com.hbo_android_tv	HBO (old app)	Older HBO app, replaced by Max	streaming
+com.heytap.ars.sink	OnePlus TV Mirror	Shows a phone screen on the TV	casting
 com.heytap.mcs	HeyTap push service	Push messages and analytics	tracking
 com.heytap.olink	OnePlus Connect	Links the TV to the OnePlus phone app	brand
 com.heytap.oprcupgradeservice	OnePlus remote updates	Updates the remote's firmware	system
 com.heytap.optvfactory	OnePlus factory app	Factory test app, left alone	system
+com.heytap.optvmiracastservice	OnePlus Miracast	Screen mirroring receiver	casting
 com.heytap.tv.assistant.oneplus	OnePlus TV Assistant	OnePlus assistant app	brand
 com.heytap.tv.btspeaker	Bluetooth speaker mode	Plays TV sound on a Bluetooth speaker	brand
+com.heytap.tv.camera	OnePlus camera	Camera app for a plug-in camera	preloads
 com.heytap.tv.filebrowser	File Browser	Browse files on the TV	brand
+com.heytap.tv.gallery3d	OnePlus Gallery	Shows photos from USB storage	preloads
+com.heytap.tv.imagewall	OnePlus Image wall	Picture wall app	preloads
 com.heytap.tv.livetv	OnePlus Live TV	Live TV, HDMI and tuner inputs	system
+com.heytap.tv.musicplayer	OnePlus Music	Plays music from USB storage	preloads
+com.heytap.tv.remotediagnosing	OnePlus remote diagnosis	Remote support and diagnosis	other
+com.heytap.tv.videoplayer	OnePlus Video	Plays videos from USB storage	preloads
 com.hisense.alexa	Hisense Alexa	Alexa voice assistant	voice
 com.hisense.app.logreport	Hisense log report	Uploads logs to Hisense	tracking
 com.hisense.ar.baike	Hisense AR encyclopedia	AR encyclopedia app	preloads
@@ -967,6 +977,9 @@ mobi.zona	Zona	Streaming app	streaming
 net.aljazeera.english	Al Jazeera	News streaming app	streaming
 net.froemling.bombsquad	BombSquad	Preloaded game	preloads
 net.hexage.ritual	Ritual	Preloaded game	preloads
+net.oneplus.odm	OnePlus device manager	Device analytics	tracking
+net.oneplus.odm.provider	OnePlus device data	Data for the device manager	tracking
+net.oneplus.weather	OnePlus Weather	Weather app	preloads
 net.vidaatv.hisense.android.tv	VIDAA	Hisense VIDAA app preload	preloads
 oneplus.smarthome	OnePlus Smart Home	Smart home control	brand
 org.chromium.webview_shell	WebView test browser	AOSP test browser for the web view, not the web view itself	preloads
@@ -1034,4 +1047,5 @@ tv.sweet.tvplayer	Sweet TV	Ukrainian TV streaming app	streaming
 tv.twitch.android.app	Twitch	Live game streaming app	streaming
 tv.wuaki.apptv	Rakuten TV	Film rental and streaming app	streaming
 uk.co.bbc.iplayer	BBC iPlayer	BBC channels and programmes	streaming
+video.laminar.tv.chaupal.android	Chaupal	Streaming app	streaming
 zeasn.open.technical.tv.store.stellamore.tv	Zeasn App Store	App store tile that shows Google ads	ads

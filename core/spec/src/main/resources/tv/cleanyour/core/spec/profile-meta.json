@@ -1307,6 +1307,41 @@
         "com.google.android.backdrop": { "category": "screensaver", "ask": true }
       }
     },
+    "oneplus-tv-cebu": {
+      "match": { "models": ["C00"], "devices": ["Cebu"], "brand": "OnePlus", "sdkMin": 29, "sdkMax": 29, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.heytap.tv.livetv",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.mediatek.tvinput", "com.mediatek.tv.agent", "com.heytap.tv.support", "com.mediatek.tvinputservice.arbitratorservice", "com.heytap.tvapiservice", "com.heytap.tv.livetv", "com.oneplus.tv.remote", "com.mediatek.hotkey.dispatcher", "com.mstar.netflixobserver", "com.google.android.katniss", "com.oneplus.tv.systemupgrade", "com.heytap.oprcupgradeservice", "com.heytap.optvfactory", "com.oneplus.tv.factory", "com.mediatek.android.leanbacklauncher.partnercustomizer", "com.oneplus.tv.launcher", "com.heytap.tv.remotediagnosing"],
+      "suggestedDock": [],
+      "tested": { "by": "Shubham Jain (PR #1043)", "firmware": "QTG3.201207.001", "daysLivedWith": null, "rebootTested": true },
+      "groups": {
+        "Telemetry and diagnostics": { "category": "tracking", "ask": false },
+        "OnePlus content, recommendation rows, auto-installs and preloaded extras": { "category": "ads", "ask": false },
+        "Casting, mirroring and OnePlus extras (off by choice)": { "category": "casting", "ask": true },
+        "Streaming and preloaded apps (off by choice)": { "category": "streaming", "ask": true }
+      },
+      "packages": {
+        "com.heytap.tv.remotediagnosing": { "category": "other", "ask": true },
+        "com.oneplus.tv.launcher": { "category": "brand", "ask": true },
+        "com.coloros.relax.tv": { "category": "preloads", "ask": false },
+        "com.heytap.tv.imagewall": { "category": "preloads", "ask": false },
+        "com.oneplus.tv.userguide": { "category": "preloads", "ask": false },
+        "com.heytap.tv.assistant.oneplus": { "category": "brand", "ask": false },
+        "oneplus.smarthome": { "category": "brand", "ask": true },
+        "net.oneplus.weather": { "category": "preloads", "ask": true },
+        "com.heytap.tv.filebrowser": { "category": "preloads", "ask": true },
+        "com.heytap.tv.gallery3d": { "category": "preloads", "ask": true },
+        "com.heytap.tv.musicplayer": { "category": "preloads", "ask": true },
+        "com.heytap.tv.videoplayer": { "category": "preloads", "ask": true },
+        "com.heytap.tv.camera": { "category": "preloads", "ask": true },
+        "com.heytap.tv.btspeaker": { "category": "brand", "ask": true },
+        "com.jio.web.androidtv": { "category": "preloads", "ask": true },
+        "com.google.android.play.games": { "category": "preloads", "ask": false }
+      }
+    },
     "oneplus-tv-dosa": {
       "match": { "models": [], "devices": ["Oneplus_Dosa_IN"], "brand": "OnePlus", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
       "platform": "ANDROID_TV",

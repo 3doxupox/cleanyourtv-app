@@ -83,4 +83,10 @@ class Promotions045Test {
     @Test fun oneplusTvDosa() = check(
         facts("Oneplus_Dosa_IN", "Oneplus_Dosa_IN", "Oneplus", 30, "Oneplus/Oneplus_Dosa_IN/Oneplus_Dosa_IN:11/RTM5.220609.299/2312290405:user/release-keys") to "oneplus-tv-dosa", // #1162
     )
+
+    // The Android 10 Cebu build only; the Android 11 Cebu sets wait for their own list (upstream PR #1605).
+    @Test fun oneplusTvCebu() = check(
+        facts("C00", "Cebu", "OnePlus", 29, "OnePlus/OnePlusTV/Cebu:10/QTG3.201207.001/2302040008:user/release-keys") to "oneplus-tv-cebu", // #1243
+        facts("C00", "Cebu", "OnePlus", 30, "OnePlus/OnePlusTV/Cebu:11/RTM8.240401.135/2408080101:user/release-keys") to null, // #973
+    )
 }

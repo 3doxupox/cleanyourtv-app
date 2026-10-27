@@ -92,4 +92,11 @@ class Promotions045SafetyTest {
         keeps("oneplus-tv-dosa", "com.oneplus.tv.launcher", "com.oneplus.oobe.tv", "com.google.android.leanbacklauncher.partnercustomizer", "com.oneplus.tv.remote",
             "com.mediatek.hotkey.dispatcher", "com.oneplus.tv.android.livetv")
     }
+
+    @Test fun oneplusTvCebu() {
+        defaultsPass("oneplus-tv-cebu")
+        // The list switches the OnePlus page and remote diagnosis off; this app keeps both (why it was parked).
+        keeps("oneplus-tv-cebu", "com.oneplus.tv.launcher", "com.heytap.tv.remotediagnosing", "com.mediatek.android.leanbacklauncher.partnercustomizer", "com.oneplus.tv.remote",
+            "com.mstar.netflixobserver", "com.heytap.tv.livetv")
+    }
 }
