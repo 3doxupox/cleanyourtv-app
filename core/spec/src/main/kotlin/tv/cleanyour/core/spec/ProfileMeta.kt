@@ -27,6 +27,10 @@ internal data class FolderMeta(
     val tested: TestedMeta? = null,
     val groups: Map<String, CategoryMeta> = emptyMap(),
     val packages: Map<String, CategoryMeta> = emptyMap(),
+    // Active package lines of the upstream list that this profile leaves out, as if they were
+    // commented out, each with the reason (package to reason). The converter fails when one is not an
+    // active line of the list, so an entry cannot outlive the line it is about.
+    val leftOut: Map<String, String> = emptyMap(),
 )
 
 @Serializable

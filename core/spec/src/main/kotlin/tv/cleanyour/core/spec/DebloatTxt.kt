@@ -21,6 +21,8 @@ import java.security.MessageDigest
 // is never the title; the comment lines right under it that are indented (or that carry a second
 // '#', as "#      # more") continue its note, not the previous entry's. Scan.kept records these
 // packages with their notes, except one the same file also lists as active.
+// A curated entry may leave active lines out of the profile (FolderMeta.leftOut); they are then
+// treated as if commented out.
 // Any other unindented comment inside a run still ends the run, and the packages after it open a
 // group titled with that comment.
 // A file with no blank line between its header and the first group: the header ends at the last
@@ -31,8 +33,10 @@ class DebloatTxtException(val folder: String, val line: Int, detail: String) : I
 internal object DebloatTxt {
     data class Entry(val pkg: PackageName, var note: String?)
     data class Group(val title: String, val entries: MutableList<Entry> = mutableListOf())
-    // kept: the commented-out packages below the header, with their notes (C2).
-    data class Scan(val header: List<String>, val groups: List<Group>, val kept: Map<PackageName, String?> = emptyMap())
+    // kept: the commented-out packages below the header, with their notes (C2). keptOnlyTitles: the
+    // lines of packages whose comment block above held only kept lines, so they joined the group
+    // before them; the converter reports each one, since the list may have meant a new group.
+    data class Scan(val header: List<String>, val groups: List<Group>, val kept: Map<PackageName, String?> = emptyMap(), val keptOnlyTitles: List<Int> = emptyList())
 
     private val PACKAGE_LINE = Regex("^\\s*([A-Za-z][A-Za-z0-9_]*(?:\\.[A-Za-z0-9_]+)+)\\s*(?:#\\s?(.*))?$")
     private val DECORATION = Regex("^[-=*\\s]+|[-=*\\s]+$")
@@ -52,8 +56,10 @@ internal object DebloatTxt {
         return Entry(pkg, m.groupValues[2].trim().ifEmpty { null })
     }
 
-    // A comment line right under a kept line that continues its note: indented, or "#    # more".
-    private fun keptContinuation(line: String) = indented(line) || commentText(line).startsWith("#")
+    // A comment line right under a kept line that continues its note: indented, or "#    # more" (a
+    // second '#' after spaces, so a "## heading" is not a continuation).
+    private val SECOND_HASH = Regex("^#\\s+#")
+    private fun keptContinuation(line: String) = indented(line) || SECOND_HASH.containsMatchIn(line)
 
     private fun addNote(e: Entry, line: String) {
         val more = commentText(line).removePrefix("#").trim()
@@ -80,6 +86,7 @@ internal object DebloatTxt {
         val blockKept = mutableListOf<Pair<Int, Entry>>()
         val notTitle = mutableSetOf<Int>()
         val kept = mutableListOf<Entry>()
+        val keptOnlyTitles = mutableListOf<Int>()
         var lastKept: Entry? = null
         var inPackages = false
         var seenPackage = false
@@ -98,12 +105,7 @@ internal object DebloatTxt {
                 val k = lastKept
                 if (inPackages) {
                     if (k != null && keptContinuation(line)) { addNote(k, line); return@forEachIndexed }
-                    if (indented(line)) {
-                        val last = groups.last().entries.last()
-                        val more = commentText(line)
-                        if (more.isNotEmpty()) last.note = listOfNotNull(last.note, more).joinToString(" ")
-                        return@forEachIndexed
-                    }
+                    if (indented(line)) { addNote(groups.last().entries.last(), line); return@forEachIndexed }
                     val kl = keptLine(line)
                     if (kl != null) { kept += kl; lastKept = kl; return@forEachIndexed }
                     inPackages = false; endBlock(toHeader = false)
@@ -127,6 +129,7 @@ internal object DebloatTxt {
                 when {
                     block.size > notTitle.size -> groups += Group(title(block, notTitle))
                     groups.isEmpty() -> groups += Group("")
+                    block.isNotEmpty() -> keptOnlyTitles += i + 1
                 }
                 if (!seenPackage) seenPackage = true
                 endBlock(toHeader = false); inPackages = true
@@ -137,7 +140,7 @@ internal object DebloatTxt {
         val active = groups.flatMap { g -> g.entries.map { it.pkg } }.toSet()
         val keptMap = linkedMapOf<PackageName, String?>()
         for (e in kept) if (e.pkg !in active && e.pkg !in keptMap) keptMap[e.pkg] = e.note
-        return Scan(header, groups, keptMap)
+        return Scan(header, groups, keptMap, keptOnlyTitles)
     }
 
     fun sha256(text: String): Sha256 =
@@ -223,6 +226,7 @@ internal object DebloatTxt {
         for (g in scan.groups) {
             val (gc, gask) = meta?.groups?.get(g.title)?.let { ProfileCategory.of(it.category) to it.ask } ?: ProfileCategory.guess(g.title)
             for (e in g.entries) {
+                if (meta != null && e.pkg.value in meta.leftOut) continue
                 if (!seen.add(e.pkg)) continue
                 if (e.pkg == KnownLaunchers.SETUPWRAITH && meta?.setupWraithStaysOn == true) { keptWizard = true; continue }
                 if (e.pkg == KnownLaunchers.SETUPWRAITH) { setupWraith = e.pkg; quirks += Quirk.HOME_TAKEOVER_SETUPWRAITH; continue }

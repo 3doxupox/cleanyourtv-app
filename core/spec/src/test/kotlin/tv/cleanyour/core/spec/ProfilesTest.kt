@@ -38,9 +38,12 @@ class ProfilesTest {
             val scanned = DebloatTxt.scan(e.debloatTxt, e.folder).groups.flatMap { g -> g.entries.map { it.pkg } }.toSet()
             val inGroups = profile.groups.flatMap { g -> g.packages.map { it.name } }
             assertEquals(inGroups.size, inGroups.toSet().size, "${e.folder}: a package is in two groups")
-            // A wizard the curated takeover keeps on (setupWraithStaysOn) is never-disable instead.
+            // A wizard the curated takeover keeps on (setupWraithStaysOn) is never-disable instead, and a
+            // line the curated entry leaves out (leftOut) is in no place, as if commented out.
+            val leftOut = ProfileMeta.bundled.profiles.getValue(e.folder).leftOut.keys.map(::p).toSet()
             val placed = inGroups.toSet() + profile.stockLaunchers.map { it.pkg } + listOfNotNull(profile.setupWraith) +
-                profile.neverDisable.filter { it == KnownLaunchers.SETUPWRAITH }
+                profile.neverDisable.filter { it == KnownLaunchers.SETUPWRAITH } + leftOut
+            assertTrue(inGroups.none { it in leftOut }, "${e.folder}: a left-out line is in a group")
             assertEquals(emptySet(), scanned - placed, "${e.folder}: packages lost")
             assertTrue(inGroups.all { it in scanned }, e.folder)
         }
@@ -107,6 +110,30 @@ class ProfilesTest {
         assertTrue(aesp0.groups.none { g -> g.packages.any { it.name == KnownLaunchers.SETUPWRAITH } })
         val secondSet = listOf("mitv.service", "com.google.android.tv", "com.android.providers.contacts", "com.android.providers.calendar")
         for (pkg in secondSet) assertEquals(GroupDefault.ASK, aesp0.groups.single { g -> g.packages.any { it.name == p(pkg) } }.default, pkg)
+    }
+
+    // b06ab21: the R10G lists of the MOKA family. kalley-r10g keeps launcherx and the setup wizard on
+    // (upstream #1807: with both off, system_server crashed in a boot loop), and prismplus-q65-ultra-r10g,
+    // whose list switches the wizard off, leaves that line out (leftOut), as in 0.4.0: the home screen
+    // switch is skipped for the family (HomeSwitchRisk.BOOT_LOOP), so neither profile switches either one off.
+    // kalley-r10g still names its wizard with the takeover quirk, so a TV that has it off gets it back
+    // only with the TV's own home screen in charge (DefaultPlanner.putBack, PutBackAdvice); both are
+    // never-disable as well.
+    @Test fun theR10gProfilesKeepTheStockHomeAndTheWizard() {
+        for (id in listOf("kalley-r10g", "prismplus-q65-ultra-r10g")) {
+            val pr = profile(id)
+            val inGroups = pr.groups.flatMap { g -> g.packages.map { it.name } }
+            for (pkg in listOf(KnownLaunchers.LAUNCHERX.pkg, KnownLaunchers.SETUPWRAITH)) assertTrue(pkg !in inGroups, "$id $pkg")
+        }
+        val prism = profile("prismplus-q65-ultra-r10g")
+        assertEquals(null, prism.setupWraith)
+        assertTrue(Quirk.HOME_TAKEOVER_SETUPWRAITH !in prism.quirks)
+        assertTrue(KnownLaunchers.SETUPWRAITH.value in ProfileMeta.bundled.profiles.getValue("prismplus-q65-ultra-r10g").leftOut)
+        assertTrue(KnownLaunchers.SETUPWRAITH in profile("kalley-r10g").neverDisable)
+        val kalley = profile("kalley-r10g")
+        assertTrue(KnownLaunchers.LAUNCHERX.pkg in kalley.neverDisable && Quirk.STOCK_LAUNCHER_KEEP_ENABLED in kalley.quirks)
+        assertEquals(KnownLaunchers.SETUPWRAITH, kalley.setupWraith)
+        assertTrue(Quirk.HOME_TAKEOVER_SETUPWRAITH in kalley.quirks)
     }
 
     @Test fun theReferenceTvProfile() {
@@ -329,6 +356,64 @@ class ProfilesTest {
         assertTrue(p("com.h.header") in DebloatTxt.keepListIn(listOf("# Keep:") + two.header))
     }
 
+    // Packages under a block of kept lines only join the group before them, which the converter
+    // reports; a "## heading" under a kept line is a heading, not the kept line's note.
+    @Test fun keptOnlyBlocksAreReportedAndHeadingsStayHeadings() {
+        val joined = DebloatTxt.scan("# One\ncom.a.b\n\n# com.k.kept   # stays on\n    # why\ncom.c.d\n", "x")
+        assertEquals(listOf("One"), joined.groups.map { it.title })
+        assertEquals(listOf("com.a.b", "com.c.d"), joined.groups.single().entries.map { it.pkg.value })
+        assertEquals(listOf(6), joined.keptOnlyTitles)
+        assertEquals(mapOf(p("com.k.kept") to "stays on why"), joined.kept)
+        assertEquals(emptyList(), DebloatTxt.scan("# com.k.kept\ncom.a.b\n", "x").keptOnlyTitles, "no group before: an untitled group, as before")
+        val above = DebloatTxt.scan("# One\ncom.a.b\n\n# com.k.kept   # stays on\n## Two\ncom.c.d\n", "x")
+        assertEquals(listOf("One", "# Two"), above.groups.map { it.title })
+        assertEquals(mapOf(p("com.k.kept") to "stays on"), above.kept)
+        assertEquals(emptyList(), above.keptOnlyTitles)
+        val inRun = DebloatTxt.scan("# One\ncom.a.b\n# com.k.kept   # stays on\n## Two\ncom.c.d\n", "x")
+        assertEquals(listOf("One", "# Two"), inRun.groups.map { it.title })
+        assertEquals(mapOf(p("com.k.kept") to "stays on"), inRun.kept)
+        assertEquals(ProfileConverter.keptOnly("x", 6), "x/debloat.txt:6: the comment block above holds only commented-out packages, so these packages join the group before it")
+    }
+
+    // A header with no blank line before the first group ends at the last empty "#" line above it,
+    // when a title line follows; otherwise the block stays one title block, as before.
+    @Test fun aGluedHeaderEndsAtItsLastEmptyCommentLine() {
+        val cut = DebloatTxt.scan("# Model line\n# Keep: com.x.y\n#\n# Telemetry\ncom.a.b\n", "x")
+        assertEquals(listOf("Telemetry"), cut.groups.map { it.title })
+        assertEquals(listOf("# Model line", "# Keep: com.x.y", "#"), cut.header)
+        assertEquals(setOf(p("com.x.y")), DebloatTxt.keepListIn(cut.header))
+        val nothingAfter = DebloatTxt.scan("# Model line\n#\n# com.k.kept\ncom.a.b\n", "x")
+        assertEquals(listOf("Model line"), nothingAfter.groups.map { it.title })
+        assertEquals(emptyList(), nothingAfter.header)
+        assertEquals(mapOf(p("com.k.kept") to null), nothingAfter.kept)
+        val blank = DebloatTxt.scan("# Model line\n\n# Title\n#\n# More about it\ncom.a.b\n", "x")
+        assertEquals(listOf("Title"), blank.groups.map { it.title })
+        assertEquals(listOf("# Model line"), blank.header)
+        val noEmpty = DebloatTxt.scan("# Model line\n# Telemetry\ncom.a.b\n", "x")
+        assertEquals(listOf("Model line"), noEmpty.groups.map { it.title })
+    }
+
+    // FolderMeta.leftOut: an active line the curated entry leaves out is in no group, as if it were
+    // commented out, and an entry that names no active line fails the conversion.
+    @Test fun leftOutLinesAreNotInTheProfile() {
+        val text = "# One\ncom.a.b\ncom.c.d   # left out\n\n# Two\ncom.e.f\n"
+        fun meta(leftOut: Map<String, String>) = FolderMeta(
+            match = MatchMeta(models = listOf("X"), brand = "B"), platform = "ANDROID_TV",
+            groups = mapOf("One" to CategoryMeta("tracking"), "Two" to CategoryMeta("ads")), leftOut = leftOut,
+        )
+        val all = DebloatTxt.parse(text, "x", meta(emptyMap())).groups.flatMap { g -> g.packages.map { it.name.value } }
+        assertEquals(listOf("com.a.b", "com.c.d", "com.e.f").sorted(), all.sorted())
+        val out = DebloatTxt.parse(text, "x", meta(mapOf("com.c.d" to "not tested off")))
+        assertEquals(listOf("com.a.b", "com.e.f").sorted(), out.groups.flatMap { g -> g.packages.map { it.name.value } }.sorted())
+        assertTrue(out.neverDisable.none { it.value == "com.c.d" })
+        val scan = DebloatTxt.scan(text, "x")
+        assertEquals(emptyList(), ProfileConverter.staleLeftOut(scan, meta(mapOf("com.c.d" to "r"))))
+        assertEquals(listOf("com.k.gone"), ProfileConverter.staleLeftOut(scan, meta(mapOf("com.c.d" to "r", "com.k.gone" to "r"))))
+        // A kept (commented-out) line is not an active line either.
+        val kept = DebloatTxt.scan("# One\ncom.a.b\n# com.c.d\n", "x")
+        assertEquals(listOf("com.c.d"), ProfileConverter.staleLeftOut(kept, meta(mapOf("com.c.d" to "r"))))
+    }
+
     // The real lists that split a group at a kept line before the fix, and every upstream folder:
     // no group title is a package line. tcl-g09-google-tv opens two groups with a prose note that
     // starts with a package name; both are curated ask groups and stay as they are.
@@ -397,6 +482,9 @@ class ProfilesTest {
     // 0.3.7 (owner decision): the Hisense set gains com.google.android.partnersetup and
     // com.google.android.syncadapters.calendar from v2.7.0's hisense-smarttv-4k-ffm (9 to 11). The
     // lists promoted in 0.3.7 do not feed the sets yet (SureSetGenerator.REVIEW_PENDING).
+    // b06ab21: the same rows. The Amazon set's notes for com.amazon.media.recommendations,
+    // com.amazon.client.metrics.api and com.amazon.tv.developer.dataservice now come from
+    // amazon-fire-tv-afttiff43, the first Amazon list, whose Omni rows note them.
     @Test fun theFullSetsAreThoseOf034() {
         val profiles = SureSetGenerator.feeding(BundledProfileSource.bundled.profiles.filter { !it.isCandidate })
         val brands = profiles.groupBy { it.match.brand!!.lowercase() }
@@ -411,7 +499,7 @@ class ProfilesTest {
                 s.stockLaunchers.joinToString(",") { it.flat } + "\n"
         }
         val digest = java.security.MessageDigest.getInstance("SHA-256").digest(canon.encodeToByteArray()).joinToString("") { "%02x".format(it) }
-        assertEquals("5bb3f4276f1faf5308cb627bb4f22d5655121c8d71e21be111fbeb8489679106", digest)
+        assertEquals("87fc297c2148998441972fa6a737143094657bc28a78bd4d14db9db8a2089d01", digest)
         // The careful sets come after every full set, so a full set wins when both match a TV.
         assertTrue(sets.drop(full.size).all { brands.getValue(it.brand.lowercase()).size < 3 })
     }
@@ -428,23 +516,20 @@ class ProfilesTest {
         assertEquals(six, SureSetGenerator.CAREFUL_PACKAGES)
         val union = careful.flatMap { s -> s.groups.flatMap { g -> g.packages.map { it.name } } }.toSet()
         assertTrue(six.containsAll(union), "careful sets hold only the reviewed packages: ${union - six}")
-        // b06ab21: the other five are asked first somewhere (com.android.printspooler in
-        // amazon-fire-tv-afttiff43's Omni rows; com.android.tv.feedbackconsent and the three Privacy
-        // Sandbox packages in prismplus-q65-ultra-r10g), so rule 2 leaves them out of every careful set
-        // until those rows are reviewed. docs/history/reviews/UP300-sure-sets.txt has the per brand diff.
-        assertEquals(setOf(p("com.google.android.feedback")), union, "the reviewed packages no list asks for first")
+        assertEquals(six, union, "every reviewed package is in some careful set")
         assertEquals(careful.map { it.brand.lowercase() }.sorted(), careful.map { it.brand.lowercase() })
         fun pkgs(vararg names: String) = names.map(::p).toSet()
         // The brands of the reported TVs the change is for (docs/lists-0.3.5, the per-brand table).
         val reported = mapOf(
-            "Skyworth" to pkgs("com.google.android.feedback"),
-            "SHARP" to pkgs("com.google.android.feedback"),
+            "Skyworth" to pkgs("com.google.android.feedback", "com.android.tv.feedbackconsent"),
+            "SHARP" to pkgs("com.google.android.feedback", "com.android.tv.feedbackconsent"),
             "OnePlus" to pkgs("com.google.android.feedback"),
-            "onn" to pkgs("com.google.android.feedback"),
+            "onn" to pkgs("com.google.android.feedback", "com.android.tv.feedbackconsent", "com.android.printspooler"),
             "Haier" to pkgs("com.google.android.feedback"),
-            "google" to pkgs("com.google.android.feedback"),
-            "Expressluck" to pkgs("com.google.android.feedback"),
-            "SkyworthDigital" to pkgs("com.google.android.feedback"),
+            "google" to pkgs("com.google.android.feedback", "com.android.tv.feedbackconsent"),
+            "Expressluck" to six - p("com.android.printspooler"),
+            "SkyworthDigital" to six,
+            "MOKA" to pkgs("com.android.printspooler"),
         )
         for ((brand, want) in reported) assertEquals(want, careful.single { it.brand == brand }.groups.flatMap { g -> g.packages.map { it.name } }.toSet(), brand)
         val askedSomewhere = profiles.flatMap { pr -> pr.groups.filter { it.default != GroupDefault.DISABLE }.flatMap { g -> g.packages.map { it.name } } }.toSet()
@@ -476,7 +561,7 @@ class ProfilesTest {
         val sharp = source.resolve(mi.copy(brand = "SHARP", manufacturer = "SHARP", model = "AQUOS_TVE19A", device = "sindang", sdk = 30))
         assertTrue(sharp is ProfileResolution.BrandSureSet && sharp.brand == "SHARP", sharp.toString())
         assertEquals(KnownLaunchers.generic, sharp.stockLaunchers)
-        assertEquals(setOf(p("com.google.android.feedback")), sharp.sureSet.flatMap { g -> g.packages.map { it.name } }.toSet())
+        assertEquals(setOf(p("com.google.android.feedback"), p("com.android.tv.feedbackconsent")), sharp.sureSet.flatMap { g -> g.packages.map { it.name } }.toSet())
         // A brand with a full set keeps it when its maker also has a careful set.
         val sonyBySkyworth = source.resolve(mi.copy(brand = "Sony", manufacturer = "Skyworth", model = "X1", device = "x1"))
         assertTrue(sonyBySkyworth is ProfileResolution.BrandSureSet && sonyBySkyworth.brand == "Sony", sonyBySkyworth.toString())
