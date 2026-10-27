@@ -2178,7 +2178,7 @@
       }
     },
     "sony-bravia-bf1": {
-      "match": { "models": [], "devices": ["BRAVIA_BF1_4K_A"], "brand": "Sony", "sdkMin": 31, "sdkMax": 31, "fingerprintPrefix": null },
+      "match": { "models": [], "devices": ["BRAVIA_BF1"], "brand": "Sony", "sdkMin": 31, "sdkMax": 31, "fingerprintPrefix": "Sony/BRAVIA_BF1_4K" },
       "platform": "GOOGLE_TV",
       "stockLaunchers": ["com.google.android.apps.tv.launcherx"],
       "liveTv": null,

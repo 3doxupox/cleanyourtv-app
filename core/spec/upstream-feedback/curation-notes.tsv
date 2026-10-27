@@ -316,6 +316,7 @@ sony-bravia-ae2	com.mediatek.dtv.tvinput.atsctuner	the list switches off the ATS
 sony-bravia-ae2	com.sony.dtv.seeds.iot	filed under tracking; it is Sony's phone app and smart home link (the VH21 list), so it is an ask row
 sony-bravia-ae2	com.sony.dtv.tvinput.atsc3tuner	TV input driver (ATSC 3.0 tuner); never-disable, see above
 sony-bravia-ae2	com.sony.dtv.tvinput.atsc3tuner.drmlicenseinstaller	part of the ATSC 3.0 tuner input; ask row, see above
+sony-bravia-bf1	(match)	device BRAVIA_BF1 with the fingerprint prefix Sony/BRAVIA_BF1_4K (0.4.5): every reported BF1 says device BRAVIA_BF1, and the BRAVIA_BF1_4K_A the header calls the device is the product (BRAVIA_BF1_4K_A and BRAVIA_BF1_4K_M_A, issues #1088 and #700), so no BF1 matched before
 sony-bravia-tl2	(match)	the TPV device codename OD0M_EA_T32 may be shared with Philips sets; the Sony brand and the BRAVIA_TL2 fingerprint keep them apart
 sony-bravia-tl2	fusion.android.tv.demo	ask row: on MediaTek MTC builds this retail display app also handles the Input key and remote pairing (hitachi-65qledsm20), and this header did not check either with it off (RF-PROFILES-63 P6)
 sony-bravia-vu31	com.google.android.marvin.talkback	in the owner's off by choice group; accessibility is an ask row
