@@ -2839,7 +2839,6 @@
         "com.tcl.appreciate.art": { "category": "screensaver", "ask": false },
         "com.tcl.wholenetsearch": { "category": "brand", "ask": false },
         "com.tcl.useragreement": { "category": "other", "ask": false },
-        "com.tcl.versionUpdateApp": { "category": "updates", "ask": false },
         "com.tcl.tvhealthcheck": { "category": "tracking", "ask": false },
         "com.tcl.logkit": { "category": "tracking", "ask": false },
         "com.iflytek.xiri.translate": { "category": "voice", "ask": false }
@@ -2971,7 +2970,6 @@
         "7. Google ambient screensaver (promos); also hosts the Google Home panel (see header)": { "category": "screensaver", "ask": true }
       },
       "packages": {
-        "com.tcl.xian.StartandroidService": { "category": "other", "ask": true },
         "com.tcl.dashboard": { "category": "brand", "ask": true },
         "com.tcl.partnercustomizer": { "category": "brand", "ask": true },
         "com.tcl.esticker": { "category": "demo", "ask": false },
@@ -3127,8 +3125,7 @@
         "android.autoinstalls.config.google.gtvpai": { "category": "ads", "ask": false },
         "com.google.android.feedback": { "category": "tracking", "ask": false },
         "com.google.android.marvin.talkback": { "category": "accessibility", "ask": true },
-        "com.google.android.apps.tv.dreamx": { "category": "screensaver", "ask": false },
-        "com.google.android.tv.remote.service": { "category": "casting", "ask": true }
+        "com.google.android.apps.tv.dreamx": { "category": "screensaver", "ask": false }
       }
     },
     "tcl-q10g-pro": {

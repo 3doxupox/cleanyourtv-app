@@ -390,6 +390,7 @@ tcl-55s470g	com.tcl.UpdatePeripheral	soundbar firmware updater; Software updates
 tcl-65c735	(match)	G05 sold in Europe (product G05_4K_GB); the fingerprint prefix leaves other G05 sets on tcl-g05-google-tv
 tcl-65c735	com.tcl.hearaid	hearing test and volume adaptation (tcl-c755 keeps it for accessibility); accessibility ask row
 tcl-65c735	com.tcl.ttvs	filed under telemetry; the tcl-40s5400a and tcl-55s470g headers say ttvs also hosts TCL's firmware updater, so it is a Software updates row
+tcl-ak30a5	com.tcl.versionUpdateApp	since b06ab21 the list keeps the TCL updater on and its header says to keep it, so it is no row and is in the never-disable list
 tcl-beyondtv-rt2851	(match)	same model and device as tcl-beyondtv (India) and tcl-43ep660; the AP06 fingerprint keeps this list to its own firmware
 tcl-beyondtv-rt2851	com.tcl.android.webview	a WebView build (Google's is the active provider here); ask row
 tcl-beyondtv-rt2851	com.tcl.appmarket2	TCL's app store, carries a package installer service; ask row
@@ -411,7 +412,7 @@ tcl-g03-google-tv	com.tcl.gamebar	console game mode overlay; ask row as on tcl-5
 tcl-g03-google-tv	com.tcl.partnercustomizer	ask row: the header tested the Input key but not the remote's T key (RF-PROFILES-63 P5)
 tcl-g03-google-tv	com.tcl.usercenter	the TCL account; ask row as on the other TCL lists
 tcl-g03-google-tv	com.tcl.versionUpdateApp	not listed: the header keeps TCL's firmware updater on; never-disable
-tcl-g03-google-tv	com.tcl.xian.StartandroidService	filed as a reporting service here, but tcl-55c715, tcl-beyondtv-rt2851 and tcl-55c725 (same build) keep it as device authentication; ask row
+tcl-g03-google-tv	com.tcl.xian.StartandroidService	since b06ab21 the list keeps it on (TCL's updater reads the device number through it), so it is no row and needs no entry; tcl-55c715, tcl-beyondtv-rt2851 and tcl-55c725 (same build) keep it as device authentication
 tcl-g05-google-tv	com.google.android.marvin.talkback	accessibility helpers are ask rows (safety rule 8; the accessibility category asks already, the row now says so)
 tcl-g05-google-tv	com.tcl.channelplus	TCL Live registers a TV input (tcl-g07 header); TV inputs are never default-off, so it is an ask row here too and leaves the TCL sure set (0.2.0 safety review)
 tcl-g07-google-tv	(match)	device G07 alone: the model Smart TV names a family and otherwise beat tcl-40s5400a on its own C06 sets (RF-PROFILES-63 P8)
@@ -433,7 +434,7 @@ tcl-g09-google-tv	com.tcl.partnercustomizer	ask row: the header tested the Input
 tcl-g09-google-tv	com.tcl.ttvs	the header says updates come through Play Services on this set, but tcl-55s470g on the same G10 firmware family says ttvs hosts the updater; tracking ask row as on tcl-c755
 tcl-g09-google-tv	com.tcl.usercenter	the TCL account; ask row as on the other TCL lists
 tcl-g10-google-tv	com.google.android.marvin.talkback	accessibility helpers are ask rows (safety rule 8; the accessibility category asks already, the row now says so)
-tcl-g10-google-tv	com.google.android.tv.remote.service	the phone remote is an ask row (safety rule 8; the casting category asks already, the row now says so)
+tcl-g10-google-tv	com.google.android.tv.remote.service	since b06ab21 the list keeps it on (the remote mic's bridge, #1441), so it is no row and needs no entry; the denylist never switches it off
 tcl-g10-google-tv	com.tcl.channelplus	TCL Live registers a TV input (tcl-g07 header); TV inputs are never default-off, so it is an ask row here too and leaves the TCL sure set (0.2.0 safety review)
 tcl-qm6k-google-tv	com.tcl.channelplus	TCL Live registers a TV input (tcl-g07 header); TV inputs are never default-off, so it is an ask row here too and leaves the TCL sure set (0.2.0 safety review)
 tcl-uniontv-latin-america	com.tcl.appmarket2	TCL's app store, carries a package installer service (tcl-beyondtv-rt2851 header); ask row
