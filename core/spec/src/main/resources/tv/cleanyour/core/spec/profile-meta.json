@@ -3603,7 +3603,7 @@
       }
     },
     "xiaomi-mi-box-s": {
-      "match": { "models": ["MIBOX4"], "devices": ["oneday"], "brand": "Xiaomi", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": "Xiaomi/oneday/oneday:9/PI/3933" },
+      "match": { "models": ["MIBOX4"], "devices": ["oneday"], "brand": "Xiaomi", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": "Xiaomi/oneday/oneday:9/PI/" },
       "platform": "ANDROID_TV",
       "stockLaunchers": ["com.google.android.tvlauncher"],
       "liveTv": null,

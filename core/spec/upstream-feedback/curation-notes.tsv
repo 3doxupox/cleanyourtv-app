@@ -496,6 +496,7 @@ xgimi-mogo-3-pro	com.google.android.videos	the Google TV app holds purchased fil
 xgimi-mogo-3-pro	com.xgimi.gimiplayer	the local video and photo player; USB media players are ask rows
 xgimi-mogo-3-pro	fusion.android.tv.demo	ask row: on MediaTek builds this retail display app also handles the Input key and remote pairing (hitachi-65qledsm20), and this header did not check either with it off (RF-PROFILES-63 P6)
 xiaomi-mi-box-s	com.google.android.marvin.talkback	accessibility helpers are ask rows (safety rule 8; the accessibility category asks already, the row now says so)
+xiaomi-mi-box-s	(match)	fingerprint prefix widened to the PI line: the PI/3595 firmware (issues #772, #60) has the same packages as PI.3933
 xiaomi-mi-box-s-2nd-gen	com.xiaomi.tvqs.overseas	never-disable here: the header says it is the box's quick settings panel (the MOSR4 and MOOR2 lists call it Firebase analytics), which also keeps it out of the Xiaomi sure set
 xiaomi-mitv-afmu0	com.google.android.marvin.talkback	listed under preloaded apps; accessibility is never default-off, so it is an ask row
 xiaomi-mitv-afmu0	com.mitv.videoplayer	listed under preloaded apps; it is the USB video player, so it is an ask row

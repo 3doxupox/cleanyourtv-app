@@ -324,6 +324,8 @@ class ProfilesTest {
             f("Xiaomi", "xiaomi", "MiTV-ASTP0", "mulan", 28, "Xiaomi/mulan/mulan:9/PPR1.180610.011/OS3.0.101.0.PSTAATV:user/release-keys") to "xiaomi-mitv-astp0",   // #340
             f("xiaomi", "xiaomi", "MiTV-MTEQ0", "baymax", 29, "xiaomi/baymax/baymax:10/QQ2A.200305.004.A1/2446:user/release-keys") to "xiaomi-mitv-mteq0",   // #1079
             f("xiaomi", "xiaomi", "MiTV-MFTP0", "alita", 28, "xiaomi/alita/alita:9/PPR2.180905.006.A1/6318:user/release-keys") to "redmi-mitv-mftp0",   // #670
+            f("Xiaomi", "Xiaomi", "MIBOX4", "oneday", 28, "Xiaomi/oneday/oneday:9/PI/3595:user/release-keys") to "xiaomi-mi-box-s",   // #772, older PI firmware
+            f("Xiaomi", "Xiaomi", "MIBOX4", "oneday", 28, "Xiaomi/oneday/oneday:9/PI/3933:user/release-keys") to "xiaomi-mi-box-s",   // #187, the tested firmware
         )
         for ((facts, id) in reports) assertEquals(id, (source.resolveNow(facts) as? ProfileResolution.Exact)?.profile?.id, "${facts.model} ${facts.fingerprint}")
         for (id in cleanUpOnlyPart2) {
