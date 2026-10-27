@@ -1742,7 +1742,7 @@
         "Karaoke": { "category": "preloads", "ask": true },
         "Preloaded apps": { "category": "preloads", "ask": true },
         "Stock home. Disable only after the new launcher is installed and running, or Home lands on a factory test app.": { "category": "home", "ask": false },
-        "Privacy Sandbox and on-device personalization": { "category": "ads", "ask": false }
+        "Privacy Sandbox and on-device personalization": { "category": "ads", "ask": true }
       },
       "packages": {
         "com.google.android.partnersetup": { "category": "tracking", "ask": false },
@@ -1751,9 +1751,7 @@
         "com.apps.esticker3": { "category": "demo", "ask": false },
         "com.android.printspooler": { "category": "preloads", "ask": false },
         "com.wbd.stream": { "category": "streaming", "ask": true },
-        "com.android.tv.feedbackconsent": { "category": "tracking", "ask": false },
-        "com.android.federatedcompute.services": { "category": "tracking", "ask": false },
-        "com.android.ondevicepersonalization.services": { "category": "tracking", "ask": false }
+        "com.android.tv.feedbackconsent": { "category": "tracking", "ask": true }
       }
     },
     "rca-ai-pont": {
