@@ -2,6 +2,22 @@
 
 All notable changes to the app. Versions follow [semantic versioning](https://semver.org/).
 
+## Unreleased
+
+### Reporting a problem
+- Report this: every stop, timeout, paused change and connect problem has "Report a problem" on
+  its card, and so does Home screen when the new home screen can't go on the TV. One tap opens a
+  ready filled GitHub issue with what the card said and how the TV is now, so there is nothing to
+  paste. The app still sends nothing itself: your browser opens the form, and nothing is public
+  until you post it.
+- A long report always fits in the form now. It keeps the TV, its list and its home screen lines,
+  what went wrong and the newest lines of the log, and the app copies the whole report too. Before,
+  a report too long for the link left the box empty and asked you to paste it.
+- When the phone can't connect, the report has the phone's side instead of the TV's: how the TV was
+  found, the port, the error the app named and the phone's Android version.
+- The issue's title names the TV, for example "Problem: Xiaomi MiTV-AXSO0 (dangal, Android 9)", or
+  "Problem: could not connect (refused)" when no TV was read.
+
 ## 0.4.5 (2026-10-27)
 
 The home screen app from Gathin's Clean Your TV goes to 3.0, with more choices in the Look sheet, 25
