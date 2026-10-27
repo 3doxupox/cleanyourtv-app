@@ -141,6 +141,17 @@ class Issue701And1273Test {
         h.documents.write("tvs/${tv.id.value}/decision.txt", "home=blocked:TV_REFUSES\n".encodeToByteArray())
         val n = assertNotNull(HomeScreenMachine(h.manageDeps(about = about), backgroundScope, tv.id).also { settle() }.state.value.notOnTv)
         assertFalse(n.earlier || n.setupAgain, "$n")
+        // Review of beta3: so do the families, the hardware and a home screen the person changed, after
+        // a version bump too (the decision names 0.4.5, the app is 0.4.6-beta3).
+        for (block in listOf(HomeBlock.TV_REFUSES, HomeBlock.OLD_ANDROID, HomeBlock.BOOT_LOOP, HomeBlock.CASTING, HomeBlock.REMOTE_BUTTONS, HomeBlock.HOME_CHANGED)) {
+            HomeDecisions(h.documents).save(tv.id, HomeDecision(false, block.name, app = "0.4.5", profile = "brand set Xiaomi"))
+            val kept = assertNotNull(HomeScreenMachine(h.manageDeps(about = about), backgroundScope, tv.id).also { settle() }.state.value.notOnTv, block.name)
+            assertEquals(block, kept.reason)
+            assertFalse(kept.earlier || kept.setupAgain, "$block: $kept")
+        }
+        // A rule block from 0.4.5 is an earlier Setup's.
+        HomeDecisions(h.documents).save(tv.id, HomeDecision(false, "WIZARD_WIFI", app = "0.4.5", profile = "exact xiaomi-mi-box-s-android12"))
+        assertTrue(assertNotNull(HomeScreenMachine(h.manageDeps(about = about), backgroundScope, tv.id).also { settle() }.state.value.notOnTv).earlier)
     }
 
     @Test fun theDecisionFileKeepsTheVersionAndTheList() = runTest {

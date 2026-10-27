@@ -334,9 +334,11 @@ class HomeScreenMachine(
         // beta3 (issues #701, #1273): a block an earlier Setup decided, with an earlier version of
         // the app or another list than the TV resolves to now, may not hold any more: Setup again
         // decides it with this version. The TV's own facts (it refuses other home screens, its
-        // Android is too old) do not change with the app, so those keep their line.
+        // Android is too old, its family boot-loops, it is Google's casting hardware, its remote's
+        // app buttons need its home screen) and a home screen the person changed do not change with
+        // the app, so those keep their line and their own next step.
         val now = attempt { d.profiles.resolveFor(snap) }.getOrNull()
-        val earlier = reason != null && reason != HomeBlock.TV_REFUSES && reason != HomeBlock.OLD_ANDROID &&
+        val earlier = reason != null && reason !in KEEPS_ITS_LINE &&
             decision?.earlier(d.about.version, now, tv.profileId) == true
         val unlisted = tv.profileId == null && (!earlier || now !is ProfileResolution.Exact)
         if (earlier) return NotOnTv(reason = reason, brand = LogCodes.clean(snap.facts.brand, 40).ifEmpty { tv.nickname },
@@ -415,6 +417,10 @@ class HomeScreenMachine(
     }
 
     companion object {
+        // beta3: the blocks an earlier Setup's decision keeps across app versions (notOnTv).
+        val KEEPS_ITS_LINE: Set<HomeBlock> = setOf(HomeBlock.TV_REFUSES, HomeBlock.OLD_ANDROID, HomeBlock.BOOT_LOOP, HomeBlock.CASTING,
+            HomeBlock.REMOTE_BUTTONS, HomeBlock.HOME_CHANGED)
+
         // Launcher 2.4 (versionCode 5) added Launcher settings on the TV (RF-LAUNCHER-240 F16).
         const val FIRST_WITH_TV_SETTINGS = 5L
         const val DEFAULT_LOOK = "default"
