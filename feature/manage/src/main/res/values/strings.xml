@@ -190,7 +190,7 @@
     <!-- 0.3.2 B1: an unlisted TV on Manage -->
     <string name="manage_help_add_tv_banner">We haven\'t met this exact TV before, so we were careful with it. A short report from you helps us add it.</string>
     <string name="manage_help_add_tv">Help add this TV</string>
-    <string name="manage_wizard_home_title">The setup wizard can now take the Home button</string>
+    <string name="manage_wizard_home_title">The setup wizard can take the Home button</string>
     <string name="manage_wizard_home_body">Switch the TV\'s own home screen back on so the TV keeps starting normally.</string>
     <string name="manage_wizard_home_button">Switch it back on</string>
     <string name="manage_wizard_home_working">Switching the TV\'s own home screen back on...</string>
