@@ -44,6 +44,7 @@ import tv.cleanyour.core.planner.Plan
 import tv.cleanyour.core.planner.PlanKind
 import tv.cleanyour.core.planner.PlanSummary
 import tv.cleanyour.core.planner.Step
+import tv.cleanyour.core.planner.StockHome
 import tv.cleanyour.core.planner.SwitchOffRule
 import tv.cleanyour.core.probe.Prober
 import tv.cleanyour.core.session.BootOutcome
@@ -1120,7 +1121,9 @@ internal object Staleness {
                     val now = snapshot.settings[op.key]
                     if (now != prior.settingValue) out += "${op.key.key}: was ${prior.settingValue ?: "unset"}, now ${now ?: "unset"}"
                 }
-                is Op.SetHome -> prior.home?.let { if (snapshot.home.resolved != it) out += "home: was ${it.flat}, now ${snapshot.home.resolved?.flat ?: "none"}" }
+                // WP4 (B5): the planner records the stock home as the prior while HOME answers with
+                // the chooser, a placeholder or nothing (StockHome.recorded), so that answer is no change.
+                is Op.SetHome -> prior.home?.let { if (snapshot.home.resolved != it && snapshot.home.resolved?.takeUnless { r -> StockHome.isPlaceholder(r) } != null) out += "home: was ${it.flat}, now ${snapshot.home.resolved?.flat ?: "none"}" }
                 else -> {}
             }
         }

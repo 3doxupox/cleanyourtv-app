@@ -91,6 +91,23 @@ object StockHome {
             ?: claimants.firstOrNull { stockPkg(it) }
     }
 
+    // A HOME answer that is not a home screen (WP4, B5): the system chooser (package android, its
+    // ResolverActivity), a FallbackHome placeholder the firmware shows while no launcher is on
+    // (com.android.tv.settings/.system.FallbackHome, com.tcl.keycustomfunctionservice/.FallbackHome),
+    // and the first-run setup wizard (setupwraith's RecoveryActivity, com.android.provision). Never
+    // recorded as the TV's own home screen, so neither step R nor Undo everything hands HOME to one.
+    fun isPlaceholder(c: Component): Boolean {
+        val pkg = c.pkg.value
+        return pkg == Denylist.FRAMEWORK || c.cls.endsWith("FallbackHome") || pkg == "com.android.provision" ||
+            pkg in Denylist.setupWizards || pkg in Denylist.vendorSetupWizards || "setupwraith" in pkg.lowercase()
+    }
+
+    // The home screen a SetHome records as the one before it (its prior, which the journal, the
+    // restore point's homeBefore and Undo everything read): HOME as the TV answered, unless that is
+    // a placeholder or nothing, then the stock home the switch hands back to.
+    fun recorded(snapshot: Snapshot, stock: Component): Component =
+        snapshot.home.resolved?.takeUnless { isPlaceholder(it) } ?: stock
+
     // HOME answers to a home screen app the person installed, and the TV's own is not among the
     // claimants: the home screen was changed before (by another app or an earlier change), so the
     // switch has nothing to hand HOME back to and the person's choice stays.

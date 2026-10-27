@@ -478,7 +478,8 @@ class DefaultPlanner(
             val from = step(Op.ArmHomeWatchdog(stock, watchdogSeconds, token), null, GROUP_HOME, "Arming the safety timer", FailurePolicy.STOP_AND_ROLLBACK)
             if (!keepStockEnabled) disable(stock.pkg, GROUP_HOME, FailurePolicy.STOP_AND_ROLLBACK, "Switching off the TV's own home screen")
             if (wizard != null) disable(wizard, GROUP_HOME, FailurePolicy.STOP_AND_ROLLBACK, NARRATION_WIZARD)
-            step(Op.SetHome(launcher), Prior(home = snapshot.home.resolved), GROUP_HOME, "Making the new home screen the default", FailurePolicy.STOP_AND_ROLLBACK)
+            // WP4 (B5): the prior is the home screen the TV goes back to; never the chooser or a placeholder.
+            step(Op.SetHome(launcher), Prior(home = StockHome.recorded(snapshot, stock)), GROUP_HOME, "Making the new home screen the default", FailurePolicy.STOP_AND_ROLLBACK)
             val to = step(Op.VerifyHome(launcher), null, GROUP_HOME, "Checking the home screen", FailurePolicy.STOP_AND_ROLLBACK)
             step(Op.ConfirmHome(token), null, GROUP_HOME, "Confirming the new home screen", FailurePolicy.CONTINUE)
             step(Op.KillWatchdog(token), null, GROUP_HOME, "Disarming the safety timer", FailurePolicy.CONTINUE)
