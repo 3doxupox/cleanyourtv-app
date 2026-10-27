@@ -162,7 +162,7 @@ object LookKeys {
     // 0.4.5 (plan WP5 step 4): after steps 8 and 9, the 3.0 extras go in doc.unknown (CARRIED_30),
     // each only when it differs from the launcher's default and only where it takes effect
     // (LookExtrasKeys.applying: one row and no band need the dock row, the band behind every app
-    // needs one row, the internet warnings need Green Wi-Fi and the pill on screen). DEFAULT adds
+    // needs one row and a band, the internet warnings need Green Wi-Fi and the pill on screen). DEFAULT adds
     // nothing, so every look keeps its 0.4.0 bytes (Look2BytesTest). The rules give DEFAULT to a TV
     // below 3.0, so a 2.7 TV never gets a 3.0 key. One row also writes rows_below_dock 0 (see below);
     // without it the rows are the dock's again, as DockLayers cuts them.

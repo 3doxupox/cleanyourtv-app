@@ -78,7 +78,8 @@ object LookExtrasKeys {
 
     // The extras a 3.0 home screen shows for these bytes, each only where it takes effect (the
     // launcher's own rules, MainActivity and DockDecoration at b06ab21): one row needs the dock row
-    // (Config); the band behind every app needs one row (DockDecoration bandAll); no band needs the
+    // (Config); the band behind every app needs one row and a band (DockDecoration bandAll and
+    // bandVisible); no band needs the
     // dock row (the band is a decoration of the dock row); the internet warnings tint the Wi-Fi pill,
     // so they need wifi_status_color and the pill on screen (top_menu hides it). The preview reads
     // these, and the extras differential reads back what build wrote.
@@ -88,7 +89,7 @@ object LookExtrasKeys {
         val dockRow = doc?.dockRow ?: ConfigCodecImpl.BUILT_IN.dockRow
         return LookExtras(
             oneRow = c.singleRow,
-            bandAll = c.singleRow && c.dockBandAll,
+            bandAll = c.singleRow && c.dockBandAll && c.dockBand,
             noBand = dockRow && !c.dockBand,
             hideGreeting = !c.showGreeting,
             dateBelow = c.dateBelowClock,
@@ -99,14 +100,16 @@ object LookExtrasKeys {
         )
     }
 
-    // What of `extras` takes effect on a doc with these keys (plan WP5 step 4): the writer drops the
-    // rest, so a switch that does nothing never reaches the bytes.
+    // What of `extras` takes effect on a doc with these keys (plan WP5 step 4, and the band behind
+    // every app needs a band): the writer drops the rest, so a switch that does nothing never
+    // reaches the bytes.
     fun applying(extras: LookExtras, dockRow: Boolean, wifiStatusColor: Boolean, topMenu: Boolean): LookExtras {
         val oneRow = extras.oneRow && dockRow
+        val noBand = extras.noBand && dockRow
         return extras.copy(
             oneRow = oneRow,
-            bandAll = extras.bandAll && oneRow,
-            noBand = extras.noBand && dockRow,
+            bandAll = extras.bandAll && oneRow && !noBand,
+            noBand = noBand,
             wifiWarnings = extras.wifiWarnings && wifiStatusColor && !topMenu,
         )
     }
