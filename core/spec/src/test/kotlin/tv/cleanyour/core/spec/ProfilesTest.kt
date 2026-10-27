@@ -25,7 +25,7 @@ class ProfilesTest {
 
     @Test fun everyConvertedUpstreamExampleParsesWithCuratedMetadata() {
         assertEquals(316, upstream.size)
-        assertEquals(149, examples.size)
+        assertEquals(150, examples.size)
         for (e in examples) {
             val profile = DebloatTxtParser.parse(e.debloatTxt, e.folder)
             assertEquals(e.folder, profile.id)
@@ -62,7 +62,7 @@ class ProfilesTest {
     @Test fun theUnconvertedListIsPinnedToTheSubmodule() {
         val meta = ProfileMeta.decode(File(Fixtures.repoRoot, "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json").readText())
         assertEquals(upstream.map { it.folder }.filter { it !in meta.profiles }.toSet(), unconverted)
-        assertEquals(167, unconverted.size)
+        assertEquals(166, unconverted.size)
         val listed = unconvertedFile.readLines().filter { it.isNotBlank() && !it.startsWith("#") }
         assertEquals(listed.sorted(), listed, "one folder per line, sorted")
         assertTrue('\u2014' !in unconvertedFile.readText() && "-".repeat(2) !in unconvertedFile.readText())
@@ -310,6 +310,9 @@ class ProfilesTest {
             Fixtures.miTv().facts().copy(brand = brand, manufacturer = maker, model = model, device = device, sdk = sdk, fingerprint = fingerprint)
         val reports = listOf<Pair<tv.cleanyour.core.model.DeviceFacts, String?>>(
             f("Xiaomi", "Xiaomi", "MIBOX4", "oneday", 31, "Xiaomi/oneday/oneday:12/STTC.230106.001/4560:user/release-keys") to "xiaomi-mi-box-s-android12",   // #1153
+            f("Xiaomi", "Xiaomi", "MiTV-MSSP2", "volver", 28, "Xiaomi/volver/volver:9/PI/6305:user/release-keys") to "xiaomi-mitv-mssp2",   // #1209
+            f("Xiaomi", "Xiaomi", "MiTV-MSSP2", "volver", 28, "Xiaomi/volver/volver:9/PI/4621:user/release-keys") to "xiaomi-mitv-mssp2",   // #814
+            f("Xiaomi", "Xiaomi", "MiTV-MSSP2", "volver", 30, "Xiaomi/volver/volver:11/RTT2.211214.001/933:user/release-keys") to null,   // #540, Android 11
         )
         for ((facts, id) in reports) assertEquals(id, (source.resolveNow(facts) as? ProfileResolution.Exact)?.profile?.id, "${facts.model} ${facts.fingerprint}")
         for (id in cleanUpOnlyPart2) {

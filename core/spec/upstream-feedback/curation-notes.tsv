@@ -519,5 +519,6 @@ xiaomi-mitv-mffu0	(match)	model MiTV-MFFU0 and device finch from the header; Hyp
 xiaomi-mitv-mffu0	com.mitv.alarmcenter	reminders and alarms set with XiaoAI voice; ask row
 xiaomi-mitv-mffu0	com.xiaomi.gamecenter.sdk.service.mibox	Xiaomi store games may need it for sign-in, so it is an ask row as on xiaomi-mitv-astp1
 xiaomi-mitv-mosr4	fusion.android.tv.demo	ask row: on MediaTek MTC builds this retail display app also handles the Input key and remote pairing (hitachi-65qledsm20), and this header did not check either with it off (RF-PROFILES-63 P6)
+xiaomi-mitv-mssp2	com.google.android.videos	a streaming app in the preloaded group; ask row, as on the other Xiaomi lists
 xiaomi-mitv-mssp3-android9	(header)	v2.5.0 notes for the older PI.4663 firmware (upstream #494, alessandrodauria): no package change; there the old leanback home is installed next to tvlauncher, and the home screen switch turns off only the one that holds Home
 xiaomi-mitv-mssp3-android9	com.google.android.katniss	the header says the firmware turns it back on at every boot (REENABLED_AT_BOOT)

@@ -4078,6 +4078,27 @@
         "com.xiaomi.floatingframe": { "category": "brand", "ask": false }
       }
     },
+    "xiaomi-mitv-mssp2": {
+      "match": { "models": ["MiTV-MSSP2"], "devices": ["volver"], "brand": "Xiaomi", "sdkMin": 28, "sdkMax": 28, "fingerprintPrefix": null },
+      "platform": "ANDROID_TV",
+      "stockLaunchers": ["com.google.android.tvlauncher"],
+      "liveTv": "com.mediatek.wwtv.tvcenter",
+      "setupWraith": null,
+      "quirks": [],
+      "neverDisable": ["com.mediatek.wwtv.tvcenter", "com.mediatek.tvinput", "mitv.service", "com.mediatek.hotkey.dispatcher", "com.xiaomi.android.tvsetup.partnercustomizer", "com.google.android.tv.remote.service", "com.xiaomi.mitv.mediaexplorer", "com.xiaomi.mitv.updateservice"],
+      "suggestedDock": [],
+      "tested": { "by": "bart-b-pl (PR #643)", "firmware": "PI.4621", "daysLivedWith": null, "rebootTested": false },
+      "groups": {
+        "Xiaomi + Google telemetry": { "category": "tracking", "ask": false },
+        "PatchWall, content rows, sponsored rows": { "category": "ads", "ask": false },
+        "Xiaomi + Android background services": { "category": "preloads", "ask": false },
+        "Preloaded apps": { "category": "preloads", "ask": false },
+        "Stock Android TV launchers, replaced by launcher/": { "category": "home", "ask": false }
+      },
+      "packages": {
+        "com.google.android.videos": { "category": "streaming", "ask": true }
+      }
+    },
     "xiaomi-mitv-mssp3": {
       "match": { "models": ["MiTV-MSSP3"], "devices": ["machuca"], "brand": "Xiaomi", "sdkMin": 30, "sdkMax": 30, "fingerprintPrefix": null },
       "platform": "ANDROID_TV",
