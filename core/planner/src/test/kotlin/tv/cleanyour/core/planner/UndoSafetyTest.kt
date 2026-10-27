@@ -105,4 +105,28 @@ class UndoSafetyTest {
             assertTrue(Op.SetHome(stock) in resetOps && Op.Enable(stock.pkg) in resetOps, "$resetOps")
         }
     }
+
+    // A brand-set TV (the generic KnownLaunchers as its stock launchers) whose generic launcher the
+    // factory switched off, and a pre-0.4.5 placeholder prior with no watchdog record: neither Undo
+    // everything nor Before a factory reset ever hands HOME to that launcher or switches it on.
+    @Test fun aFactoryOffGenericLauncherIsNeverTheHomeToGoBackTo() {
+        val generic = tv.cleanyour.core.spec.KnownLaunchers.TVLAUNCHER
+        val source = object : ProfileSource {
+            override suspend fun all() = emptyList<tv.cleanyour.core.model.Profile>()
+            override suspend fun resolve(facts: DeviceFacts) = ProfileResolution.BrandSureSet("Xiaomi", emptyList(), tv.cleanyour.core.spec.KnownLaunchers.generic)
+        }
+        val planner = PlannerFixtures.planner(profiles = source)
+        // Ours is Home; the generic launcher is installed but off from the factory: not a claimant, no record of ours.
+        val tv = snapshot(home = launcher, claimants = listOf(launcher), extra = mapOf(installedLauncher())).with(generic.pkg, EnabledState.DISABLED_USER)
+        val records = listOf(change(0, Op.SetHome(launcher), Prior(home = chooser)))
+        val undo = planner.plan(PlanRequest.UndoEverything(records, removeLauncher = false), tv, PlannerFixtures.facts, records)
+        val reset = planner.plan(PlanRequest.BeforeFactoryReset, tv, PlannerFixtures.facts, records)
+        for ((name, r) in listOf("undo" to undo, "reset" to reset)) {
+            val ops = assertIs<PlanResult.Ok>(r, "$name: $r").plan.steps.map { it.op }
+            assertTrue(ops.none { (it as? Op.SetHome)?.component?.pkg == generic.pkg || it == Op.Enable(generic.pkg) || (it as? Op.SetHome)?.component == chooser }, "$name: $ops")
+        }
+        // Asked for directly, it is not a home screen this TV had either.
+        val asked = planner.plan(PlanRequest.UseStockHome(generic), tv, PlannerFixtures.facts, records)
+        assertIs<PlanResult.Refused>(asked)
+    }
 }

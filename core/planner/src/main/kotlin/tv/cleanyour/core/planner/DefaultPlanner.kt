@@ -175,12 +175,17 @@ class DefaultPlanner(
 
         // WP4 (G4): a journal from before 0.4.5 may hold the chooser or another placeholder as the
         // SetHome prior on a TV whose HOME was undecided. The home screen to go back to is then the
-        // stock home the switch armed its watchdog with, else the TV's stock home claimant, else the
-        // profile's installed stock launcher.
+        // stock home the switch armed its watchdog with, else the TV's stock home claimant, else a
+        // stock launcher of the exact profile (never a brand set's or the generic KnownLaunchers) that
+        // is installed and either claims HOME or has a Disable record of ours: a launcher the factory
+        // switched off is never handed HOME.
         fun homeToRestore(recorded: Component?, records: List<ChangeRecord>): Component? {
             if (recorded == null || !StockHome.isPlaceholder(recorded)) return recorded
+            val all = journals + records
+            fun claims(pkg: PackageName) = snapshot.home.claimants.any { it.component.pkg == pkg }
+            fun ourDisable(pkg: PackageName) = all.any { (it.op as? Op.Disable)?.pkg == pkg }
             return HomePlaceholder.stockFromRecords(records) ?: StockHome.of(snapshot, managedStockLaunchers)
-                ?: managedStockLaunchers.firstOrNull { installed(it.pkg) }
+                ?: managedProfile?.stockLaunchers.orEmpty().firstOrNull { installed(it.pkg) && (claims(it.pkg) || ourDisable(it.pkg)) }
         }
 
         // The rule the engine applies again with live facts (SwitchOffRule, 0.3.3 issue #10), outside
@@ -661,16 +666,16 @@ class DefaultPlanner(
 
         // Also the core of UndoEverything and BeforeFactoryReset: the TV's own home screen back.
         // `records`: change records besides the journals that may name it (Undo everything's own).
-        // WP4 (G4): the stock home the switch armed its watchdog with, and a stock launcher of this
-        // TV's profile that is installed, are home screens this TV had too (a placeholder prior is
-        // mapped to one of them by homeToRestore).
+        // WP4 (G4): the stock home the switch armed its watchdog with, and an installed stock
+        // launcher of this TV's exact profile (not a brand set's, not the generic KnownLaunchers), are
+        // home screens this TV had too (a placeholder prior is mapped to one of them by homeToRestore).
         fun useStockHome(stock: Component, wizardFromJournal: PackageName?, records: List<ChangeRecord> = emptyList()) {
             if (stock == launcher) { refuse("that is the new home screen, not the TV's own"); return }
             val all = journals + records
             val known = snapshot.home.claimants.any { it.component == stock } ||
                 all.any { it.op is Op.SetHome && it.prior?.home == stock } ||
                 all.any { (it.op as? Op.ArmHomeWatchdog)?.stock == stock } ||
-                (stock in managedStockLaunchers && installed(stock.pkg))
+                (stock in managedProfile?.stockLaunchers.orEmpty() && installed(stock.pkg))
             if (!known) { refuse("${stock.flat} is not a home screen this TV had"); return }
             // A package the undo already puts back (Enable, or DefaultState for an original DEFAULT)
             // is not enabled a second time: that would leave it ENABLED instead of DEFAULT (R1 R-10).
