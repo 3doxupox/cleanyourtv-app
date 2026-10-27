@@ -20,6 +20,10 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -131,6 +135,20 @@ fun ManageScreen(state: ManageState, onIntent: (ManageIntent) -> Unit, modifier:
                 Banner(stringResource(R.string.manage_help_add_tv_banner), BannerTone.INFO, Modifier.padding(top = 16.dp),
                     actionLabel = stringResource(R.string.manage_help_add_tv), onAction = { onIntent(ManageIntent.HelpAddTv) })
             }
+            // 0.4.6: on this connect a setup wizard claims Home while the TV's own home screen is off
+            // (WizardHome). The way back sits above the rows, like the drift banner's "Restore mine";
+            // its button writes to the TV, so it is guarded.
+            if (tv.wizardHome) {
+                val title = stringResource(R.string.manage_wizard_home_title)
+                val body = stringResource(R.string.manage_wizard_home_body)
+                Banner(
+                    buildAnnotatedString { withStyle(SpanStyle(fontWeight = FontWeight.Medium)) { append(title) }; append("\n"); append(body) },
+                    BannerTone.WARNING, Modifier.padding(top = 16.dp),
+                    actionLabel = if (state.switchingHome) null else stringResource(R.string.manage_wizard_home_button),
+                    onAction = { onIntent(ManageIntent.SwitchStockHomeOn) }, guardAction = true,
+                )
+                if (state.switchingHome) LiveLine(stringResource(R.string.manage_wizard_home_working))
+            }
             ListGroup(Modifier.padding(top = 16.dp)) {
                 // 0.3.3 D2: without the new home screen there is no dock to name; the row opens the reason.
                 ListRow(stringResource(R.string.manage_row_home),
@@ -227,6 +245,15 @@ internal fun ColumnScope.OpenWriteContent(
             // 0.3.2 B2: a setup that would not finish is worth a report (issue #2).
             detailsLabel = stringResource(R.string.openwrite_report), onDetails = onReport,
             primaryGuarded = false)   // navigation: it only opens the wizard's resume card
+    } else if (open.tookHome != null) {
+        // 0.4.6: the app this put back switched on took the Home button. The buttons say exactly what
+        // they do, so neither asks first: switch it off again (the run's undo) or keep it (stop here).
+        val app = open.tookHome.orEmpty()
+        StopCard(msg(R.string.openwrite_title_took_home, "app" to app),
+            if (open.notTaken) stringResource(R.string.openwrite_not_taken) else msg(R.string.openwrite_body_took_home, "app" to app),
+            primaryLabel = if (open.busy) null else stringResource(R.string.openwrite_switch_off_again), onPrimary = { onAction(OpenWriteAction.UNDO) },
+            tertiaryLabel = if (open.busy) null else stringResource(R.string.openwrite_keep_it), onTertiary = { onAction(OpenWriteAction.STOP_HERE) },
+            busyText = if (open.busy) stringResource(R.string.openwrite_busy) else null)
     } else {
         // "Undo what we did" and "Stop here" ask first, in this same sheet; the action is sent on yes.
         var asking by rememberSaveable(open.planId.value) { mutableStateOf(initiallyAsking) }

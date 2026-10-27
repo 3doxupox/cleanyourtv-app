@@ -2,6 +2,26 @@
 
 All notable changes to the app. Versions follow [semantic versioning](https://semver.org/).
 
+## Unreleased
+
+### Home screen
+- Xiaomi TVs on Android TV (Mi TV 4i, Mi TV P1 and others), Redmi sets among them, can now get the
+  new home screen; their setup wizard stays on. This is for the sets whose only home screen is
+  Google's Android TV home and whose setup wizard does not answer the Home button.
+- Each time you open Manage with the TV connected, the app checks the Home button again. If the
+  setup wizard could now take it while the new home screen is in charge, Manage says so and offers
+  to switch the TV's own home screen back on, so the TV keeps starting normally.
+- Switching the TV's own home screen back on from "Switched off" (or "Better back on") keeps the
+  new one as Home. If the TV still gives Home to the app you switched on, the app says so and
+  offers to switch it off again.
+- Right after the switch, if the TV brings up Live TV or another input in front of the new home
+  screen (some TVs start on the last input they showed), the check presses Home again for you.
+- "Use the TV's own home screen" in Manage now also works on TVs with no list of their own.
+
+### Under the hood
+- Test builds can offer the switch with the setup wizard left on to other brands' sets that look the
+  same, so volunteers can check them across restarts. Releases do this on Xiaomi sets only.
+
 ## 0.4.5 (2026-10-27)
 
 The home screen app from Gathin's Clean Your TV goes to 3.0, with more choices in the Look sheet, 25

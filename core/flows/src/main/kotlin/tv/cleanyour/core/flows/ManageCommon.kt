@@ -369,7 +369,7 @@ class TvWriter(private val d: ManageDeps) {
     // paused STALE before its first step says nothing was changed, never "we stopped partway".
     suspend fun publish(tv: Tv, p: RunState.Paused) {
         val nothingDone = attempt { d.ledger.progress(p.plan.id).doneSteps == 0 }.getOrDefault(false)
-        d.openWrites.show(tv, p, nothingDone)
+        d.openWrites.show(tv, p, nothingDone, OpenWrites.tookHome(p)?.let { d.nameOf(it, attempt { d.snapshots.latest(tv.id) }.getOrNull()?.packages?.get(it)?.label) })
     }
 
     // The card's buttons (O2): carry on, undo what we did, or stop here, for the open run on this
@@ -403,6 +403,10 @@ class TvWriter(private val d: ManageDeps) {
             when (val outcome = d.runner.follow(tv, plan)) {
                 is RunOutcome.Finished -> {
                     d.openWrites.clear(tvId)
+                    // 0.4.6: "Keep it" on the took the Home button card: the app the put back
+                    // switched on keeps Home, so the TV record says the new home screen is no longer
+                    // Home, as Use the TV's own home screen does (useStockHome).
+                    if (action == OpenWriteAction.STOP_HERE && OpenWrites.tookHome(paused) != null) d.tv(tvId)?.let { d.tvs.upsert(it.copy(launcher = null)) }
                     afterRun(tv, session, plan, outcome.state)
                     WriteResult.Done(plan, outcome.state)
                 }
@@ -440,6 +444,15 @@ class TvWriter(private val d: ManageDeps) {
     }
 
     companion object { const val MOVE_WAIT_MS = 5_000L }
+
+    // "Use the TV's own home screen" (PRODUCT-SPEC M2): re-enables the stock launcher, sets it as
+    // home, keeps ours installed; the TV record then says the new home screen is no longer Home. One
+    // path for Home screen's button and Manage's wizard Home row (0.4.6, WizardHome).
+    suspend fun useStockHome(tvId: TvId, stock: tv.cleanyour.core.model.Component, onBusy: (Busy) -> Unit = {}): WriteResult {
+        val r = write(tvId, PlanRequest.UseStockHome(stock), onBusy = onBusy)
+        if (r is WriteResult.Done) d.tv(tvId)?.let { d.tvs.upsert(it.copy(launcher = null)) }
+        return r
+    }
 
     // A plan for preview only (Undo everything, Use the TV's own home screen): no gate, no run.
     // `fresh`: from a new snapshot while the TV is connected (as write takes it), else the stored one.
