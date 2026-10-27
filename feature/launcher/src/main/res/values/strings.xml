@@ -54,6 +54,9 @@
     <string name="home_not_on_tv_next_other_home">To use the new one, remove that app, then run Setup again. Or ask us in your issue.</string>
     <!-- beta4: a system service also answers Home (issue #825) -->
     <string name="home_not_on_tv_vendor_home">On this TV a system service also answers the Home button. One TV like that failed to start after its home screen was switched, so Setup left the home screen alone.</string>
+    <!-- beta4: PatchWall stays on while Mi TV+ or its web content is off, not by this app (issue #945) -->
+    <string name="home_not_on_tv_patchwall_feeds">PatchWall is on while Mi TV+ or its web content is off. One TV like that failed to start after its home screen was switched, so Setup left the home screen alone.</string>
+    <string name="home_not_on_tv_next_patchwall_feeds">To use the new one, run Setup again and switch PatchWall off in Customise.</string>
     <string name="home_not_on_tv_none">The new home screen isn\'t installed on this TV right now.</string>
     <string name="home_not_on_tv_next_wifi">To change this, forget the Wi-Fi network in the TV\'s Settings and add it again, or use a network cable. Then run Setup again.</string>
     <string name="home_not_on_tv_next_check">Running Setup again checks once more.</string>

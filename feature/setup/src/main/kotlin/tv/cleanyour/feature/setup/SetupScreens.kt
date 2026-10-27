@@ -280,6 +280,7 @@ fun FoundScreen(
                 HomeBlock.WIZARD_STAYS_ON -> stringResource(R.string.found_home_wizard_stays_on)
                 HomeBlock.OTHER_HOME -> stringResource(R.string.found_home_other_home)
                 HomeBlock.VENDOR_HOME -> stringResource(R.string.found_home_vendor_home)
+                HomeBlock.PATCHWALL_FEEDS -> stringResource(R.string.found_home_patchwall_feeds)
                 // Issue #2: a Fire TV Edition set is named for Fire OS, not its panel's brand.
                 else -> msg(R.string.stop_tv_refuses_home_body, "brand" to (if (extras.fireTv) stringResource(R.string.fire_tv_name) else extras.tvName ?: ""))
             }

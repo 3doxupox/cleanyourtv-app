@@ -98,6 +98,8 @@
     <!-- beta3: another home screen app claims Home, where the switch could otherwise go ahead -->
     <!-- beta4: a system service also answers Home (issue #825), where the switch could otherwise go ahead -->
     <string name="found_home_vendor_home">On this TV a system service also answers the Home button. One TV like that failed to start after its home screen was switched, so we left the home screen alone. We\'ll still switch off the adverts and tracking.</string>
+    <!-- beta4: PatchWall stays on while Mi TV+ or its web content is off, not by this app (issue #945) -->
+    <string name="found_home_patchwall_feeds">PatchWall is on here while Mi TV+ or its web content is off. One TV like that failed to start after its home screen was switched, so we left the home screen alone. To get the new one, switch PatchWall off in Customise. We\'ll still switch off the adverts and tracking.</string>
     <string name="found_home_other_home">Another home screen app is set up on this TV, so we left the home screen alone. To use the new one, remove that app or ask us in your issue. We\'ll still switch off the adverts and tracking.</string>
     <string name="found_home_wizard_stays_on">We don\'t know this TV well enough to switch its setup wizard off, and with the wizard left on and the TV\'s own home screen off, the TV can crash. So it keeps its own home screen. We\'ll still switch off the adverts and tracking.</string>
 

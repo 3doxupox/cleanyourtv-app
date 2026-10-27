@@ -24,7 +24,7 @@ import kotlin.time.Duration.Companion.seconds
 // Thomson brand set took R0 in the test build (any brand) and failed to start after a few restarts.
 // Its claimants are tvlauncher (2), Realtek's key service FallbackHome (-999) and Settings'
 // FallbackHome (-1000); the packages are the TV report of the issue. beta4: Setup offers no switch
-// there in either build. The test build says why (VENDOR_HOME), the release keeps the wizard's reason.
+// there in either build, and both say why (VENDOR_HOME).
 @OptIn(ExperimentalCoroutinesApi::class)
 class Issue825SetupTest {
     private val report = ReportText.parse(ReportText.fixture("tv-825.txt"))
@@ -58,7 +58,7 @@ class Issue825SetupTest {
     }
 
     @Test fun setupOffersNoSwitchInEitherBuild() = runTest(timeout = 60.seconds) {
-        for ((anyBrand, block) in listOf(true to HomeBlock.VENDOR_HOME, false to HomeBlock.WIZARD_STAYS_ON)) {
+        for ((anyBrand, block) in listOf(true to HomeBlock.VENDOR_HOME, false to HomeBlock.VENDOR_HOME)) {
             val before = HomeSwitchRisk.anyBrandForTests
             HomeSwitchRisk.anyBrandForTests = anyBrand
             try {

@@ -352,6 +352,8 @@ class HomeScreenMachine(
             HomeBlock.WIZARD_WIFI -> !unlisted
             // beta3: with that other home screen app removed, Setup can switch.
             HomeBlock.OTHER_HOME -> true
+            // beta4: with PatchWall off, or Mi TV+ and its web content back on, Setup can switch.
+            HomeBlock.PATCHWALL_FEEDS -> true
             else -> false
         }
         val needsList = reason == HomeBlock.UNKNOWN_HOME || reason == HomeBlock.WIZARD_STAYS_ON || (reason == HomeBlock.WIZARD_WIFI && unlisted)

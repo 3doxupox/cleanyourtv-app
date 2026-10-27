@@ -70,8 +70,9 @@ data class HomeDecision(val planned: Boolean, val block: String? = null, val alr
     companion object {
         // The blocks that come from the TV's own facts or the person's choice: an app update does not
         // change them, so an earlier Setup's decision keeps its line and next step.
+        // beta4: VENDOR_HOME, a system service's FallbackHome on the TV.
         val KEEPS_ITS_LINE: Set<HomeBlock> = setOf(HomeBlock.TV_REFUSES, HomeBlock.OLD_ANDROID, HomeBlock.BOOT_LOOP, HomeBlock.CASTING,
-            HomeBlock.REMOTE_BUTTONS, HomeBlock.HOME_CHANGED)
+            HomeBlock.REMOTE_BUTTONS, HomeBlock.HOME_CHANGED, HomeBlock.VENDOR_HOME)
 
         fun of(block: HomeBlock, planHasSwitch: Boolean, alreadyOn: Boolean, app: String? = null, profile: String? = null): HomeDecision = when {
             block != HomeBlock.NONE -> HomeDecision(false, block.name, app = app, profile = profile)

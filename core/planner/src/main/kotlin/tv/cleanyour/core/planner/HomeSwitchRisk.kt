@@ -1,5 +1,6 @@
 package tv.cleanyour.core.planner
 
+import tv.cleanyour.core.model.ChangeRecord
 import tv.cleanyour.core.model.Component
 import tv.cleanyour.core.model.DeviceFacts
 import tv.cleanyour.core.model.EnabledState
@@ -40,10 +41,13 @@ object HomeSwitchRisk {
         // beta3: R0 would let the switch go ahead with the wizard left on, but another home screen app
         // claims Home (one the person installed that R0 cannot take, or a vendor home), so it does not.
         OTHER_HOME("another home screen app claims the Home button on this TV, so the switch is left alone while its setup wizard stays on"),
-        // beta4 (issue #825): R0 would let the switch go ahead with the wizard left on, but a vendor
-        // service holds a Home placeholder of its own (Realtek's key service on a Thomson that failed
-        // to start after a few restarts), so it does not. Nothing the person can remove.
-        VENDOR_HOME("a system service on this TV also answers the Home button, so the switch is left alone while its setup wizard stays on"),
+        // beta4 (issue #825): a vendor service holds a Home placeholder of its own (Realtek's key
+        // service on a Thomson that failed to start after a few restarts), on any path and in any
+        // build, whatever the setup wizard does. Nothing the person can remove.
+        VENDOR_HOME("a system service on this TV also answers the Home button, so the switch is left alone"),
+        // beta4 (issues #945, #1570, PatchWallFeeds): PatchWall is on and stays on while Mi TV+ or its
+        // web content is off, and not by this app, so the plan cannot switch it back on.
+        PATCHWALL_FEEDS("PatchWall is on while Mi TV+ or its web content is off, and with the TV's own home screen off that can stop the TV starting; switch PatchWall off or those apps back on first"),
     }
 
     // Google's own Google TV hardware, by maker and device: Chromecast with Google TV 4K (sabrina)
@@ -102,10 +106,16 @@ object HomeSwitchRisk {
     // The first risk that applies, or null when the switch may be planned. `profile` is the exact
     // profile (null on a brand sure set or the generic path); `wizardWifi` the D3 answer.
     // `anyBrand`: R0 for every brand (the test build's switch, ANY_BRAND_BUILD); tests pass it.
-    fun of(facts: DeviceFacts, profile: Profile?, snapshot: Snapshot, wizardWifi: WizardWifi, anyBrand: Boolean = anyBrandNow): Risk? = when {
+    // beta4: `journals`, this TV's change records, and `patchWallGoesOff`, whether the plan switches
+    // PatchWall off (PatchWallFeeds); the defaults are a TV with no records and PatchWall kept.
+    fun of(facts: DeviceFacts, profile: Profile?, snapshot: Snapshot, wizardWifi: WizardWifi, anyBrand: Boolean = anyBrandNow,
+           journals: List<ChangeRecord> = emptyList(), patchWallGoesOff: Boolean = false): Risk? = when {
         isMokaFamily(facts) || profile?.id in MOKA_PROFILES -> Risk.BOOT_LOOP
         isGoogleHardware(facts) || profile?.id in CASTING_PROFILES -> Risk.CASTING
         profile?.id in REMOTE_BUTTON_PROFILES -> Risk.REMOTE_BUTTONS
+        // beta4: a FallbackHome R0 does not take (r0Placeholder) holds the switch back on every path.
+        vendorPlaceholderClaims(snapshot) -> Risk.VENDOR_HOME
+        PatchWallFeeds.stayingOff(snapshot, journals, patchWallGoesOff).isNotEmpty() -> Risk.PATCHWALL_FEEDS
         // Test build: a candidate list was never tried with the switch, so for the setup wizard it
         // counts as no profile at all (a wizard that is on stays on, so no switch). 0.4.6: R0 is for a
         // TV no list knows at all. beta4 (incident of 0.4.6-beta2, issues #945 and #1570): not for a
@@ -119,11 +129,7 @@ object HomeSwitchRisk {
             val r0Applies = profile == null
             val blocker = if (r0Applies) r0Blocker(facts, snapshot, anyBrand) else R0Blocker.NOT_THIS_PATH
             val risk = wizardWifiRisk(profile?.takeUnless { it.isCandidate }, snapshot, wizardWifi, r0 = blocker == null)
-            when {
-                risk != null && blocker == R0Blocker.OTHER_HOME -> Risk.OTHER_HOME
-                risk != null && blocker == R0Blocker.VENDOR_PLACEHOLDER -> Risk.VENDOR_HOME
-                else -> risk
-            }
+            if (risk != null && blocker == R0Blocker.OTHER_HOME) Risk.OTHER_HOME else risk
         }
     }
 
@@ -163,6 +169,10 @@ object HomeSwitchRisk {
 
     // A FallbackHome R0 does not take: the reason it gives (VENDOR_PLACEHOLDER, Risk.VENDOR_HOME).
     private fun vendorPlaceholder(c: Component): Boolean = HomePlaceholder.isPlaceholder(c) && "FallbackHome" in c.cls && !r0Placeholder(c)
+
+    // Such a FallbackHome among the claimants or answering Home.
+    fun vendorPlaceholderClaims(snapshot: Snapshot): Boolean =
+        snapshot.home.claimants.any { vendorPlaceholder(it.component) } || snapshot.home.resolved?.let { vendorPlaceholder(it) } == true
 
     fun isXiaomi(f: DeviceFacts): Boolean = XIAOMI_MAKERS.any { it.equals(f.brand, ignoreCase = true) || it.equals(f.manufacturer, ignoreCase = true) }
 
@@ -208,7 +218,7 @@ object HomeSwitchRisk {
         // beta4: a FallbackHome R0 does not take (r0Placeholder), among the claimants or answering Home,
         // is its own reason, before any other home screen app.
         val resolved = snapshot.home.resolved
-        if (claimants.any { vendorPlaceholder(it) } || (resolved != null && vendorPlaceholder(resolved))) return R0Blocker.VENDOR_PLACEHOLDER
+        if (vendorPlaceholderClaims(snapshot)) return R0Blocker.VENDOR_PLACEHOLDER
         if (resolved != null && resolved.pkg != tvlauncher && resolved.pkg != SwitchOffRule.OUR_LAUNCHER && !r0Placeholder(resolved))
             return R0Blocker.OTHER_HOME
         val accepted = snapshot.home.claimants.all { claimant ->

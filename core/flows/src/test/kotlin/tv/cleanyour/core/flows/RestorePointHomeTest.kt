@@ -68,6 +68,12 @@ class RestorePointHomeTest {
                 assertEquals(null, ChangeSummary.of(changes).homeBefore)
                 continue
             }
+            if (resolved == vendorFallback) {
+                // beta4 (issue #825): a vendor service's FallbackHome holds the switch back on every path.
+                assertEquals(HomeBlock.VENDOR_HOME, m.extras.value.homeBlock)
+                assertTrue(plan.steps.none { it.op is Op.SetHome }, "a vendor service's FallbackHome: no switch")
+                continue
+            }
             val setHome = assertNotNull(plan.steps.firstOrNull { it.op is Op.SetHome }, "${resolved?.flat}: the switch is planned")
             val recorded = assertNotNull(setHome.prior?.home, "${resolved?.flat}: a home is recorded")
             assertEquals(stock, recorded, "${resolved?.flat}")

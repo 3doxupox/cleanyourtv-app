@@ -75,6 +75,7 @@ import tv.cleanyour.core.spec.FactsTable
 import tv.cleanyour.core.spec.Looks
 import tv.cleanyour.core.spec.PictureSource
 import tv.cleanyour.core.spec.ProfileResolution
+import tv.cleanyour.core.planner.PatchWallFeeds
 import tv.cleanyour.core.spec.ProfileSource
 import tv.cleanyour.core.spec.ThemeSource
 import tv.cleanyour.core.spec.resolveFor
@@ -108,9 +109,11 @@ enum class Finishing { SWITCHING, DONE }
 // TV's own is not among the claimants, so the person's choice stays.
 // REMOTE_BUTTONS (0.4.5): the remote's app buttons need the TV's own home screen (HomeSwitchRisk).
 // OTHER_HOME (beta3): another home screen app claims Home where R0 would otherwise switch (HomeSwitchRisk).
-// VENDOR_HOME (beta4, issue #825): a system service's FallbackHome claims Home where R0 would otherwise switch.
+// VENDOR_HOME (beta4, issue #825): a system service's FallbackHome claims Home (HomeSwitchRisk).
+// PATCHWALL_FEEDS (beta4, issue #945): PatchWall stays on while Mi TV+ or its web content is off, not by
+// this app (HomeSwitchRisk, PatchWallFeeds).
 enum class HomeBlock { NONE, TV_REFUSES, OLD_ANDROID, UNKNOWN_HOME, WIZARD_WIFI, WIZARD_WIFI_UNKNOWN, CASTING, BOOT_LOOP,
-    WIZARD_STAYS_ON, HOME_CHANGED, REMOTE_BUTTONS, OTHER_HOME, VENDOR_HOME }
+    WIZARD_STAYS_ON, HOME_CHANGED, REMOTE_BUTTONS, OTHER_HOME, VENDOR_HOME, PATCHWALL_FEEDS }
 
 // Why a run changed nothing, for Done's body (0.3.3): nothing was planned to switch off (on a TV
 // without an exact list, nothing we were sure about), every planned switch-off stayed on (the TV
@@ -801,7 +804,10 @@ class SetupMachine(
     // profile, a TV whose HOME claimants include none of the resolution's stock launchers gets the
     // clean-up instead of a plan the planner refuses as a whole (issue #85). The Fire TV flag is
     // set here too, for S3's line.
-    private fun homeBlock(snap: Snapshot, wifi: WizardWifi): HomeBlock {
+    // beta4: `journals`, this TV's change records, and `patchWallGoesOff`, whether the draft switches
+    // PatchWall off, for HomeSwitchRisk's PatchWall feeds test (PatchWallFeeds).
+    private fun homeBlock(snap: Snapshot, wifi: WizardWifi, journals: List<tv.cleanyour.core.model.ChangeRecord> = emptyList(),
+                          patchWallGoesOff: Boolean = false): HomeBlock {
         val f = deviceFacts ?: return HomeBlock.NONE
         val p = profile()
         val fireOs = p?.platform == Platform.FIRE_OS || FireOs.isFireOs(f, snap)
@@ -818,7 +824,7 @@ class SetupMachine(
         val homeSigner = snap.packages[pin.pkg]?.signer
         val anotherKey = atHome && homeSigner != null && homeSigner != pin.signer
         val ours = atHome && !anotherKey
-        val risk = if (ours) null else HomeSwitchRisk.of(f, p, snap, wifi)
+        val risk = if (ours) null else HomeSwitchRisk.of(f, p, snap, wifi, journals = journals, patchWallGoesOff = patchWallGoesOff)
         // Issue #8: the exact profile's stock launchers too, through the planner's own StockHome, so
         // a TV whose own home screen is not among the claimants is never asked for a switch the
         // planner then refuses as a whole.
@@ -842,6 +848,7 @@ class SetupMachine(
             risk == HomeSwitchRisk.Risk.WIZARD_STAYS_ON -> HomeBlock.WIZARD_STAYS_ON
             risk == HomeSwitchRisk.Risk.OTHER_HOME -> HomeBlock.OTHER_HOME
             risk == HomeSwitchRisk.Risk.VENDOR_HOME -> HomeBlock.VENDOR_HOME
+            risk == HomeSwitchRisk.Risk.PATCHWALL_FEEDS -> HomeBlock.PATCHWALL_FEEDS
             else -> HomeBlock.NONE
         }
     }
@@ -866,7 +873,13 @@ class SetupMachine(
         val dock = DockLayers.trim(draft.dock ?: deps.dock.pick(profile(), snap.packages.keys, snap.hdmi.isNotEmpty(), profile()?.liveTv, deps.locale()), columns)
         val kept = draft.dock?.let(DockLayers::keep) ?: dock
         val wifi = wizardWifi(s, snap)
-        val block = homeBlock(snap, wifi)
+        val groups = when (res) {
+            is ProfileResolution.Exact -> res.profile.groups
+            is ProfileResolution.BrandSureSet -> res.sureSet
+            is ProfileResolution.None -> emptyList()
+        }
+        val journals = attempt { deps.ledger.changes(record.id) }.getOrDefault(emptyList())
+        val block = homeBlock(snap, wifi, journals, PatchWallFeeds.goesOff(snap, groups, draft.kept, draft.extraOff))
         val possible = block == HomeBlock.NONE
         val choices = Choices(
             kept = draft.kept, extraOff = draft.extraOff, dock = dock,

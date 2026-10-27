@@ -184,6 +184,7 @@ internal fun NotOnTvScreen(tvName: String, n: NotOnTv, onIntent: (HomeScreenInte
             HomeBlock.HOME_CHANGED -> stringResource(R.string.home_not_on_tv_home_changed)
             HomeBlock.OTHER_HOME -> stringResource(R.string.home_not_on_tv_other_home)
             HomeBlock.VENDOR_HOME -> stringResource(R.string.home_not_on_tv_vendor_home)
+            HomeBlock.PATCHWALL_FEEDS -> stringResource(R.string.home_not_on_tv_patchwall_feeds)
             HomeBlock.NONE, null -> stringResource(R.string.home_not_on_tv_none)
         }
         Banner(why, BannerTone.INFO, Modifier.padding(top = 16.dp), icon = CytIcons.Info)
@@ -195,6 +196,7 @@ internal fun NotOnTvScreen(tvName: String, n: NotOnTv, onIntent: (HomeScreenInte
             n.reason == HomeBlock.WIZARD_WIFI_UNKNOWN -> R.string.home_not_on_tv_next_check
             n.reason == HomeBlock.HOME_CHANGED -> R.string.home_not_on_tv_next_home_changed
             n.reason == HomeBlock.OTHER_HOME -> R.string.home_not_on_tv_next_other_home
+            n.reason == HomeBlock.PATCHWALL_FEEDS -> R.string.home_not_on_tv_next_patchwall_feeds
             else -> R.string.home_not_on_tv_next_setup
         }
         next?.let { Body(stringResource(it), Modifier.padding(top = 16.dp, start = 4.dp, end = 4.dp)) }

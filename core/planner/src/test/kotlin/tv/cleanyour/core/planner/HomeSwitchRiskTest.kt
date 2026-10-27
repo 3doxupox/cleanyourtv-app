@@ -467,7 +467,8 @@ class HomeSwitchRiskTest {
             val s = r0Tv(thomson, issue825)
             assertEquals(HomeSwitchRisk.R0Blocker.VENDOR_PLACEHOLDER, HomeSwitchRisk.r0Blocker(thomson, s, anyBrand = true))
             assertEquals(Risk.VENDOR_HOME, HomeSwitchRisk.of(thomson, null, s, w, anyBrand = true), "test build $w")
-            assertEquals(blocked, HomeSwitchRisk.of(thomson, null, s, w, anyBrand = false), "release $w: not a Xiaomi, the wizard is the reason")
+            // Review of beta4: on every path, whatever the brand and the wizard do.
+            assertEquals(Risk.VENDOR_HOME, HomeSwitchRisk.of(thomson, null, s, w, anyBrand = false), "release $w: not a Xiaomi, still the vendor service")
             // The same claimants on a Xiaomi with the release rule, and Home answering to that placeholder.
             for (f in r0Tvs) {
                 assertEquals(Risk.VENDOR_HOME, HomeSwitchRisk.of(f, null, r0Tv(f, issue825), w, anyBrand = false), "${f.model} release $w")
@@ -484,8 +485,17 @@ class HomeSwitchRiskTest {
             }
             val withVendorHome = issue825 + HomeClaimant(Component(PackageName("com.vendor.launcher"), ".Home"), 0)
             assertEquals(Risk.VENDOR_HOME, HomeSwitchRisk.of(axso1, null, r0Tv(axso1, withVendorHome), w, anyBrand = false), "and a vendor home $w")
-            // The wizard claiming Home keeps the wizard's reason.
-            assertEquals(blocked, HomeSwitchRisk.of(axso1, null, r0Tv(axso1, issue825 + HomeClaimant(recovery, 0)), w, anyBrand = false), "the wizard claims Home $w")
+            // The wizard claiming Home too: the vendor service is still the reason.
+            assertEquals(Risk.VENDOR_HOME, HomeSwitchRisk.of(axso1, null, r0Tv(axso1, issue825 + HomeClaimant(recovery, 0)), w, anyBrand = false), "the wizard claims Home $w")
+            // The setup wizard off (or not installed), and an exact list whose switch would switch it off.
+            val wizardOff = r0Tv(thomson, issue825, disabled = setOf(wizard.value))
+            for (anyBrand in listOf(false, true)) {
+                assertEquals(Risk.VENDOR_HOME, HomeSwitchRisk.of(thomson, null, wizardOff, w, anyBrand = anyBrand), "the wizard off, anyBrand=$anyBrand $w")
+                assertEquals(Risk.VENDOR_HOME, HomeSwitchRisk.of(thomson, null, s.copy(packages = s.packages - wizard), w, anyBrand = anyBrand), "no wizard $w")
+                val exact = PlannerFixtures.profile(quirks = setOf(Quirk.HOME_TAKEOVER_SETUPWRAITH), setupWraith = wizard)
+                assertEquals(Risk.VENDOR_HOME, HomeSwitchRisk.of(thomson, exact, s, w, anyBrand = anyBrand), "an exact list $w")
+                assertEquals(Risk.VENDOR_HOME, HomeSwitchRisk.of(thomson, PlannerFixtures.profile(), wizardOff, w, anyBrand = anyBrand), "an exact list, the wizard off $w")
+            }
         }
         // The planner refuses a switch asked for anyway, with that reason.
         releaseRule {
@@ -515,6 +525,9 @@ class HomeSwitchRiskTest {
                 assertNull(HomeSwitchRisk.of(nokia, null, r0Tv(nokia, claims), w, anyBrand = true), "${c.flat} test build $w")
                 assertNull(HomeSwitchRisk.of(axso1, null, r0Tv(axso1, claims), w, anyBrand = false), "${c.flat} Xiaomi release $w")
                 assertTrue(HomeSwitchRisk.r0Placeholder(c), c.flat)
+                // Review of beta4: an exact list with such a claimant keeps its own rule.
+                val exactTv = r0Tv(nokia, claims, disabled = setOf(wizard.value))
+                assertNull(HomeSwitchRisk.of(nokia, PlannerFixtures.profile(), exactTv, w, anyBrand = false), "${c.flat} exact $w")
             }
             // The chooser answering Home is still a placeholder.
             val chooser = Component(PackageName("android"), "com.android.internal.app.ResolverActivity")
