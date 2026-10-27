@@ -1,5 +1,6 @@
 package tv.cleanyour.core.flows
 
+import app.cash.turbine.test
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import tv.cleanyour.core.engine.JournalRecord
@@ -8,6 +9,7 @@ import tv.cleanyour.core.model.EnabledState
 import tv.cleanyour.core.model.Op
 import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.model.PackageState
+import tv.cleanyour.core.model.Prior
 import tv.cleanyour.core.model.SnapshotReason
 import tv.cleanyour.core.model.Tv
 import tv.cleanyour.core.planner.PlanKind
@@ -46,7 +48,7 @@ class BetterBackOnTest {
         ledger.record(plan)
         journal.append(JournalRecord.PlanStart(plan.id, tv.id, Samples.zeroHash, pkgs.size, plan.hash, "0.1.0", 0))
         pkgs.forEachIndexed { i, p ->
-            journal.append(JournalRecord.Begin(plan.id, i, Op.Disable(p), listOf("fake"), null, 10L + i))
+            journal.append(JournalRecord.Begin(plan.id, i, Op.Disable(p), listOf("fake"), Prior(packageState = EnabledState.ENABLED), 10L + i))
             journal.append(JournalRecord.Done(plan.id, i, 0, true, 5))
         }
         journal.append(JournalRecord.End(plan.id, RunStatus.COMPLETED))
@@ -136,8 +138,14 @@ class BetterBackOnTest {
         val m = SwitchedOffMachine(h.manageDeps(), backgroundScope, tv.id)
         settle()
         assertTrue(h.planner.requests.isEmpty(), "nothing is planned until the person taps")
-        m.dispatch(SwitchedOffIntent.PutBack(betterOf(m)!!.rows.single().pkg))
-        settle()
+        m.effects.test {
+            m.dispatch(SwitchedOffIntent.PutBack(betterOf(m)!!.rows.single().pkg))
+            settle()
+            // No Undo on the snackbar: it would switch off what the list now keeps on.
+            val snack = kotlin.test.assertIs<ManageEffect.Snackbar>(drain().single())
+            assertEquals(SnackKind.PUT_BACK, snack.kind)
+            assertEquals(false, snack.undo)
+        }
         assertEquals(listOf<PlanRequest>(PlanRequest.PutBack(mic)), h.planner.requests.filter { it !is PlanRequest.WriteRestorePoint })
         assertTrue(h.planner.requests.any { it is PlanRequest.WriteRestorePoint }, "D44: the restore point after the put back")
     }

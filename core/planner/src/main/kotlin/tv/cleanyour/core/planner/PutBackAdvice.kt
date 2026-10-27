@@ -15,10 +15,11 @@ import tv.cleanyour.core.ops.Denylist
 //
 // The offer is only ever an offer: the advice lists a package when the TV's exact profile has an
 // entry for it, the package is off now, and this app's own change records for the TV show that we
-// switched it off (the last change of ours to it is a Disable). What the factory or the owner
-// switched off is never offered. Nothing runs until the person taps "Switch back on", which is the
-// ordinary PutBack plan (one Enable, or the inverse of our switch-off), journaled with its prior and
-// followed by the usual restore point write.
+// switched it off (the last change of ours to it is a Disable, made while it was on). What the
+// factory or the owner switched off is never offered. Nothing runs until the person taps "Switch
+// back on", which is the ordinary PutBack plan (one Enable, or the inverse of our switch-off),
+// journaled with its prior and followed by the usual restore point write. Its snackbar offers no
+// Undo, which would switch it off again.
 object PutBackAdvice {
     data class Entry(val profileId: String, val pkg: PackageName, val reason: String)
 
@@ -50,7 +51,7 @@ object PutBackAdvice {
         if (snapshot == null) return emptyList()
         return forProfile(profileId).filter { e ->
             val off = snapshot.packages[e.pkg]?.enabled.let { it == EnabledState.DISABLED_USER || it == EnabledState.DISABLED }
-            off && lastChangeIsOurDisable(e.pkg, changes) && !wizardHeldBack(e.pkg, profile, snapshot)
+            off && ourDisableOfAnOnPackage(e.pkg, changes) && !wizardHeldBack(e.pkg, profile, snapshot)
         }
     }
 
@@ -59,7 +60,9 @@ object PutBackAdvice {
     fun wizardHeldBack(pkg: PackageName, profile: Profile?, snapshot: Snapshot): Boolean =
         profile != null && Denylist.isWizardAllowed(pkg, profile) && snapshot.home.resolved?.pkg == SwitchOffRule.OUR_LAUNCHER
 
-    private fun lastChangeIsOurDisable(pkg: PackageName, changes: List<ChangeRecord>): Boolean {
+    // The last change of ours to it is a Disable, and that Disable's own prior says it was on
+    // (ENABLED or DEFAULT): one that was off already, or with no prior, was not ours to offer.
+    private fun ourDisableOfAnOnPackage(pkg: PackageName, changes: List<ChangeRecord>): Boolean {
         val last = changes.filter { c ->
             when (val op = c.op) {
                 is Op.Disable -> op.pkg == pkg
@@ -69,6 +72,7 @@ object PutBackAdvice {
                 else -> false
             }
         }.maxWithOrNull(compareBy<ChangeRecord> { it.atMs }.thenBy { it.step })
-        return last?.op is Op.Disable
+        val before = last?.prior?.packageState
+        return last?.op is Op.Disable && (before == EnabledState.ENABLED || before == EnabledState.DEFAULT)
     }
 }

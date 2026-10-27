@@ -55,6 +55,9 @@ class SwitchedOffMachine(
     private data class Loaded(val s: SwitchedOffState)
     private data class BusyOn(val pkg: PackageName?)
     private var profileGroups: List<PackageGroup> = emptyList()
+    // The "Better back on" rows (WP4, G4): their put back offers no Undo, which would switch off
+    // again what the list for this TV now keeps on.
+    private var advised: Set<PackageName> = emptySet()
 
     // An updater this build keeps on: no Off pill, no Undo after Put back.
     private fun keptOn(pkg: PackageName): Boolean = !d.store.updatesOff && ProfileCategory.isUpdater(pkg, profileGroups)
@@ -70,7 +73,7 @@ class SwitchedOffMachine(
     override fun handle(event: Any, before: SwitchedOffState, after: SwitchedOffState) {
         if (after.busy != null && event is SwitchedOffIntent && event !is SwitchedOffIntent.Refresh) return
         when (event) {
-            is SwitchedOffIntent.PutBack -> change(event.pkg, PlanRequest.PutBack(event.pkg), SnackKind.PUT_BACK, undo = !keptOn(event.pkg))
+            is SwitchedOffIntent.PutBack -> change(event.pkg, PlanRequest.PutBack(event.pkg), SnackKind.PUT_BACK, undo = !keptOn(event.pkg) && event.pkg !in advised)
             is SwitchedOffIntent.Undo -> if (!keptOn(event.pkg)) change(event.pkg, PlanRequest.SwitchOff(setOf(event.pkg)), SnackKind.SWITCHED_OFF, undo = false)
             is SwitchedOffIntent.SetOff -> if (event.off) { if (!keptOn(event.pkg)) change(event.pkg, PlanRequest.SwitchOff(setOf(event.pkg)), SnackKind.SWITCHED_OFF, undo = false) }
                 else change(event.pkg, PlanRequest.PutBack(event.pkg), SnackKind.PUT_BACK, undo = false)
@@ -115,6 +118,7 @@ class SwitchedOffMachine(
         val advice = PutBackAdvice.offers(tv.profileId, latest, d.ledger.changes(tvId), profile).filter { it.pkg in off }
         val better = advice.distinctBy { it.pkg }.map { e -> row(e.pkg, true).copy(reason = e.reason) }
         val atTop = better.map { it.pkg }.toSet()
+        advised = atTop
         placed += atTop
         val byGroup = groups.mapNotNull { g ->
             val rows = g.packages.map { it.name }.filter { it in off && it !in atTop }.map { placed += it; row(it, true) }

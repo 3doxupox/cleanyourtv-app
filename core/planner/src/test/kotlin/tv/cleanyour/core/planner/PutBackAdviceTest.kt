@@ -51,6 +51,12 @@ class PutBackAdviceTest {
         // We put it back since, and the owner switched it off again: not ours any more.
         val since = ours + change(1, Op.Enable(mic), Prior(packageState = EnabledState.DISABLED_USER))
         assertTrue(PutBackAdvice.offers(g10, tv(EnabledState.DISABLED_USER), since).isEmpty())
+        // Our Disable's own prior must say it was on: DEFAULT counts, off already or unknown does not.
+        for ((before, offered) in listOf(EnabledState.DEFAULT to true, EnabledState.DISABLED_USER to false, EnabledState.DISABLED to false, null to false)) {
+            val j = listOf(change(0, Op.Disable(mic), Prior(packageState = before)))
+            assertEquals(offered, PutBackAdvice.offers(g10, tv(EnabledState.DISABLED_USER), j).isNotEmpty(), "prior $before")
+        }
+        assertTrue(PutBackAdvice.offers(g10, tv(EnabledState.DISABLED_USER), listOf(change(0, Op.Disable(mic), null))).isEmpty(), "no prior")
         // We switched it off again after a put back: ours.
         assertEquals(1, PutBackAdvice.offers(g10, tv(EnabledState.DISABLED_USER), since + change(2, Op.Disable(mic), Prior(packageState = EnabledState.ENABLED))).size)
     }
