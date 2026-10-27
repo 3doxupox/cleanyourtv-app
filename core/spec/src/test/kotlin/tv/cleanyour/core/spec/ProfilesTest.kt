@@ -336,6 +336,7 @@ class ProfilesTest {
             f("THOMSON", "SPPL", "SPPL 2K ANDROID TV", "sauve", 30, "THOMSON/SPPL_2K_RT41/sauve:11/RTK4.241026.026/12861515:user/release-keys") to null,   // #825, Android 11
             f("Amazon", "Amazon", "AFTCIBFBD1", "coyote", 30, "Amazon/coyote/coyote:11/RS8180.3749N/0032280323460:user/amz-p,release-keys") to "hisense-fire-tv-aftcibfbd1",   // #949
             f("Amazon", "Amazon", "AFTCIBFBD1", "coyote", 30, "Amazon/coyote/coyote:11/RS8180.3734N/0032280319620:user/amz-p,release-keys") to "hisense-fire-tv-aftcibfbd1",   // #347
+            f("eSTREAM4K", "SEI Robotics", "TiVo Stream 4K", "SEI400TV", 31, "eSTREAM4K/SEI400TV/SEI400TV:12/SC/1272:user/release-keys") to null,   // #1214, parked
         )
         for ((facts, id) in reports) assertEquals(id, (source.resolveNow(facts) as? ProfileResolution.Exact)?.profile?.id, "${facts.model} ${facts.fingerprint}")
         for (id in cleanUpOnlyPart2) {
