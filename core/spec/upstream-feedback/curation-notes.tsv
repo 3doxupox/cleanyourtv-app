@@ -12,11 +12,14 @@ aiwa-ai-pont-sa	(match)	device osaka with the brand AIWA from the header; the mo
 aiwa-ai-pont-sa	com.google.android.tungsten.setupwraith	the header says its RecoveryActivity takes Home once launcherx is off and to disable it first; it goes with the home screen switch, with the Wi-Fi guard
 aiwa-ai-pont-sa	com.homwee.upgrade	the vendor app updater (the header: not firmware); Software updates ask row; the header's keep paragraph names it, so the keep-list reader also makes it never-disable
 aiwa-ai-pont-sa	com.mediatek.android.leanbacklauncher.partnercustomizer	kept by the header (not reboot-tested off; crash-loops com.mediatek.tv.service on the CHiQ list); never-disable through the header keep list
+amazon-fire-tv-afttiff43	(groups)	b06ab21, the group added from the 75" Omni unit: that unit applied the whole list plus this group and rebooted with Home, Settings, HDMI and Netflix working, so its ads and telemetry rows are default-off (tracking, with the ad sync and recommendation rows as ads); its notices, the Wi-Fi password sync, Fire TV Channels and the print service plugin are ask rows (2.7 bump rule: only ads and telemetry tested off go off)
 amazon-fire-tv-afttiff43	(header)	the header's kept list (Alexa core, casting, Live TV and channel scan, HDMI inputs, Appstore) is in the curated never-disable list; com.amazon.firehomestarter as on toshiba-fire-tv-aftha004, the same build line
 amazon-fire-tv-afttiff43	(launcher)	Fire OS: the clean-up only; the app does not offer the home screen here
 amazon-fire-tv-afttiff43	(match)	model AFTTIFF43 and device brandenburg from the header; brand Amazon as on the other Fire TV profiles
 amazon-fire-tv-afttiff43	com.amazon.tahoe	Amazon Kids, a parental control; ask row as on insignia-ns55f301na25
-amazon-fire-tv-afttiff43	com.amazon.wifilocker	not a package line here; kept out of the Amazon sure set, since no Fire TV smart TV list switched it off and joining a new network with it off was not tested
+amazon-fire-tv-afttiff43	com.amazon.tv.easyupgrade	b06ab21: in the Omni group as an upgrade promo; the D22 updater rule makes it a Software updates row
+amazon-fire-tv-afttiff43	com.amazon.wifilocker	a package line since b06ab21 (the Omni unit switched it off): an ask row, and still out of the Amazon sure set, since joining a new network with it off was not tested
+amazon-fire-tv-afttiff43	com.android.printspooler	b06ab21: switched off and rebooted on the Omni unit; one of the six packages reviewed for the careful sets, so a default-off preloads row as on the other lists
 amazon-fire-tv-stick-4k-2018	(launcher)	Fire OS: the clean-up only; the app does not offer the home screen here
 amazon-fire-tv-stick-4k-2018	com.amazon.franktvinput	the live TV input behind the Live tab; TV inputs are never default-off, so it is an ask row
 amazon-fire-tv-stick-4k-2018	com.amazon.hedwig	Fire TV Channels, which also registers a Live input; ask row

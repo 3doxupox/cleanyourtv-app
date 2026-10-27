@@ -92,14 +92,23 @@
         "Amazon apps (owner's choice)": { "category": "preloads", "ask": true },
         "Alexa extras (Alexa core kept)": { "category": "voice", "ask": true },
         "Screensaver (screensaver_enabled was already 0; idle screen comes from these)": { "category": "screensaver", "ask": true },
-        "Added from the 75\" Omni unit (ads, telemetry, notices; tested there, see the header)": { "category": "tracking", "ask": true }
+        "Added from the 75\" Omni unit (ads, telemetry, notices; tested there, see the header)": { "category": "tracking", "ask": false }
       },
       "packages": {
         "com.amazon.hybridadidservice": { "category": "ads", "ask": false },
         "com.amazon.tv.democontent.provider": { "category": "demo", "ask": false },
         "com.amazon.storm.lightning.tutorial": { "category": "preloads", "ask": false },
         "com.amazon.tmm.tutorial": { "category": "preloads", "ask": false },
-        "com.amazon.tahoe": { "category": "brand", "ask": true }
+        "com.amazon.tahoe": { "category": "brand", "ask": true },
+        "com.amazon.kso.blackbird": { "category": "ads", "ask": false },
+        "com.amazon.media.recommendations": { "category": "ads", "ask": false },
+        "com.amazon.hedwig": { "category": "ads", "ask": true },
+        "com.amazon.wifilocker": { "category": "brand", "ask": true },
+        "com.amazon.systemnotices": { "category": "brand", "ask": true },
+        "com.amazon.tv.releasenotes": { "category": "other", "ask": true },
+        "com.amazon.uxnotification": { "category": "brand", "ask": true },
+        "com.android.printspooler": { "category": "preloads", "ask": false },
+        "com.android.bips": { "category": "preloads", "ask": true }
       }
     },
     "amazon-fire-tv-stick-4k-2018": {
