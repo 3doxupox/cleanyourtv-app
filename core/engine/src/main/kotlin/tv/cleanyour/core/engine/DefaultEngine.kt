@@ -39,6 +39,7 @@ import tv.cleanyour.core.ops.Rendered
 import tv.cleanyour.core.ops.Transfer
 import tv.cleanyour.core.ops.VerifyResult
 import tv.cleanyour.core.model.Component
+import tv.cleanyour.core.planner.DefaultPlanner
 import tv.cleanyour.core.planner.GuardedSection
 import tv.cleanyour.core.planner.Plan
 import tv.cleanyour.core.planner.PlanKind
@@ -718,10 +719,31 @@ class DefaultEngine(
     // ---- ending a run ------------------------------------------------------------------------------
 
     private suspend fun finishWithSkips(run: Run, home: HomeOutcome?, from: Int) {
+        removeCurtain(run, from)
         for (i in from until run.plan.steps.size) if (i !in run.done && run.plan.steps[i] !in run.skipped) {
             run.skipped += run.plan.steps[i]; run.states[i] = NarrationState.SKIPPED
         }
         end(run, RunStatus.COMPLETED_WITH_SKIPS, home)
+    }
+
+    // QA of 0.4.5 (the home check timed out and the old home screen was put back): the run ended
+    // there and skipped every step after it, the TV curtain's removal (the plan's last step) too, so
+    // the curtain stayed installed and running on the TV. Its removal still runs when the rest is
+    // skipped. Like every curtain step it can never stop the run: a refusal or a lost connection
+    // only leaves it skipped.
+    private suspend fun removeCurtain(run: Run, from: Int) {
+        for (i in from until run.plan.steps.size) {
+            val step = run.plan.steps[i]
+            if (i in run.done || step.group != DefaultPlanner.GROUP_CURTAIN || step.op !is Op.Uninstall) continue
+            val outcome = try {
+                perform(run, i, step.op, step.rendered, step.prior)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                null
+            }
+            if (outcome == Outcome.Ok) { run.done += i; run.states[i] = NarrationState.DONE }
+        }
     }
 
     private suspend fun end(run: Run, status: RunStatus, home: HomeOutcome?) {
