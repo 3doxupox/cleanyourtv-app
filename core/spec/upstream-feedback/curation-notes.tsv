@@ -68,6 +68,7 @@ aqua-matrixtv-ee-50	(match)	device omonia with brand Haier: AQUA sets report bra
 aqua-matrixtv-ee-50	com.google.android.marvin.talkback	accessibility: ask row (safety rule 8)
 aqua-matrixtv-ee-50	com.haier.launcher.haiermatrix	the header calls it a content launcher, not the system Home, but the denylist protects it as a vendor home; ask row
 aqua-matrixtv-ee-50	com.haier.overseastv.bluetoothspeaker	a Bluetooth feature (TV as speaker); ask row (safety rule 8)
+aqua-matrixtv-ee-50	(header)	the KEEP block names mediatek.factorymenu.ui, which the header keep parser skips for its prefix, so it is in the curated never-disable list
 benq-e55-750	(match)	model AI PONT on Android 11; benq-e55-735 is the same model on Android 14, told apart by the SDK
 benq-e55-750	(match)	brand inferred, confirm with getprop: BenQ; a wrong guess fails closed (the profile never matches)
 byintek-t5-max	(header)	the Kept on purpose names (projector observer, remote pairing, hot keys, front panel, Dolby, Chromecast, com.sdt.ota) are in the curated never-disable list

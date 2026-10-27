@@ -248,7 +248,7 @@
       "liveTv": "com.cltv.hybrid",
       "setupWraith": "com.google.android.tungsten.setupwraith",
       "quirks": ["HOME_TAKEOVER_SETUPWRAITH", "EXTRA_HOME_CLAIMERS"],
-      "neverDisable": ["com.cltv.hybrid", "com.cltv.mal", "com.mediatek.tis", "com.mediatek.dtv.tvinput.dvbtuner", "com.mediatek.tv.agent", "com.mediatek.extservice", "com.google.android.tv.inputplayer", "com.haier.appmanager.dispatcher", "com.haier.hkcfac", "com.haier.tv.hmagicboard", "com.mediatek.autopair", "com.haier.bt_pair_tips", "com.google.android.tv.googletvremotepairer", "com.telink.lt", "com.google.android.tv.remote.service"],
+      "neverDisable": ["com.cltv.hybrid", "com.cltv.mal", "com.mediatek.tis", "com.mediatek.dtv.tvinput.dvbtuner", "com.mediatek.tv.agent", "com.mediatek.extservice", "com.google.android.tv.inputplayer", "com.haier.appmanager.dispatcher", "com.haier.hkcfac", "com.haier.tv.hmagicboard", "com.mediatek.autopair", "com.haier.bt_pair_tips", "com.google.android.tv.googletvremotepairer", "com.telink.lt", "com.google.android.tv.remote.service", "mediatek.factorymenu.ui"],
       "suggestedDock": [],
       "tested": { "by": "Randhi Pratama Putra (PR #1444)", "firmware": "UKN7.260716.049", "daysLivedWith": null, "rebootTested": true },
       "groups": {
