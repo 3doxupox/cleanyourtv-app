@@ -158,7 +158,15 @@ object LookKeys {
     //
     // Values out of the launcher's range are brought into it rather than refused: See-through 30
     // to 100 (dock_opacity), dim 0 to 90, sky 0 to 100, columns 1 to 8.
-    fun build(spec: LookSpec, picture: PictureKeys, columns: Int, dock: List<PackageName>, cards: Boolean): LauncherConfigDoc {
+    //
+    // 0.4.5 (plan WP5 step 4): after steps 8 and 9, the 3.0 extras go in doc.unknown (CARRIED_30),
+    // each only when it differs from the launcher's default and only where it takes effect
+    // (LookExtrasKeys.applying: one row and no band need the dock row, the band behind every app
+    // needs one row, the internet warnings need Green Wi-Fi and the pill on screen). DEFAULT adds
+    // nothing, so every look keeps its 0.4.0 bytes (Look2BytesTest). The rules give DEFAULT to a TV
+    // below 3.0, so a 2.7 TV never gets a 3.0 key.
+    fun build(spec: LookSpec, picture: PictureKeys, columns: Int, dock: List<PackageName>, cards: Boolean,
+        extras: LookExtras = LookExtras.DEFAULT): LauncherConfigDoc {
         val style = spec.style
         val spot = style == StyleId.SPOTLIGHT
         val k = LinkedHashMap(styleKeys(style, picture.wallpaper))   // step 2
@@ -242,6 +250,10 @@ object LookKeys {
             unknown = unknown,
         )
         // Steps 8 and 9.
-        return DockLayers.applyTo(doc, dock).copy(moduleCards = cards)
+        val built = DockLayers.applyTo(doc, dock).copy(moduleCards = cards)
+        if (extras == LookExtras.DEFAULT) return built
+        val applied = LookExtrasKeys.applying(extras, dockRow = built.dockRow == true,
+            wifiStatusColor = k["wifi_status_color"] == true, topMenu = k["top_menu"] == true)
+        return built.copy(unknown = LinkedHashMap(built.unknown).apply { putAll(LookExtrasKeys.keys(applied)) })
     }
 }
