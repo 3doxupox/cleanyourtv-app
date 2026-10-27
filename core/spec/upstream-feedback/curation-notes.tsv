@@ -210,6 +210,9 @@ mtc-uk-2k-android-tv	com.google.android.leanbacklauncher.partnercustomizer	never
 mtc-uk-2k-android-tv	com.mstar.android.tv.disclaimercustomization	the hisense-hg9 list keeps it (first-boot legal text); ask row
 mtc-uk-2k-android-tv	com.twentyfouri.tvbridge.rte	part of the Freeview Play app layer, which UK owners use; ask row (streaming)
 mtc-uk-2k-android-tv	fusion.android.tv.demo	ask row: on MediaTek MTC builds this retail display app also handles the Input key and remote pairing (hitachi-65qledsm20), and this header did not check either with it off (RF-PROFILES-63 P6)
+nvidia-shield-tv-2017	(header)	the Leave alone names (as on the Pro example) and the owner's kept OTA, NAS and SMB packages are never-disable; none is in the list
+nvidia-shield-tv-2017	(match)	device darcy only: the Pro 2019 reports the same model SHIELD Android TV and would score higher here than on its own device key
+nvidia-shield-tv-2017	com.google.android.tvrecommendations	never-disable: the header says that with it off the SHIELD TV phone app's input service is not bound at boot and every key fails
 nvidia-shield-tv-2019	com.android.bluetoothmidiservice	a Bluetooth service by name; ask row
 nvidia-shield-tv-2019	com.android.hotspot2.osulogin	Passpoint hotspot sign-in is network setup; ask row
 nvidia-shield-tv-2019	com.google.android.tv	Live Channels hosts network tuner inputs; ask row

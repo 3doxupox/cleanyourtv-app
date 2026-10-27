@@ -57,7 +57,6 @@ next-start-pro-4k    # parked at b06ab21 (after v3.0.0): not curated yet; a prof
 noblex-shinjuku    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 nokia-streaming-box-8000    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 nokia-streaming-box-8010    # parked at v2.7.0: not curated yet and no TV report needs it; a profile needs match keys, platform, tested info, a category for every group title and the safety review
-nvidia-shield-tv-2017    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 oneplus-tv-cebu    # parked at v2.7.0: switches off the stock home com.oneplus.tv.launcher and com.heytap.tv.remotediagnosing by default, which this app keeps on; it is the Android 10 build, the reported Cebu sets run SDK 30
 oneplus-tv-dosa    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review
 panasonic-kowloon    # parked at b06ab21 (after v3.0.0): not curated yet; a profile needs match keys, platform, tested info, a category for every group title and the safety review

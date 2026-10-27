@@ -549,6 +549,7 @@ com.nvidia.inputviewer	NVIDIA input viewer	Input test viewer	demo
 com.nvidia.irtuner	NVIDIA IR tuner	Infrared remote support	system
 com.nvidia.nvaudiosvc	NVIDIA audio service	Audio processing	system
 com.nvidia.nvgamecast	GameStream receiver	Old NVIDIA GameStream service	brand
+com.nvidia.osc	NVIDIA overlay	In-game overlay	brand
 com.nvidia.ota	NVIDIA updates	Firmware updates for the SHIELD	updates
 com.nvidia.packagemanagerservice	NVIDIA package service	Package management service	system
 com.nvidia.remotelocator	NVIDIA remote locator	Finds a lost remote	system

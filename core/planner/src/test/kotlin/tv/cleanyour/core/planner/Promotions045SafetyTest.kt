@@ -77,4 +77,13 @@ class Promotions045SafetyTest {
         // tcl-g03 (b06ab21): TCL's updater needs the start service for the device number.
         for (s in listOf("com.tcl.xian.StartandroidService", "com.tcl.versionUpdateApp", "com.tcl.ui_mediaCenter")) assertTrue(p(s) !in defaultOff("tcl-50dp660"), s)
     }
+
+    @Test fun nvidiaShieldTv2017() {
+        val pr = defaultsPass("nvidia-shield-tv-2017")
+        // The header: with tvrecommendations off the SHIELD TV phone app's keys stop working, so it stays on.
+        keeps("nvidia-shield-tv-2017", "com.google.android.tvrecommendations", "com.nvidia.shield.remote.server", "com.nvidia.blakepairing", "com.google.android.tv.remote.service")
+        assertTrue(!inAnyGroup("nvidia-shield-tv-2017", "com.google.android.tvrecommendations"))
+        assertEquals(listOf(KnownLaunchers.TVLAUNCHER), pr.stockLaunchers)
+        assertTrue(p("com.android.bluetoothmidiservice") !in defaultOff("nvidia-shield-tv-2017"))
+    }
 }
