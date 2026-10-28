@@ -1,0 +1,531 @@
+#!/usr/bin/env python3
+"""The TV list for the Pages site (site/tvs/): what the app does on each TV it has seen.
+
+Builds one row per TV (brand, model and codename) from three inputs, models and statuses only:
+
+  1. The app's tested lists: core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json
+     of the release, and core/spec/candidates/candidate-meta.json (the lists of the test build).
+  2. The release scan of the TV reports: a TSV with one row per issue, the newest report run
+     through the release's own home screen rule (columns brand, manufacturer, model, device,
+     android, res, b046final, r0Blocker, heldOut, resolved, claimants). b046final is the release's
+     HomeBlock; NONE means the switch is planned.
+  3. site/tvs/coming-soon.json, kept by hand: what the next versions bring, with match rules.
+
+Statuses, best first: new (the release gives the new home screen), test (the test build does,
+through the switch with the setup wizard left on for any brand), soon (named in coming-soon.json),
+cleanup (the clean-up only, with the reason), no (not possible: Fire OS, TCL China, Android older
+than 8). Reports are grouped by brand, model and device, and a TV takes the best status of its
+reports. Tested lists no report has reached get a row of their own, judged from the list.
+
+Nothing about people is read or written: no issue authors, no issue numbers, no tester names (the
+lists' "tested.by" field is never read). The page links an issue search by model instead.
+
+Writes tvs.json (one TV per line, so a refresh diffs well) and, with -p, the page's list for
+browsers without JavaScript, inside its <noscript id="tvlist">.
+
+How to refresh it at each release:
+
+  1. Check out the release tag in a worktree (for 0.4.6: cyt-wt/up046 at v0.4.6).
+  2. Run the release scan over the newest report of every issue (the throwaway Scan046 test, never
+     committed) and keep its TSV.
+  3. Edit site/tvs/coming-soon.json: drop what shipped, add what the next versions bring.
+  4. Run, check the page, then commit site/tvs/ with the release:
+
+       scripts/tv-list.py scan-out-final.tsv ../up046 -r 0.4.6 -d 2026-10-28 \\
+           -o site/tvs/tvs.json -p site/tvs/index.html
+
+     The second argument is the checkout (default: cyt-wt/up046) or a profile-meta.json; the test
+     build's lists are read from a checkout only. When the test build's switch rule changes
+     (HomeSwitchRisk.r0Blocker), update r0_test_build() below.
+
+Deterministic: rows sorted, the date from -d, else SOURCE_DATE_EPOCH, else today (UTC).
+Stdlib only.
+"""
+import argparse
+import collections
+import csv
+import datetime
+import html
+import json
+import os
+import re
+import sys
+import urllib.parse
+
+SCHEMA = 1
+DEFAULT_APP = "/Users/jarvis/hobby/tv-vibe/cyt-wt/up046"
+PROFILE_META = "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json"
+CANDIDATE_META = "core/spec/candidates/candidate-meta.json"
+REPO = "https://github.com/udhaykumarbala/cleanyourtv-app"
+UPSTREAM = "https://github.com/Gathin23/cleanyourtv"
+
+ORDER = ["new", "test", "soon", "cleanup", "no"]
+STATUSES = {
+    "new": ("New home screen", "The released app cleans up the TV and puts the new home screen on."),
+    "test": ("In the test build", "The test build puts the new home screen on; the released app does the clean-up and keeps the TV's own home screen for now."),
+    "soon": ("Coming soon", "Being worked on for the version shown; until then the app does the clean-up."),
+    "cleanup": ("Clean-up only", "The app switches the clutter off and keeps the TV's own home screen, for the reason shown."),
+    "no": ("Not possible", "This TV does not allow another home screen, so the clean-up is all the app can do."),
+}
+
+# How the app cleans up, by what it knows about the TV ({brand} is filled in by the page).
+CLEANUPS = {
+    "list": "Cleans up the TV with its tested list",
+    "brand": "Cleans up the TV with the {brand} clean-up, only the switches known to be safe on {brand} TVs",
+    "general": "Cleans up the TV with the general clean-up, only the switches known to be safe on any TV",
+}
+HOMES = {
+    "new": "and puts the new home screen on.",
+    "test": "and keeps the TV's own home screen; the test build also puts the new home screen on.",
+    "soon": "and keeps the TV's own home screen for now.",
+    "cleanup": "and keeps the TV's own home screen.",
+    "no": "and keeps the TV's own home screen.",
+}
+
+# SDK to the Android version people know.
+ANDROID = {21: "5", 22: "5.1", 23: "6", 24: "7", 25: "7.1", 26: "8", 27: "8.1", 28: "9", 29: "10", 30: "11",
+           31: "12", 32: "12L", 33: "13", 34: "14", 35: "15", 36: "16", 37: "17"}
+TV_MIN_SDK = 26          # DefaultPlanner.TV_MIN_SDK
+
+# Why the app keeps the TV's own home screen (the release's HomeBlock), in plain words, and what
+# would change it. The not possible ones have no change.
+HELPER = "The Home button helper, planned for a 0.4.8 test build, leaves the TV's own home screen on and still opens the new one when you press Home."
+REASONS = {
+    "WIZARD_WIFI": ("The TV's setup wizard saved its Wi-Fi, so the wizard has to stay on, and switching the home screen with it on can crash the TV.", HELPER),
+    "WIZARD_WIFI_UNKNOWN": ("The TV could not say who saved its Wi-Fi, so its setup wizard has to stay on, and switching the home screen with it on can crash the TV.", HELPER),
+    "WIZARD_STAYS_ON": ("The TV's setup wizard stays on and could take over the Home button once the TV's own home screen is off.", HELPER),
+    "UNKNOWN_HOME": ("The TV's home screen is one the app does not know yet, so it is left alone.",
+                     "A report from this TV helps the app learn its home screen: in the app, Manage, then Help add this TV."),
+    "VENDOR_HOME": ("A system service on this TV also answers the Home button, so the home screen is left alone.", HELPER),
+    "BOOT_LOOP": ("On this TV family the setup wizard comes back at every restart, and with the TV's own home screen off the TV can fail to start.", HELPER),
+    "CASTING": ("On this Google device the switch needs the setup wizard off, and casting from phones then stops after every restart.", HELPER),
+    "REMOTE_BUTTONS": ("The remote's app buttons only work through the TV's own home screen.", HELPER),
+    "OTHER_HOME": ("Another home screen app also answers the Home button on this TV, so the switch is left alone.",
+                   "Switch the other home screen app off or remove it, then run Setup again."),
+    "HOME_CHANGED": ("Home already opens a home screen app that was installed on the TV, and the app keeps that choice.",
+                     "Make the TV's own home screen the default again, then run Setup again."),
+    "PATCHWALL_FEEDS": ("PatchWall is on while Mi TV+ or its web content is off, and with the TV's own home screen off that can stop the TV starting.",
+                        "Switch PatchWall off, or those apps back on, then run Setup again."),
+    "FIRE_OS": ("Fire OS keeps Amazon's home screen, so the app does the clean-up only.", None),
+    "TCL_CN": ("TCL's China firmware does not allow another home screen, so the app does the clean-up only.", None),
+    "OLD_ANDROID": ("The new home screen needs Android 8 or newer, so on this Android the app does the clean-up only.", None),
+    "TV_REFUSES": ("This TV refuses other home screens, so the app does the clean-up only.", None),
+    "TEST_R0": ("The switch with the setup wizard left on is in the test build for every brand; the released app gives it to a brand once its testers confirm it holds after a restart.", None),
+}
+NOT_POSSIBLE = {"FIRE_OS", "TCL_CN", "OLD_ANDROID", "TV_REFUSES"}
+WIZARD_BLOCKS = {"WIZARD_STAYS_ON", "WIZARD_WIFI", "WIZARD_WIFI_UNKNOWN"}
+
+# HomeSwitchRisk and its helpers at v0.4.6, for the test build's R0 (anyBrand) on the scan's columns.
+TVLAUNCHER = "com.google.android.tvlauncher"
+OURS = "com.gathin.tvhome"
+SETUP_WIZARDS = {"com.google.android.tungsten.setupwraith"}
+VENDOR_WIZARDS = {"com.smartdevice.setupwraith", "com.oneplus.oobe.tv", "com.xiaomi.setupwizard", "com.android.managedprovisioning"}
+AOSP_FALLBACK = {("com.android.tv.settings", ".system.FallbackHome"), ("com.android.settings", ".FallbackHome")}
+VENDOR_PLACEHOLDERS = {"com.apps.tvsettings", "com.android.boot.fallbackhome", "com.realtek.systemservice"}
+CASTING_PROFILES = {"google-chromecast-gtv-4k", "google-chromecast-gtv-hd", "google-tv-streamer-4k-kirkwood"}
+MOKA_PROFILES = {"kalley-43g200", "kalley-r10g", "prismplus-q65-ultra-r10g"}
+REMOTE_BUTTON_PROFILES = {"sony-bravia-vu3"}
+
+# Brand spellings that are the same brand, and words of a list's name written the way people do.
+BRAND_ALIASES = {"hidpt hidpt": "hidpt"}
+WORDS = {"tv": "TV", "gtv": "Google TV", "atv": "ATV", "uhd": "UHD", "fhd": "FHD", "hd": "HD", "qled": "QLED", "oled": "OLED",
+         "mitv": "MiTV", "mi": "Mi", "eu": "EU", "uk": "UK", "us": "US", "cn": "CN", "android12": "Android 12", "shield": "SHIELD",
+         "bravia": "BRAVIA", "aquos": "AQUOS", "ai": "AI", "pont": "PONT", "sa": "SA", "stb": "STB", "pro": "Pro", "max": "Max"}
+
+
+def comp(flat):
+    if not flat or flat == "nothing" or "/" not in flat:
+        return None
+    pkg, cls = flat.split("/", 1)
+    return pkg, cls
+
+
+def claimants(text):
+    out = []
+    for item in text.split():
+        flat, _, prio = item.rpartition(":")
+        c = comp(flat)
+        if c:
+            out.append((c, int(prio) if re.fullmatch(r"-?\d+", prio) else 0))
+    return out
+
+
+def is_wizard(pkg):
+    return pkg in SETUP_WIZARDS or pkg in VENDOR_WIZARDS or pkg == "com.android.provision" or "setupwraith" in pkg.lower()
+
+
+def is_placeholder(c):
+    pkg, cls = c
+    return pkg == "android" or "FallbackHome" in cls or is_wizard(pkg)
+
+
+def r0_placeholder(c):
+    if not is_placeholder(c):
+        return False
+    pkg, cls = c
+    if "FallbackHome" not in cls:
+        return True
+    short = cls[len(pkg):] if cls.startswith(pkg + ".") else cls
+    return (pkg, short) in AOSP_FALLBACK or pkg in VENDOR_PLACEHOLDERS
+
+
+def vendor_placeholder(c):
+    return is_placeholder(c) and "FallbackHome" in c[1] and not r0_placeholder(c)
+
+
+def r0_test_build(row):
+    """HomeSwitchRisk.r0Blocker with anyBrand (the test build): True when R0 lets the switch go ahead.
+
+    The scan ran the release rule, so its r0Blocker stops at BRAND or SCOPE before the other tests.
+    This repeats those on the report's Home claimants. The report has no package states, so a
+    claimant is taken as on, and an app counts as one the person installed only when the report
+    hid its name (the scan's person.launcherN); any other app claiming Home blocks, as a system app
+    would. On the 87 Xiaomi rows where the scan ran every test, this agrees with the scan.
+    """
+    if row["r0Blocker"] not in ("BRAND", "SCOPE", "none") or row["heldOut"] == "true":
+        return False
+    cl = claimants(row["claimants"])
+    resolved = comp(row["resolved"])
+    comps = [c for c, _ in cl]
+    if any(is_wizard(c[0]) for c in comps):
+        return False                                    # WIZARD_CLAIMS_HOME
+    if not any(c[0] == TVLAUNCHER for c in comps):
+        return False                                    # NO_TVLAUNCHER
+    if any(vendor_placeholder(c) for c in comps + ([resolved] if resolved else [])):
+        return False                                    # VENDOR_PLACEHOLDER
+    if resolved and resolved[0] not in (TVLAUNCHER, OURS) and not r0_placeholder(resolved):
+        return False                                    # OTHER_HOME
+    for c, prio in cl:
+        if c[0] in (TVLAUNCHER, OURS) or r0_placeholder(c):
+            continue
+        if c[0].startswith("person.") and prio <= 0:
+            continue
+        return False                                    # OTHER_HOME
+    return True
+
+
+def sdk_of(android):
+    m = re.search(r"SDK (\d+)", android)
+    return int(m.group(1)) if m else 0
+
+
+def android_names(sdks):
+    return [ANDROID.get(s, f"SDK {s}") for s in sorted(set(sdks)) if s]
+
+
+def brand_key(b):
+    k = re.sub(r"\s+", " ", (b or "").strip().lower())
+    return BRAND_ALIASES.get(k, k)
+
+
+def pick_brand(spellings):
+    """The display spelling of a brand: one with a capital first, then the most common, then by name."""
+    counts = collections.Counter(spellings)
+    return sorted(counts, key=lambda s: (not s[:1].isupper(), -counts[s], s))[0]
+
+
+def slug(*parts):
+    s = "-".join(p for p in parts if p)
+    return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
+
+
+def list_title(pid, brand):
+    """A tested list's name as people write it: xgimi-mogo-3-pro is MoGo 3 Pro."""
+    words = pid.split("-")
+    bwords = slug(brand).split("-")
+    if words[:len(bwords)] == bwords and len(words) > len(bwords):
+        words = words[len(bwords):]
+    out = []
+    for w in words:
+        if w in WORDS:
+            out.append(WORDS[w])
+        elif w == "mogo":
+            out.append("MoGo")
+        elif re.search(r"\d", w):
+            out.append(w.upper())
+        else:
+            out.append(w.capitalize())
+    return " ".join(out)
+
+
+def soon_match(item, brand_names, devices, sdks, block, homes, r0, profile_ids):
+    m = item.get("match", {})
+    low = lambda xs: {x.lower() for x in xs if x}
+    if "brands" in m and not (low(m["brands"]) & low(brand_names)):
+        return False
+    if "devices" in m and not (low(m["devices"]) & low(devices)):
+        return False
+    if "profiles" in m and not (set(m["profiles"]) & set(profile_ids)):
+        return False
+    if "sdk" in m and not (set(m["sdk"]) & set(sdks)):
+        return False
+    if "blocks" in m and block not in m["blocks"]:
+        return False
+    if "homes" in m and not (set(m["homes"]) & set(homes)):
+        return False
+    if m.get("r0") and not r0:
+        return False
+    return True
+
+
+def load(path):
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def most(counter):
+    """The most common key, ties by name, or None."""
+    return sorted(counter, key=lambda k: (-counter[k], k))[0] if counter else None
+
+
+def build(profiles, cands, reports, soon_items, upstream):
+    spellings = collections.defaultdict(list)
+    groups = collections.OrderedDict()
+    for r in reports:
+        if not r.get("model"):
+            continue
+        key = (brand_key(r["brand"]), slug(r["model"]), r["device"].lower())
+        spellings[key[0]].append(r["brand"].strip())
+        groups.setdefault(key, []).append(r)
+    for p in list(profiles.values()) + list(cands.values()):
+        spellings[brand_key(p["match"]["brand"])].append(p["match"]["brand"].strip())
+    brand_display = {k: pick_brand(v) for k, v in spellings.items()}
+
+    def profile_for(brand, model, device, table):
+        for pid in sorted(table):
+            m = table[pid]["match"]
+            if brand_key(m["brand"]) != brand_key(brand) or device.lower() not in {d.lower() for d in m["devices"]}:
+                continue
+            if m["models"] and model not in m["models"]:
+                continue
+            return pid
+        return None
+
+    def first_soon(names, devices, sdks, block, homes, r0, pids):
+        return next((i for i in soon_items if soon_match(i, names, devices, sdks, block, homes, r0, pids)), None)
+
+    def judge(r):
+        """(status, reason code, soon item) for one report."""
+        sdk = sdk_of(r["android"])
+        block = r["b046final"]
+        exact = r["res"].split(" ", 1)[1] if r["res"].startswith("Exact ") else None
+        platform = profiles[exact]["platform"] if exact in profiles else None
+        homes = [c[0] for c, _ in claimants(r["claimants"])] + [x[0] for x in [comp(r["resolved"])] if x]
+        r0 = r0_test_build(r)
+        item = first_soon([r["brand"], r["manufacturer"]], [r["device"]], [sdk], block, homes, r0, [exact] if exact else [])
+        amazon = "amazon" in (brand_key(r["brand"]), brand_key(r["manufacturer"]))
+        if block == "TV_REFUSES":
+            code = "FIRE_OS" if platform == "FIRE_OS" or amazon else "TCL_CN" if platform == "TCL_CN" or brand_key(r["brand"]) == "tcl" else "TV_REFUSES"
+            return "no", code, None
+        if block == "OLD_ANDROID" or sdk < TV_MIN_SDK:
+            return "no", "OLD_ANDROID", None
+        if item and item.get("override"):
+            return "soon", None, item
+        if block == "NONE" or (block == "OURS" and exact):
+            return "new", None, item
+        if block == "OURS":
+            # Already the new home screen without a tested list: a test build switched it.
+            return "test", "TEST_R0", item
+        if r0 and block in WIZARD_BLOCKS:
+            return "test", "TEST_R0", item
+        if item:
+            return "soon", None, item
+        return "cleanup", block if block in REASONS else "UNKNOWN_HOME", None
+
+    rows = []
+    covered = set()
+    for key, rs in groups.items():
+        judged = [judge(r) for r in rs]
+        best = min(ORDER.index(j[0]) for j in judged)
+        status = ORDER[best]
+        top = [j for j in judged if j[0] == status]
+        reason = most(collections.Counter(j[1] for j in top if j[1]))
+        items = sorted({j[2]["id"] for j in (top if status == "soon" else judged) if j[2]})
+        brand = brand_display[key[0]]
+        lists, test_lists, kinds = set(), set(), set()
+        for r in rs:
+            if r["res"].startswith("Exact "):
+                lists.add(r["res"].split(" ", 1)[1])
+                kinds.add("list")
+            elif r["res"].startswith("BrandSureSet"):
+                kinds.add("brand")
+            pid = profile_for(r["brand"], r["model"], r["device"], profiles)
+            if pid:
+                lists.add(pid)
+            cid = profile_for(r["brand"], r["model"], r["device"], cands)
+            if cid:
+                test_lists.add(cid)
+        covered |= lists
+        clean = "list" if "list" in kinds else "brand" if "brand" in kinds else "general"
+        row = {
+            "id": slug(key[0], key[1], key[2]),
+            "brand": brand,
+            "name": most(collections.Counter(r["model"] for r in rs)),
+            "models": sorted({r["model"] for r in rs}, key=lambda s: (s.lower(), s)),
+            "codenames": sorted({r["device"] for r in rs if r["device"]}, key=lambda s: (s.lower(), s)),
+            "android": android_names(sdk_of(r["android"]) for r in rs),
+            "status": status,
+            "clean": clean,
+        }
+        if reason:
+            row["reason"] = reason
+        if items:
+            row["soon"] = items[0]
+        worse = collections.Counter(j[1] for j in judged if ORDER.index(j[0]) > best and j[1] and j[1] != "TEST_R0")
+        if worse and status in ("new", "test"):
+            row["some"] = most(worse)          # some sets of this model keep their home screen, and why
+        if lists:
+            row["lists"] = sorted(lists)
+        if test_lists:
+            row["test_lists"] = sorted(test_lists)
+        row["reports"] = len(rs)
+        rows.append(row)
+
+    # The tested lists no report has reached yet, judged from the list itself.
+    for pid in sorted(set(profiles) - covered):
+        p = profiles[pid]
+        m = p["match"]
+        if p["platform"] == "FIRE_OS":
+            block = "FIRE_OS"
+        elif p["platform"] == "TCL_CN":
+            block = "TCL_CN"
+        elif m["sdkMax"] and m["sdkMax"] < TV_MIN_SDK:
+            block = "OLD_ANDROID"
+        elif pid in MOKA_PROFILES:
+            block = "BOOT_LOOP"
+        elif pid in CASTING_PROFILES:
+            block = "CASTING"
+        elif pid in REMOTE_BUTTON_PROFILES:
+            block = "REMOTE_BUTTONS"
+        elif not p["stockLaunchers"]:
+            block = "UNKNOWN_HOME"
+        else:
+            block = "NONE"
+        sdks = list(range(m["sdkMin"], m["sdkMax"] + 1)) if m["sdkMin"] and m["sdkMax"] else []
+        brand = brand_display[brand_key(m["brand"])]
+        item = first_soon([m["brand"]], m["devices"], sdks, block, p["stockLaunchers"], False, [pid])
+        if block in NOT_POSSIBLE:
+            status = "no"
+        elif item:
+            status = "soon"
+        elif block == "NONE":
+            status = "new"
+        else:
+            status = "cleanup"
+        row = {
+            "id": slug("list", pid),
+            "brand": brand,
+            "name": list_title(pid, m["brand"]),
+            "models": sorted(m["models"], key=lambda s: (s.lower(), s)),
+            "codenames": sorted(m["devices"], key=lambda s: (s.lower(), s)),
+            "android": android_names(sdks),
+            "status": status,
+            "clean": "list",
+        }
+        if status in ("no", "cleanup"):
+            row["reason"] = block
+        if item:
+            row["soon"] = item["id"]
+        row["lists"] = [pid]
+        row["reports"] = 0
+        rows.append(row)
+
+    rows.sort(key=lambda t: (t["brand"].lower(), t["name"].lower(), t["id"]))
+    dup = [k for k, n in collections.Counter(t["id"] for t in rows).items() if n > 1]
+    if dup:
+        sys.exit(f"tv-list: duplicate ids {dup}")
+    return rows
+
+
+def noscript(rows, statuses):
+    """The page's list without JavaScript: one line per TV, grouped by status."""
+    out = []
+    for s in ORDER:
+        mine = [t for t in rows if t["status"] == s]
+        out.append(f'<h2 class="ns-h">{html.escape(statuses[s][0])} <span>{len(mine)}</span></h2>')
+        out.append(f'<p class="ns-m">{html.escape(statuses[s][1])}</p>')
+        out.append('<ul class="ns">')
+        for t in mine:
+            extra = ", ".join(x for x in (", ".join(t["codenames"]), ("Android " + ", ".join(t["android"])) if t["android"] else "") if x)
+            q = urllib.parse.quote(t["models"][0] if t["models"] else t["name"])
+            out.append(f'<li><b>{html.escape(t["brand"])} {html.escape(t["name"])}</b> <small>{html.escape(extra)}</small>'
+                       f' <a href="{REPO}/issues?q={q}">issues</a></li>')
+        out.append("</ul>")
+    return "\n".join(out)
+
+
+def dumps(doc):
+    """JSON with one TV per line."""
+    head = {k: v for k, v in doc.items() if k != "tvs"}
+    text = json.dumps(head, indent=1, ensure_ascii=False)
+    tvs = ",\n".join("  " + json.dumps(t, ensure_ascii=False, separators=(",", ":")) for t in doc["tvs"])
+    return text[:-2] + ',\n "tvs": [\n' + tvs + "\n ]\n}\n"
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    ap.add_argument("scan", help="the release scan TSV")
+    ap.add_argument("app", nargs="?", default=DEFAULT_APP,
+                    help="app checkout at the release tag, or its profile-meta.json (default: %(default)s)")
+    ap.add_argument("-c", dest="coming_soon", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "site", "tvs", "coming-soon.json"),
+                    help="the coming soon file (default: site/tvs/coming-soon.json)")
+    ap.add_argument("-r", dest="release", default="0.4.6", help="the release the scan and lists are from (default: %(default)s)")
+    ap.add_argument("-d", dest="date", help="generated_at as YYYY-MM-DD (default: SOURCE_DATE_EPOCH, else today)")
+    ap.add_argument("-o", dest="out", default="-", help="output file (default: stdout)")
+    ap.add_argument("-p", dest="page", help="the page whose noscript list to refresh (site/tvs/index.html)")
+    a = ap.parse_args(argv)
+
+    if a.app.endswith(".json"):
+        meta_path, cand_path = a.app, ""
+    else:
+        meta_path, cand_path = os.path.join(a.app, PROFILE_META), os.path.join(a.app, CANDIDATE_META)
+    meta = load(meta_path)
+    cands = load(cand_path)["profiles"] if cand_path and os.path.exists(cand_path) else {}
+    soon = load(a.coming_soon)
+    upstream = meta.get("upstreamCommit", "main")
+    with open(a.scan, encoding="utf-8", newline="") as f:
+        reports = list(csv.DictReader(f, delimiter="\t"))
+
+    rows = build(meta["profiles"], cands, reports, soon["items"], upstream)
+
+    if a.date:
+        date = a.date
+    elif os.environ.get("SOURCE_DATE_EPOCH"):
+        date = datetime.datetime.fromtimestamp(int(os.environ["SOURCE_DATE_EPOCH"]), datetime.timezone.utc).strftime("%Y-%m-%d")
+    else:
+        date = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
+    counts = collections.Counter(t["status"] for t in rows)
+    doc = {
+        "schema": SCHEMA,
+        "generated_at": date,
+        "release": a.release,
+        "sources": {"lists": len(meta["profiles"]), "test_lists": len(cands), "reports": len(reports), "upstream": upstream},
+        "links": {"issues": f"{REPO}/issues?q=", "list": f"{UPSTREAM}/tree/{upstream}/examples/", "test_build": f"{REPO}/releases"},
+        "statuses": [{"id": s, "label": STATUSES[s][0], "means": STATUSES[s][1], "tvs": counts.get(s, 0)} for s in ORDER],
+        "cleanups": CLEANUPS,
+        "homes": HOMES,
+        "reasons": {k: {"why": v[0], **({"change": v[1]} if v[1] else {})} for k, v in sorted(REASONS.items())},
+        "coming_soon": [{"id": i["id"], "title": i["title"], "version": i["version"], "what": i["what"]} for i in soon["items"]],
+        "tvs": rows,
+    }
+    text = dumps(doc)
+    if a.out == "-":
+        sys.stdout.write(text)
+    else:
+        with open(a.out, "w", encoding="utf-8") as f:
+            f.write(text)
+    if a.page:
+        with open(a.page, encoding="utf-8") as f:
+            page = f.read()
+        start, end = '<noscript id="tvlist">', "</noscript>"
+        if start not in page:
+            sys.exit(f"tv-list: {a.page} has no {start}")
+        before, rest = page.split(start, 1)
+        after = rest.split(end, 1)[1]
+        with open(a.page, "w", encoding="utf-8") as f:
+            f.write(before + start + "\n" + noscript(rows, STATUSES) + "\n" + end + after)
+    print(f"tv-list: {len(rows)} TVs, " + ", ".join(f"{s} {counts.get(s, 0)}" for s in ORDER), file=sys.stderr)
+
+
+if __name__ == "__main__":
+    main()
