@@ -53,7 +53,7 @@ class UpdateCheckData(unittest.TestCase):
         recipe = read(RECIPE)
         self.assertEqual(top_level(recipe, "CurrentVersionCode"), code.group(1))
         self.assertEqual(top_level(recipe, "CurrentVersion"), name.group(1))
-        self.assertRegex(name.group(1), r"^[0-9]+\.[0-9]+\.[0-9]+$")
+        self.assertRegex(name.group(1), r"^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$")
 
 
 class AntiFeatures(unittest.TestCase):

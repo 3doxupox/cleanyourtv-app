@@ -108,3 +108,18 @@ without a warning; no frozen type changes.
   On 3.0: the 288,500 build look cross product (43,050 distinct docs, 0 codec warnings), the
   10,000 file fuzz with the 25 keys in valid and out of range values, the theme fixtures (retro
   and nature-calm included), the encoded docs and the TV choices; the 2.7 runs stay beside them.
+
+## RFC-RECONNECT-1: a saved TV is found again at a new address
+
+Issue #1578: on a mesh Wi-Fi the TV moved from .111 to .104, the app tried only the saved address
+and showed the debugging step for good, while "Add a TV" found the TV and asked "Is this your
+TV?". Smallest change: `SessionManager` gets `openKnown(endpoint, expected)`, the handshake with
+the app's signature only (`AdbConnection.open(sendPublicKey = false)` stops with `Auth.Denied`
+where the TV does not take the signature, before the public key that raises the Allow dialog),
+then the TvId check as `open` does (`Policy.WrongTv`). `TvAccess.session` polls the saved
+addresses as before and, after one round, searches the network beside the polling with the
+Discovery that "Add a TV" uses (8 s a search, again every 30 s while the debugging step waits);
+each TV found elsewhere with port 5555 open gets `openKnown`, so a different TV is never connected
+and a TV that never allowed this phone sees no dialog. The TV that answers is saved at its new
+address (its plain TCP endpoints replaced). Setup's connect gives no identity check to a TV whose
+TvId is saved on this phone and that took its key without asking. No other interface changes.

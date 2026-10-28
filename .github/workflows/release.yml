@@ -61,8 +61,8 @@ jobs:
           version=$(sed -n 's/^ *versionName = "\([0-9][0-9A-Za-z.-]*\)".*/\1/p' app/build.gradle.kts | head -1)
           if [ "$REF_TYPE" = tag ]; then
             # The tag name reaches file names: only plain versions get further, and it must match the app.
-            printf '%s' "$REF_NAME" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)\.?[0-9]+)?$' \
-              || { echo "::error::tag $REF_NAME is not vMAJOR.MINOR.PATCH with an optional -alpha/-beta/-rc suffix"; exit 1; }
+            printf '%s' "$REF_NAME" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?(-(alpha|beta|rc)\.?[0-9]+)?$' \
+              || { echo "::error::tag $REF_NAME is not vMAJOR.MINOR.PATCH (or a hotfix vMAJOR.MINOR.PATCH.N) with an optional -alpha/-beta/-rc suffix"; exit 1; }
             [ "${REF_NAME#v}" = "$version" ] || { echo "::error::tag $REF_NAME but versionName $version"; exit 1; }
             name="cleanyourtv-$version"
           else
@@ -181,7 +181,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.release_tag }}
         run: |
-          printf '%s' "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)\.?[0-9]+)?$' || { echo "::error::release_tag $TAG is not a version tag"; exit 1; }
+          printf '%s' "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?(-(alpha|beta|rc)\.?[0-9]+)?$' || { echo "::error::release_tag $TAG is not a version tag"; exit 1; }
           mkdir -p "$RUNNER_TEMP/rel"
           gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern 'cleanyourtv-*.apk' --dir "$RUNNER_TEMP/rel"
           ls -l "$RUNNER_TEMP/rel"

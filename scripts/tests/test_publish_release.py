@@ -29,7 +29,10 @@ def git(repo, *args):
 
 
 class PublishRelease(unittest.TestCase):
+    V = "9.9.9"
+
     def setUp(self):
+        v = self.V
         self.tmp = tempfile.mkdtemp()
         self.repo = os.path.join(self.tmp, "repo")
         for d in ("scripts/lib", "docs", "app"):
@@ -38,22 +41,22 @@ class PublishRelease(unittest.TestCase):
         shutil.copy(os.path.join(ROOT, "scripts", "lib", "forge.sh"), os.path.join(self.repo, "scripts", "lib"))
         shutil.copy(os.path.join(ROOT, "docs", "release-signer.sha256"), os.path.join(self.repo, "docs"))
         with open(os.path.join(self.repo, "app", "build.gradle.kts"), "w") as f:
-            f.write('android {\n    defaultConfig {\n        versionCode = 9\n        versionName = "9.9.9"\n    }\n}\n')
+            f.write('android {\n    defaultConfig {\n        versionCode = 9\n        versionName = "%s"\n    }\n}\n' % v)
         git(self.repo, "init", "-q")
         git(self.repo, "-c", "user.email=t@example.invalid", "-c", "user.name=t", "add", ".")
         git(self.repo, "-c", "user.email=t@example.invalid", "-c", "user.name=t", "commit", "-q", "-m", "test")
-        git(self.repo, "-c", "user.email=t@example.invalid", "-c", "user.name=t", "tag", "-a", "v9.9.9", "-m", "v9.9.9")
+        git(self.repo, "-c", "user.email=t@example.invalid", "-c", "user.name=t", "tag", "-a", "v" + v, "-m", "v" + v)
         commit = git(self.repo, "rev-parse", "HEAD")
         dist = os.path.join(self.repo, "dist")
-        os.makedirs(os.path.join(dist, "release-9.9.9"))
-        with open(os.path.join(dist, "release-9.9.9", "NOTES.md"), "w") as f:
-            f.write(f"# Clean Your TV 9.9.9\n\n- Commit: {commit}\n")
-        with open(os.path.join(dist, "release-9.9.9", "RELEASE-NOTES.md"), "w") as f:
+        os.makedirs(os.path.join(dist, f"release-{v}"))
+        with open(os.path.join(dist, f"release-{v}", "NOTES.md"), "w") as f:
+            f.write(f"# Clean Your TV {v}\n\n- Commit: {commit}\n")
+        with open(os.path.join(dist, f"release-{v}", "RELEASE-NOTES.md"), "w") as f:
             f.write("notes\n")
-        with open(os.path.join(dist, "cleanyourtv-9.9.9.apk"), "wb") as f:
+        with open(os.path.join(dist, f"cleanyourtv-{v}.apk"), "wb") as f:
             f.write(b"not an apk")
-        subprocess.run("shasum -a 256 cleanyourtv-9.9.9.apk > cleanyourtv-9.9.9.apk.sha256", shell=True, cwd=dist, check=True)
-        with open(os.path.join(dist, "cleanyourtv-9.9.9.signer-sha256.txt"), "w") as f:
+        subprocess.run(f"shasum -a 256 cleanyourtv-{v}.apk > cleanyourtv-{v}.apk.sha256", shell=True, cwd=dist, check=True)
+        with open(os.path.join(dist, f"cleanyourtv-{v}.signer-sha256.txt"), "w") as f:
             f.write(SIGNER + "\n")
         self.bin = os.path.join(self.tmp, "bin")
         os.makedirs(self.bin)
@@ -69,7 +72,7 @@ class PublishRelease(unittest.TestCase):
     def run_publish(self, remote_tag):
         env = dict(os.environ, PATH=self.bin + os.pathsep + os.environ["PATH"], FAKE_REMOTE_TAG=remote_tag,
                    FAKE_LOG=self.log, CYT_FORGE_ENV=os.path.join(self.tmp, "none.env"), CYT_SECRETS=os.path.join(self.tmp, "secrets"))
-        r = subprocess.run(["bash", os.path.join(self.repo, "scripts", "publish-release.sh"), "v9.9.9", "--skip-play", "--skip-verify"],
+        r = subprocess.run(["bash", os.path.join(self.repo, "scripts", "publish-release.sh"), "v" + self.V, "--skip-play", "--skip-verify"],
                            capture_output=True, text=True, env=env)
         sent = ""
         if os.path.exists(self.log):
@@ -90,9 +93,14 @@ class PublishRelease(unittest.TestCase):
         self.assertEqual("", sent)
 
     def test_the_same_tag_publishes(self):
-        r, sent = self.run_publish(git(self.repo, "rev-parse", "refs/tags/v9.9.9"))
+        r, sent = self.run_publish(git(self.repo, "rev-parse", "refs/tags/v" + self.V))
         self.assertEqual(0, r.returncode, r.stdout + r.stderr)
-        self.assertIn("release create v9.9.9", sent)
+        self.assertIn("release create v" + self.V, sent)
+
+
+# A hotfix on a release takes a fourth number (0.4.6.1); every check above holds for it too.
+class PublishFourPartRelease(PublishRelease):
+    V = "9.9.9.1"
 
 
 if __name__ == "__main__":

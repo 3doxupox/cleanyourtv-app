@@ -52,7 +52,7 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/in" "$RUNNER_TEMP/out"
           commit=$(git rev-parse HEAD)
-          tag=$(git tag --points-at HEAD | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1 || true)
+          tag=$(git tag --points-at HEAD | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$' | sort -V | tail -1 || true)
           signed=no
           if [ -n "$tag" ]; then
             url="https://github.com/$REPO/releases/download/$tag/cleanyourtv-${tag#v}.apk"
