@@ -11,7 +11,7 @@
  "links": {
   "issues": "https://github.com/udhaykumarbala/cleanyourtv-app/issues?q=",
   "list": "https://github.com/Gathin23/cleanyourtv/tree/b06ab21/examples/",
-  "test_build": "https://github.com/udhaykumarbala/cleanyourtv-app/releases"
+  "app": "https://github.com/udhaykumarbala/cleanyourtv-app/releases/latest"
  },
  "statuses": [
   {
@@ -22,8 +22,8 @@
   },
   {
    "id": "test",
-   "label": "In the test build",
-   "means": "The test build puts the new home screen on; the released app does the clean-up and keeps the TV's own home screen for now.",
+   "label": "Next test build",
+   "means": "Works in our test builds; coming to everyone with 0.4.7 once testers confirm it on your brand.",
    "tvs": 139
   },
   {
@@ -52,7 +52,7 @@
  },
  "homes": {
   "new": "and puts the new home screen on.",
-  "test": "and keeps the TV's own home screen; the test build also puts the new home screen on.",
+  "test": "and keeps the TV's own home screen for now; the new home screen works on it in our test builds.",
   "soon": "and keeps the TV's own home screen for now.",
   "cleanup": "and keeps the TV's own home screen.",
   "no": "and keeps the TV's own home screen."
@@ -92,7 +92,7 @@
    "why": "TCL's China firmware does not allow another home screen, so the app does the clean-up only."
   },
   "TEST_R0": {
-   "why": "The switch with the setup wizard left on is in the test build for every brand; the released app gives it to a brand once its testers confirm it holds after a restart."
+   "why": "The switch with the setup wizard left on works in our test builds for every brand; a release gives it to a brand once its testers confirm the new home screen stays after a restart."
   },
   "TV_REFUSES": {
    "why": "This TV refuses other home screens, so the app does the clean-up only."

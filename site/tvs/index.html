@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TV list - Clean Your TV</title>
-<meta name="description" content="Every TV the Clean Your TV phone app has seen, and what it does on each: the new home screen, the test build, coming soon, or the clean-up only and why.">
+<meta name="description" content="Every TV the Clean Your TV phone app has seen, and what it does on each: the new home screen, the next test build, coming soon, or the clean-up only and why.">
 <meta name="theme-color" content="#050507">
 <meta name="color-scheme" content="dark">
 <link rel="icon" type="image/png" href="../assets/icon.png">
@@ -233,8 +233,8 @@
 <li><b>Xiaomi MiTV4I</b> <small>magnolia, Android 9</small> <a href="https://github.com/udhaykumarbala/cleanyourtv-app/issues?q=MiTV4I">issues</a></li>
 <li><b>Xiaomi TV A Pro 2026</b> <small>river, Android 14</small> <a href="https://github.com/udhaykumarbala/cleanyourtv-app/issues?q=MiTV-MZTU0">issues</a></li>
 </ul>
-<h2 class="ns-h">In the test build <span>139</span></h2>
-<p class="ns-m">The test build puts the new home screen on; the released app does the clean-up and keeps the TV&#x27;s own home screen for now.</p>
+<h2 class="ns-h">Next test build <span>139</span></h2>
+<p class="ns-m">Works in our test builds; coming to everyone with 0.4.7 once testers confirm it on your brand.</p>
 <ul class="ns">
 <li><b>ACER R4</b> <small>R4, Android 14</small> <a href="https://github.com/udhaykumarbala/cleanyourtv-app/issues?q=R4">issues</a></li>
 <li><b>ACONATIC ACONATIC 4K Android TV</b> <small>shilin, Android 14</small> <a href="https://github.com/udhaykumarbala/cleanyourtv-app/issues?q=ACONATIC%204K%20Android%20TV">issues</a></li>
@@ -749,8 +749,8 @@ function card(t) {
   if (!t.reports && t.status === 'new') li.append(el('p', { class: 'tv-w', text: "From the tested list, with no report from this model yet. If the TV's setup wizard saved its Wi-Fi, the app keeps the TV's own home screen." }));
   const links = el('p', { class: 'tv-l' });
   for (const n of t.lists || []) links.append(el('a', { href: D.links.list + encodeURIComponent(n), target: '_blank', rel: 'noopener', text: `Tested list: ${n}` }));
-  for (const n of t.test_lists || []) links.append(el('a', { href: D.links.list + encodeURIComponent(n), target: '_blank', rel: 'noopener', text: `List to try: ${n}` }));
-  if (t.status === 'test' || (t.test_lists || []).length) links.append(el('a', { href: D.links.test_build, target: '_blank', rel: 'noopener', text: 'The test build' }));
+  for (const n of t.test_lists || []) links.append(el('a', { href: D.links.list + encodeURIComponent(n), target: '_blank', rel: 'noopener', text: `Untested list: ${n}` }));
+  if (t.status === 'test' && D.links.test_build) links.append(el('a', { href: D.links.test_build, target: '_blank', rel: 'noopener', text: 'The test build' }));
   links.append(el('a', { href: D.links.issues + encodeURIComponent(t.models[0] || t.name), target: '_blank', rel: 'noopener', text: 'Issues about this model' }));
   li.append(links);
   return li;

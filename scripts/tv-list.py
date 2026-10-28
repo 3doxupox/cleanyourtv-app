@@ -11,8 +11,8 @@ Builds one row per TV (brand, model and codename) from three inputs, models and 
      HomeBlock; NONE means the switch is planned.
   3. site/tvs/coming-soon.json, kept by hand: what the next versions bring, with match rules.
 
-Statuses, best first: new (the release gives the new home screen), test (the test build does,
-through the switch with the setup wizard left on for any brand), soon (named in coming-soon.json),
+Statuses, best first: new (the release gives the new home screen), test ("Next test build": our
+test builds do, through the switch with the setup wizard left on for any brand), soon (named in coming-soon.json),
 cleanup (the clean-up only, with the reason), no (not possible: Fire OS, TCL China, Android older
 than 8). Reports are grouped by brand, model and device, and a TV takes the best status of its
 reports. Tested lists no report has reached get a row of their own, judged from the list.
@@ -62,7 +62,7 @@ UPSTREAM = "https://github.com/Gathin23/cleanyourtv"
 ORDER = ["new", "test", "soon", "cleanup", "no"]
 STATUSES = {
     "new": ("New home screen", "The released app cleans up the TV and puts the new home screen on."),
-    "test": ("In the test build", "The test build puts the new home screen on; the released app does the clean-up and keeps the TV's own home screen for now."),
+    "test": ("Next test build", "Works in our test builds; coming to everyone with 0.4.7 once testers confirm it on your brand."),
     "soon": ("Coming soon", "Being worked on for the version shown; until then the app does the clean-up."),
     "cleanup": ("Clean-up only", "The app switches the clutter off and keeps the TV's own home screen, for the reason shown."),
     "no": ("Not possible", "This TV does not allow another home screen, so the clean-up is all the app can do."),
@@ -76,7 +76,7 @@ CLEANUPS = {
 }
 HOMES = {
     "new": "and puts the new home screen on.",
-    "test": "and keeps the TV's own home screen; the test build also puts the new home screen on.",
+    "test": "and keeps the TV's own home screen for now; the new home screen works on it in our test builds.",
     "soon": "and keeps the TV's own home screen for now.",
     "cleanup": "and keeps the TV's own home screen.",
     "no": "and keeps the TV's own home screen.",
@@ -110,7 +110,7 @@ REASONS = {
     "TCL_CN": ("TCL's China firmware does not allow another home screen, so the app does the clean-up only.", None),
     "OLD_ANDROID": ("The new home screen needs Android 8 or newer, so on this Android the app does the clean-up only.", None),
     "TV_REFUSES": ("This TV refuses other home screens, so the app does the clean-up only.", None),
-    "TEST_R0": ("The switch with the setup wizard left on is in the test build for every brand; the released app gives it to a brand once its testers confirm it holds after a restart.", None),
+    "TEST_R0": ("The switch with the setup wizard left on works in our test builds for every brand; a release gives it to a brand once its testers confirm the new home screen stays after a restart.", None),
 }
 NOT_POSSIBLE = {"FIRE_OS", "TCL_CN", "OLD_ANDROID", "TV_REFUSES"}
 WIZARD_BLOCKS = {"WIZARD_STAYS_ON", "WIZARD_WIFI", "WIZARD_WIFI_UNKNOWN"}
@@ -472,6 +472,8 @@ def main(argv=None):
     ap.add_argument("-r", dest="release", default="0.4.6", help="the release the scan and lists are from (default: %(default)s)")
     ap.add_argument("-d", dest="date", help="generated_at as YYYY-MM-DD (default: SOURCE_DATE_EPOCH, else today)")
     ap.add_argument("-o", dest="out", default="-", help="output file (default: stdout)")
+    ap.add_argument("-t", "--test-build-url", dest="test_build_url",
+                    help="a link to the published test build for the Next test build TVs (default: none, so the page links no pre-release)")
     ap.add_argument("-p", dest="page", help="the page whose noscript list to refresh (site/tvs/index.html)")
     a = ap.parse_args(argv)
 
@@ -500,7 +502,8 @@ def main(argv=None):
         "generated_at": date,
         "release": a.release,
         "sources": {"lists": len(meta["profiles"]), "test_lists": len(cands), "reports": len(reports), "upstream": upstream},
-        "links": {"issues": f"{REPO}/issues?q=", "list": f"{UPSTREAM}/tree/{upstream}/examples/", "test_build": f"{REPO}/releases"},
+        "links": {"issues": f"{REPO}/issues?q=", "list": f"{UPSTREAM}/tree/{upstream}/examples/", "app": f"{REPO}/releases/latest",
+                  **({"test_build": a.test_build_url} if a.test_build_url else {})},
         "statuses": [{"id": s, "label": STATUSES[s][0], "means": STATUSES[s][1], "tvs": counts.get(s, 0)} for s in ORDER],
         "cleanups": CLEANUPS,
         "homes": HOMES,
