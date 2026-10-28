@@ -21,6 +21,7 @@ import tv.cleanyour.core.model.Op
 import tv.cleanyour.core.trust.DownloadHosts
 import tv.cleanyour.testing.fixtures.Samples
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
@@ -73,6 +74,17 @@ class FullStoreTest {
         assertEquals("0.3.5", latest("0.3.5", "0.3.5-test1"))
         assertEquals("0.4.0", latest("0.4.0", "0.3.5-test1"))
         assertEquals("0.3.4", latest("0.3.4", "0.3.3"))
+    }
+
+    // A four-part hotfix (0.4.6.1): 0.4.6 is offered it; the 0.4.7-beta1 test build, already past it, is not.
+    @Test fun aFourPartHotfixIsOfferedToTheReleaseBeforeItOnly() = runBlocking {
+        fun latest(tag: String, current: String) = runBlocking { Store.updateChecker(OneAnswer(200, "{\"tag_name\":\"v$tag\"}")).latestNewerThan(current) }
+        assertTrue(Store.offered("0.4.6.1", "0.4.6"))
+        assertFalse(Store.offered("0.4.6.1", "0.4.7-beta1"))
+        assertFalse(Store.offered("0.4.6.1", "0.4.6.1"))
+        assertTrue(Store.offered("0.4.7", "0.4.7-beta1"))
+        assertEquals("0.4.6.1", latest("0.4.6.1", "0.4.6"))
+        assertEquals("", latest("0.4.6.1", "0.4.7-beta1"))
     }
 
     @Test fun softwareUpdatesStayTheOwnersChoice() {

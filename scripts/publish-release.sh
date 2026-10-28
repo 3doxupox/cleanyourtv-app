@@ -54,8 +54,8 @@ done
 case "$TRACK" in internal|closed|production) ;; *) echo "--track is internal, closed or production" >&2; exit 2 ;; esac
 
 REPO="${CYT_GITHUB_REPO:-udhaykumarbala/cleanyourtv-app}"
-printf '%s' "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)\.?[0-9]+)?$' \
-  || { echo "tag $TAG is not vMAJOR.MINOR.PATCH with an optional -alpha/-beta/-rc suffix" >&2; exit 2; }
+printf '%s' "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?(-(alpha|beta|rc)\.?[0-9]+)?$' \
+  || { echo "tag $TAG is not vMAJOR.MINOR.PATCH (or a hotfix vMAJOR.MINOR.PATCH.N) with an optional -alpha/-beta/-rc suffix" >&2; exit 2; }
 VERSION="${TAG#v}"
 APP_VERSION=$(git show "$TAG:app/build.gradle.kts" 2>/dev/null | sed -n 's/^ *versionName = "\([0-9][0-9A-Za-z.-]*\)".*/\1/p' | head -1) \
   || true

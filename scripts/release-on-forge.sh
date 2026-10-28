@@ -99,7 +99,7 @@ EPOCH=$(git log -1 --format=%ct "$COMMIT")
 # The one place the version lives (STORES-PLAN 3): app/build.gradle.kts, read by both flavours.
 VERSION=$(sed -n 's/^ *versionName = "\([0-9][0-9A-Za-z.-]*\)".*/\1/p' app/build.gradle.kts | head -1)
 VERSION_CODE=$(sed -n 's/^ *versionCode = \([0-9][0-9]*\).*/\1/p' app/build.gradle.kts | head -1)
-printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$' || { echo "versionName '$VERSION' not understood" >&2; exit 2; }
+printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?(-[0-9A-Za-z.]+)?$' || { echo "versionName '$VERSION' not understood" >&2; exit 2; }
 printf '%s' "$VERSION_CODE" | grep -Eq '^[1-9][0-9]*$' || { echo "versionCode '$VERSION_CODE' not understood" >&2; exit 2; }
 NAME="cleanyourtv-$VERSION"
 [ "$TEST_KEY" = 1 ] && NAME="$NAME-TESTKEY-not-for-distribution"

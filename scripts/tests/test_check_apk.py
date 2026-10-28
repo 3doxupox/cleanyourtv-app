@@ -199,8 +199,9 @@ class StoreFlavours(unittest.TestCase):
             self.assertEqual([marker], ca.test_build_markers(aab, True))
             self.assertEqual([], ca.test_build_markers(clean, False))
             self.assertFalse(ca.test_build_check([marker], "0.4.6")[0])
+            self.assertFalse(ca.test_build_check([marker], "0.4.6.1")[0])
             self.assertFalse(ca.test_build_check([marker], None)[0])
-            for pre in ("0.4.6-beta1", "0.4.6-beta.1", "0.4.6-alpha", "0.4.6-rc2"):
+            for pre in ("0.4.6-beta1", "0.4.6-beta.1", "0.4.6-alpha", "0.4.6-rc2", "0.4.6.1-beta1"):
                 self.assertTrue(ca.test_build_check([marker], pre)[0], pre)
             self.assertTrue(ca.test_build_check([], "0.4.6")[0])
 
