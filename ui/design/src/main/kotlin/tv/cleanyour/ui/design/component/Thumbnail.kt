@@ -114,7 +114,8 @@ private fun BoxScope.ThumbnailPlaceholder() {
 
 // A PNG from the TV (screencap) as an image for TvThumbnail and TvCard, or null when it is missing
 // or does not decode. Issue #1273: a 4K TV's screenshot (3840 x 2160) would be a 33 MB bitmap, so
-// the bounds are read first and the image is sampled down to SCREENSHOT_MAX_SIDE on its longer side.
+// the bounds are read first and the image is sampled down to SCREENSHOT_MAX_SIDE on its longer side:
+// a 4K screenshot costs what a 1080p one always did, and a 1080p one is shown as before.
 @Composable
 fun rememberPng(bytes: ByteArray?): ImageBitmap? = remember(bytes) { bytes?.let { decodeScreenshot(it) } }
 
@@ -126,7 +127,7 @@ fun decodeScreenshot(bytes: ByteArray, maxSide: Int = SCREENSHOT_MAX_SIDE): Imag
 }.getOrNull()
 
 // The smallest power of two that brings the longer side to maxSide or under (1 for a small image or
-// unknown bounds): 3840 x 2160 takes 4 (960 x 540), 1920 x 1080 takes 2, 1280 x 720 takes 1.
+// unknown bounds): 3840 x 2160 takes 2 (1920 x 1080), 1920 x 1080 and smaller take 1.
 fun screenshotSampleSize(width: Int, height: Int, maxSide: Int = SCREENSHOT_MAX_SIDE): Int {
     val longer = maxOf(width, height)
     var sample = 1
@@ -134,4 +135,4 @@ fun screenshotSampleSize(width: Int, height: Int, maxSide: Int = SCREENSHOT_MAX_
     return sample
 }
 
-const val SCREENSHOT_MAX_SIDE = 1280
+const val SCREENSHOT_MAX_SIDE = 1920

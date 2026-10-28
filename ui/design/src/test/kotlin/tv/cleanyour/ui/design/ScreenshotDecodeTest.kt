@@ -22,19 +22,19 @@ import java.io.ByteArrayOutputStream
 @Config(sdk = [35])
 class ScreenshotDecodeTest {
     @Test fun theSampleIsThePowerOfTwoThatFitsTheLongerSide() {
-        assertEquals(4, screenshotSampleSize(3840, 2160))
-        assertEquals(2, screenshotSampleSize(1920, 1080))
-        assertEquals(2, screenshotSampleSize(1080, 1920))
+        assertEquals(2, screenshotSampleSize(3840, 2160))
+        assertEquals(1, screenshotSampleSize(1920, 1080))
+        assertEquals(1, screenshotSampleSize(1080, 1920))
         assertEquals(1, screenshotSampleSize(1280, 720))
         assertEquals(1, screenshotSampleSize(960, 540))
-        assertEquals(8, screenshotSampleSize(7680, 4320))
+        assertEquals(4, screenshotSampleSize(7680, 4320))
         assertEquals("unknown bounds decode as they are", 1, screenshotSampleSize(-1, -1))
     }
 
     @Test fun aFourKScreenshotDecodesSampledDown() {
         val image = decodeScreenshot(png(3840, 2160))!!
-        assertEquals(960, image.width)
-        assertEquals(540, image.height)
+        assertEquals(1920, image.width)
+        assertEquals(1080, image.height)
         assertTrue(maxOf(image.width, image.height) <= SCREENSHOT_MAX_SIDE)
         val small = decodeScreenshot(png(1280, 720))!!
         assertEquals(1280, small.width)
