@@ -130,7 +130,7 @@ h1.v-h1{font-size:clamp(34px,6vw,52px)}
       <div class="v-big">
         <div><b class="v-n" id="nNew"></b><span class="v-nl">TVs get the new home screen today</span></div>
         <div class="v-two">
-          <div><b id="nMore"></b><span>more coming</span></div>
+          <div><b id="nMore"></b><span>being worked on</span></div>
           <div><b id="nAll"></b><span>TVs seen</span></div>
         </div>
         <p class="v-src" id="src"></p>
@@ -856,25 +856,24 @@ function details(t) {
   const d = el('div', { class: 'r-d', id: 'd-' + t.id });
   const r = t.reason && D.reasons[t.reason];
   const s = t.soon && soonOf(t.soon);
-  const meta = [];
-  const extra = t.models.filter(m => squash(m) !== squash(t.name));
-  if (extra.length) meta.push('Model ' + extra.join(', '));
-  if (t.codenames.length) meta.push((t.codenames.length > 1 ? 'codenames ' : 'codename ') + t.codenames.join(', '));
-  if (t.android.length) meta.push('Android ' + t.android.join(', '));
-  meta.push(t.reports ? plural(t.reports, 'report', 'reports') : 'tested list, no report yet');
-  d.append(el('p', { text: meta.join(' · ') }));
-  d.append(el('p', {}, el('b', { text: 'What the app does: ' }), D.cleanups[t.clean].replaceAll('{brand}', t.brand) + ', ' + D.homes[t.status]));
-  if (t.status === 'soon' && s) d.append(el('p', {}, el('b', { text: `Coming in ${s.version}: ` }), s.what));
-  if (r && t.status !== 'new') {
-    d.append(el('p', {}, el('b', { text: 'Why: ' }), r.why));
-    if (r.change && t.status === 'cleanup') d.append(el('p', {}, el('b', { text: 'What would change it: ' }), r.change));
+  const some = t.some && D.reasons[t.some];
+  let why, next;
+  if (t.status === 'new') {
+    why = some ? 'Some sets of this model keep their own home screen: ' + some.short
+      : t.reports ? 'Its reports show the switch is safe on it.' : 'Its tested list plans the switch; no report from this model yet.';
+    next = s ? `Coming in ${s.version}: ${s.what}` : 'Run Setup in the app.';
+  } else if (t.status === 'test') {
+    why = 'Our test builds switch it with the setup wizard left on, and a release follows once testers confirm it.';
+    next = s ? `Coming in ${s.version}: ${s.what}` : 'Coming to everyone with 0.4.7 once testers confirm it on this brand.';
+  } else if (t.status === 'soon') {
+    why = r ? r.why : "The released app keeps the TV's own home screen for now.";
+    next = s ? `Coming in ${s.version}: ${s.what}` : null;
+  } else {
+    why = r ? r.why : null;
+    next = r && r.change ? r.change : null;
   }
-  if (t.some) {
-    const why = D.reasons[t.some];
-    d.append(el('p', {}, el('b', { text: 'Not on every set: ' }), 'some sets of this model keep their own home screen. ' + (why ? why.why : '')));
-  }
-  if (s && t.status !== 'soon') d.append(el('p', {}, el('b', { text: `Also coming in ${s.version}: ` }), s.what));
-  if (!t.reports && t.status === 'new') d.append(el('p', { text: "From the tested list, with no report from this model yet. If the TV's setup wizard saved its Wi-Fi, the app keeps the TV's own home screen." }));
+  if (why) d.append(el('p', {}, el('b', { text: 'Why: ' }), why));
+  if (next) d.append(el('p', {}, el('b', { text: 'Next: ' }), next));
   const links = el('p', { class: 'r-l' });
   for (const n of t.lists || []) links.append(el('a', { href: D.links.list + encodeURIComponent(n), target: '_blank', rel: 'noopener', text: `Tested list: ${n}` }));
   for (const n of t.test_lists || []) links.append(el('a', { href: D.links.list + encodeURIComponent(n), target: '_blank', rel: 'noopener', text: `Untested list: ${n}` }));
@@ -897,6 +896,7 @@ function row(t) {
   const meta = [];
   if (t.android.length) meta.push('Android ' + t.android.join(', '));
   if (t.codenames.length) meta.push(t.codenames[0] + (t.codenames.length > 1 ? ` +${t.codenames.length - 1}` : ''));
+  meta.push(t.reports ? plural(t.reports, 'report', 'reports') : 'tested list');
   const b = el('button', { class: 'r-b', type: 'button', 'aria-expanded': String(isOpen), 'aria-controls': 'd-' + t.id },
     el('span', { class: 'r-t' },
       el('span', { class: 'r-n' }, t.brand + ' ', el('b', { text: t.name })),

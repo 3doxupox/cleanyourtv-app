@@ -349,7 +349,7 @@ def build(profiles, cands, reports, soon_items, upstream):
         if r0 and block in WIZARD_BLOCKS:
             return "test", "TEST_R0", item
         if item:
-            return "soon", None, item
+            return "soon", block if block in REASONS else None, item
         return "cleanup", block if block in REASONS else "UNKNOWN_HOME", None
 
     rows = []
