@@ -66,6 +66,10 @@ All notable changes to the app. Versions follow [semantic versioning](https://se
   point that "Undo everything" goes back to.
 - Manage no longer stays on "Working" after "Stop and undo".
 - The connect screen reads properly for a TV you added by its address.
+- On 4K TVs (reports from a Mi Box S, a SHIELD and a Sony set) the home screen switch could stop
+  before it began, because the TV's screenshot was larger than the app would take. Screenshots up
+  to 16 MB now come through, the phone shows them scaled down and fetches large ones less often, and
+  the report says which check stopped a switch that did not begin.
 
 ### Under the hood
 - Test builds can offer the switch with the setup wizard left on to other brands' sets that look the
