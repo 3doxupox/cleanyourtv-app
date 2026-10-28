@@ -34,6 +34,7 @@ import tv.cleanyour.core.ops.UndoOrder
 import tv.cleanyour.core.ops.Watchdog
 import tv.cleanyour.core.spec.AppNames
 import tv.cleanyour.core.spec.FactsTable
+import tv.cleanyour.core.spec.KnownLaunchers
 import tv.cleanyour.core.spec.ProfileCategory
 import tv.cleanyour.core.spec.ProfileResolution
 import tv.cleanyour.core.spec.ProfileSource
@@ -208,6 +209,15 @@ class DefaultPlanner(
             return null
         }
 
+        // beta4 (PatchWallFeeds): never PatchWall's feeds off while PatchWall stays on. While PatchWall
+        // is on and the plan keeps it on (`patchWallGoesOff` false), a feed is kept on with this
+        // reason; with PatchWall switched off by the same plan, or off already, its feeds may go off too.
+        fun patchWallFeedKept(pkg: PackageName, patchWallGoesOff: Boolean): Boolean =
+            pkg in PATCHWALL_FEEDS && PatchWallFeeds.staysOn(snapshot, patchWallGoesOff)
+
+        // Whether this Setup switches PatchWall off (for the switch's own check, HomeSwitchRisk).
+        var patchWallGoesOffInPlan = false
+
         // keepUpdatesOn: a software updater by its name (D22) or by its profile group.
         fun keptUpdater(pkg: PackageName, groups: List<PackageGroup>): Boolean = keepUpdatesOn && ProfileCategory.isUpdater(pkg, groups)
 
@@ -234,6 +244,16 @@ class DefaultPlanner(
             val choices = req.choices
             val covered = mutableSetOf<PackageName>()
             var disabled = 0
+            fun wanted(pkg: PackageName, default: GroupDefault): Boolean = when (default) {
+                GroupDefault.DISABLE -> pkg !in choices.kept
+                GroupDefault.ASK, GroupDefault.KEEP -> pkg in choices.extraOff && pkg !in choices.kept
+            }
+            // Whether this plan switches PatchWall off: its first row decides, as in the loop below,
+            // else the Custom list.
+            val patchWallGoesOff = protectedReason(PATCHWALL, profile, stockLaunchers, packageGroups) == null &&
+                PatchWallFeeds.goesOff(snapshot, packageGroups, choices.kept, choices.extraOff)
+            patchWallGoesOffInPlan = patchWallGoesOff
+            fun feedReason(pkg: PackageName): String? = if (patchWallFeedKept(pkg, patchWallGoesOff)) REASON_PATCHWALL_FEED else null
 
             for (group in packageGroups) {
                 val rows = mutableListOf<RowSummary>()
@@ -241,17 +261,15 @@ class DefaultPlanner(
                     val pkg = entry.name
                     if (!installed(pkg) || pkg in covered) continue
                     covered += pkg
-                    val why = protectedReason(pkg, profile, stockLaunchers, packageGroups)
-                    val wanted = when (group.default) {
-                        GroupDefault.DISABLE -> pkg !in choices.kept
-                        GroupDefault.ASK, GroupDefault.KEEP -> pkg in choices.extraOff && pkg !in choices.kept
-                    }
+                    val why = protectedReason(pkg, profile, stockLaunchers, packageGroups) ?: feedReason(pkg)
+                    val wanted = wanted(pkg, group.default)
                     // Already asleep: nothing to switch off and nothing to keep, so the row would
                     // only make S3 count what the plan never does (emulator run, round 3). The same
                     // for an updater keepUpdatesOn protects that is off already (an earlier full
                     // build switched it off): "We keep these" would be untrue, and Manage's Switched
                     // off still lists it with Put back (RF-STORES-030 S1).
-                    if ((why == null || why == REASON_UPDATES) && isOff(pkg)) continue
+                    // The same for a PatchWall feed that is off already: the plan leaves it as it is.
+                    if ((why == null || why == REASON_UPDATES || why == REASON_PATCHWALL_FEED) && isOff(pkg)) continue
                     val off = why == null && wanted
                     rows += RowSummary(pkg, name(pkg), description(pkg), off, why != null, why)
                     if (off) { disable(pkg, group.id); disabled++ }
@@ -263,13 +281,24 @@ class DefaultPlanner(
             for (pkg in choices.extraOff.sortedBy { it.value }) {
                 if (pkg in covered || !installed(pkg) || pkg in choices.kept) continue
                 if (keptUpdater(pkg, packageGroups)) continue   // keepUpdatesOn: a choice an earlier full build kept
-                val why = protectedReason(pkg, profile, stockLaunchers, packageGroups)
+                val why = protectedReason(pkg, profile, stockLaunchers, packageGroups) ?: feedReason(pkg)
                 if (why != null) { refuse("${name(pkg)} cannot be switched off: $why"); continue }
                 if (isOff(pkg)) continue
                 custom += RowSummary(pkg, name(pkg), description(pkg), off = true, protected = false, whyProtected = null)
                 disable(pkg, GROUP_CUSTOM); disabled++
             }
             if (custom.isNotEmpty()) groups += GroupSummary(GROUP_CUSTOM, "Also switched off", custom.size, custom.size, custom)
+            // beta4 (issue #945, review of beta4): a 0.4.5 Setup on the Xiaomi brand set switched Mi TV+
+            // and the web content off with PatchWall kept on. Where the TV's own home screen is off or
+            // goes off now, the feeds this app switched off come back on first, before the switch; a
+            // feed off for another reason keeps the switch out (HomeSwitchRisk.PATCHWALL_FEEDS).
+            val stockOff = snapshot.home.resolved == launcher || stockLaunchers.any { installed(it.pkg) && isOff(it.pkg) }
+            if (choices.takeover || stockOff) {
+                val back = PatchWallFeeds.off(snapshot, patchWallGoesOff).filter { PatchWallFeeds.ours(journals, it) }
+                val rows = back.map { RowSummary(it, name(it), description(it), off = false, protected = true, whyProtected = REASON_PATCHWALL_FEED_BACK) }
+                for (pkg in back) { enable(pkg, GROUP_PATCHWALL_FEEDS, "Switching ${name(pkg)} back on: PatchWall needs it"); disabled++ }
+                if (rows.isNotEmpty()) groups += GroupSummary(GROUP_PATCHWALL_FEEDS, TITLE_PATCHWALL_FEEDS, 0, rows.size, rows)
+            }
             keepNames = choices.kept.filter { installed(it) }.map { name(it) }.sorted()
             dockNames = choices.dock.orEmpty().map { name(it) }
 
@@ -485,7 +514,7 @@ class DefaultPlanner(
             // TV's facts, whatever the profile resolution says.
             if (refusesOtherHomes(profile)) { refuse(REASON_TV_REFUSES_HOME); return }
             // RF-SAFETY-250: the TVs where the switch is skipped up front (SetupMachine never asks for it).
-            HomeSwitchRisk.of(snapshot.facts, profile, snapshot, wizardWifi)?.let { refuse(it.reason); return }
+            HomeSwitchRisk.of(snapshot.facts, profile, snapshot, wizardWifi, journals = journals, patchWallGoesOff = patchWallGoesOffInPlan)?.let { refuse(it.reason); return }
             val current = state(launcher.pkg)
             val installedAndVerified = current != null && current.signer == artifact.signer
             if (!launcherInstalledByPlan && !installedAndVerified) { refuse("the new home screen is not installed and the plan does not install it"); return }
@@ -556,17 +585,52 @@ class DefaultPlanner(
             if (profile != null && Denylist.isWizardAllowed(pkg, profile) && snapshot.home.resolved == launcher) {
                 refuse("${name(pkg)} cannot be switched back on while the new home screen is in charge: $REASON_WIZARD_WHILE_OURS"); return
             }
+            // beta4 (PatchWallFeeds): PatchWall comes back on only with its feeds, which go first.
+            if (pkg == PATCHWALL) for (feed in PATCHWALL_FEEDS.sortedBy { it.value }) {
+                if (!installed(feed) || !isOff(feed)) continue
+                if (!putBackStep(feed, "Switching ${name(feed)} back on: PatchWall needs it")) {
+                    refuse("${name(pkg)} cannot be switched back on while ${name(feed)} stays off: $REASON_PATCHWALL_FEED_BACK"); return
+                }
+            }
+            putBackStep(pkg, "Switching ${name(pkg)} back on")
+            // 0.4.6: a home screen switched back on under the new one can take the Home button. On the
+            // maintainer's Mi TV, tvlauncher back on answered Home at once (its filter's priority 2
+            // beats an installed app's 0, and the resolver then never asks the preferred activity), and
+            // the enable downgraded our preferred entry. So ours is made the default again and Home is
+            // checked. When the app still has Home, the run pauses there: the open run card says it
+            // took the Home button, and its undo is the existing undo of this run, which switches the
+            // app off again (TvWriter.publish, OpenWrite.tookHome).
+            if (snapshot.home.resolved == launcher && mayClaimHome(pkg)) {
+                step(Op.SetHome(launcher), Prior(home = launcher), GROUP_PUT_BACK, "Keeping the new home screen as the default", FailurePolicy.STOP_AND_ROLLBACK)
+                step(Op.VerifyHome(launcher), null, GROUP_PUT_BACK, "Checking the home screen", FailurePolicy.STOP_AND_ROLLBACK)
+            }
+        }
+
+        // The step that switches a package back on: the inverse of this app's last Disable of it, else
+        // Enable, through protectedInverse. False when there is none to make.
+        fun putBackStep(pkg: PackageName, narration: String): Boolean {
             val change = journals.filter { it.op is Op.Disable && (it.op as Op.Disable).pkg == pkg }.maxByOrNull { it.atMs }
             val inverse = change?.let { renderer.inverse(it.op, it.prior ?: Prior()) } ?: Op.Enable(pkg)
-            val op = protectedInverse(pkg, inverse) ?: return
-            step(op, Prior(packageState = state(pkg)?.enabled), GROUP_PUT_BACK, "Switching ${name(pkg)} back on", FailurePolicy.STOP_AND_ROLLBACK)
+            val op = protectedInverse(pkg, inverse) ?: return false
+            return step(op, Prior(packageState = state(pkg)?.enabled), GROUP_PUT_BACK, narration, FailurePolicy.STOP_AND_ROLLBACK) >= 0
         }
+
+        // 0.4.6: a package that may answer Home once it is on again (a switched off package is no
+        // claimant, so the snapshot cannot say): Google's and Amazon's TV home screens, the stock
+        // launchers of this TV's resolution, the TV's own home the switch armed its watchdog with, a
+        // vendor home, or a claimant the TV still lists.
+        fun mayClaimHome(pkg: PackageName): Boolean =
+            pkg in KnownLaunchers.byPackage || managedStockLaunchers.any { it.pkg == pkg } || HomePlaceholder.stockFromRecords(journals)?.pkg == pkg ||
+                pkg.value in Denylist.vendorHomes || snapshot.home.claimants.any { it.component.pkg == pkg }
 
         fun switchOff(pkgs: Set<PackageName>) {
             val rows = mutableListOf<RowSummary>()
+            // beta4: a PatchWall feed only with PatchWall in the same request (patchWallFeedKept).
+            val patchWallGoesOff = PATCHWALL in pkgs && protectedReason(PATCHWALL, managedProfile, managedStockLaunchers) == null
             for (pkg in pkgs.sortedBy { it.value }) {
                 if (!installed(pkg)) { refuse("${pkg.value} is not on this TV"); continue }
                 val why = protectedReason(pkg, managedProfile, managedStockLaunchers)   // R1 R-3: never_disable and the wizard quirk
+                    ?: REASON_PATCHWALL_FEED.takeIf { patchWallFeedKept(pkg, patchWallGoesOff) }
                 if (why != null) { refuse("${name(pkg)} cannot be switched off: $why"); continue }
                 rows += RowSummary(pkg, name(pkg), description(pkg), off = true, protected = false, whyProtected = null)
                 if (!isOff(pkg)) disable(pkg, GROUP_SWITCH_OFF)
@@ -576,9 +640,12 @@ class DefaultPlanner(
 
         fun leftovers(expectedDisabled: Set<PackageName>) {
             curtainLeftover()   // RFC-CURTAIN-1
+            // beta4: a PatchWall feed that came back on stays on while PatchWall is on and stays on.
+            val patchWallGoesOff = PATCHWALL in expectedDisabled && protectedReason(PATCHWALL, managedProfile, managedStockLaunchers) == null
             for (pkg in expectedDisabled.sortedBy { it.value }) {
                 if (!installed(pkg) || isOff(pkg)) continue
                 if (keptUpdater(pkg, managedProfile?.groups.orEmpty())) continue   // keepUpdatesOn: an updater that came back on stays on
+                if (patchWallFeedKept(pkg, patchWallGoesOff)) continue
                 // After a TV update the stock launcher may be enabled and HOME again (R1): a leftover
                 // that is now a home screen is never switched off outside the home screen switch.
                 val why = protectedReason(pkg, managedProfile, managedStockLaunchers)   // R1 R-3: never_disable and the wizard quirk
@@ -895,6 +962,13 @@ class DefaultPlanner(
         const val REASON_SWITCH_PART = "part of the home screen switch; it comes back on if the switch is undone"
         // STORES-PLAN 1 (keepUpdatesOn): the Google Play build keeps the TV's updaters on.
         const val REASON_UPDATES = "it brings the TV's software and security updates, which this version of the app always keeps on"
+        // beta4 (PatchWallFeeds): PatchWall (Xiaomi's home screen app) and the feeds it shows.
+        val PATCHWALL = PatchWallFeeds.PATCHWALL
+        val PATCHWALL_FEEDS: Set<PackageName> = PatchWallFeeds.FEEDS
+        const val REASON_PATCHWALL_FEED = "PatchWall stays on and needs it, so it stays on too; switch PatchWall off as well to switch this off"
+        const val REASON_PATCHWALL_FEED_BACK = "PatchWall stays on and needs it, so it is switched back on"
+        const val GROUP_PATCHWALL_FEEDS = "patchwall_feeds"
+        const val TITLE_PATCHWALL_FEEDS = "Back on for PatchWall"
 
         fun packageOf(op: Op): PackageName? = when (op) {
             is Op.Disable -> op.pkg

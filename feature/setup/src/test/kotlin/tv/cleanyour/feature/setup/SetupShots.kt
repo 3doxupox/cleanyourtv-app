@@ -307,8 +307,9 @@ private fun running(lines: List<NarrationLine>, percent: Int, thumbnail: ByteArr
 private fun checkState(thumbnail: ByteArray?, deadlineAheadMs: Long = 84_000, homeCheck: Boolean? = null, s: GuardedSection = section) =
     SetupState.Check(tvId, RunState.AwaitingConfirm(fullPlan, s, NOW + deadlineAheadMs, homeCheck, thumbnail), thumbnail, dock)
 
-private fun done(off: Int = 23, home: Boolean = true, skipped: List<String> = emptyList(), recommended: Boolean = false, restart: RestartState? = null) =
-    SetupState.Done(tvId, DoneSummary(off, home, NOW, skipped, recommended), restart)
+private fun done(off: Int = 23, home: Boolean = true, skipped: List<String> = emptyList(), recommended: Boolean = false, restart: RestartState? = null,
+                 restoreEarlier: Boolean = false) =
+    SetupState.Done(tvId, DoneSummary(off, home, if (restoreEarlier) NOW - 36_000_000 else NOW, skipped, recommended, restoreEarlier), restart)
 
 private val narration = listOf(
     NarrationLine("Restore point saved", NarrationState.DONE),
@@ -383,6 +384,12 @@ object SetupShots {
         Shot("found_home_unknown_stock") { Setup(found(noHomePlan), connected.copy(tvName = "Mi TV ASTP1", homePossible = false, homeBlock = HomeBlock.UNKNOWN_HOME)) },
         // Issue #8: Home answers to a launcher the person installed; the TV's own home screen is off.
         Shot("found_home_changed") { Setup(found(noHomePlan), connected.copy(tvName = "TCL Smart TV", homePossible = false, homeBlock = HomeBlock.HOME_CHANGED)) },
+        // beta3 (issue #1119): another home screen app claims Home where the switch could go ahead.
+        Shot("found_home_other_home") { Setup(found(noHomePlan), connected.copy(tvName = "Xiaomi MiTV4I", homePossible = false, homeBlock = HomeBlock.OTHER_HOME)) },
+        // beta4 (issue #825): a system service's FallbackHome claims Home where the switch could go ahead.
+        Shot("found_home_vendor_home") { Setup(found(noHomePlan), connected.copy(tvName = "THOMSON SPPL 2K ANDROID TV", homePossible = false, homeBlock = HomeBlock.VENDOR_HOME)) },
+        // beta4 (issue #945): PatchWall stays on while its feeds are off, not by this app.
+        Shot("found_home_patchwall_feeds") { Setup(found(noHomePlan), connected.copy(tvName = "Xiaomi MiTV-AXSO2", homePossible = false, homeBlock = HomeBlock.PATCHWALL_FEEDS)) },
         Shot("found_starting") { Setup(found(), connected.copy(starting = true)) },
         // D36 (RF-LAUNCHER-240 F1): the plan replaces a home screen app signed with another key.
         Shot("found_replaces_launcher") { Setup(found(fullPlan.copy(summary = fullPlan.summary.copy(replacesLauncher = true)))) },
@@ -535,6 +542,8 @@ object SetupShots {
         Shot("stopped_connection_lost_reconnecting") { Stopped(connectionLost(), offline.copy(reconnect = Reconnect.TRYING)) },
         Shot("stopped_connection_lost_back") { Stopped(connectionLost(), connected.copy(reconnect = Reconnect.BACK)) },
         Shot("stopped_connection_lost_gave_up") { Stopped(connectionLost(), offline.copy(reconnect = Reconnect.GAVE_UP)) },
+        // 0.4.6: a stopped run's card with "Report a problem" under it, the way out the person did not choose.
+        Shot("stopped_connection_lost_report", height = 900.dp) { Stopped(connectionLost(), offline) },
         Shot("stopped_reconnect_to_put_home_back") {
             Stopped(connectionLost().copy(body = msg(R.string.stop_reconnect_home_body, "tv" to "Mi TV 4A")), offline.copy(reconnect = Reconnect.TRYING))
         },
@@ -579,6 +588,8 @@ object SetupShots {
         // S5 Done and the restart flow (D24, UX 4.8)
         Shot("done_home_on") { Setup(done()) },
         Shot("done_restart_recommended") { Setup(done(recommended = true)) },
+        // beta3 QA: a later run names the first restore point, the one Undo everything goes back to.
+        Shot("done_restore_point_earlier") { Setup(done(restoreEarlier = true)) },
         Shot("done_without_home") { Setup(done(off = 16, home = false)) },
         Shot("done_skipped_one") { Setup(done(off = 22, skipped = listOf("Play Games"))) },
         Shot("done_skipped_many") { Setup(done(off = 20, skipped = listOf("Play Games", "Mi Cast", "Mi Home"))) },

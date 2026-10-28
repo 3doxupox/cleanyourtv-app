@@ -120,6 +120,7 @@ import tv.cleanyour.ui.design.component.LookEditorSheet
 import tv.cleanyour.ui.design.component.rememberLookEditorNav
 import tv.cleanyour.ui.design.component.LookEditorState
 import tv.cleanyour.ui.design.component.PhotoPicker
+import tv.cleanyour.ui.design.component.rememberPng
 import tv.cleanyour.ui.design.component.toEditor
 import tv.cleanyour.ui.design.theme.CytTheme
 import tv.cleanyour.ui.design.theme.Glow
@@ -136,8 +137,8 @@ fun SetupFlow(
     modifier: Modifier = Modifier,
     onCopyCommands: (String) -> Unit = {},
     nowMs: () -> Long = System::currentTimeMillis,
-    // 0.3.2 B1, B2: the report preview is the app's own screen; these open it ("report/tv/<id>",
-    // "report/problem/<id>").
+    // 0.3.2 B1: the TV report preview is the app's own screen; this opens it ("report/tv/<id>").
+    // 0.4.6: a stop card's "Report a problem" goes through SetupActions.report instead.
     onRoute: (String) -> Unit = {},
     // 0.4.0: the system photo picker, for "Choose a photo" in the look step.
     photos: PhotoPicker? = null,
@@ -147,7 +148,7 @@ fun SetupFlow(
         is SetupState.Found -> FoundScreen(state, extras, actions, modifier, onCopyCommands, onHelpAddTv = { onRoute("report/tv/${state.tvId.value}") }, photos = photos)
         is SetupState.Working -> WorkingScreen(state, extras, actions, modifier)
         is SetupState.Check -> CheckScreen(state, extras, actions, modifier, nowMs)
-        is SetupState.Stopped -> StoppedScreen(state, extras, actions, modifier, onReport = { onRoute("report/problem/${state.tvId.value}") })
+        is SetupState.Stopped -> StoppedScreen(state, extras, actions, modifier)
         is SetupState.Done -> DoneScreen(state, extras, actions, modifier)
         else -> {}
     }
@@ -278,6 +279,9 @@ fun FoundScreen(
                 HomeBlock.BOOT_LOOP -> stringResource(R.string.found_home_boot_loop)
                 HomeBlock.REMOTE_BUTTONS -> stringResource(R.string.found_home_remote_buttons)
                 HomeBlock.WIZARD_STAYS_ON -> stringResource(R.string.found_home_wizard_stays_on)
+                HomeBlock.OTHER_HOME -> stringResource(R.string.found_home_other_home)
+                HomeBlock.VENDOR_HOME -> stringResource(R.string.found_home_vendor_home)
+                HomeBlock.PATCHWALL_FEEDS -> stringResource(R.string.found_home_patchwall_feeds)
                 // Issue #2: a Fire TV Edition set is named for Fire OS, not its panel's brand.
                 else -> msg(R.string.stop_tv_refuses_home_body, "brand" to (if (extras.fireTv) stringResource(R.string.fire_tv_name) else extras.tvName ?: ""))
             }
@@ -591,8 +595,12 @@ fun CheckScreen(state: SetupState.Check, extras: SetupExtras, actions: SetupActi
 // and the old home screen put back after a lost connection. The cards
 // whose own button already opens the report (home screen unknown, "Something looked wrong", "Help
 // me") are not in it.
+// 0.4.6 (REPORTING-PROPOSAL 2.2): every stop, timeout and paused change, and every home screen check
+// that did not hold, has it too; only the card the person chose (Undo) has none. It opens the
+// GitHub form with the card filled in (SetupActions.report).
 private val REPORT_CASES = setOf(StopCase.STEP_FAILED, StopCase.INSTALL_FAILED, StopCase.PROBE_FAILED, StopCase.PLAN_REFUSED, StopCase.RESUME_AFTER_DEATH,
-    StopCase.HOME_PUT_BACK)
+    StopCase.HOME_PUT_BACK, StopCase.CONNECTION_LOST, StopCase.HOME_TIMED_OUT, StopCase.HOME_SETUPWRAITH, StopCase.HOME_OTHER_LAUNCHER,
+    StopCase.HOME_SETTINGS_OPEN)
 
 // The home cases: their card offers "Show details" with the run's lines (D21).
 private val HOME_CASES = setOf(
@@ -602,7 +610,7 @@ private val HOME_CASES = setOf(
 
 // S4c, S4d, S4e: stop cards with a grey icon and the way out on the card (UX 4).
 @Composable
-fun StoppedScreen(state: SetupState.Stopped, extras: SetupExtras, actions: SetupActions, modifier: Modifier = Modifier, onReport: () -> Unit = {}) {
+fun StoppedScreen(state: SetupState.Stopped, extras: SetupExtras, actions: SetupActions, modifier: Modifier = Modifier, onReport: () -> Unit = { actions.report(state.card.title) }) {
     val c = state.card
     var details by rememberSaveable { mutableStateOf(false) }
     // "Stop here" and "Undo what we did" ask first (Confirmations); the others act at once.
@@ -630,7 +638,7 @@ fun StoppedScreen(state: SetupState.Stopped, extras: SetupExtras, actions: Setup
         if (c.case == StopCase.CONNECTION_LOST && extras.reconnect == Reconnect.BACK) {
             Banner(stringResource(R.string.stop_connection_lost_back), BannerTone.SUCCESS, Modifier.padding(top = 16.dp))
         }
-        // 0.3.2 B2: a stop the person did not cause offers the report preview under the card.
+        // 0.3.2 B2: a stop the person did not cause offers the report under the card.
         if (c.case in REPORT_CASES) {
             TertiaryButton(stringResource(R.string.stop_report), onReport, Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp))
         }
@@ -689,7 +697,8 @@ fun DoneScreen(state: SetupState.Done, extras: SetupExtras, actions: SetupAction
             }), Modifier.padding(top = 8.dp))
         }
         Column(Modifier.padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            CheckLine(msg(R.string.done_restore_saved, "date" to dateTime(s.restorePointAtMs, locale)))
+            // beta3 QA: a later run names the restore point Undo everything goes back to, the first one.
+            CheckLine(msg(if (s.restorePointEarlier) R.string.done_restore_earlier else R.string.done_restore_saved, "date" to dateTime(s.restorePointAtMs, locale)))
             // D7: with "Keep debugging on" chosen, Finish leaves debugging on, and the line says so.
             CheckLine(
                 stringResource(when {

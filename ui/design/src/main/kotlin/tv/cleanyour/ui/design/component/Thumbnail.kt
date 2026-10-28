@@ -1,5 +1,6 @@
 package tv.cleanyour.ui.design.component
 
+import android.graphics.BitmapFactory
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -24,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
@@ -109,3 +111,28 @@ private fun BoxScope.ThumbnailPlaceholder() {
         CytIcon(CytIcons.Tv, null, tint = Color(0xFF98989E), size = 32.dp)
     }
 }
+
+// A PNG from the TV (screencap) as an image for TvThumbnail and TvCard, or null when it is missing
+// or does not decode. Issue #1273: a 4K TV's screenshot (3840 x 2160) would be a 33 MB bitmap, so
+// the bounds are read first and the image is sampled down to SCREENSHOT_MAX_SIDE on its longer side:
+// a 4K screenshot costs what a 1080p one always did, and a 1080p one is shown as before.
+@Composable
+fun rememberPng(bytes: ByteArray?): ImageBitmap? = remember(bytes) { bytes?.let { decodeScreenshot(it) } }
+
+fun decodeScreenshot(bytes: ByteArray, maxSide: Int = SCREENSHOT_MAX_SIDE): ImageBitmap? = runCatching {
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+    val options = BitmapFactory.Options().apply { inSampleSize = screenshotSampleSize(bounds.outWidth, bounds.outHeight, maxSide) }
+    BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)?.asImageBitmap()
+}.getOrNull()
+
+// The smallest power of two that brings the longer side to maxSide or under (1 for a small image or
+// unknown bounds): 3840 x 2160 takes 2 (1920 x 1080), 1920 x 1080 and smaller take 1.
+fun screenshotSampleSize(width: Int, height: Int, maxSide: Int = SCREENSHOT_MAX_SIDE): Int {
+    val longer = maxOf(width, height)
+    var sample = 1
+    while (longer / sample > maxSide) sample *= 2
+    return sample
+}
+
+const val SCREENSHOT_MAX_SIDE = 1920

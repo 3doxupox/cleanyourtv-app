@@ -2,6 +2,80 @@
 
 All notable changes to the app. Versions follow [semantic versioning](https://semver.org/).
 
+## 0.4.6 (2026-10-28)
+
+### Home screen
+- Xiaomi TVs on Android TV (the Mi TV 4i and others), Redmi sets among them, can now get the
+  new home screen; their setup wizard stays on. This is for the sets on Android 9, 10 or 11 that
+  have no list of their own, whose only home screen is Google's Android TV home and whose setup
+  wizard does not answer the Home button. The Mi TV AXSO2 on Android 11 keeps its own home screen
+  for now, while we look into a report from one.
+- The new home screen is now refused on TVs whose Home button also answers to a vendor service,
+  after one such TV failed to start a few restarts later. Setup and Home screen say so.
+- TVs on a test list (one we are still trying) no longer get the new home screen while their setup
+  wizard stays on, after one such TV got stuck loading after a restart.
+- Each time you open Manage with the TV connected, the app checks the Home button again. If the
+  setup wizard could now take it while the new home screen is in charge, Manage says so and offers
+  to switch the TV's own home screen back on, so the TV keeps starting normally.
+- Switching the TV's own home screen back on from "Switched off" (or "Better back on") keeps the
+  new one as Home. If the TV still gives Home to the app you switched on, the app says so and
+  offers to switch it off again.
+- Right after the switch, if the TV brings up Live TV or another input in front of the new home
+  screen (some TVs start on the last input they showed), the check presses Home again for you.
+- "Use the TV's own home screen" in Manage now also works on TVs with no list of their own.
+- A Xiaomi TV with a home screen app you installed next to Google's Android TV home can get the
+  new home screen too. Your app stays installed; if it takes the Home button during the switch, the
+  app puts the TV's own home screen back.
+- When another home screen app is the reason the app left the home screen alone, Setup and Home
+  screen now say so, instead of naming the setup wizard.
+- If Setup left the home screen alone with an earlier version of the app (for example before your
+  TV had a list of its own), Manage's Home screen now says so and offers to run Setup again, and the
+  report says the decision is an earlier Setup's.
+
+### Clean-up
+- On Xiaomi TVs, Mi TV+ and PatchWall's web content now stay on while PatchWall stays on, since
+  PatchWall can open at start up and needs them. Switch PatchWall off in Customise and they can go
+  off with it.
+- If an earlier version switched Mi TV+ or the web content off while PatchWall stayed on, Setup
+  switches them back on before it changes the home screen, and putting PatchWall back on in Manage
+  puts them back on too. If they were switched off some other way, Setup leaves the home screen
+  alone until PatchWall is off or they are back on.
+
+### Reporting a problem
+- Every stop, timeout, paused change and connect problem has "Report a problem" on
+  its card, and so does Home screen when the new home screen can't go on the TV. One tap opens a
+  ready filled GitHub issue with what the card said and how the TV is now, so there is nothing to
+  paste. The app still sends nothing itself: your browser opens the form, and nothing is public
+  until you post it.
+- A long report always fits in the form now. It keeps the TV, its list and its home screen lines,
+  what went wrong and the newest lines of the log, and the app copies the whole report too. Before,
+  a report too long for the link left the box empty and asked you to paste it.
+- When the phone can't connect, the report has the phone's side instead of the TV's: how the TV was
+  found, the port, the error the app named and the phone's Android version. The app hasn't read
+  the TV yet, so type its brand and model into the form's TV box.
+- Links to GitHub are shorter, so they open for people signed in to GitHub too (a long link and the
+  browser's sign-in data together got an error page). The "Help add this TV" report doesn't fit in
+  such a link, so the app copies it and you paste it into the form, as before for long reports.
+- Lines that repeat in the log, like a connection being tried again every few seconds, are counted
+  once ("x12") instead of filling the report.
+- The issue's title names the TV, for example "Problem: Xiaomi MiTV-AXSO0 (dangal, Android 9)", or
+  "Problem: could not connect (refused)" when no TV was read.
+
+### Fixes
+- Manage and the Restore point page show the same restore point time, and Done names the restore
+  point that "Undo everything" goes back to.
+- Manage no longer stays on "Working" after "Stop and undo".
+- The connect screen reads properly for a TV you added by its address.
+- The home screen switch could stop before it began when the TV's screenshot was larger than the
+  app would take (2 MB), as on a 4K screen or with a detailed wallpaper (likely behind reports from a
+  Mi Box S, a SHIELD and a Sony set). Screenshots up
+  to 16 MB now come through, the phone shows them scaled down and fetches large ones less often, and
+  the report says which check stopped a switch that did not begin.
+
+### Under the hood
+- Test builds can offer the switch with the setup wizard left on to other brands' sets that look the
+  same, so volunteers can check them across restarts. Releases do this on Xiaomi sets only.
+
 ## 0.4.5 (2026-10-27)
 
 The home screen app from Gathin's Clean Your TV goes to 3.0, with more choices in the Look sheet, 25

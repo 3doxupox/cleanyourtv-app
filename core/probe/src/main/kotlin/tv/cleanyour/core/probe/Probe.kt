@@ -13,7 +13,7 @@ interface Prober {
     suspend fun snapshot(session: TvSession, reason: SnapshotReason, onStage: (ProbeStage) -> Unit = {}): Snapshot
     suspend fun homeNow(session: TvSession): HomeResolution
     suspend fun homeFocus(session: TvSession): Component?        // resumed activity, for the live check
-    suspend fun screenshot(session: TvSession): ByteArray?       // PNG, 2 MiB cap, null on failure
+    suspend fun screenshot(session: TvSession): ByteArray?       // PNG, 16 MiB cap, null on failure
     suspend fun fileSha256(session: TvSession, path: RemotePath): Sha256?
     suspend fun installedSha256(session: TvSession, pkg: PackageName): Sha256?
     suspend fun freeDataMb(session: TvSession): Int

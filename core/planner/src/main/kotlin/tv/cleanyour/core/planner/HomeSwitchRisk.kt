@@ -1,11 +1,16 @@
 package tv.cleanyour.core.planner
 
+import tv.cleanyour.core.model.ChangeRecord
+import tv.cleanyour.core.model.Component
 import tv.cleanyour.core.model.DeviceFacts
 import tv.cleanyour.core.model.EnabledState
 import tv.cleanyour.core.model.PackageName
 import tv.cleanyour.core.model.Profile
+import tv.cleanyour.core.model.SettingKey
 import tv.cleanyour.core.model.Snapshot
 import tv.cleanyour.core.ops.Denylist
+import tv.cleanyour.core.ops.HomePlaceholder
+import tv.cleanyour.core.spec.KnownLaunchers
 
 // RF-SAFETY-250, owner decisions for 0.2.0: TVs where the home screen switch is skipped up front, so
 // Setup is the clean-up alone (like RF-PROFILES-63 P1 and P2). SetupMachine asks before it plans and
@@ -20,6 +25,7 @@ object HomeSwitchRisk {
         // A TV no profile knows: the switch never switches the setup wizard off, so it would stay on
         // while the TV's own home screen goes off, the same RecoveryActivity risk (RF-SAFETY-250).
         // Since 0.3.6 also any TV whose wizard claims Home and is not switched off by the switch.
+        // 0.4.6: not on a Xiaomi with Google's Android TV home whose wizard is no Home claimant (R0).
         WIZARD_STAYS_ON("this TV's setup wizard would stay on while its own home screen goes off, and the wizard can then take the Home button and crash the TV"),
         // Google's own hardware: the Cast receiver reads its credentials from the setup wizard, so the
         // switch (which needs the wizard off) costs casting after every restart (upstream #361, #422).
@@ -32,6 +38,16 @@ object HomeSwitchRisk {
         // Upstream's own install keeps launcherx on with a key helper, and this app never switches an
         // accessibility service on, so there is no switch.
         REMOTE_BUTTONS("on this TV the remote's app buttons only work through its own home screen, so with it switched off they stop working"),
+        // beta3: R0 would let the switch go ahead with the wizard left on, but another home screen app
+        // claims Home (one the person installed that R0 cannot take, or a vendor home), so it does not.
+        OTHER_HOME("another home screen app claims the Home button on this TV, so the switch is left alone while its setup wizard stays on"),
+        // beta4 (issue #825): a vendor service holds a Home placeholder of its own (Realtek's key
+        // service on a Thomson that failed to start after a few restarts), on any path and in any
+        // build, whatever the setup wizard does. Nothing the person can remove.
+        VENDOR_HOME("a system service on this TV also answers the Home button, so the switch is left alone"),
+        // beta4 (issues #945, #1570, PatchWallFeeds): PatchWall is on and stays on while Mi TV+ or its
+        // web content is off, and not by this app, so the plan cannot switch it back on.
+        PATCHWALL_FEEDS("PatchWall is on while Mi TV+ or its web content is off, and with the TV's own home screen off that can stop the TV starting; switch PatchWall off or those apps back on first"),
     }
 
     // Google's own Google TV hardware, by maker and device: Chromecast with Google TV 4K (sabrina)
@@ -56,16 +72,179 @@ object HomeSwitchRisk {
     // The profiles whose remote's app buttons need the TV's own home screen (REMOTE_BUTTONS).
     val REMOTE_BUTTON_PROFILES: Set<String> = setOf("sony-bravia-vu3")
 
+    // 0.4.6 (R0): the makers whose Android TV sets keep their setup wizard on under the new home
+    // screen, by brand or manufacturer. Redmi is Xiaomi's own brand: the Redmi MiTV-MOOQ3 (tarzan)
+    // reports the same claimants as the Xiaomi Mi TV 4A on that device, and its sets report Xiaomi
+    // as the manufacturer (the brand set that matched them is Xiaomi's). The China PatchWall sets of
+    // either brand never meet the rest of the rule, their Home is com.mitv.tvhome.
+    val XIAOMI_MAKERS: Set<String> = setOf("Xiaomi", "Redmi")
+
+    // beta4, after the incident of 0.4.6-beta2: a release gives R0 only on Android 9, 10 and 11, the
+    // versions the Xiaomi evidence covers (AXSO0, MiTV4I, MSSP0 on 9; AESP0 on 10; MOOQ1, MOOQ3, AYFR0
+    // and upstream's AXFR0 and AXFR1 on 11). The test build keeps every version.
+    val RELEASE_SDKS: IntRange = 28..30
+
+    // Held out of R0 in every build, by device and Android version, until the owner of the TV that
+    // failed answers: the Xiaomi MiTV-AXSO2 (dangalUHD) on Android 11 (issue #945), whose brand set
+    // path has not been seen on Android 11.
+    val HELD_OUT: Set<Pair<String, Int>> = setOf("dangalUHD" to 30)
+    fun heldOut(f: DeviceFacts): Boolean = HELD_OUT.any { (device, sdk) -> device.equals(f.device, ignoreCase = true) && f.sdk == sdk }
+
+    // Test build only (-Pcyt.wizardStaysAnyBrand=true, core/planner/build.gradle.kts): R0 without its
+    // brand test. 233 more reports from other brands (Sony, OnePlus, Philips, Mecool, Skyworth,
+    // Hisense, Realme, Haier, TCL and others) show the same claimants with the wizard on; a volunteer
+    // per brand checks reboot survival before a release takes them. The release bundles no marker.
+    const val ANY_BRAND_RESOURCE = "/tv/cleanyour/core/planner/wizard-stays-any-brand"
+    val ANY_BRAND_BUILD: Boolean by lazy { HomeSwitchRisk::class.java.getResource(ANY_BRAND_RESOURCE) != null }
+
+    // Tests only: the rule a test is written for, whatever this build bundles (null: the build's).
+    // A test of the release rule sets false (PlannerFixtures.releaseRule), so the suite passes in a
+    // test build too.
+    @Volatile var anyBrandForTests: Boolean? = null
+    private val anyBrandNow: Boolean get() = anyBrandForTests ?: ANY_BRAND_BUILD
+
     // The first risk that applies, or null when the switch may be planned. `profile` is the exact
     // profile (null on a brand sure set or the generic path); `wizardWifi` the D3 answer.
-    fun of(facts: DeviceFacts, profile: Profile?, snapshot: Snapshot, wizardWifi: WizardWifi): Risk? = when {
+    // `anyBrand`: R0 for every brand (the test build's switch, ANY_BRAND_BUILD); tests pass it.
+    // beta4: `journals`, this TV's change records, and `patchWallGoesOff`, whether the plan switches
+    // PatchWall off (PatchWallFeeds); the defaults are a TV with no records and PatchWall kept.
+    fun of(facts: DeviceFacts, profile: Profile?, snapshot: Snapshot, wizardWifi: WizardWifi, anyBrand: Boolean = anyBrandNow,
+           journals: List<ChangeRecord> = emptyList(), patchWallGoesOff: Boolean = false): Risk? = when {
         isMokaFamily(facts) || profile?.id in MOKA_PROFILES -> Risk.BOOT_LOOP
         isGoogleHardware(facts) || profile?.id in CASTING_PROFILES -> Risk.CASTING
         profile?.id in REMOTE_BUTTON_PROFILES -> Risk.REMOTE_BUTTONS
+        // beta4: a FallbackHome R0 does not take (r0Placeholder) holds the switch back on every path.
+        vendorPlaceholderClaims(snapshot) -> Risk.VENDOR_HOME
+        PatchWallFeeds.stayingOff(snapshot, journals, patchWallGoesOff).isNotEmpty() -> Risk.PATCHWALL_FEEDS
         // Test build: a candidate list was never tried with the switch, so for the setup wizard it
-        // counts as no profile at all (a wizard that is on stays on, so no switch).
-        else -> wizardWifiRisk(profile?.takeUnless { it.isCandidate }, snapshot, wizardWifi)
+        // counts as no profile at all (a wizard that is on stays on, so no switch). 0.4.6: R0 is for a
+        // TV no list knows at all. beta4 (incident of 0.4.6-beta2, issues #945 and #1570): not for a
+        // candidate list either, in any build. beta3's test build gave one R0 (issue #258), and a
+        // Xiaomi MiTV-AXSO2 on Android 11 on its candidate list stopped starting after the switch.
+        // A candidate keeps the wizard's rule until each has been checked over several restarts.
+        // beta3: where R0 applies and only another home screen app stands in its way (one the person
+        // installed that R0 cannot take, or a vendor home next to tvlauncher), that is the reason,
+        // not the wizard's (OTHER_HOME): without that app the wizard could stay on.
+        else -> {
+            val r0Applies = profile == null
+            val blocker = if (r0Applies) r0Blocker(facts, snapshot, anyBrand) else R0Blocker.NOT_THIS_PATH
+            val risk = wizardWifiRisk(profile?.takeUnless { it.isCandidate }, snapshot, wizardWifi, r0 = blocker == null)
+            if (risk != null && blocker == R0Blocker.OTHER_HOME) Risk.OTHER_HOME else risk
+        }
     }
+
+    // beta3: what keeps a TV from R0, the first that applies (null: R0 lets it switch).
+    // beta4: VENDOR_PLACEHOLDER, a FallbackHome claimant R0 does not take (r0Placeholder); SCOPE, an
+    // Android version a release does not give R0 (RELEASE_SDKS) or a set held out (HELD_OUT).
+    enum class R0Blocker { NOT_THIS_PATH, BRAND, SCOPE, WIZARD_CLAIMS_HOME, NO_TVLAUNCHER, VENDOR_PLACEHOLDER, OTHER_HOME }
+
+    // beta4, incident of 0.4.6-beta2 (issue #825): a Thomson SPPL 2K (sauve, Android 11, Realtek) with
+    // claimants tvlauncher (2), com.realtek.keyintercept/.fallbackhome.FallbackHome (-999) and Settings'
+    // FallbackHome (-1000) took R0 in the test build, ran fine, then after a few restarts reset its
+    // settings and offered a factory reset. That FallbackHome lives in Realtek's key service, a family
+    // upstream has seen crash on every key press once the app it is wired to is off. So for R0 a
+    // FallbackHome counts as harmless only when it is Android's own (TV Settings' or Settings') or in a
+    // package a TV that held under R0 or upstream's checked set had: com.apps.tvsettings (a Nokia R4,
+    // issue #512), com.android.boot.fallbackhome (TCL, issue #481, and a Hisense, #1388),
+    // com.realtek.systemservice (upstream's Thomson sauve on Android 14). Any other (keyintercept,
+    // com.realtek.menu, a vendor's own) blocks R0. HomePlaceholder.isPlaceholder stays as it is for
+    // its other callers (Setup's card, Done, the check after the switch), which only ask whether a
+    // HOME answer is a home screen.
+    val AOSP_FALLBACK_HOMES: Set<Component> = setOf(
+        Component(PackageName("com.android.tv.settings"), ".system.FallbackHome"),
+        Component(PackageName("com.android.settings"), ".FallbackHome"),
+    )
+    val VENDOR_PLACEHOLDERS: Set<PackageName> =
+        setOf("com.apps.tvsettings", "com.android.boot.fallbackhome", "com.realtek.systemservice").map { PackageName(it) }.toSet()
+
+    // A Home claimant R0 takes as a placeholder: the chooser, a setup wizard (one that is on was
+    // refused before this is asked), Android's own FallbackHome, or one in a package of the list
+    // above. A class written out in full (the package's name in front) is the same class.
+    fun r0Placeholder(c: Component): Boolean {
+        if (!HomePlaceholder.isPlaceholder(c)) return false
+        if ("FallbackHome" !in c.cls) return true
+        val short = if (c.cls.startsWith(c.pkg.value + ".")) c.cls.removePrefix(c.pkg.value) else c.cls
+        return Component(c.pkg, short) in AOSP_FALLBACK_HOMES || c.pkg in VENDOR_PLACEHOLDERS
+    }
+
+    // A FallbackHome R0 does not take: the reason it gives (VENDOR_PLACEHOLDER, Risk.VENDOR_HOME).
+    private fun vendorPlaceholder(c: Component): Boolean = HomePlaceholder.isPlaceholder(c) && "FallbackHome" in c.cls && !r0Placeholder(c)
+
+    // Such a FallbackHome among the claimants or answering Home.
+    fun vendorPlaceholderClaims(snapshot: Snapshot): Boolean =
+        snapshot.home.claimants.any { vendorPlaceholder(it.component) } || snapshot.home.resolved?.let { vendorPlaceholder(it) } == true
+
+    fun isXiaomi(f: DeviceFacts): Boolean = XIAOMI_MAKERS.any { it.equals(f.brand, ignoreCase = true) || it.equals(f.manufacturer, ignoreCase = true) }
+
+    // 0.4.6 (R0): the switch may go ahead with the setup wizard left on. What WIZARD_STAYS_ON guards
+    // against is the wizard's RecoveryActivity taking Home once the TV's own home screen is off, and
+    // for that the wizard has to be a Home claimant. 171 of 236 Xiaomi reports are global firmware
+    // whose only claimants are tvlauncher (priority 2) and Settings' FallbackHome (-1000); on the
+    // maintainer's MiTV-AXSO0 (Android 9) with tvlauncher off, our home screen on and setupwraith on,
+    // Home stayed ours across reboots since 2026-10-20 and the wizard never became a claimant
+    // (upstream notes say the same of AYFR0, AXFR0/1, MOOQ2 and Mi Box S). So, all of: a Xiaomi by
+    // brand or maker; no setup wizard among the claimants (homeWizards, and no vendor wizard or
+    // com.android.provision either) that is on; Google's Android TV home among them and on; every
+    // other claimant a placeholder (the chooser, a FallbackHome R0 takes, r0Placeholder) or our own home screen; and Home
+    // answering to one of those, or to nothing. Google TV
+    // builds (launcherx), China PatchWall (com.mitv.tvhome) and any vendor home fail the last test.
+    // The wizard is never switched off on this path and the Wi-Fi is never touched, so the Wi-Fi
+    // answer does not matter. Manage checks the claimants again on every connect (WizardHome).
+    // `anyBrand` (a test build, ANY_BRAND_BUILD) drops the brand test and the Android versions of a
+    // release (RELEASE_SDKS, beta4) and keeps every other one, the sets held out (HELD_OUT) among them.
+    // beta3 (issue #1119, a MiTV4I with a home screen app the person installed): a claimant may also
+    // be an app the person installed (installedHome). Android caps the HOME priority of an app that
+    // is not a system app at 0, so with tvlauncher off it ties with ours and the set-home preference
+    // decides; on the maintainer's Mi TV, set-home-activity made ours win with such an app present,
+    // across a reboot and after a boot into Live TV. The switch leaves that app installed and on, and
+    // VerifyHome and the focus check roll back if it takes Home anyway (the chooser is not ours either).
+    fun wizardStaysOnSafely(facts: DeviceFacts, snapshot: Snapshot, anyBrand: Boolean = anyBrandNow): Boolean =
+        r0Blocker(facts, snapshot, anyBrand) == null
+
+    fun r0Blocker(facts: DeviceFacts, snapshot: Snapshot, anyBrand: Boolean = anyBrandNow): R0Blocker? {
+        if (!anyBrand && !isXiaomi(facts)) return R0Blocker.BRAND
+        if ((!anyBrand && facts.sdk !in RELEASE_SDKS) || heldOut(facts)) return R0Blocker.SCOPE
+        fun on(p: PackageName) = snapshot.packages[p]?.enabled.let { it != EnabledState.DISABLED_USER && it != EnabledState.DISABLED }
+        val claimants = snapshot.home.claimants.map { it.component }
+        // A setup wizard among the claimants that is on, by any name (a placeholder that is a wizard too).
+        if (homeWizards(null, snapshot).isNotEmpty() || claimants.any { HomePlaceholder.isPlaceholder(it) && isWizard(it.pkg) && on(it.pkg) })
+            return R0Blocker.WIZARD_CLAIMS_HOME
+        val tvlauncher = KnownLaunchers.TVLAUNCHER.pkg
+        val launcherState = snapshot.packages[tvlauncher]?.enabled
+        if (claimants.none { it.pkg == tvlauncher } || launcherState == null || !on(tvlauncher)) return R0Blocker.NO_TVLAUNCHER
+        // What Home answers now must be one of the same: nothing, tvlauncher, ours or a placeholder (a
+        // TV whose Home answers to another app is not this case). An app the person installed counts
+        // only among the claimants: one Home already answers to is their choice, which stays.
+        // beta4: a FallbackHome R0 does not take (r0Placeholder), among the claimants or answering Home,
+        // is its own reason, before any other home screen app.
+        val resolved = snapshot.home.resolved
+        if (vendorPlaceholderClaims(snapshot)) return R0Blocker.VENDOR_PLACEHOLDER
+        if (resolved != null && resolved.pkg != tvlauncher && resolved.pkg != SwitchOffRule.OUR_LAUNCHER && !r0Placeholder(resolved))
+            return R0Blocker.OTHER_HOME
+        val accepted = snapshot.home.claimants.all { claimant ->
+            val c = claimant.component
+            c.pkg == tvlauncher || c.pkg == SwitchOffRule.OUR_LAUNCHER || r0Placeholder(c) ||
+                (installedHome(c.pkg, snapshot) && claimant.priority <= 0)
+        }
+        return if (accepted) null else R0Blocker.OTHER_HOME
+    }
+
+    // beta3: a home screen app the person installed, by the snapshot's own package info: listed, not
+    // a system app, not a wizard or a vendor home by name. One the snapshot does not list, or lists
+    // as a system app, is not (a vendor home ships as one). The probe falls back to the install path
+    // when it could not read a package's flags, and to "not a system app" when it read neither; a
+    // version code of 0 is that case (its details were not read), so it does not count either. Nor
+    // does an app with an accessibility service in the TV's list: it can catch the Home key itself.
+    fun installedHome(p: PackageName, snapshot: Snapshot): Boolean {
+        val state = snapshot.packages[p] ?: return false
+        val accessibility = snapshot.settings[SettingKey.ENABLED_ACCESSIBILITY].orEmpty().split(':').map { it.trim().substringBefore('/') }
+        return !state.system && state.versionCode > 0 && !isWizard(p) && p.value !in Denylist.vendorHomes && p !in KnownLaunchers.byPackage &&
+            p.value !in accessibility
+    }
+
+    // Any first-run wizard by name: Google's, a vendor's, AOSP's provision, or one named like setupwraith.
+    private fun isWizard(p: PackageName): Boolean =
+        p.value in Denylist.setupWizards || p.value in Denylist.vendorSetupWizards || p.value == "com.android.provision" || "setupwraith" in p.value.lowercase()
 
     fun isMokaFamily(f: DeviceFacts): Boolean =
         MOKA_FAMILY.any { (device, maker) -> device.equals(f.device, ignoreCase = true) && (maker.equals(f.brand, ignoreCase = true) || maker.equals(f.manufacturer, ignoreCase = true)) }
@@ -80,10 +259,13 @@ object HomeSwitchRisk {
     // 0.3.6: on every path, a setup wizard the snapshot shows as a Home claimant that the switch will
     // not switch off (an exact profile without the takeover quirk, sony-bravia-bf1 and
     // tcl-g10-google-tv among them) would take Home once the TV's own home screen is off: no switch.
-    private fun wizardWifiRisk(profile: Profile?, snapshot: Snapshot, wizardWifi: WizardWifi): Risk? {
+    // 0.4.6: `r0`, the TV meets wizardStaysOnSafely, so a wizard that is on but claims no Home stays
+    // on with no risk.
+    private fun wizardWifiRisk(profile: Profile?, snapshot: Snapshot, wizardWifi: WizardWifi, r0: Boolean = false): Risk? {
         fun on(p: PackageName) = snapshot.packages[p]?.enabled.let { it != null && it != EnabledState.DISABLED_USER && it != EnabledState.DISABLED }
         val homeWizards = homeWizards(profile, snapshot)
         if (profile == null) {
+            if (r0) return null
             val wizard = snapshot.packages.keys.firstOrNull { it.value in Denylist.setupWizards && on(it) }
                 ?: return if (homeWizards.isEmpty()) null else Risk.WIZARD_STAYS_ON
             return if (wizardWifi == WizardWifi.OWNER && on(wizard)) Risk.WIZARD_WIFI else Risk.WIZARD_STAYS_ON

@@ -1,6 +1,5 @@
 package tv.cleanyour.feature.manage
 
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -10,8 +9,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -42,12 +39,6 @@ internal fun ChipState.toTvStatus(): TvStatus = when (this) {
     ChipState.WORKING -> TvStatus.WORKING
     ChipState.DEBUGGING_OFF -> TvStatus.DEBUGGING_OFF
     ChipState.OFFLINE -> TvStatus.OFFLINE
-}
-
-// The TV's last screenshot (PNG bytes from the probe) as an image for TvThumbnail and TvCard.
-@Composable
-internal fun rememberPng(bytes: ByteArray?): ImageBitmap? = remember(bytes) {
-    bytes?.let { runCatching { BitmapFactory.decodeByteArray(it, 0, it.size)?.asImageBitmap() }.getOrNull() }
 }
 
 // The live status line with a spinner ("Waiting for the TV..."), as mockup 03 draws it. A polite

@@ -75,6 +75,7 @@ import tv.cleanyour.core.spec.FactsTable
 import tv.cleanyour.core.spec.Looks
 import tv.cleanyour.core.spec.PictureSource
 import tv.cleanyour.core.spec.ProfileResolution
+import tv.cleanyour.core.planner.PatchWallFeeds
 import tv.cleanyour.core.spec.ProfileSource
 import tv.cleanyour.core.spec.ThemeSource
 import tv.cleanyour.core.spec.resolveFor
@@ -107,8 +108,12 @@ enum class Finishing { SWITCHING, DONE }
 // HOME_CHANGED (0.3.3, issue #8): HOME answers to a home screen app the person installed and the
 // TV's own is not among the claimants, so the person's choice stays.
 // REMOTE_BUTTONS (0.4.5): the remote's app buttons need the TV's own home screen (HomeSwitchRisk).
+// OTHER_HOME (beta3): another home screen app claims Home where R0 would otherwise switch (HomeSwitchRisk).
+// VENDOR_HOME (beta4, issue #825): a system service's FallbackHome claims Home (HomeSwitchRisk).
+// PATCHWALL_FEEDS (beta4, issue #945): PatchWall stays on while Mi TV+ or its web content is off, not by
+// this app (HomeSwitchRisk, PatchWallFeeds).
 enum class HomeBlock { NONE, TV_REFUSES, OLD_ANDROID, UNKNOWN_HOME, WIZARD_WIFI, WIZARD_WIFI_UNKNOWN, CASTING, BOOT_LOOP,
-    WIZARD_STAYS_ON, HOME_CHANGED, REMOTE_BUTTONS }
+    WIZARD_STAYS_ON, HOME_CHANGED, REMOTE_BUTTONS, OTHER_HOME, VENDOR_HOME, PATCHWALL_FEEDS }
 
 // Why a run changed nothing, for Done's body (0.3.3): nothing was planned to switch off (on a TV
 // without an exact list, nothing we were sure about), every planned switch-off stayed on (the TV
@@ -249,6 +254,8 @@ class SetupMachine(
     private var deviceFacts: DeviceFacts? = null
     private var resolution: ProfileResolution? = null
     private var snapshot: Snapshot? = null
+    // beta3 QA: this session's probe read the TV before any change (its restore point is new).
+    private var probedBaseline = false
     private var allowShown = false
     private var doorTv: FoundTv? = null
     private var knownTv: Tv? = null
@@ -345,6 +352,8 @@ class SetupMachine(
     override fun dismissCard() = mutableExtras.update { it.copy(card = null) }
 
     override fun chooseCandidate(tryIt: Boolean) = send(Ev.CandidateChosen(tryIt))
+
+    override fun report(title: String) = shareDiagnostics(title)
 
     // reducer
 
@@ -697,6 +706,7 @@ class SetupMachine(
             deviceFacts = facts
             val baseline = deps.snapshots.baseline(tvId)
             val snap = deps.prober.snapshot(s, if (baseline == null) SnapshotReason.BASELINE else SnapshotReason.MANUAL) { st -> send(Ev.Stage(tvId, st)) }
+            probedBaseline = baseline == null
             deps.snapshots.save(snap)
             snapshot = snap
             // Issue #114: resolved with the Home the snapshot read, as the planner and the engine's
@@ -794,7 +804,10 @@ class SetupMachine(
     // profile, a TV whose HOME claimants include none of the resolution's stock launchers gets the
     // clean-up instead of a plan the planner refuses as a whole (issue #85). The Fire TV flag is
     // set here too, for S3's line.
-    private fun homeBlock(snap: Snapshot, wifi: WizardWifi): HomeBlock {
+    // beta4: `journals`, this TV's change records, and `patchWallGoesOff`, whether the draft switches
+    // PatchWall off, for HomeSwitchRisk's PatchWall feeds test (PatchWallFeeds).
+    private fun homeBlock(snap: Snapshot, wifi: WizardWifi, journals: List<tv.cleanyour.core.model.ChangeRecord> = emptyList(),
+                          patchWallGoesOff: Boolean = false): HomeBlock {
         val f = deviceFacts ?: return HomeBlock.NONE
         val p = profile()
         val fireOs = p?.platform == Platform.FIRE_OS || FireOs.isFireOs(f, snap)
@@ -811,7 +824,7 @@ class SetupMachine(
         val homeSigner = snap.packages[pin.pkg]?.signer
         val anotherKey = atHome && homeSigner != null && homeSigner != pin.signer
         val ours = atHome && !anotherKey
-        val risk = if (ours) null else HomeSwitchRisk.of(f, p, snap, wifi)
+        val risk = if (ours) null else HomeSwitchRisk.of(f, p, snap, wifi, journals = journals, patchWallGoesOff = patchWallGoesOff)
         // Issue #8: the exact profile's stock launchers too, through the planner's own StockHome, so
         // a TV whose own home screen is not among the claimants is never asked for a switch the
         // planner then refuses as a whole.
@@ -833,6 +846,9 @@ class SetupMachine(
             risk == HomeSwitchRisk.Risk.WIZARD_WIFI -> HomeBlock.WIZARD_WIFI
             risk == HomeSwitchRisk.Risk.WIZARD_WIFI_UNKNOWN -> HomeBlock.WIZARD_WIFI_UNKNOWN
             risk == HomeSwitchRisk.Risk.WIZARD_STAYS_ON -> HomeBlock.WIZARD_STAYS_ON
+            risk == HomeSwitchRisk.Risk.OTHER_HOME -> HomeBlock.OTHER_HOME
+            risk == HomeSwitchRisk.Risk.VENDOR_HOME -> HomeBlock.VENDOR_HOME
+            risk == HomeSwitchRisk.Risk.PATCHWALL_FEEDS -> HomeBlock.PATCHWALL_FEEDS
             else -> HomeBlock.NONE
         }
     }
@@ -857,7 +873,13 @@ class SetupMachine(
         val dock = DockLayers.trim(draft.dock ?: deps.dock.pick(profile(), snap.packages.keys, snap.hdmi.isNotEmpty(), profile()?.liveTv, deps.locale()), columns)
         val kept = draft.dock?.let(DockLayers::keep) ?: dock
         val wifi = wizardWifi(s, snap)
-        val block = homeBlock(snap, wifi)
+        val groups = when (res) {
+            is ProfileResolution.Exact -> res.profile.groups
+            is ProfileResolution.BrandSureSet -> res.sureSet
+            is ProfileResolution.None -> emptyList()
+        }
+        val journals = attempt { deps.ledger.changes(record.id) }.getOrDefault(emptyList())
+        val block = homeBlock(snap, wifi, journals, PatchWallFeeds.goesOff(snap, groups, draft.kept, draft.extraOff))
         val possible = block == HomeBlock.NONE
         val choices = Choices(
             kept = draft.kept, extraOff = draft.extraOff, dock = dock,
@@ -917,7 +939,8 @@ class SetupMachine(
                     "level ${draft.level}, dock ${dock.size}, ${apps.size} dock candidates")
                 // 0.3.2 B3: why the home screen switch is or is not in the plan, once per change, and
                 // kept for the TV report (B1) that Manage makes without the TV.
-                val decision = HomeDecision.of(block, r.plan.sections.isNotEmpty(), snap.home.resolved?.pkg == launcher.pkg)
+                val decision = HomeDecision.of(block, r.plan.sections.isNotEmpty(), snap.home.resolved?.pkg == launcher.pkg,
+                    app = deps.about?.version, profile = LogCodes.profile(res))
                 if (decision != lastDecision) {
                     lastDecision = decision
                     deps.log.line("setup: ${decision.line}")
@@ -1182,7 +1205,11 @@ class SetupMachine(
         val skippedNames = skipped.filter { it.index !in kept }.mapNotNull { (it.op as? Op.Disable)?.pkg }.map { nameOfPkg(it) }
         val p = profile()
         val recommended = p == null || Quirk.HOME_TAKEOVER_SETUPWRAITH in p.quirks || p.tested?.rebootTested != true
-        val restorePointAt = deps.snapshots.latest(tvId)?.takenAtMs ?: deps.clock.nowMs()
+        // beta3 QA: the restore point Undo everything goes back to is the first read (the baseline),
+        // so Done names that one, and says when it is from an earlier run.
+        val baseline = deps.snapshots.baseline(tvId)
+        val restorePointAt = (baseline ?: deps.snapshots.latest(tvId))?.takenAtMs ?: deps.clock.nowMs()
+        val restorePointEarlier = baseline != null && !probedBaseline
         val launcher = deps.launcherPin.bundled()
         // D15: the digest of the config.json this run pushed, so Manage can warn when it drifts.
         val pushed = plan?.let { pl -> deps.ledger.changes(tvId).lastOrNull { c -> c.planId == pl.id && (c.op as? Op.PushAsset)?.dest?.let { d -> d.dir == RemoteDir.OVERLAY && d.segments.last() == "config.json" } == true } }
@@ -1230,7 +1257,7 @@ class SetupMachine(
         val homeKept = f?.home?.takeIf { !homeOn && it != HomeOutcome.CONFIRMED && plan?.sections?.isNotEmpty() == true }
         mutableExtras.update { it.copy(doneLines = skippedNames, doneKept = keptNames, doneNothing = off == 0 && !homeOn && !changed, doneNothingWhy = why,
             keepsDebugging = keepsDebugging(tvId), doneHomeKept = homeKept) }
-        send(Ev.ShowDone(tvId, DoneSummary(off, homeOn, restorePointAt, skippedNames, recommended)))
+        send(Ev.ShowDone(tvId, DoneSummary(off, homeOn, restorePointAt, skippedNames, recommended, restorePointEarlier)))
         session?.let { s -> mutableExtras.update { it.copy(restorePointPushed = deps.restorePoint.write(done, s, p)) } }
     }
 
@@ -1419,9 +1446,50 @@ class SetupMachine(
 
     // 0.3.2 B2: the cards that offered "Share diagnostics" open the "Report a problem" preview, which
     // shows the redacted text first and copies or shares it only when the person says so.
-    private fun shareDiagnostics() {
-        effect(SetupEffect.Navigate(tvIdOf(state.value)?.let { "report/problem/${it.value}" } ?: "report/problem"))
+    // 0.4.6 (REPORTING-PROPOSAL 2.2): every card where a run or a connect stopped badly opens the
+    // GitHub form at once, with what the card said (ReportContext) and the TV as this phone last
+    // read it; the app copies the whole report too, and nothing is public until the person posts.
+    // A connect has no TV to read, so the card sends the phone's side instead: how the TV was found,
+    // the port, the named error and the socket's reason.
+    private fun shareDiagnostics(title: String? = null) {
+        val s = state.value
+        val card = (s as? SetupState.Stopped)?.card ?: mutableExtras.value.card
+        val names = arrayOf(tv?.nickname, knownTv?.nickname, doorTv?.friendlyName)
+        val connect = s is SetupState.Welcome || s is SetupState.Picker || s is SetupState.OpenDoor || s is SetupState.PairingNeeded
+        val err = mutableExtras.value.connectError
+        val case = when {
+            card != null -> card.case.name
+            s is SetupState.PairingNeeded -> StopCase.PAIRING_NEEDED.name
+            err != null -> "CONNECT_FAILED"
+            else -> s::class.simpleName?.uppercase() ?: "SETUP"
+        }
+        val shown = ReportContext.named(title ?: card?.title.orEmpty(), *names)
+        val ctx = if (!connect) ReportContext(screen = "Setup", card = shown, case = case) else {
+            val found = (s as? SetupState.OpenDoor)?.tv ?: (s as? SetupState.PairingNeeded)?.tv ?: doorTv
+            val error = when {
+                card?.case == StopCase.TV_NOT_SUPPORTED -> LogCodes.of(AdbError.Transport.NoShellV2)
+                s is SetupState.PairingNeeded -> "pairing_needed"
+                else -> err?.kind
+            }
+            ReportContext(
+                screen = "Connect", card = shown, case = case, connect = true, error = error,
+                // The port the app connects to (connect() opens Endpoint.PlainTcp at its default).
+                found = found?.let { f -> foundBy(f) }, port = Endpoint.PlainTcp(found?.host.orEmpty()).port,
+                detail = if (err != null) runCatching { deps.connectDetail() }.getOrNull() else null,
+            )
+        }
+        // A connect to a TV this phone has read before still sends its summary.
+        val id = if (connect) knownTv?.id else tvIdOf(s)
+        effect(SetupEffect.Navigate(IssueRoute.of(id, ctx)))
     }
+
+    // "adb_mdns+google_cast, pairing service seen": what discovery saw, never an address. Not the
+    // port's state: the door polls the port itself, so the found record's flag can be an old one.
+    private fun foundBy(f: FoundTv): String = listOfNotNull(
+        f.sources.joinToString("+") { if (it == DiscoverySource.MANUAL) "address typed" else it.name.lowercase() }.ifEmpty { "found" },
+        f.pairingService?.let { "pairing service seen" },
+        f.connectService?.let { "wireless debugging seen" },
+    ).joinToString(", ")
 
     // Done (S5)
 
@@ -1659,14 +1727,8 @@ class SetupMachine(
         deps.log.line("setup: run ${pauseLine(p)}")
     }
 
-    private suspend fun pauseLine(p: RunState.Paused): String {
-        val head = "paused ${p.reason} at step ${p.at}"
-        val failed = (if (p.reason == PauseReason.STEP_FAILED) attempt { deps.ledger.lastFailure(p.plan.id, p.at) }.getOrNull() else null)
-            ?: return runLabel(p)
-        val code = p.error?.let { errorName(it) } ?: failed.exit?.let { "nonzero_exit($it)" } ?: "failed"
-        val stderr = LogCodes.clean(failed.stderrHead, 160).takeIf { it.isNotEmpty() }?.let { " $it" }.orEmpty()
-        return "$head: ${if (failed.undo) "undo step failed" else "step failed"}: ${LogCodes.op(failed.op)}: $code$stderr"
-    }
+    // 0.4.6: the same words as a report's step line (RunLines).
+    private suspend fun pauseLine(p: RunState.Paused): String = RunLines.pause(p, deps.ledger)
 
     // Issue #338: the step the home screen switch stopped at, with its exit code and the head of the
     // TV's answer, the way a pause line names its step (0.3.2 B3).
@@ -1677,18 +1739,7 @@ class SetupMachine(
         deps.log.line("setup: home switch stopped at ${LogCodes.op(failed.op)}: $code$head")
     }
 
-    private fun runLabel(r: RunState): String = when (r) {
-        is RunState.Running -> "running"
-        is RunState.AwaitingConfirm -> "awaiting confirm"
-        is RunState.RollingBack -> "rolling back"
-        // Issue #367's log said "run cd2": the class name, renamed by R8 in a release build.
-        is RunState.InDoubt -> "in doubt"
-        is RunState.Paused -> "paused ${r.reason} at step ${r.at}${r.error?.let { " (${errorName(it)})" } ?: ""}"
-        // 0.3.3 (issue #10): the skipped switch-offs by name, so a report shows what stayed on.
-        is RunState.Finished -> "finished ${r.status}${r.home?.let { ", home $it" } ?: ""}, ${r.skipped.size} skipped" +
-            r.skipped.filter { it.op is Op.Disable }.take(SKIPS_LOGGED).joinToString(", ") { LogCodes.op(it.op) }.let { if (it.isEmpty()) "" else ": $it" }
-        else -> r::class.simpleName ?: "state"
-    }
+    private fun runLabel(r: RunState): String = RunLines.label(r)
 
     private fun counts(plan: Plan, done: Int): Map<String, Any> = mapOf("done" to done, "total" to plan.steps.count { it.op is Op.Disable })
 

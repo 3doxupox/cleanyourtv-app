@@ -95,6 +95,12 @@
     <string name="found_home_casting">On this Google device the new home screen needs the setup wizard off, and without it casting from phones stops working after every restart. So it keeps its own home screen. We\'ll still switch off the adverts and tracking.</string>
     <string name="found_home_boot_loop">On this TV family the setup wizard comes back at every restart, and with the TV\'s own home screen off that can stop the TV starting up. So it keeps its own home screen. We\'ll still switch off the adverts and tracking.</string>
     <string name="found_home_remote_buttons">On this TV the remote\'s app buttons (Netflix, YouTube, Prime Video and YouTube Music) only work through its own home screen. So it keeps its own home screen. We\'ll still switch off the adverts and tracking.</string>
+    <!-- beta3: another home screen app claims Home, where the switch could otherwise go ahead -->
+    <!-- beta4: a system service also answers Home (issue #825), where the switch could otherwise go ahead -->
+    <string name="found_home_vendor_home">On this TV a system service also answers the Home button. One TV like that failed to start after its home screen was switched, so we left the home screen alone. We\'ll still switch off the adverts and tracking.</string>
+    <!-- beta4: PatchWall stays on while Mi TV+ or its web content is off, not by this app (issue #945) -->
+    <string name="found_home_patchwall_feeds">PatchWall is on here while Mi TV+ or its web content is off. One TV like that failed to start after its home screen was switched, so we left the home screen alone. To get the new one, switch PatchWall off in Customise. We\'ll still switch off the adverts and tracking.</string>
+    <string name="found_home_other_home">Another home screen app is set up on this TV, so we left the home screen alone. To use the new one, remove that app or ask us in your issue. We\'ll still switch off the adverts and tracking.</string>
     <string name="found_home_wizard_stays_on">We don\'t know this TV well enough to switch its setup wizard off, and with the wizard left on and the TV\'s own home screen off, the TV can crash. So it keeps its own home screen. We\'ll still switch off the adverts and tracking.</string>
 
     <!-- S3a Customise sheet -->
@@ -286,6 +292,8 @@
     <string name="done_home_kept_said_no">The home screen is unchanged: you said the new one didn\'t look right, so the old home screen is back.</string>
     <string name="done_home_kept">The home screen is unchanged: the new one didn\'t take over, so the old home screen is back.</string>
     <string name="done_restore_saved">Restore point saved on this phone ({date})</string>
+    <!-- beta3: a later run; the restore point is the one from the first Setup, which Undo everything goes back to -->
+    <string name="done_restore_earlier">Restore point on this phone (from {date})</string>
     <string name="done_debug_note">Debugging on the TV switches off when you tap Finish</string>
     <string name="done_debug_kept">Debugging on the TV stays on, as you chose</string>
     <string name="done_skipped">{name} wouldn\'t switch off; it\'s harmless.</string>

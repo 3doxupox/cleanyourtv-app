@@ -21,6 +21,7 @@ import tv.cleanyour.core.model.Sha256
 import tv.cleanyour.core.model.ShellLine
 import tv.cleanyour.core.model.Snapshot
 import tv.cleanyour.core.model.SnapshotReason
+import tv.cleanyour.core.ops.ShellRenderer
 import tv.cleanyour.core.session.ExecResult
 import tv.cleanyour.core.session.ExecSpec
 import tv.cleanyour.core.session.RetryClass
@@ -144,7 +145,8 @@ class AdbProber(
             val path = p.path ?: i?.codePath
             packages[name] = PackageState(
                 enabled = enabledState(p.name in off, i?.enabled),
-                system = i?.flags?.contains("SYSTEM") ?: SYSTEM_PATHS.any { path?.startsWith(it) == true },
+                // Review of beta3: a flags line that came back empty says nothing, so the install path decides.
+                system = i?.flags?.takeIf { it.isNotEmpty() }?.contains("SYSTEM") ?: SYSTEM_PATHS.any { path?.startsWith(it) == true },
                 versionCode = i?.versionCode ?: 0,
                 signer = signers[name],
                 persistent = i?.flags?.contains("PERSISTENT") == true,
@@ -305,7 +307,7 @@ class AdbProber(
 
     companion object {
         const val OVERLAY_CAP = 256L * 1024
-        const val SCREENSHOT_CAP = 2L * 1024 * 1024
+        const val SCREENSHOT_CAP = ShellRenderer.MAX_PNG_BYTES
         const val SIGNER_APK_CAP = 16L * 1024 * 1024
         private val random = java.security.SecureRandom()
         val SIGNED_PACKAGES: Set<PackageName> = setOf(PackageName("com.gathin.tvhome"), PackageName("tv.cleanyour.curtain"))

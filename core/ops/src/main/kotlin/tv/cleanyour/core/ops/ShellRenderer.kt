@@ -340,7 +340,8 @@ class ShellRenderer(private val watchdogVariant: WatchdogVariant = WatchdogVaria
         const val CAP_DUMP = 1024 * 1024
         const val CAP_BIG = 4 * 1024 * 1024
         const val MAX_APK_BYTES = 200L * 1024 * 1024
-        const val MAX_PNG_BYTES = 2L * 1024 * 1024
+        // Issue #1273: a 4K TV's screencap PNG is 5 to 15 MB (a 1080p one at most about 1.5 MB).
+        const val MAX_PNG_BYTES = 16L * 1024 * 1024
 
         fun sha256Of(bytes: ByteArray): Sha256 =
             Sha256(MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) })

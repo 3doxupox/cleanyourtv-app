@@ -38,6 +38,22 @@ class AdbProberTest {
         assertEquals(1, s.execLines.size)
     }
 
+    // Review of beta3: a package whose flags line came back empty is told by its install path, so a
+    // system app is never taken for one the person installed (HomeSwitchRisk.installedHome).
+    @Test fun anEmptyFlagsLineFallsBackToTheInstallPath() = runBlocking<Unit> {
+        val dump = ProbeFixtures.grepped(ProbeFixtures.res("mitv/dumpsys-package-packages.txt"))
+        val lines = dump.lines().toMutableList()
+        for (pkg in listOf("com.android.systemui", "in.startv.hotstar")) {
+            val at = lines.indexOfFirst { it.trim().startsWith("Package [$pkg]") }
+            val flags = (at + 1 until lines.size).first { lines[it].trim().startsWith("pkgFlags=") }
+            lines[flags] = "    pkgFlags=[ ]"
+        }
+        val s = FakeTvSession(recording = ProbeFixtures.miTvRecording().on(ProbeScripts.PACKAGE_FLAGS.text, lines.joinToString("\n")))
+        val snap = prober.snapshot(s, SnapshotReason.MANUAL) {}
+        assertTrue(snap.packages.getValue(p("com.android.systemui")).system, "/system/priv-app")
+        assertFalse(snap.packages.getValue(p("in.startv.hotstar")).system, "/data/app")
+    }
+
     @Test fun fullSnapshotOfTheReferenceTv() = runBlocking<Unit> {
         val s = ProbeFixtures.miTvSession()
         val stages = mutableListOf<ProbeStage>()
@@ -164,6 +180,20 @@ class AdbProberTest {
         assertTrue(ProbeScripts.all.values.none { "rmdir" in it.text || "rm -r" in it.text }, "no probe script removes a directory")
         s.files[ProbeScripts.screenPath.absolute] = "not a png".encodeToByteArray()
         assertNull(prober.screenshot(s))
+    }
+
+    // Issues #1273, #1631, #1502: a 4K TV's screencap PNG is 5 to 15 MB, so the 2 MiB cap turned
+    // every one into no screenshot and the home screen switch never opened. 16 MiB takes them.
+    @Test fun aFourKScreenshotFitsTheCap() = runBlocking<Unit> {
+        val s = ProbeFixtures.miTvSession()
+        s.recording.on(ProbeScripts.SCREENSHOT.text, "")
+        val signature = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
+        val big = signature + ByteArray(15 * 1000 * 1000)
+        s.files[ProbeScripts.screenPath.absolute] = big
+        assertEquals(big.size, prober.screenshot(s)?.size)
+        s.files[ProbeScripts.screenPath.absolute] = signature + ByteArray(AdbProber.SCREENSHOT_CAP.toInt())
+        assertNull(prober.screenshot(s))                              // over the cap
+        assertEquals(16L * 1024 * 1024, AdbProber.SCREENSHOT_CAP)
     }
 
     @Test fun installRefusal() = runBlocking<Unit> {

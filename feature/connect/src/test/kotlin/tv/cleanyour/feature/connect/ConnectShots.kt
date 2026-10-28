@@ -4,12 +4,18 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import java.io.ByteArrayOutputStream
 import tv.cleanyour.core.discovery.DiscoverySource
 import tv.cleanyour.core.discovery.FoundTv
@@ -128,12 +134,19 @@ object ConnectShots {
         Shot("door_steps_tcl") { Connect(door(Families.TCL, DoorPhase.STEPS, 0, banner = stringResource(R.string.banner_tcl), tv = tclTv), waiting.copy(tvName = "TCL C635")) },
         Shot("door_steps_mibox_usb") { Connect(door(Families.ATV, DoorPhase.STEPS, 0, banner = stringResource(R.string.banner_mibox_usb)), waiting.copy(tvName = "Mi Box S")) },
         Shot("door_steps_unknown_brand_chips") { Connect(door(Families.UNKNOWN, DoorPhase.STEPS, 0, tv = unknownTv), SetupExtras()) },
+        // beta2 QA: a typed address with no name yet; the chip shows the address, the line under the steps no model.
+        Shot("door_steps_typed_address") { Connect(door(Families.ATV, DoorPhase.STEPS, 0, tv = unknownTv), SetupExtras(chip = ChipState.WAITING)) },
         Shot("door_steps_still_waiting") { Connect(door(Families.ATV, DoorPhase.STEPS, 2, waitedMs = 181_000), waiting) },
 
         // S2b Connecting
         Shot("door_connecting") { Connect(door(Families.ATV, DoorPhase.CONNECTING, 2), waiting) },
         // 0.3.6 (issues #98, #270, #325, #468): the port answered, the connection failed; the hint and "Copy error".
         Shot("door_connect_failed") { Connect(door(Families.ATV, DoorPhase.STEPS, 2), waiting.copy(connectError = tv.cleanyour.core.flows.ConnectError("unreachable", "Clean Your TV connection error"))) },
+        // 0.4.6: the card itself, with "Report a problem" under "Copy error" (it opens the prefilled GitHub form).
+        // Tall enough that the button shows at 200% font too.
+        Shot("door_connect_failed_report", height = 1000.dp) {
+            Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) { ConnectErrorCard(tv.cleanyour.core.flows.ConnectError("protocol", "Clean Your TV connection error"), {}) }
+        },
 
         // S2c Look at the TV (Allow), and the "I don't see it on the TV" sheet before and after 3 retries
         Shot("door_allow") { Connect(door(Families.ATV, DoorPhase.ALLOW, 2, waitedMs = 5_000, fingerprint = FINGERPRINT), waiting) },

@@ -88,7 +88,7 @@ object GoldenCases {
         GoldenCase("37-read-settings-secure", "A settings namespace", Op.Read(ProbeKind.SETTINGS, ReadArg.Ns(SettingsNs.SECURE)), null),
         GoldenCase("38-read-ime", "The active keyboard", Op.Read(ProbeKind.IME), null),
         GoldenCase("39-read-screensaver", "The screensaver components", Op.Read(ProbeKind.SCREENSAVER), null),
-        GoldenCase("40-read-screencap", "Screenshot to tmp then a sync pull, 2 MiB cap", Op.Read(ProbeKind.SCREENCAP), null),
+        GoldenCase("40-read-screencap", "Screenshot to tmp then a sync pull, 16 MiB cap", Op.Read(ProbeKind.SCREENCAP), null),
         GoldenCase("41-read-sha256-of-file", "sha256sum of a file of ours", Op.Read(ProbeKind.SHA256_OF_FILE, ReadArg.Path(apkPath)), null),
         GoldenCase("42-read-sha256-of-installed", "The installed APK's path (the prober hashes it)", Op.Read(ProbeKind.SHA256_OF_INSTALLED, ReadArg.Pkg(launcher.pkg)), null),
         GoldenCase("43-read-package-dump", "dumpsys of one package", Op.Read(ProbeKind.PACKAGE_DUMP, ReadArg.Pkg(launcher.pkg)), null),

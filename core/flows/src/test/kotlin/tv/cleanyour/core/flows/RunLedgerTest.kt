@@ -100,6 +100,16 @@ class RunLedgerTest {
         assertEquals(false, f.undo)
     }
 
+    // A failure without stderr (adbd refused the transfer, the error is the only text) keeps that
+    // text for the pause line, as the home switch failure line does; stderr still comes first.
+    @Test fun aFailureWithoutStderrKeepsItsErrorText() = runTest {
+        val refused = JournalRecord.Failed(plan, 2, null, "adbd refused: remote couldn't create file", "")
+        val f = assertNotNull(ledger(begin(2, Op.Disable(ad)), refused, JournalRecord.Paused(plan, 2, PauseReason.STEP_FAILED)).lastFailure(plan, 2))
+        assertEquals("adbd refused: remote couldn't create file", f.stderrHead)
+        val both = ledger(begin(2, Op.Disable(ad)), failed(2, "the stderr"), JournalRecord.Paused(plan, 2, PauseReason.STEP_FAILED))
+        assertEquals("the stderr", assertNotNull(both.lastFailure(plan, 2)).stderrHead)
+    }
+
     // A closed section resets step R: a later forward pause is not an undo step.
     @Test fun aClosedSectionEndsStepR() = runTest {
         val l = ledger(
