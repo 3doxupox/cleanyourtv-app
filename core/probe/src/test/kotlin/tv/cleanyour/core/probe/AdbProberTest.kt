@@ -182,6 +182,20 @@ class AdbProberTest {
         assertNull(prober.screenshot(s))
     }
 
+    // Issues #1273, #1631, #1502: a 4K TV's screencap PNG is 5 to 15 MB, so the 2 MiB cap turned
+    // every one into no screenshot and the home screen switch never opened. 16 MiB takes them.
+    @Test fun aFourKScreenshotFitsTheCap() = runBlocking<Unit> {
+        val s = ProbeFixtures.miTvSession()
+        s.recording.on(ProbeScripts.SCREENSHOT.text, "")
+        val signature = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
+        val big = signature + ByteArray(15 * 1000 * 1000)
+        s.files[ProbeScripts.screenPath.absolute] = big
+        assertEquals(big.size, prober.screenshot(s)?.size)
+        s.files[ProbeScripts.screenPath.absolute] = signature + ByteArray(AdbProber.SCREENSHOT_CAP.toInt())
+        assertNull(prober.screenshot(s))                              // over the cap
+        assertEquals(16L * 1024 * 1024, AdbProber.SCREENSHOT_CAP)
+    }
+
     @Test fun installRefusal() = runBlocking<Unit> {
         val blob = BlobRef(Sha256("cd".repeat(32)), 3, "bundled:noop.apk")
         val s = FakeTvSession(recording = ProbeFixtures.miTvRecording(), blobs = { byteArrayOf(1, 2, 3) })

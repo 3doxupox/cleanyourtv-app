@@ -1,6 +1,5 @@
 package tv.cleanyour.feature.setup
 
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Text
@@ -9,8 +8,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -35,11 +32,6 @@ fun msg(id: Int, vararg args: Pair<String, Any>): String {
         android.icu.text.MessageFormat(pattern, locale).format(args.toMap())
     }
 }
-
-// A PNG from the TV (screencap) as an image, or null when it is missing or does not decode.
-@Composable
-fun rememberPng(bytes: ByteArray?): ImageBitmap? =
-    remember(bytes) { bytes?.let { runCatching { BitmapFactory.decodeByteArray(it, 0, it.size)?.asImageBitmap() }.getOrNull() } }
 
 // The flows' chip state as the design system's status (the same five words, D42).
 fun ChipState.toTvStatus(): TvStatus = when (this) {

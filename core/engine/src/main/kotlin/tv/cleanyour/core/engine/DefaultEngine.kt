@@ -109,6 +109,7 @@ class DefaultEngine(
         var thumbnail: ByteArray? = null
         var lastThumbnailOkAt = Long.MIN_VALUE / 2
         var lastThumbnailTryAt = Long.MIN_VALUE / 2
+        var thumbnailFailure: String? = null           // why the newest screenshot failed, for openSection's line
         val openSections = linkedSetOf<String>()
         val closedSections = linkedSetOf<String>()
         var home: HomeOutcome? = null
@@ -336,16 +337,19 @@ class DefaultEngine(
         // section must have succeeded ("Status: ok" from am start -W); a plan without that step
         // (written before it) is not held to it.
         val start = run.plan.steps.subList(0, section.from).lastOrNull { it.op == Op.StartActivity(section.expectedHome, wait = true) }
-        if (start != null && start.index !in run.done) return false
+        if (start != null && start.index !in run.done) return notOpened("the start of the new home screen did not succeed")
         val launcherPkg = section.expectedHome.pkg
-        val installed = prober.installedSha256(run.session, launcherPkg) ?: return false
+        val installed = prober.installedSha256(run.session, launcherPkg) ?: return notOpened("the installed home screen's hash could not be read")
         val expected = run.plan.steps.firstNotNullOfOrNull { s ->
             (s.op as? Op.Install)?.takeIf { it.pkg == launcherPkg }?.sha256 ?: (s.op as? Op.InstallStream)?.takeIf { it.pkg == launcherPkg }?.sha256
         }
-        if (expected != null && installed != expected) return false
-        if (!thumbnail(run, force = true)) return false
-        val arm = run.plan.steps.getOrNull(section.from)?.op as? Op.ArmHomeWatchdog ?: return false
-        if (arm.token != section.token) return false
+        if (expected != null && installed != expected) return notOpened("the installed home screen is not the one this run installed")
+        if (!thumbnail(run, force = true)) {
+            val last = run.thumbnail?.let { "the last one was ${it.size} bytes" } ?: "none came back before"
+            return notOpened("the screenshot failed (${run.thumbnailFailure}), $last")
+        }
+        val arm = run.plan.steps.getOrNull(section.from)?.op as? Op.ArmHomeWatchdog ?: return notOpened("the section does not start with its watchdog")
+        if (arm.token != section.token) return notOpened("the watchdog's run token is not the section's")
         journal.append(JournalRecord.Section(run.plan.id, section.name, section.token, SectionState.ARMED, clock.nowMs() + arm.seconds * 1000L))
         run.openSections += section.name
         run.sectionOpenedAt = clock.monotonicMs()
@@ -354,8 +358,16 @@ class DefaultEngine(
         return true
     }
 
+    // Issues #1273, #1631, #1502: a home screen switch that never opened ended VERIFY_FAILED with
+    // nothing in the report to say which check stopped it. One diagnostics line per failed check, in
+    // fixed words (no hash, token or address).
+    private fun notOpened(why: String): Boolean {
+        log("engine: the home screen switch did not open: $why")
+        return false
+    }
+
     // The check screen (3.4 step 5): the phone timer (90 s, or 120 s without a recent thumbnail,
-    // D23), the 2 s focus check, a thumbnail every 5 s, and the user's answer.
+    // D23), the 2 s focus check, a thumbnail every 5 s (20 s for a large one), and the user's answer.
     //
     // The two layers stay ordered (R1 R-1, DECISIONS-W3 D-W3-1): the planner arms the watchdog for
     // 150 s so the phone's window ends first, and the phone's deadline is never later than 10 s
@@ -748,13 +760,26 @@ class DefaultEngine(
     }
 
     // A thumbnail at most every 5 s (every group change forces one); returns whether one was taken.
+    // Issue #1273: a 4K TV's screenshot is 5 to 15 MB, so after one over LARGE_THUMBNAIL_BYTES the
+    // unforced ones wait LARGE_THUMBNAIL_EVERY_MS. Forced ones are taken as before.
     private suspend fun thumbnail(run: Run, force: Boolean): Boolean {
         val now = clock.monotonicMs()
-        if (!force && now - run.lastThumbnailTryAt < thumbnailEveryMs) return false
+        val every = if ((run.thumbnail?.size ?: 0) > LARGE_THUMBNAIL_BYTES) maxOf(thumbnailEveryMs, LARGE_THUMBNAIL_EVERY_MS) else thumbnailEveryMs
+        if (!force && now - run.lastThumbnailTryAt < every) return false
         run.lastThumbnailTryAt = now
-        val png = try { prober.screenshot(run.session) } catch (e: AdbException) { null }
-        if (png != null) { run.thumbnail = png; run.lastThumbnailOkAt = now }
+        run.thumbnailFailure = "no PNG came back"
+        val png = try { prober.screenshot(run.session) } catch (e: AdbException) { run.thumbnailFailure = failureKind(e.error); null }
+        if (png != null) { run.thumbnail = png; run.lastThumbnailOkAt = now; run.thumbnailFailure = null }
         return png != null
+    }
+
+    // A screenshot failure in fixed words for the diagnostics log (class names do not survive R8).
+    private fun failureKind(e: AdbError): String = when (e) {
+        is AdbError.Transport.Timeout -> "timed out"
+        is AdbError.Transport -> "connection error"
+        is AdbError.Auth -> "not authorised"
+        is AdbError.NonZeroExit -> "exit ${e.exit}"
+        else -> "device error"
     }
 
     // ---- ending a run ------------------------------------------------------------------------------
@@ -1083,6 +1108,9 @@ class DefaultEngine(
         const val PATIENT_PRESSES = 3
         const val PATIENT_GAP_MS = 15_000L
         const val PATIENT_WINDOW_MS = 60_000L
+        // Issue #1273: after a screenshot larger than this, the unforced ones wait at least this long.
+        const val LARGE_THUMBNAIL_BYTES = 4L * 1024 * 1024
+        const val LARGE_THUMBNAIL_EVERY_MS = 20_000L
         // The journal's Failed text for a live protected refusal. KEPT_TV_INPUT marks a package kept
         // because it runs the TV's inputs (RF-LAUNCHER-250 F1); Done and Manage name it.
         const val PROTECTED = "protected: "

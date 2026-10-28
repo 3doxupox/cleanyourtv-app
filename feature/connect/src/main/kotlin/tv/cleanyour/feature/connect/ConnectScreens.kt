@@ -80,6 +80,7 @@ import tv.cleanyour.ui.design.component.TvStatusChip
 import tv.cleanyour.ui.design.component.TvThumbnail
 import tv.cleanyour.ui.design.component.WelcomeIllustration
 import tv.cleanyour.ui.design.component.rememberEmphasis
+import tv.cleanyour.ui.design.component.rememberPng
 import tv.cleanyour.ui.design.theme.Glow
 
 // Screens S1, S1b, S1c, S2a to S2d and S2x (PRODUCT-SPEC 4, UX 2 screen 1 and 2, UX 4.1 to 4.5),

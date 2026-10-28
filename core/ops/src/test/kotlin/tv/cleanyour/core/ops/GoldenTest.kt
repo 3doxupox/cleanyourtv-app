@@ -63,7 +63,7 @@ class GoldenTest {
             "'am' 'force-stop' 'com.gathin.tvhome'\n" +
             "'am' 'start' '-n' 'com.gathin.tvhome/.MainActivity'\n" +
             "'screencap' '-p' '/data/local/tmp/cleanyourtv/screen.png'\n" +
-            "sync:/data/local/tmp/cleanyourtv/screen.png 2097152\n" +
+            "sync:/data/local/tmp/cleanyourtv/screen.png 16777216\n" +
             "sync:bundled:launcher.apk 260000\n"
         assertEquals(ShellRenderer.sha256Of(input.encodeToByteArray()), r.planHash(rendered))
         assertEquals(File(dir, "planhash.txt").takeIf { it.isFile }?.readText()?.trim(), r.planHash(rendered).hex, "core/ops/src/test/resources/golden/planhash.txt")

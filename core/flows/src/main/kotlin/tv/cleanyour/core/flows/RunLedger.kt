@@ -117,7 +117,9 @@ class RunLedger(private val store: DocumentStore, private val journal: Journal) 
                 }
                 is JournalRecord.Done -> if (stepR && begun?.i == r.i && begun?.op is Op.VerifyHome) stepRFailure = null
                 is JournalRecord.Failed -> if (r.error != DefaultEngine.KEPT_TV_INPUT) {
-                    val f = begun?.takeIf { it.i == r.i }?.let { LastFailure(it.op, r.exit, r.stderrHead, stepR) }
+                    // 0.4.6: a failure with no stderr keeps its error text (adbd's refusal of a sync or
+                    // an install, a verify mismatch), as homeSwitchFailure does.
+                    val f = begun?.takeIf { it.i == r.i }?.let { LastFailure(it.op, r.exit, r.stderrHead.ifEmpty { r.error }, stepR) }
                     when {
                         f == null -> {}
                         stepR -> if (stepRFailure == null && mustSucceed(f.op)) stepRFailure = f

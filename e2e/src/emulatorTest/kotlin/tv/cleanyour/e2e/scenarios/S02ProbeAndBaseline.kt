@@ -53,7 +53,7 @@ class S02ProbeAndBaseline : E2eScenario() {
             assertEquals(oracle.resumedPackage(), prober.homeFocus(session)?.pkg?.value)
             assertEquals(oracle.bootId(), prober.bootId(session))
             val png = prober.screenshot(session)
-            assertTrue("screenshot missing or over 2 MiB", png != null && png.size in 1..(2 * 1024 * 1024))
+            assertTrue("screenshot missing or over the cap", png != null && png.size.toLong() in 1..tv.cleanyour.core.probe.AdbProber.SCREENSHOT_CAP)
         } finally {
             session.close()
         }
