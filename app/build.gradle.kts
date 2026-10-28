@@ -6,9 +6,11 @@ plugins {
 android {
     // The app's version, in one place for every store flavour and for F-Droid's checkupdates
     // (STORES-PLAN 0 and 3): GitHub, F-Droid and Google Play ship the same versionCode and versionName.
+    // 0.4.6.1 is the reconnect hotfix on 0.4.6 (four parts). It takes versionCode 23 because 22 is the
+    // 0.4.7-beta1 test build signed with the same key, so a phone with that build never sees a downgrade.
     defaultConfig {
-        versionCode = 21
-        versionName = "0.4.6"
+        versionCode = 23
+        versionName = "0.4.6.1"
     }
     // STORES-PLAN 1: one codebase, two store builds, the same applicationId and signing certificate.
     // `full` (GitHub and F-Droid) checks GitHub for a newer release and offers the optional add-ons;
