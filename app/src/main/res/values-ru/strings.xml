@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Очисти свой ТВ</string>
+    <string name="connect">Подключиться</string>
+    <string name="disconnect">Отключиться</string>
+    <string name="clean">Очистить</string>
+    <string name="start_cleaning">Начать очистку</string>
+    <string name="stop_cleaning">Остановить</string>
+    <string name="settings">Настройки</string>
+    <string name="customize">Настроить</string>
+    <string name="check_for_updates">Проверить обновления</string>
+    <string name="connected">Подключено</string>
+    <string name="disconnected">Отключено</string>
+    <string name="error">Ошибка</string>
+    <string name="success">Успешно</string>
+    <string name="tv_not_found">Телевизор не найден</string>
+    <string name="connecting">Подключение...</string>
+    <string name="cleaning_in_progress">Очистка...</string>
+</resources>
