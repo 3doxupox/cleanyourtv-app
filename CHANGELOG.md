@@ -2,6 +2,14 @@
 
 All notable changes to the app. Versions follow [semantic versioning](https://semver.org/).
 
+## 0.4.6.1 (2026-10-28)
+
+- A TV that got a new address on your Wi-Fi (after a TV update, a mesh network or a new router)
+  is found again: when its saved address does not answer, the app looks for it on the network,
+  checks it is the same TV with the key it already allowed, and saves the new address. Before,
+  the app waited at "Waiting for the TV..." for good. No other TV is connected, and none shows
+  an Allow prompt.
+
 ## 0.4.6 (2026-10-28)
 
 ### Home screen
