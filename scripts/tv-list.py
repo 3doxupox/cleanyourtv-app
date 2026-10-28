@@ -112,6 +112,26 @@ REASONS = {
     "TV_REFUSES": ("This TV refuses other home screens, so the app does the clean-up only.", None),
     "TEST_R0": ("The switch with the setup wizard left on works in our test builds for every brand; a release gives it to a brand once its testers confirm the new home screen stays after a restart.", None),
 }
+# The same in a few words, for the TV's one line on the page (after "Keeps its own home screen: " or
+# "Clean-up only: ").
+SHORT = {
+    "WIZARD_WIFI": "its setup wizard saved the Wi-Fi.",
+    "WIZARD_WIFI_UNKNOWN": "it could not say who saved the Wi-Fi.",
+    "WIZARD_STAYS_ON": "its setup wizard could take over Home.",
+    "UNKNOWN_HOME": "we don't know it yet.",
+    "VENDOR_HOME": "a system service also answers Home.",
+    "BOOT_LOOP": "its setup wizard returns at every restart.",
+    "CASTING": "casting would stop after a restart.",
+    "REMOTE_BUTTONS": "the remote's app buttons need it.",
+    "OTHER_HOME": "another home screen app answers Home.",
+    "HOME_CHANGED": "another home screen app is the default.",
+    "PATCHWALL_FEEDS": "PatchWall is on while its feeds are off.",
+    "FIRE_OS": "Fire OS keeps Amazon's home screen.",
+    "TCL_CN": "TCL's China firmware allows no other home.",
+    "OLD_ANDROID": "the new home screen needs Android 8 or newer.",
+    "TV_REFUSES": "this TV refuses other home screens.",
+    "TEST_R0": "works in our test builds.",
+}
 NOT_POSSIBLE = {"FIRE_OS", "TCL_CN", "OLD_ANDROID", "TV_REFUSES"}
 WIZARD_BLOCKS = {"WIZARD_STAYS_ON", "WIZARD_WIFI", "WIZARD_WIFI_UNKNOWN"}
 
@@ -507,8 +527,8 @@ def main(argv=None):
         "statuses": [{"id": s, "label": STATUSES[s][0], "means": STATUSES[s][1], "tvs": counts.get(s, 0)} for s in ORDER],
         "cleanups": CLEANUPS,
         "homes": HOMES,
-        "reasons": {k: {"why": v[0], **({"change": v[1]} if v[1] else {})} for k, v in sorted(REASONS.items())},
-        "coming_soon": [{"id": i["id"], "title": i["title"], "version": i["version"], "what": i["what"]} for i in soon["items"]],
+        "reasons": {k: {"why": v[0], "short": SHORT[k], **({"change": v[1]} if v[1] else {})} for k, v in sorted(REASONS.items())},
+        "coming_soon": [{"id": i["id"], "title": i["title"], "version": i["version"], "short": i["short"], "what": i["what"]} for i in soon["items"]],
         "tvs": rows,
     }
     text = dumps(doc)
