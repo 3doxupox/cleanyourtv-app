@@ -10,6 +10,12 @@ Builds one row per TV (brand, model and codename) from three inputs, models and 
      android, res, b046final, r0Blocker, heldOut, resolved, claimants). b046final is the release's
      HomeBlock; NONE means the switch is planned.
   3. site/tvs/coming-soon.json, kept by hand: what the next versions bring, with match rules.
+  4. Optionally the confirmations table the issue routine keeps (-k, research/release-0.4.7/
+     confirmations.json, from scripts/triage/confirm.py on the triage-bot branch): for each brand and
+     Android version, how many testers confirmed the new home screen stayed after a restart, and how
+     many the graduation rule needs (2 on a version already proven for the brand, 3 otherwise). Next
+     test build TVs, and Coming soon TVs waiting for that count, show "N of M confirmations". Only the
+     counts are read, never who confirmed.
 
 Statuses, best first: new (the release gives the new home screen), test ("Next test build": our
 test builds do, through the switch with the setup wizard left on for any brand), soon (named in coming-soon.json),
@@ -54,6 +60,7 @@ import urllib.parse
 
 SCHEMA = 1
 DEFAULT_APP = "/Users/jarvis/hobby/tv-vibe/cyt-wt/up046"
+DEFAULT_CONFIRMATIONS = "/Users/jarvis/hobby/tv-vibe/research/release-0.4.7/confirmations.json"
 PROFILE_META = "core/spec/src/main/resources/tv/cleanyour/core/spec/profile-meta.json"
 CANDIDATE_META = "core/spec/candidates/candidate-meta.json"
 REPO = "https://github.com/udhaykumarbala/cleanyourtv-app"
@@ -298,7 +305,27 @@ def most(counter):
     return sorted(counter, key=lambda k: (-counter[k], k))[0] if counter else None
 
 
-def build(profiles, cands, reports, soon_items, upstream):
+class Confirmations:
+    """The counts per brand family and SDK from the routine's table (pairs and its rule), nothing else."""
+
+    def __init__(self, doc):
+        rule = doc.get("rule", {})
+        self.families = rule.get("families", {})
+        self.proven = {k: range(v[0], v[1] + 1) for k, v in rule.get("proven", {}).items()}
+        self.need_proven, self.need_new = rule.get("need_proven", 2), rule.get("need_new", 3)
+        self.held = {(p["brand"], p["sdk"]): p["held"] for p in doc.get("pairs", [])}
+
+    def family(self, brand):
+        k = brand_key(brand)
+        return self.families.get(k, k)
+
+    def of(self, brand, sdk):
+        fam = self.family(brand)
+        need = self.need_proven if sdk in self.proven.get(fam, ()) else self.need_new
+        return {"have": min(self.held.get((fam, sdk), 0), need), "need": need, "android": ANDROID.get(sdk, f"SDK {sdk}")}
+
+
+def build(profiles, cands, reports, soon_items, upstream, confirmations=None):
     spellings = collections.defaultdict(list)
     groups = collections.OrderedDict()
     for r in reports:
@@ -398,6 +425,14 @@ def build(profiles, cands, reports, soon_items, upstream):
             row["lists"] = sorted(lists)
         if test_lists:
             row["test_lists"] = sorted(test_lists)
+        waits = status == "test" or (status == "soon" and items and
+                                     next(i for i in soon_items if i["id"] == items[0]).get("match", {}).get("r0"))
+        if confirmations and waits:
+            # The count for this TV's brand and Android version (the best of its reports with this status).
+            sdks = [sdk_of(r["android"]) for r, j in zip(rs, judged) if j[0] == status and sdk_of(r["android"])]
+            if sdks:
+                row["confirm"] = max((confirmations.of(r["brand"], sdk) for r in rs for sdk in sdks if sdk_of(r["android"]) == sdk),
+                                     key=lambda c: (c["have"] / c["need"], c["android"]))
         row["reports"] = len(rs)
         rows.append(row)
 
@@ -466,12 +501,18 @@ def noscript(rows, statuses):
         out.append(f'<p class="ns-m">{html.escape(statuses[s][1])}</p>')
         out.append('<ul class="ns">')
         for t in mine:
-            extra = ", ".join(x for x in (", ".join(t["codenames"]), ("Android " + ", ".join(t["android"])) if t["android"] else "") if x)
+            extra = ", ".join(x for x in (", ".join(t["codenames"]), ("Android " + ", ".join(t["android"])) if t["android"] else "",
+                                          confirm_text(t)) if x)
             q = urllib.parse.quote(t["models"][0] if t["models"] else t["name"])
             out.append(f'<li><b>{html.escape(t["brand"])} {html.escape(t["name"])}</b> <small>{html.escape(extra)}</small>'
                        f' <a href="{REPO}/issues?q={q}">issues</a></li>')
         out.append("</ul>")
     return "\n".join(out)
+
+
+def confirm_text(t):
+    c = t.get("confirm")
+    return f'{c["have"]} of {c["need"]} confirmations' if c else ""
 
 
 def dumps(doc):
@@ -495,6 +536,8 @@ def main(argv=None):
     ap.add_argument("-t", "--test-build-url", dest="test_build_url",
                     help="a link to the published test build for the Next test build TVs (default: none, so the page links no pre-release)")
     ap.add_argument("-p", dest="page", help="the page whose noscript list to refresh (site/tvs/index.html)")
+    ap.add_argument("-k", dest="confirmations", default=DEFAULT_CONFIRMATIONS if os.path.exists(DEFAULT_CONFIRMATIONS) else None,
+                    help="the issue routine's confirmations.json, for N of M confirmations (default: %(default)s when it exists; '' for none)")
     a = ap.parse_args(argv)
 
     if a.app.endswith(".json"):
@@ -508,7 +551,8 @@ def main(argv=None):
     with open(a.scan, encoding="utf-8", newline="") as f:
         reports = list(csv.DictReader(f, delimiter="\t"))
 
-    rows = build(meta["profiles"], cands, reports, soon["items"], upstream)
+    confirmations = Confirmations(load(a.confirmations)) if a.confirmations else None
+    rows = build(meta["profiles"], cands, reports, soon["items"], upstream, confirmations)
 
     if a.date:
         date = a.date
@@ -521,7 +565,8 @@ def main(argv=None):
         "schema": SCHEMA,
         "generated_at": date,
         "release": a.release,
-        "sources": {"lists": len(meta["profiles"]), "test_lists": len(cands), "reports": len(reports), "upstream": upstream},
+        "sources": {"lists": len(meta["profiles"]), "test_lists": len(cands), "reports": len(reports), "upstream": upstream,
+                    **({"confirmed": sum(confirmations.held.values())} if confirmations else {})},
         "links": {"issues": f"{REPO}/issues?q=", "list": f"{UPSTREAM}/tree/{upstream}/examples/", "app": f"{REPO}/releases/latest",
                   **({"test_build": a.test_build_url} if a.test_build_url else {})},
         "statuses": [{"id": s, "label": STATUSES[s][0], "means": STATUSES[s][1], "tvs": counts.get(s, 0)} for s in ORDER],
