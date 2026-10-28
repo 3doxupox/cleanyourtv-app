@@ -363,8 +363,8 @@
   },
   {
    "login": "Skirttles",
-   "tv": "MY Android TV",
-   "brand": "MY",
+   "tv": "Cecotec QLED 55\" V1",
+   "brand": "Cecotec",
    "what": "Confirmed the 0.4.6 test build works with every change made.",
    "issue": 864,
    "foundBug": false,
@@ -477,6 +477,123 @@
    "issue": 1219,
    "foundBug": true,
    "joined": 52
+  },
+  {
+   "login": "j2wznw5k7h-ui",
+   "tv": "SHARP 2K EU Android TV",
+   "brand": "SHARP",
+   "what": "Tried the 0.4.6 test build on Android 14 and confirmed the new home screen installs.",
+   "issue": 194,
+   "foundBug": false,
+   "joined": 53
+  },
+  {
+   "login": "GabrielZinatoSP",
+   "tv": "Philco AI PONT",
+   "brand": "Philco",
+   "what": "Confirmed the 0.4.6 test build gives this TV the new home screen.",
+   "issue": 823,
+   "foundBug": false,
+   "joined": 54
+  },
+  {
+   "login": "lenrig",
+   "tv": "SHARP AQUOS TVE19A",
+   "brand": "SHARP",
+   "what": "Confirmed the 0.4.6 test build changes the home screen with no problems.",
+   "issue": 852,
+   "foundBug": false,
+   "joined": 55
+  },
+  {
+   "login": "chehabkha",
+   "tv": "Sony BRAVIA 4K UR3",
+   "brand": "Sony",
+   "what": "Ran the 0.4.5 list again and confirmed it works.",
+   "issue": 871,
+   "foundBug": false,
+   "joined": 56
+  },
+  {
+   "login": "ThomasBates1",
+   "tv": "Kogan AI PONT",
+   "brand": "Kogan",
+   "what": "Checked the new home screen stays after a restart.",
+   "issue": 881,
+   "foundBug": false,
+   "joined": 57
+  },
+  {
+   "login": "IworiKoso",
+   "tv": "Nokia Android TV",
+   "brand": "Nokia",
+   "what": "Confirmed the 0.4.6 test build works on this TV.",
+   "issue": 1059,
+   "foundBug": false,
+   "joined": 58
+  },
+  {
+   "login": "dwapir",
+   "tv": "Philips 55PUS7334",
+   "brand": "Philips",
+   "what": "Found the home screen kept reverting, then confirmed the 0.4.6 test build fixed it.",
+   "issue": 1232,
+   "foundBug": true,
+   "joined": 59
+  },
+  {
+   "login": "timav97-byte",
+   "tv": "Xiaomi MiTV-MZTU1",
+   "brand": "Xiaomi",
+   "what": "Confirmed the new home screen works on the 0.4.6 test build.",
+   "issue": 1505,
+   "foundBug": false,
+   "joined": 60
+  },
+  {
+   "login": "nahos2585",
+   "tv": "Sony BRAVIA Android TV 9",
+   "brand": "Sony",
+   "what": "Dug into a connection failure until we found the bug, then confirmed the fix.",
+   "issue": 783,
+   "foundBug": true,
+   "joined": 61
+  },
+  {
+   "login": "napfkuchen1",
+   "tv": "PHILIPS QM163E",
+   "brand": "Philips",
+   "what": "Checked the new home screen survives a cold boot.",
+   "issue": 1350,
+   "foundBug": false,
+   "joined": 62
+  },
+  {
+   "login": "cesarbuzatto",
+   "tv": "Homatics Box R 4K Plus",
+   "brand": "Homatics",
+   "what": "Confirmed the 0.4.6 test build installs and applies the new home screen.",
+   "issue": 654,
+   "foundBug": false,
+   "joined": 63
+  },
+  {
+   "login": "Mystic135",
+   "tv": "WALTON Android TV",
+   "brand": "Walton",
+   "what": "Checked the switch holds after a restart and found a dock bug.",
+   "issue": 1166,
+   "foundBug": true,
+   "joined": 64
+  },
+  {
+   "login": "sonicatu",
+   "tv": "Horizon TV",
+   "brand": "Horizon",
+   "what": "Confirmed the 0.4.6 test build works and told us Live TV was hard to find.",
+   "issue": 1370,
+   "foundBug": false,
+   "joined": 65
   }
  ]
 }
