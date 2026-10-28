@@ -147,7 +147,7 @@
    "title": "Xiaomi and Redmi TVs on Android 14",
    "version": "0.4.7",
    "short": "the new home screen.",
-   "what": "The new home screen with the setup wizard left on, as on Android 9 to 11, now that testers confirmed it on Android 14."
+   "what": "The new home screen with the setup wizard left on, as on Android 9 to 11. It works in our test builds, and it comes to everyone once one more tester confirms it on Android 14."
   },
   {
    "id": "chromecast",
